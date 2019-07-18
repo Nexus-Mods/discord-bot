@@ -1,0 +1,35 @@
+{
+  "name": "nexus-mods-bot",
+  "version": "1.0.0",
+  "description": "Nexus Mods bot for Discord, featuring integration with Nexus API.",
+  "main": "index.js",
+  "engines": {
+    "node": "10.x",
+    "npm": "*"
+  },
+  "dependencies": {
+    "better-sqlite-pool": "^0.2.0",
+    "discord.js": "^11.5.0",
+    "dotenv": "^8.0.0",
+    "enmap": "^4.6.2",
+    "fuse.js": "^3.4.4",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.5",
+    "rss-parser": "^3.6.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/Pickysaurus/nexus-mods-bot.git"
+  },
+  "author": "Mike \"Pickysaurus\" Watling @ Nexus Mods",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://gitlab.com/Pickysaurus/nexus-mods-bot/issues"
+  },
+  "homepage": "https://gitlab.com/Pickysaurus/nexus-mods-bot#readme"
+}
