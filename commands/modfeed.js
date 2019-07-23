@@ -25,7 +25,7 @@ exports.run = async (client, message, args) => {
     //Not allowed in server/rolecheck
     if (!message.guild) return message.channel.send("This feature is not available in DMs.").catch(console.error);
 
-    if (!message.member.hasPermissions("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to use this feature.");
+    if (!message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to use this feature.");
 
     //No args - explain feature, show subs for this channel.
     if (args.length === 0) {

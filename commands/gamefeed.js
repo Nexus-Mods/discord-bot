@@ -24,7 +24,7 @@ exports.run = async (client, message, args) => {
     //Not allowed in server/rolecheck
     if (!message.guild) return message.channel.send("This feature is not available in DMs.").catch(console.error);
 
-    if (!message.member.hasPermissions("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to use this feature.");
+    if (!message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to use this feature.");
 
     
     //No args - explain feature, show subs for this channel.
@@ -323,7 +323,6 @@ async function checkGames() {
                     try {
                 var updateData =  updateList[i]
                         changeLog = await nexusAPI.modChangelogs(discordUser, update.game, updateData.mod_id);
-                        //changeLog = JSON.parse(changeLog);
                     } 
                     catch(err) {
                         console.log(`Failed to get changelogs for ${modInfo.name} - ${err}`);
@@ -398,6 +397,7 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/cover_${game.id}.jpg`)
     if (changeLog && Object.keys(changeLog).find(id => modInfo.version === id)) {
         let versionChanges = changeLog[Object.keys(changeLog).find(id => modInfo.version === id)].join("\n");
+        if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
         embed.addField("Changelog", versionChanges);
     }
     embed.addField("Author", modInfo.author, true)
