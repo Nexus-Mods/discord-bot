@@ -31,7 +31,11 @@ module.exports = (client, message) => {
 
     if (message.embeds.length) {
         let embedString = message.embeds.map(item => item.title);
-        if (embedString.length > 0) deleteReport.addField("Embeds", embedString.join("\n"));
+        console.log(embedString.join());
+        if (embedString.length > 0 && embedString.join() !== "") {
+            embedString = embedString.join("\n");
+            deleteReport.addField("Embeds", embedString);
+        } 
     }
     
     moderationChannel.send(deleteReport).catch(console.error);
