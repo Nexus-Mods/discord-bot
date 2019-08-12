@@ -31,7 +31,6 @@ module.exports = (client, message) => {
 
     if (message.embeds.length) {
         let embedString = message.embeds.map(item => item.title);
-        console.log(embedString.join());
         if (embedString.length > 0 && embedString.join() !== "") {
             embedString = embedString.join("\n");
             deleteReport.addField("Embeds", embedString);

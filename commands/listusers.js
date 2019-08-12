@@ -19,7 +19,7 @@ exports.run = async (client, message, args) => {
 
     linkedAccounts.forEach(function(element) {
         //console.log(element)
-        if (element.apikey) element.apikey = 'Valid'
+        //if (element.apikey) element.apikey = 'Valid'
         fullMemberData.push(element)
     })
     //console.log(fullMemberData)
