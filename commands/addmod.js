@@ -80,7 +80,7 @@ exports.run = async (client, message, args) => {
             .setDescription(`Added ${ownedMod.length} mods to [${userData.nexusName}](https://www.nexusmods.com/users/${userData.nexusID}) (Discord account: ${message.author})${updatedModCount ? ` and updated the download counts for ${updatedModCount} existing mods.`:"."}`)
             var newModsList = ""
             for (i = 0; i < ownedMod.length && newModsList.length < 950; i++) {
-                newModsList = newModsList + `[${ownedMod[i].name} for ${ownedMod[i].gameTitle}](https://nexusmods.com${newModData[0].url}) - ${Number(ownedMod[i].downloads).toLocaleString()} downloads\n`;
+                newModsList = newModsList + `[${ownedMod[i].name} for ${ownedMod[i].domain}](https://nexusmods.com${newModData[0].url}) - ${Number(ownedMod[i].downloads).toLocaleString()} downloads\n`;
             }
             addSuccessEmbed.addField("Added mods", newModsList)
             .setThumbnail(`https://staticdelivery.nexusmods.com${newModData[0].image}`)
