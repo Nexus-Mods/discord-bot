@@ -186,7 +186,7 @@ exports.run = async (client, message, args) => {
     .setAuthor(message.author.tag, message.author.avatarURL)
     .setColor(0xda8e35)
     .setTitle(`Create feed in ${message.channel.name}?`)
-    .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/cover_${gameToSubscribe.id}.jpg`)
+    .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameToSubscribe.id}.jpg`)
     .setDescription(`New and updated mods for ${gameToSubscribe.name} will be posted in ${message.channel} periodically. \nAdult content ${allowAdultContent ? "will" : "will not"} be included.\nThe API key for ${linkedUser.nexusName} will be used.`)
     .addField(`Options`, "React with ✅ to confirm or ❌ to cancel.")
     .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
@@ -394,7 +394,7 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
     .setURL(`https://www.nexusmods.com/${modInfo.domain_name}/mods/${modInfo.mod_id}`)
     .setDescription(sanitiseBreaks(modInfo.summary))
     .setImage(modInfo.picture_url)
-    .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/cover_${game.id}.jpg`)
+    .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`)
     if (changeLog && Object.keys(changeLog).find(id => modInfo.version === id)) {
         let versionChanges = changeLog[Object.keys(changeLog).find(id => modInfo.version === id)].join("\n");
         if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
