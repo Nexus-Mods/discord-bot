@@ -4,6 +4,7 @@ const link = require('./commands/link.js'); //Contains saved users
 const serverConfig = require('./serverconfig.json') //For server specific settings.
 const nexusAPI = "https://api.nexusmods.com/" //for all regular API functions
 const nexusSearchAPI ="https://search.nexusmods.com/mods"; //for quicksearching mods
+const nexusStatsAPI = "https://staticstats.nexusmods.com/live_download_counts/mods/"; //for getting stats by game.
 const requestHeader = {
     "Application-Name": "Nexus Mods Discord Bot",
     "Application-Version": 1.0,
@@ -125,4 +126,39 @@ exports.modChangelogs = async (user, gameDomain, modID) => {
     catch (err) {
         throw new Error(`API Error: Nexus Mods API responded with ${err.statusCode}.`)
     }
+}
+
+exports.getDownloads = async (discordUser, gameDomain, modID = -1) => {
+    try {
+        const gameList = await JSON.parse(games(discordUser, false));
+        const gameId = gameList.find(g => g.domain_name == gameDomain) ? gamesList.find(g => g.domain_name == gameDomain).id : -1;
+        if (gameId === -1) return new Error(`Could not resolve game ID for ${gameDomain}`);
+        //Get the stats CSV for this game.
+        const statsCSV = await requestPromise({url: `${nexusStatsAPI}${gameId}.csv`});
+        //Map the CSV into a JS Object.
+        const gameStats = statsCSV.split(/\n/).map(
+            row => {
+                const values = row.split(",");
+                if (values.length !== 3) {
+                    //Just in case we get some bad data. 
+                    console.log(`Invalid row in CSV for ${gameDomain} (${gameId}): ${row} `);
+                    return undefined;
+                }
+                return {
+                    id: parseInt(values[0]),
+                    totalDownloads: values[1],
+                    uniqueDownloads: values[2]
+                }
+            }
+        );
+
+        //if we requested a specific mod, return the mod data.
+        if (modID !== -1) return gameState.find(m => m.id === parseInt(modID));
+        //otherwise return the entire game.
+        else return gameStats
+    }
+    catch(err) {
+        throw new Error(`Could not retrieve download data for ${gameDomain} ${modID} \n ${err}`);
+    }
+
 }

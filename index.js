@@ -2,10 +2,9 @@ const Discord = require("discord.js");
 const Enmap = require("enmap");
 const fs = require("fs");
 require("dotenv").config();
-client = new Discord.Client({
-    sync: true,
-    disabledEvents : ['TYPING_START',]
-});
+
+//Setup the Discord Client
+client = new Discord.Client({sync: true, disabledEvents : ['TYPING_START',]});
 const config = require("./config.json");
 client.config = config;
 exports.clientshared = client;
@@ -27,7 +26,7 @@ fs.readdir("./commands/", (err, files) => {
         if (!file.endsWith(".js")) return;
         let props = require(`./commands/${file}`);
         let commandname = file.split(".")[0];
-        console.log(`Attempting to load command ${commandname}`);
+        console.log(`Loading command ${commandname}`);
         client.commands.set(commandname, props);
     });
 });
