@@ -12,9 +12,10 @@
     "discord.js": "^11.5.1",
     "dotenv": "^8.2.0",
     "enmap": "^4.8.7",
-    "fuse.js": "^3.4.5",
+    "fuse.js": "^3.4.6",
+    "pg": "^7.14.0",
     "request": "^2.88.0",
-    "request-promise-native": "^1.0.7",
+    "request-promise-native": "^1.0.8",
     "rss-parser": "^3.7.3"
   },
   "devDependencies": {},
