@@ -12,20 +12,9 @@ module.exports.help = {
     officialOnly: false 
 }
 
-exports.run = async (client, message, args) => {
-    //Grab the server data from the JSON first
-    if (!serverConfig) return console.log("Server config JSON is missing.")
-    var serverInfo = serverConfig.find(s => s.id === message.guild.id)
-    //console.log(JSON.stringify(serverInfo, null , 2))
+exports.run = async (client, message, serverData) => {    
 
-    //NEED TO ADD MISSING SERVER TO THE JSON FILE
-    if (!serverInfo) {
-        serverInfo = exports.createServerEntry(message.guild)
-    } 
-
-    
-
-    if (message.guild === [null]) return console.log("Invalid server for serverinfo") //ignore DMs
+    if (!message.guild) return //ignore DMs
 
     if(!message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("Server configuration is only available to admininstrators.") //Don't let non-admins mess with these settings.
 
