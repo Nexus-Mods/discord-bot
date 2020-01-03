@@ -1,6 +1,5 @@
-const link = require("./link.js");
+const { getUserByDiscordId } = require("../api/bot-db.js");
 const Discord = require('discord.js');
-const serverConfig = require('./../serverconfig.json') //For server specific settings.
 
 module.exports.help = {
     name: "ban",
@@ -11,14 +10,13 @@ module.exports.help = {
     officialOnly: true 
 }
 
-exports.run = async (client, message, args) => {
+exports.run = async (client, message, args, serverData) => {
     //if DM return
     if (!message.guild) return
     
     //CHECK IF A NEXUS MODS OFFICIAL SERVER!!!!
-    const serverSettings = serverConfig.find(s => s.id === message.guild.id);
-    if (!serverSettings.official) return // doesn't work on non-Nexus Mods servers.
-    var logChannel = serverSettings.nexusLogChannel ? message.guild.channels.find(c => c.id === serverSettings.nexusLogChannel) : undefined //where are we going to output the ban info?
+    if (!serverData.official) return // doesn't work on non-Nexus Mods servers.
+    var logChannel = serverData.nexusLogChannel ? message.guild.channels.find(c => c.id === serverSettings.nexusLogChannel) : undefined //where are we going to output the ban info?
 
 
     //check valid permissions
@@ -40,8 +38,7 @@ exports.run = async (client, message, args) => {
     if (!memberToBanDiscord.bannable || memberToBanDiscord === client.user) return message.reply("you cannot ban "+memberToBanDiscord)
     
     //Collect moderator data and user data
-    const linkedAccounts = link.linkedAccounts
-    var memberToBanNexus = linkedAccounts.get(memberToBanDiscord.id)
+    const memberToBanNexus = getUserByDiscordId(memberToBanDiscord.id);
     var moderator = message.author
 
     //Trim off the first arguement as this is the member we want gone. 
@@ -74,7 +71,7 @@ exports.run = async (client, message, args) => {
             .setImage(banEvidence[0])
         }
         //Report their Nexus Mods account, if it exists.
-        if (memberToBanNexus) banLoggingEmbed.addField("Nexus Mods Profile",`[${memberToBanNexus.nexusName}](https://www.nexusmods.com/users/${memberToBanNexus.nexusID})`)
+        if (memberToBanNexus) banLoggingEmbed.addField("Nexus Mods Profile",`[${memberToBanNexus.name}](https://www.nexusmods.com/users/${memberToBanNexus.id})`)
         //Print into the server log. 
         banLogMessage = await logChannel.send(banLoggingEmbed).catch(console.error)
     }

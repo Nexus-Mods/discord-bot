@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const nexusAPI = require('./../nexus-discord.js');
 const Fuse = require('fuse.js'); //https://fusejs.io/
-const serverConfig = require("../serverconfig.json");
+const { getUserByDiscordId } = require('../api/bot-db.js');
 
 
 module.exports.help = {
@@ -13,12 +13,14 @@ module.exports.help = {
     officialOnly: false 
 }
 
-exports.run = async (client, message, args) => {
-    const serverSettings = message.guild && serverConfig.find(s => s.id === message.guild.id);
-    var replyChannel = serverSettings && serverSettings.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
+exports.run = async (client, message, args, serverData) => {
+    const replyChannel = serverData && serverData.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
+
+    const userData = getUserByDiscordId(message.author.id);
+    if(!userData) return replyChannel.send(`${replyChannel !== message.channel ? message.author+" " : ""}Please link your account to the before using this feature. See \`!nm link\` for more information.`)
 
     try {
-        var gamelist = await nexusAPI.games(message.author, 1)
+        const gamelist = await nexusAPI.games(userData, 1)
             
         var searchTerm = args.join(" ")
 
@@ -71,7 +73,7 @@ exports.run = async (client, message, args) => {
 
             if (!gameInfo.approved_date || gameInfo.approved_date < 1) {
                 gameMessage.addField("Unapproved Game",`${gameInfo.name} is pending approval by Nexus Mods staff. Once a mod has been uploaded and reviewed the game will be approved.\n[How can I add a new game to Nexus Mods?](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`)
-                .setImage(`https://www.nexusmods.com/Contents/Images/games/cover_pending.jpg`)
+                .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_empty.png`);
             }
                 
             return replyChannel.send(`${replyChannel !== message.channel ? message.author+" " : ""}Game Search for ${searchTerm}`,gameMessage)
