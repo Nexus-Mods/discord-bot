@@ -16,7 +16,7 @@ exports.run = async (client, message, args, serverSettings) => {
     if (!message.guild) return //this doesn't work in DMs
     
     //Grab settings for current server
-    const searchResultsChannel = serverSettings && serverSettings.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
+    //const searchResultsChannel = serverSettings && serverSettings.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
 
 
     if (!serverSettings || serverSettings.webhookID === "" || serverSettings.webookToken === "") return message.channel.send("Mod search is not set up in this server.")
