@@ -177,3 +177,28 @@ exports.deleteServer = (guildId) => {
         });
     });
 }
+
+// Read and write latest news post
+
+exports.getSavedNews = () => {
+    return new Promise((resolve, reject) => {
+        pool.query('SELECT * FROM news', [], (error, results) => {
+            if (error) reject(error);
+            resolve(results.rows[0]);
+        });
+    });
+}
+
+exports.updateSavedNews = (newsArticle) => {
+    return new Promise((resolve, reject) => {
+        pool.query('DELETE * FROM news', [], (error, results) => {
+            if (error) return reject(error);
+        })
+        .then( () => {
+                pool.query('INSERT INTO news (title, date) VALUES ($1, $2)', [newsArticle.title, newsArticle.date], (error, results) => {
+                    if (error) return reject(error);
+                    resolve(true);
+                });
+            });
+    });
+}
