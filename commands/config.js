@@ -14,12 +14,40 @@ module.exports.help = {
 
 exports.run = async (client, message, serverData) => {    
 
-    if (!message.guild) return //ignore DMs
+    if (!message.guild || !serverData) return //ignore DMs
 
-    if(!message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("Server configuration is only available to admininstrators.") //Don't let non-admins mess with these settings.
+    if(!message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("Server configuration is only available to admininstrators."); //Don't let non-admins mess with these settings.
 
     if (args.length !== 0) {
         //console.log(args)
+        switch (args[0]) {
+            case "logging":
+                setChannel("logging", args.slice(1), serverData, message);
+                break;
+            case "nexuslog":
+                setChannel("nexuslog", args.slice(1), serverData, message);
+                break;
+            case "botchannel":
+                setChannel("botchannel", args.slice(1), serverData, message);
+                break;
+            case "newschannel":
+                setChannel("botchannel", args.slice(1), serverData, message);
+                break;
+            case "linkedrole":
+                setRole("linkedrole"), args.slice(1), serverData, message);
+                break;
+            case "premiumrole":
+                setRole("premiumrole"), args.slice(1), serverData, message);
+                break;
+            case "supporterrole":
+                setRole("supporterrole"), args.slice(1), serverData, message);
+                break;
+            case "authorrole":
+                setRole("authorrole"), args.slice(1), serverData, message);
+                break;
+            default: 
+                return message.reply(`"${args[0]}" is an invalid command for config.`);       
+        }
 
         //Turn off the logging and clear the saved info. 
         if (args[0] === "loggingoff" && serverInfo.logging) {
@@ -225,6 +253,30 @@ exports.run = async (client, message, serverData) => {
 
 }
 
+function setChannel(type, args, serverData, message) {
+    switch (type) {
+        case "logging":
+            // DO STUFF
+            break;
+        case "nexuslog":
+            // DO STUFF
+            break;
+        case "bot":
+            // DO STUFF
+            break;
+        case "news":
+            // DO STUFF
+            break;
+        
+    }
+}
+
+function logging(serverData, args, message) {
+    // Turn logging on or off.
+    const newChannel = (message.mentions.channels ? message.mentions.channels.first(): undefined) || (args.length ? message.guild.channels.find(c => c.name === args[0]) || message.guild.channels.find(c => c.id === args[0]) : undefined);
+    if (!newChannel)
+}
+
 function updateJSON(newJSON) {
     fs.writeFile("serverconfig.json", JSON.stringify(newJSON, null, 2), function(err){
         if (err) throw err;
@@ -255,3 +307,23 @@ exports.createServerEntry = (newGuild) => {
     updateJSON(serverConfig)
     return newData
 }
+
+/*
+Server Data structure
+{
+   id: guildId,
+   official: nexusModsOffical?,
+   channel_bot: previously defaultChannel,
+   channel_nexus: previously nexusLogChannel,
+   channel_log: previously logChannel,
+   role_author: previously modAuthorRole,
+   role_premium: previously premiumRole,
+   role_supporter: previously supporterRole,
+   role_linked: previously linkedRole,
+   author_min_downloads: previously modAuthorDownloadMinimum,
+   game_filter: previously searchGameFilter,
+   search_whid: previously webhookID,
+   search_whtoken: previously webhookToken,
+   server_owner: guild.ownerID NEW!
+}
+*/
