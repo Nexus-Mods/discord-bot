@@ -28,8 +28,8 @@ module.exports = async (client) => {
       await deleteServer(server.id);
       return console.log(`${new Date().toLocaleString()} - Deleting non-existant server: ${server.id}`);
     };
-    if (server.nexus_log) {
-      const logChannel = discordGuild.channels.find(c => c.id === server.nexus_log);
+    if (server.channel_news) {
+      const logChannel = discordGuild.channels.find(c => c.id === server.channel_news);
       if (!logChannel) return console.log(`${new Date().toLocaleString()} - Log channel no longer exists for: ${discordGuild.name}`)
       onlineEmbed.setTimestamp(new Date());
       logChannel.send(onlineEmbed).catch((err) => console.error(`${new Date().toLocaleString()} - Error posting online notice to log channel in ${discordGuild.name}\n${err}`));
