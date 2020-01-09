@@ -10,8 +10,8 @@ const parser = new Parser({
 let client;
 
 //RSS feed watcher
-exports.run = async (client) => {
-    const client = client;
+exports.run = async (cl) => {
+    client = cl;
     await checknews()
     const delay = (1000*60*60*3) //3 hours 
     setInterval(checknews, delay);

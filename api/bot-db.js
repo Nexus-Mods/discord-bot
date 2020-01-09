@@ -202,3 +202,29 @@ exports.updateSavedNews = (newsArticle) => {
             });
     });
 }
+
+// GAME FEED MANAGEMENT
+
+exports.getAllGameFeeds = () => {
+
+}
+
+exports.getGameFeed = (feedId) => {
+
+}
+
+exports.getGameFeedsForServer = (serverId) => {
+
+}
+
+exports.createGameFeed = (newFeed) => {
+
+}
+
+exports.updateGameFeed = (feedId, newData) => {
+    
+}
+
+exports.deleteGameFeed = (feedId) => {
+
+}
