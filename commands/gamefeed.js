@@ -1,6 +1,5 @@
 const {linkedAccounts} = require('./link.js');
 const Enmap = require("enmap");
-const serverConfig = require('./../serverconfig.json') //For server specific settings.
 const Discord = require("discord.js");
 const nexusAPI = require('./../nexus-discord.js');
 const gameUpdates = new Enmap({
@@ -240,136 +239,11 @@ exports.run = async (client, message, args) => {
 const delay = 1000*60*10; //10mins
 let gameUpdateTimer
 
-gameUpdates.defer.then(() => {
-    gameUpdateTimer = setInterval(checkGames, delay);
-    console.log(`${new Date()} - Game updates scheduled every ${delay/60/1000} minutes.`);
-    client.on("ready", checkGames);
-});
-
-async function checkGames() {
-    if (gameUpdates.count === 0 || !client) return
-    console.log(`${new Date()} - Checking for updates across ${gameUpdates.count} game feeds.`);
-
-    gameUpdates.forEach(async function (update) {
-        //Get member data
-        var feedID = gameUpdates.findKey(u => u === update);
-        var userLink = linkedAccounts.get(update.user);
-        var discordUser = client.users.find(u => u.id === update.user);
-        if (!userLink && client) {
-            console.log(`Deleted update for ${update.gameTitle} in ${client.guilds.find(g => g.id === update.guild)} as there is no longer an account linked to ${client.users.find(u => u.id === update.user)}`)
-            return gameUpdates.delete(gameUpdates.findKey(u => u === update));
-        }
-
-        //Check API key
-        try {
-            nexusAPI.validate(userLink.apikey);
-        }
-        catch(err) {
-            if (err.message.indexOf("401") === -1) return console.log(`Skipped update for ${update.gameTitle} in ${client.guilds.find(g => g.id === update.guild)} as the API encountered an error. ${err.message}`);
-            console.log(`Skipped update for ${update.gameTitle} in ${client.guilds.find(g => g.id === update.guild)} as the API key for ${userLink.nexusName} is invalid.`);
-        }
-
-        //Check channel is valid
-        var postGuild = client.guilds.find(g => g.id === update.guild);
-        var postChannel = client.channels.find(c => c.id === update.channel);
-        if ((!postChannel || !postGuild) && client) {
-            console.log(`Deleted update for ${update.gameTitle} in ${client.guilds.find(g => g.id === update.guild)} as the channel or guild could not be found.`)
-            return gameUpdates.delete(gameUpdates.findKey(u => u === update));
-        }
-
-        //Pull newest mods
-        var updateList
-        try {
-            //Get info for newest mods
-            updateList = await nexusAPI.updatedMods(discordUser, update.game, "1d");
-            updateList = updateList.filter(mod => mod.latest_file_update > update.lastTimestamp);
-            if (updateList.length === 0) return console.log(feedID+" - No unchecked updates for "+update.gameTitle);
-            updateList.sort(compareDates);
-            //console.log(`Oldest update: ${new Date(updateList[0].latest_file_update*1000)}\nNewest update: ${new Date(updateList[updateList.length - 1].latest_file_update*1000)}`)
-            console.log(feedID +" - "+updateList.length+" new or updated mods for "+update.gameTitle);//+'\n'+JSON.stringify(updateList,null,2));
-
-            var modEmbeds = []
-            //Get the game info
-            var gameData
-            try {
-                gameData = await nexusAPI.gameInfo(discordUser, update.game);
-            }
-            catch(err){
-                console.log(`Failed to get info for game ${update.gameTitle}: ${err}`);
-            };
-            for (i=0; i < updateList.length && modEmbeds.length < 10; i++) {
-                //Build some embeds
-                var updateData =  updateList[i]
-                var modInfo = await nexusAPI.modInfo(discordUser, update.game, updateData.mod_id);
-                if (modInfo.contains_adult_content && !update.settings.nsfw) {
-                    //skip adult content if not included.
-                    console.log(`${feedID} - Skipped ${modInfo.name} as it contains adult content. NSFW = ${update.settings.nsfw}`);
-                    //break
-                } 
-                else if (!modInfo.contains_adult_content && !update.settings.sfw) {
-                    //skip non - adult content if not included.
-                    console.log(`${feedID} - Skipped ${modInfo.name} as it contains non-adult content. SFW = ${update.settings.sfw}`);
-                    //break
-                } 
-                else if (!modInfo.available) console.log(feedID + " - Skipped unavailable mod: "+modInfo.id);//break //Mod is not available.
-                else if ((modInfo.updated_timestamp - modInfo.created_timestamp) < 3600 && update.settings.newMods) {
-                    //New mod, less than 1 hour between created and updated.
-                    modEmbeds.push(createModEmbed(modInfo,gameData, true));
-                    update.lastTimestamp = updateData.latest_file_update;
-                }
-                else if (update.settings.updatedMods) {
-                    //Updated mod.
-                    var changeLog = undefined
-                    try {
-                var updateData =  updateList[i]
-                        changeLog = await nexusAPI.modChangelogs(discordUser, update.game, updateData.mod_id);
-                    } 
-                    catch(err) {
-                        console.log(`Failed to get changelogs for ${modInfo.name} - ${err}`);
-                    }
-                    modEmbeds.push(createModEmbed(modInfo, gameData, false, changeLog));
-                    update.lastTimestamp = updateData.latest_file_update;
-                }
-
-            }
-            if (modEmbeds.length === 0) {
-                //Update the last checked date anyway
-                update.lastTimestamp = updateList[updateList.length - 1].latest_file_update
-                gameUpdates.set(gameUpdates.findKey(e => e === update), update);
-                return console.log(feedID +" - No matching mods for "+update.gameTitle);
-            }
-            //Post embeds for mods
-            var whClient
-            //Create a webook client to send the updates.
-            if (update.wb_id && update.wb_token) whClient = new Discord.WebhookClient(update.wb_id, update.wb_token);
-            //Send the announcement message, if it exists.
-            if (update.announceMsg) postChannel.send(update.announceMsg).catch(console.error);
-            //Send the embeds
-            if (whClient) return whClient.send({embeds: modEmbeds, split: true}).catch(console.error);
-            else {
-                //fallback if the webhook fails. 
-                for (i=0; modEmbeds.length > i; i++) {
-                    postChannel.send(modEmbeds[i]).catch(console.error);
-                }
-            }
-            
-            //Change last updated
-            //update.lastTimestamp = updateList[updateList.length - 1].latest_file_update
-            //console.log(JSON.stringify(update, null, 2));
-            gameUpdates.set(gameUpdates.findKey(e => e === update), update);
-
-        }
-        catch (err) {
-            return console.log(`Error checking updated mods for ${update.gameTitle} in ${client.guilds.find(g => g.id === update.guild)}: ${err}`)
-        }
-
-    });
-};
-
-function compareDates(a, b) {
-    if (a.latest_file_update > b.latest_file_update) return 1
-    else if (a.latest_file_update < b.latest_file_update)  return -1
-}
+// gameUpdates.defer.then(() => {
+//     gameUpdateTimer = setInterval(checkGames, delay);
+//     console.log(`${new Date()} - Game updates scheduled every ${delay/60/1000} minutes.`);
+//     client.on("ready", checkGames);
+// });
 
 async function findAllSubs(updateMap, channel) {
     //return an array of updates for the specified channel
@@ -382,37 +256,4 @@ async function findAllSubs(updateMap, channel) {
         };
     });
     return results
-}
-
-function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
-    //Build the embed for posting.
-    console.log(`Building embed for ${modInfo.name} (${modInfo.mod_id}) for ${game.name} last edit ${new Date(modInfo.updated_timestamp*1000)} (${modInfo.updated_timestamp})`) 
-    let embed = new Discord.RichEmbed()
-    .setAuthor(`${newMod ? "New Mod Upload" : "Updated Mod"} (${game.name})`,client.user.avatarURL)
-    .setTitle(modInfo.name || "Name not found")
-    .setColor(newMod? 0xda8e35 : 0x57a5cc)
-    .setURL(`https://www.nexusmods.com/${modInfo.domain_name}/mods/${modInfo.mod_id}`)
-    .setDescription(sanitiseBreaks(modInfo.summary))
-    .setImage(modInfo.picture_url)
-    .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`)
-    if (changeLog && Object.keys(changeLog).find(id => modInfo.version === id)) {
-        let versionChanges = changeLog[Object.keys(changeLog).find(id => modInfo.version === id)].join("\n");
-        if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
-        embed.addField("Changelog", versionChanges);
-    }
-    embed.addField("Author", modInfo.author, true)
-    .addField("Uploader", `[${modInfo.uploaded_by}](${modInfo.uploaded_users_profile_url})`, true)
-    .addField("Category", game.categories.find(c => c.category_id === modInfo.category_id).name,true)
-    .addField("Mod ID", modInfo.mod_id,true)
-    .setTimestamp(modInfo.updated_timestamp*1000)
-    .setFooter("Version: "+modInfo.version,client.user.avatarURL);
-
-    return embed
-}
-
-function sanitiseBreaks(string) {
-    while (string.indexOf("<br />") !== -1) {
-        string = string.replace("<br />",'\n');
-    };
-    return string
 }
