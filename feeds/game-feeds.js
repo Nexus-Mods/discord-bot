@@ -150,6 +150,13 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
     return embed
 }
 
+function sanitiseBreaks(string) {
+    while (string.indexOf("<br />") !== -1) {
+        string = string.replace("<br />",'\n');
+    };
+    return string
+}
+
 /*
 Structure of a gamefeed:
 New  = {
