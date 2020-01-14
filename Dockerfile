@@ -1,5 +1,4 @@
-# Stage 1: Gather modules!
-FROM node:13 as builder
+FROM node:13
 
 ENV WORK_DIR=/bot
 
