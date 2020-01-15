@@ -160,7 +160,7 @@ function sanitiseBreaks(string) {
 /*
 Structure of a gamefeed:
 New  = {
-            id: //NEW unique index.
+            _id: //NEW unique index.
             channel: message.channel.id,
             webhook_id: wb_id,
             webhook_token: wb_token,
