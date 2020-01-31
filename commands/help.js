@@ -8,7 +8,7 @@ exports.run = (client, message, args, serverData) => {
     //Collect permission settings
     const userPermsModerator = message.guild ? message.member.hasPermission("BAN_MEMBERS") : false
     const userPermsAdminstrator = message.guild ? message.member.hasPermission("ADMINISTRATOR") : false
-    const nexusOfficial = serverSettings ? serverSettings.official : false
+    const nexusOfficial = serverData ? serverData.official : false
 
     //If there is no valid command with args
     if (args.length > 0 && !fs.existsSync(`./commands/${args}.js`)) return replyChannel.send(`${replyChannel !== message.channel ? message.author+" ": "" }Could not find a command for "${args.join(" ")}". To see all commands try \`!Nexus help\`.`)

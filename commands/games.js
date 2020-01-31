@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const nexusAPI = require('./../nexus-discord.js');
+const nexusAPI = require('../api/nexus-discord.js');
 const Fuse = require('fuse.js'); //https://fusejs.io/
 const { getUserByDiscordId } = require('../api/bot-db.js');
 

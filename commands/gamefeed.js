@@ -1,7 +1,7 @@
 const {linkedAccounts} = require('./link.js');
 const Enmap = require("enmap");
 const Discord = require("discord.js");
-const nexusAPI = require('./../nexus-discord.js');
+const nexusAPI = require('../api/nexus-discord.js');
 const gameUpdates = new Enmap({
     name: "GameUpdates",
     autoFetch: true,

@@ -9,7 +9,7 @@ exports.run = async (cl) => {
     client = cl;
     await checkForGameUpdates()
     setInterval(checkForGameUpdates, pollTime);
-    console.log(`${new Date()} - Game updates scheduled every ${delay/60/1000} minutes.`);
+    console.log(`${new Date().toLocaleString()} - Game updates scheduled every ${pollTime/60/1000} minutes.`);
 }
 
 async function checkForGameUpdates() {

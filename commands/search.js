@@ -1,6 +1,6 @@
 const Discord = require('discord.js')
 const { getUserByDiscordId } = require('../api/bot-db.js');
-const nexusAPI = require('./../nexus-discord.js');
+const nexusAPI = require('../api/nexus-discord.js');
 const serverConfig = require('./../serverconfig.json') //For server specific settings.
 
 module.exports.help = {
