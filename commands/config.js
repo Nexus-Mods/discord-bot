@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const nexusAPI = require('./../nexus-discord.js');
+const nexusAPI = require('../api/nexus-discord.js');
 const { getUserByDiscordId, updateServer } = require('../api/bot-db.js');
 
 module.exports.help = {
@@ -11,7 +11,7 @@ module.exports.help = {
     officialOnly: false 
 }
 
-exports.run = async (client, message, serverData) => {    
+exports.run = async (client, message, args, serverData) => {    
 
     if (!message.guild || !serverData) return //ignore DMs
 
@@ -51,7 +51,7 @@ exports.run = async (client, message, serverData) => {
         };
     }
     else { //no arguements so print the info we know.
-        const serverInfoEmbed = await serverEmbed(serverInfo, client);
+        const serverInfoEmbed = await serverEmbed(serverData, client);
         return message.channel.send(serverInfoEmbed).catch(console.error);
     };
 }
@@ -112,12 +112,15 @@ async function setRole(type, args, serverData, message) {
     };
 
     // Find the new role
-    const newRole = message.mentions.roles.first() ? message.mentions.roles.first() : message.guild.roles.find(c => c.id === args[1]) ? message.guild.roles.find(c => c.id === args[1]) : undefined;
-    newData[rowHeader] = newRole ? newRole.id : null;
+    const newRole = await message.mentions.roles.first() ? message.mentions.roles.first() : message.guild.roles.find(c => c.id === args[1]) ? message.guild.roles.find(c => c.id === args[1]) : undefined;
+    const newId = (!!newRole &&  !!newRole.id) ? newRole.id : null;
+    console.log(newId);
+    newData[rowHeader] = newId;
+    console.log(newData, serverData);
     if (newData[rowHeader] = serverData[rowHeader]) return message.channel.send("No changes required.").catch(console.error);
-    await updateServer(serverData.id, newData);
-    console.log(`Updated role "${type}" to ${newRole || "None"} in ${message.guild}`);
-    return message.channel.send(`Updated role "${type}" to ${newRole || "None"}`).catch(console.error);
+    await updateServer(serverData.id, newData).catch(err => console.error);
+    console.log(`${new Date().toLocaleString()} - Updated role "${type}" to ${newRole ? newRole.name : "None"} in ${message.guild}`, newData);
+    return message.channel.send(`Updated role "${type}" to ${newRole ? newRole.name : "None"}`).catch(console.error);
 }
 
 async function toggleSearch(args, serverData, message) {
@@ -163,7 +166,7 @@ async function toggleSearch(args, serverData, message) {
 
 async function serverEmbed(serverData, client) {
     // Get the data required.
-    const guild = client.guilds.find(g => g.id === server.id);
+    const guild = client.guilds.find(g => g.id === serverData.id);
     const linkedRole = serverData.role_linked ? guild.roles.find(r => r === serverData.role_linked) : null;
     const premiumRole = serverData.role_premium ? guild.roles.find(r => r === serverData.role_premium) : null;
     const supporterRole = serverData.role_supporter ? guild.roles.find(r => r === serverData.role_supporter) : null;
@@ -183,16 +186,16 @@ async function serverEmbed(serverData, client) {
     .setTitle("Server Configuration")
     .setDescription("Configure any of these options for your server by typing the following command: \n`!NM config <setting> <newvalue>`")
     .setColor(0xda8e35)
-    .setAuthor(serverName, message.guild.iconURL)
-    .addField("Connected Accounts Role", `${linkedRole ? linkedRole : '*undefined*'} \nSet using \`linkedrole <role>\``, true)
-    .addField("Nexus Mods Author Role", `${authorRole ? authorRole : '*undefined*'} ${authorRole ? `\nAuthors with ${serverData.author_min_downloads || 1000}+ mod downloads.`: ""}\nSet using \`authorrole <role> <downloads>\``, true)
+    .setAuthor(guild.name, guild.iconURL)
+    .addField("Connected Accounts Role", `${linkedRole ? linkedRole : '*Not set*'} \nSet using \`linkedrole <role>\``, true)
+    .addField("Nexus Mods Author Role", `${authorRole ? authorRole : '*Not set*'} ${authorRole ? `\nAuthors with ${serverData.author_min_downloads || 1000}+ mod downloads.`: ""}\nSet using \`authorrole <role> <downloads>\``, true)
     .addBlankField()
-    .addField("Nexus Mods Supporter Role", `${supporterRole ? supporterRole : '*undefined*'} \nSet using \`supporterrole <role>\``,true)
-    .addField("Nexus Mods Premium Role", `${premiumRole ? premiumRole : '*undefined*'} \nSet using \`premiumrole <role>\``, true)
+    .addField("Nexus Mods Supporter Role", `${supporterRole ? supporterRole : '*Not set*'} \nSet using \`supporterrole <role>\``,true)
+    .addField("Nexus Mods Premium Role", `${premiumRole ? premiumRole : '*Not set*'} \nSet using \`premiumrole <role>\``, true)
     .addField("Channels Settings", `**Bot:** ${botChannel ? `${botChannel} \nTo bot will only respond to commands here. Set using \`botchannel <channel>\`` : `_Not set._ \nTo bot will respond to commands in all channels. Set using \`botchannel <channel>\``}\n`)
     .addField("Nexus Mods Logging", nexusChannel ? `Enabled in ${nexusChannel} \nTurn off using \`nexuslog\`` : "Disabled \nTurn on using `nexuslog <channel>`",true)
     .addField("Search", `${searchChannel ? `Enabled in ${searchChannel}. Searching ${serverData.game_filter ? serverData.game_filter : "all"} mods. \nTurn off using \`togglesearch\`` : "Disabled. \nTurn on using `togglesearch` `<gamedomain> <channel>`"}`,true)
-    .setFooter(`Server ID: ${guild.id} | Owner: ${guildOwner}`);
+    .setFooter(`Server ID: ${guild.id} | Owner: ${guildOwner.user.tag}`);
 
     // These features are depreciated or only appear under specific conditions. 
     if (newsChannel) embed.addField("New Channel", `${newsChannel}\nThis feature is now depreciated. Follow the announcments channel at https://discord.gg/nexusmods`);

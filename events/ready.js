@@ -9,7 +9,7 @@ const gameFeed = require('../feeds/game-feeds.js');
 let firstStartUp = false
 
 module.exports = async (client) => {
-  console.log(`${new Date()} - Ready to serve in ${client.channels.size} channels on ${client.guilds.size} servers, for a total of ${client.users.size} users.`);
+  console.log(`${new Date().toLocaleString()} - Ready to serve in ${client.channels.size} channels on ${client.guilds.size} servers, for a total of ${client.users.size} users.`);
   client.user.setActivity(`the channels for ${client.config.prefix[0]}`, {type: 'Watching'});
   
   if (client.config.testing) return console.log('Testing mode - did not publish online message.');
@@ -26,7 +26,7 @@ module.exports = async (client) => {
 
   // Post the online notice.
   for(const server of allServers) {
-    const discordGuild = client.guilds.find(s => s.id === server.id);
+    const discordGuild = await client.guilds.find(s => s.id === server.id);
     if (!discordGuild) {
       await deleteServer(server.id);
       return console.log(`${new Date().toLocaleString()} - Deleting non-existant server: ${server.id}`);

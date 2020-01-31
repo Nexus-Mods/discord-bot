@@ -145,7 +145,7 @@ exports.getServer = (guild) => {
 
 exports.addServer = (guild) => {
     return new Promise((resolve, reject) => {
-        pool.query('INSERT INTO servers (id) VALUES ($1)', [guild.id], (error, results) => {
+        pool.query('INSERT INTO servers (id, server_owner) VALUES ($1, $2)', [guild.id, guild.owner.id], (error, results) => {
             if (error) return reject(error);
             console.log("Added guild: "+guild.name);
             resolve(true);
@@ -156,6 +156,7 @@ exports.addServer = (guild) => {
 exports.updateServer = (guildId, newData) => {
     return new Promise(async (resolve, reject) => {
         let errors = 0;
+        console.log(newData)
         Object.keys(newData).forEach((key) => {
             pool.query(`UPDATE servers SET ${key} = $1 WHERE id = $2`, [newData[key], guildId], (error, results) => {
                 if (error) errors += 1;
@@ -191,15 +192,13 @@ exports.getSavedNews = () => {
 
 exports.updateSavedNews = (newsArticle) => {
     return new Promise((resolve, reject) => {
-        pool.query('DELETE * FROM news', [], (error, results) => {
+        pool.query('DELETE FROM news', [], (error, results) => {
             if (error) return reject(error);
-        })
-        .then( () => {
-                pool.query('INSERT INTO news (title, date) VALUES ($1, $2)', [newsArticle.title, newsArticle.date], (error, results) => {
-                    if (error) return reject(error);
-                    resolve(true);
-                });
+            pool.query('INSERT INTO news (title, date) VALUES ($1, $2)', [newsArticle.title, newsArticle.date], (error, results) => {
+                if (error) return reject(error);
+                resolve(true);
             });
+        })
     });
 }
 

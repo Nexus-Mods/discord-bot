@@ -15,7 +15,7 @@ exports.run = async (cl) => {
     await checknews()
     const delay = (1000*60*60*3) //3 hours 
     setInterval(checknews, delay);
-    console.log((new Date())+" - newsUpdate set for 3 hours time.");
+    console.log((new Date().toLocaleString())+" - News update scheduled every 3 hours.");
 }
 
 async function checknews(domain = "") {
@@ -27,7 +27,7 @@ async function checknews(domain = "") {
 
         let storedNews = await getSavedNews();
 
-        if (storedNews.title === latestPost.title || storedNews.date === latestPost.date) return console.log((new Date().toLocaleString())+" - No news updates.");
+        if (storedNews && (storedNews.title === latestPost.title || storedNews.date === latestPost.date)) return console.log((new Date().toLocaleString())+" - No news updates.");
 
         if (!domain) await updateSavedNews({title: latestPost.title, date: latestPost.pubDate});
 
@@ -40,7 +40,7 @@ async function checknews(domain = "") {
         .setTimestamp(latestPost.pubDate)
         .setColor(0xda8e35);
 
-        console.log(`${new Date()} - Publishing ${newestPost.title} to news channel.`);
+        console.log(`${new Date()} - Publishing ${latestPost.title} to news channel.`);
 
         // POST THE EMBED OUT TO THE NEWS CHANNEL(S)
 
