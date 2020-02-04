@@ -40,13 +40,13 @@ async function checknews(domain = "") {
         .setTimestamp(latestPost.pubDate)
         .setColor(0xda8e35);
 
-        console.log(`${new Date()} - Publishing ${latestPost.title} to news channel.`);
+        console.log(`${new Date().toLocaleString()} - Publishing article "${latestPost.title}" to news channels.`);
 
         // POST THE EMBED OUT TO THE NEWS CHANNEL(S)
 
         const allServers = await getAllServers();
         for (const server of allServers) {
-            if (!server.news_channel) return;
+            if (!server.channel_news) return;
             const discordGuild = client.guilds.find(g => g.id === server.id);
             const newsChannel = discordGuild ? discordGuild.channels.find(c => c.id) : undefined;
             if (newsChannel) newsChannel.send(newsEmbed).catch(console.error);

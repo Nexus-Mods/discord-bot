@@ -1,4 +1,4 @@
-const { getUserByDiscordId, createUser, deleteUser, updateUser } = require('../api/bot-db.js');
+const { getUserByDiscordId, createUser, deleteUser, updateUser, updateAllRoles } = require('../api/bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
 const Discord = require('discord.js');
 
@@ -33,8 +33,8 @@ exports.run = async (client, message, args, serverData) => {
         if (message.guild && accountData.servers.indexOf(message.guild.id) === -1) {
             accountData.servers.push(message.guild.id);
             const updateData = {servers: accountData.servers};
-            updateUser(discordId, updateData);
-            // TODO! - Send to reply channel if applicable. 
+            await updateUser(discordId, updateData);
+            await updateAllRoles(accountData, message, client);
             return replyChannel.send((replyChannel !== message.channel ? message.author : message.author.tag)+" your account has been linked in this server. Type `!nexus whoami` to see your profile card.")
         }
         else {
@@ -91,8 +91,9 @@ exports.run = async (client, message, args, serverData) => {
 }
 
 async function checkAPIKey(client, message, apiKeyToCheck) {
-    try {
-        const msg = await message.reply("Checking your API key...")
+    const msg = await message.reply("Checking your API key...").catch(console.error);
+
+    try {   
         const apiData = await nexusAPI.validate(apiKeyToCheck);
         const memberData = {
             d_id: message.author.id,
@@ -105,16 +106,14 @@ async function checkAPIKey(client, message, apiKeyToCheck) {
             servers: []
         }
         await createUser(memberData);
+        await updateAllRoles(memberData, message, client);
         const accountData = await getUserByDiscordId(message.author.id);
-
-
-        // TODO! - Update roles
 
 
         console.log(new Date().toLocaleString()+` - ${accountData.name} linked to ${message.author.tag}`);
         msg.edit(`You have now linked the Nexus Mods account "${accountData.name}" to your Discord account in ${accountData.servers.length} Discord Servers.`).catch(console.error);
     }
     catch(err) {
-        return msg.edit(`Could not link your account due to the following error:\n`+err);
+        return msg.edit(`Could not link your account due to the following error:\n`+err).catch(console.error);
     }
 }
