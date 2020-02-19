@@ -38,7 +38,7 @@ exports.run = async (client, message, args, serverData) => {
     let workingMessage = await replyChannel.send(searchingEmbed).catch(console.error);
     console.log(`${new Date().toLocaleString()} - Getting data for ${urls.length} mods requested by ${userData.name} in ${message.guild || 'a DM'}.`);
     
-    let userMods = userData.mods || [];
+    let userMods = await getModsbyUser(userData.id);
     let messages = []; //Messages to show
     // Look up mods from the provided URLs
     try {
@@ -77,27 +77,24 @@ exports.run = async (client, message, args, serverData) => {
             };
             const downloadData = await nexusAPI.getDownloads(userData, url.domain, game.id, url.id);
             const newMod = {
-                name: modData.name,
-                uniquedownloads: downloadData.uniqueDownloads,
-                totaldownloads: downloadData.totalDownloads,
-                game: game.name,
                 domain: url.domain,
-                id: url.id,
-                url: url.url
+                mod_id: url.id,
+                name: modData.name,
+                game: game.name,
+                unique_downloads: downloadData.unique_downloads,
+                total_downloads: downloadData.total_downloads,
+                path: `${url.domain}/mods/${url.id}`,
+                owner: userData.id
             }
             newMods.push(newMod);
         }
-        userMods = userMods.concat(newMods).sort(compare);
-        let newDownloadTotal = 0;
-        userMods.forEach( m => newDownloadTotal += m.totaldownloads);
-        // console.log("usermods",userMods, "download total", newDownloadTotal);
-        await updateUser(discordId, {mods: userMods, moddownloads: newDownloadTotal});
+
         const completeEmbed = new Discord.RichEmbed()
         .setTitle("Mod search complete")
         .setColor(0xda8e35)
         .setFooter(`Nexus Mods API link - ${message.author.tag}: !nm addmodurl`,client.user.avatarURL)
         .setDescription(`Added ${newMods.length} mod(s) to your account. ${messages.length ? `Unable to added ${messages.length} mod(s).` : ""}`);
-        if (newMods.length) completeEmbed.addField("Added Mods", newMods.map(mod => `[${mod.name}](${mod.url}) for ${mod.game} (${mod.totaldownloads} downloads)`));
+        if (newMods.length) completeEmbed.addField("Added Mods", newMods.map(mod => `[${mod.name}](${mod.url}) for ${mod.game} (${mod.total_downloads} downloads)`));
         if (messages.length) completeEmbed.addField("Warnings", messages.join('\n'));
         workingMessage.edit(completeEmbed);
 
@@ -108,9 +105,4 @@ exports.run = async (client, message, args, serverData) => {
     }
 
 
-}
-
-function compare(a, b) {
-    if (a.totaldownloads > b.totaldownloads) return -1
-    else if (a.totaldownloads < b.totaldownloads)  return 1
 }

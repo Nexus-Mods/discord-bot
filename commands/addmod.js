@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const { getUserByDiscordId, updateUser } = require('../api/bot-db.js');
+const { getUserByDiscordId, updateUser, getModsbyUser, updateMod, createMod } = require('../api/bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
 
 module.exports.help = {
@@ -26,7 +26,7 @@ exports.run = async (client, message, args, serverData) => {
 
 
     let updatedModCount = 0;
-    let userMods = userData.mods || [];
+    let userMods = await getModsbyUser(userData.id);
     let newMods = [];
     // Find any mods with this term that are created by this user. 
     try {
@@ -49,8 +49,9 @@ exports.run = async (client, message, args, serverData) => {
                 const gameId = gameList.find(g => g.domain_name === result.game_name).id;
                 const downloadData = await nexusAPI.getDownloads(userData, modEntry.domain, gameId, modEntry.modid);
                 //console.log("Saved mod download data:"+JSON.stringify(downloadData, null ,2))
-                modEntry.uniquedownloads = downloadData.uniqueDownloads;
-                modEntry.totaldownloads = downloadData.totalDownloads;
+                await updateMod(modEntry, downloadData);
+                // modEntry.unique_downloads = downloadData.unique_downloads;
+                // modEntry.total_downloads = downloadData.total_downloads;
                 updatedModCount += 1
             }
             // Add a new mod to our profile.
@@ -60,28 +61,21 @@ exports.run = async (client, message, args, serverData) => {
                 //console.log("New mod download data:"+JSON.stringify(downloadData, null ,2))
 
                 const newMod = {
-                    name: result.name,
-                    uniquedownloads: downloadData.uniqueDownloads,
-                    totaldownloads: downloadData.totalDownloads,
-                    game: gameList.find(g => g.domain_name === result.game_name).name,
                     domain: result.game_name,
-                    id: (result.url.substring(result.url.lastIndexOf('/')+1,result.url.length)),
-                    url: "https://www.nexusmods.com"+result.url
+                    mod_id: (result.url.substring(result.url.lastIndexOf('/')+1,result.url.length)),
+                    name: result.name,
+                    game: gameList.find(g => g.domain_name === result.game_name).name,
+                    unique_downloads: downloadData.unique_downloads,
+                    total_downloads: downloadData.total_downloads,
+                    path: (result.url.substring(result.url.indexOf(result.game_name), result.url.legth)),
+                    owner: userData.id
                 }
 
                 console.log(`${new Date().toLocaleString()} - Adding ${newMod.name} to ${userData.name}.`);
-                userMods.push(newMod);
+                await createMod(newMod);
                 newMods.push(newMod);
             }
         };
-
-        // Sort the mods and update the user record. 
-        userMods = userMods.sort(compare);
-        let newDownloadTotal = 0;
-        userMods.forEach( m => newDownloadTotal += m.totaldownloads)
-        await updateUser(discordId, {mods: userMods, moddownloads: newDownloadTotal});
-        console.log(new Date().toLocaleString() + " - Updating mods for "+userData.name+" Total downloads: "+newDownloadTotal);
-        userData = await getUserByDiscordId(discordId);
 
         if (newMods.length === 0) return responseMessage.edit(`Could not find any new mods that are not currently linked to your account. ${updatedModCount ? `Updated download stats for ${updatedModCount} mods.`:""}`).catch(console.error);
         else {
@@ -92,7 +86,7 @@ exports.run = async (client, message, args, serverData) => {
             .setDescription(`Added ${newMods.length} mods to [${userData.name}](https://www.nexusmods.com/users/${userData.id}) (Discord account: ${message.author})${updatedModCount ? ` and updated the download counts for ${updatedModCount} existing mods.`:"."}`);
             let newModList = "";
             for(i =0; i < newMods.length && newModList.length < 950; i++) {
-                newModList = newModList + `[${newMods[i].name} for ${newMods[i].game}](${newMods[i].url}) - ${Number(newMods[i].uniquedownloads).toLocaleString()} downloads\n`;
+                newModList = newModList + `[${newMods[i].name} for ${newMods[i].game}](${newMods[i].url}) - ${Number(newMods[i].unique_downloads).toLocaleString()} downloads\n`;
             }
             addedModsEmbed.addField("Added mods", newModList)
             .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
@@ -109,9 +103,4 @@ exports.run = async (client, message, args, serverData) => {
     catch(err) {
         responseMessage.edit("An error occurred with your request.\n```"+err+"```")
     }
-}
-
-function compare(a, b) {
-    if (a.totaldownloads > b.totaldownloads) return -1
-    else if (a.totaldownloads < b.totaldownloads)  return 1
 }

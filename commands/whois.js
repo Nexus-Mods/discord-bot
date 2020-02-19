@@ -53,5 +53,6 @@ exports.run = async (client, message, args, serverData) => {
     if (message.guild && userInfo.servers.indexOf(message.guild.id) !== -1) return replyChannel.send(`${replyChannel === message.channel ? "" : message.author + " "}You do not share a server with "${userData.name} so their information is not available.".`).catch(console.error);
 
     // Send a profile embed. 
-    replyChannel.send(replyChannel === message.channel ? "" : message.author, userEmbed(userInfo, message, client)).catch(console.error);
+    const embed = await userEmbed(userInfo, message, client);
+    replyChannel.send(replyChannel === message.channel ? "" : message.author, embed).catch(console.error);
 }  
