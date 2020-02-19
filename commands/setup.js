@@ -1,5 +1,4 @@
 const configCommand = require("./config.js");
-const config = require("./../config.json");
 const serverConfig = require("../serverconfig.json");
 const Discord = require("discord.js")
 
@@ -21,7 +20,7 @@ exports.run = async (client, message, args) => {
         .setAuthor(message.guild ? message.guild.name : "Direct Message", client.user.avatarURL)//message.guild ? message.guild.iconURL : message.author.avatarURL)
         .setColor(0xda8e35)
         .setTitle("Getting started with the Nexus Mods bot")
-        .setDescription(`The Nexus Mods bot integrates some of the features from the Nexus Mods website into your Discord server. Admins can cheeck the current configuration any time by typing !nexus config.\nYou can interact with the bot with the following prefixes: ${config.prefix.join(", ")}`)
+        .setDescription(`The Nexus Mods bot integrates some of the features from the Nexus Mods website into your Discord server. Admins can cheeck the current configuration any time by typing !nexus config.\nYou can interact with the bot with the following prefixes: ${client.config.prefix.join(", ")}`)
         //.setThumbnail(client.user.avatarURL)
         .setFooter(`Server ID: ${message.guild ? message.guild.id : "n/a"}`)
         .setTimestamp(new Date())

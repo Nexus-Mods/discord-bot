@@ -6,6 +6,6 @@ exports.run = async (client, message, args, serverData) => {
     const discordId = message.author.id;
     const userData = await getUserByDiscordId(discordId);
     if (!userData) return message.channel.send("There are no accounts linked to the Discord account "+message.author.tag);
-    const profileCard = userEmbed(userData, message, client);
+    const profileCard = await userEmbed(userData, message, client);
     return replyChannel.send(replyChannel !== message.channel ? message.author: "", profileCard);
 }
