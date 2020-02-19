@@ -1,4 +1,4 @@
-const { query } = require('./bot-db.js');
+const { query } = require('./dbConnect.js');
 
 const getSavedNews = () => {
     return new Promise((resolve, reject) => {

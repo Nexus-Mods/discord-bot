@@ -1,24 +1,24 @@
-require("dotenv").config();
-const Pool = require('pg').Pool;
-const config = {
-    user: process.env.DBUSER,
-    password: process.env.DBPASS,
-    host: process.env.HOST,
-    database: process.env.DATABASE,
-    port: process.env.PORT,
-}
-const pool = new Pool(config);
+// require("dotenv").config();
+// const Pool = require('pg').Pool;
+// const config = {
+//     user: process.env.DBUSER,
+//     password: process.env.DBPASS,
+//     host: process.env.HOST,
+//     database: process.env.DATABASE,
+//     port: process.env.PORT,
+// }
+// const pool = new Pool(config);
 
-function doQuery(text, values, callback) {
-    console.log(`Sending query ${text}`);
-    pool.connect((err, client, release) => {
-        if (err) return console.error('Error acquiring client', err.stack);
-        client.query(text, values, (err, result) => {
-            release();
-            callback(err, result);
-        })
-    })
-}
+// function doQuery(text, values, callback) {
+//     console.log(`Sending query ${text}`);
+//     pool.connect((err, client, release) => {
+//         if (err) return console.error('Error acquiring client', err.stack);
+//         client.query(text, values, (err, result) => {
+//             release();
+//             callback(err, result);
+//         })
+//     })
+// }
 
 //Used for reference: https://blog.logrocket.com/setting-up-a-restful-api-with-node-js-and-postgresql-d96d6fc892d8/
 
@@ -44,7 +44,7 @@ module.exports = {
                     getAllServers, getServer, addServer, updateServer, deleteServer,
                     getSavedNews, updateSavedNews,
                     getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed,
-                    query: doQuery
+                    
                 };
 
 const modTotal = (allMods) => {
