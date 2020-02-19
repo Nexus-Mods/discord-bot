@@ -1,4 +1,4 @@
-const { getUserByDiscordId, updateUser } = require('../api/bot-db.js');
+const { getUserByDiscordId, getModsbyUser, createMod } = require('../api/bot-db.js');
 const Discord = require('discord.js');
 const nexusAPI = require('../api/nexus-discord.js');
 const modUrlRegex = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i
@@ -86,6 +86,7 @@ exports.run = async (client, message, args, serverData) => {
                 path: `${url.domain}/mods/${url.id}`,
                 owner: userData.id
             }
+            await createMod(newMod);
             newMods.push(newMod);
         }
 
