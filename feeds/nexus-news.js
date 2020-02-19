@@ -48,7 +48,7 @@ async function checknews(domain = "") {
         for (const server of allServers) {
             if (!server.channel_news) return;
             const discordGuild = client.guilds.find(g => g.id === server.id);
-            const newsChannel = discordGuild ? discordGuild.channels.find(c => c.id) : undefined;
+            const newsChannel = discordGuild ? discordGuild.channels.find(c => c.id === server.channel_news) : undefined;
             if (newsChannel) newsChannel.send(newsEmbed).catch(console.error);
         }
 

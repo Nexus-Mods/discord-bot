@@ -1,9 +1,10 @@
-const { pool } = require('./bot-db.js');
+const { query } = require('./dbConnect.js');
+const { getModsbyUser } = require('./user_mods.js');
 const Discord = require('discord.js');
 
 const getAllUsers = async () => {
     return new Promise( (resolve, reject) => {
-        pool.query('SELECT * FROM users', (error, result) => {
+        query('SELECT * FROM users', (error, result) => {
             if (error) return reject("Failed to get all users.");
             return resolve(result.rows);
         });
@@ -12,7 +13,7 @@ const getAllUsers = async () => {
 
 const getUserByDiscordId = async (discordId) => {
     return new Promise( (resolve, reject) => {
-        pool.query('SELECT * FROM users WHERE d_id = $1', [discordId], (error, result) => {
+        query('SELECT * FROM users WHERE d_id = $1', [discordId], (error, result) => {
             if (error) return reject(error);
             //console.log(result.rows);
             resolve(result.rows[0]);
@@ -23,7 +24,7 @@ const getUserByDiscordId = async (discordId) => {
 
 const getUserByNexusModsName = async (username) => {
     return new Promise( (resolve, reject) => {
-        pool.query('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username], (error, result) => {
+        query('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username], (error, result) => {
             if (error) return reject(error);
             resolve(result.rows[0]);
         })
@@ -33,7 +34,7 @@ const getUserByNexusModsName = async (username) => {
 const createUser = async (user) => {
     return new Promise(
         (resolve, reject) => {
-        pool.query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, servers, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+        query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, servers, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
         [user.d_id, user.id, user.name, user.avatar_url, user.apikey, user.supporter, user.premium, user.servers, new Date()], 
         (error, results) => {
             if (error) {
@@ -49,7 +50,7 @@ const createUser = async (user) => {
 
 const deleteUser = (discordId) => {
     return new Promise((resolve, reject) => {
-        pool.query('DELETE FROM users WHERE d_id = $1', [discordId], (error, results) => {
+        query('DELETE FROM users WHERE d_id = $1', [discordId], (error, results) => {
             if (error) {
                 //throw error;
                 reject(false);
@@ -64,7 +65,7 @@ const updateUser = async (discordId, newUser) => {
         let errors = 0;
         newUser.lastupdate = new Date();
         Object.keys(newUser).forEach((key) => {
-            pool.query(`UPDATE users SET ${key} = $1 WHERE d_id = $2`, [newUser[key], discordId], (error, results) => {
+            query(`UPDATE users SET ${key} = $1 WHERE d_id = $2`, [newUser[key], discordId], (error, results) => {
                 if (error) errors += 1;
             });
         });
@@ -75,7 +76,7 @@ const updateUser = async (discordId, newUser) => {
 
 const userEmbed = async (userData, message, client) => {
     const discordUser = client.users.find(u => u.id === userData.d_id);
-    const mods = await exports.getModsbyUser(userData.id);
+    const mods = await getModsbyUser(userData.id);
     const totalDownloads = (mods) => {
         let downloads = 0;
         mods.forEach(m => downloads += m.total_downloads);

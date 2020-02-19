@@ -1,8 +1,8 @@
-const { query } = require('./bot-db.js');
+const { query } = require('./dbConnect.js');
 
 const getAllGameFeeds = () => {
     return new Promise((resolve, reject) => {
-        query('SELECT * FROM game_feeds', (error, result) => {
+        query('SELECT * FROM game_feeds', [], (error, result) => {
             if (error) return reject(error);
             resolve(result.rows);
         });

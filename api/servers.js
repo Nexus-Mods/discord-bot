@@ -1,8 +1,8 @@
-const { query } = require('./bot-db.js');
+const { query } = require('./dbConnect.js');
 
 const getAllServers = () => {
     return new Promise((resolve, reject) => {
-        query('SELECT * FROM servers', (error, result) => {
+        query('SELECT * FROM servers', [], (error, result) => {
             if (error) return reject(error);
             resolve(result.rows);
         })
