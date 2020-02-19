@@ -68,7 +68,7 @@ async function setChannel(type, args, serverData, message) {
         case "nexuslog":
             rowHeader = "channel_nexus";
             break;
-        case "bot":
+        case "botchannel":
             rowHeader = "channel_bot";
             break;
         case "news":
@@ -165,10 +165,10 @@ async function toggleSearch(args, serverData, message) {
 async function serverEmbed(serverData, client) {
     // Get the data required.
     const guild = client.guilds.find(g => g.id === serverData.id);
-    const linkedRole = serverData.role_linked ? guild.roles.find(r => r === serverData.role_linked) : null;
-    const premiumRole = serverData.role_premium ? guild.roles.find(r => r === serverData.role_premium) : null;
-    const supporterRole = serverData.role_supporter ? guild.roles.find(r => r === serverData.role_supporter) : null;
-    const authorRole = serverData.role_author ? guild.roles.find(r => r === serverData.role_author) : null;
+    const linkedRole = serverData.role_linked ? guild.roles.find(r => r.id === serverData.role_linked) : null;
+    const premiumRole = serverData.role_premium ? guild.roles.find(r => r.id === serverData.role_premium) : null;
+    const supporterRole = serverData.role_supporter ? guild.roles.find(r => r.id === serverData.role_supporter) : null;
+    const authorRole = serverData.role_author ? guild.roles.find(r => r.id === serverData.role_author) : null;
     const newsChannel = serverData.channel_news ? guild.channels.find(c => c.id === serverData.channel_news) : null;
     const logChannel = serverData.channel_log ? guild.channels.find(c => c.id === serverData.channel_log) : null;
     const botChannel = serverData.channel_bot ? guild.channels.find(c => c.id === serverData.channel_bot) : null;
@@ -181,22 +181,25 @@ async function serverEmbed(serverData, client) {
 
     // Build an embed for this server.
     const embed = new Discord.RichEmbed()
-    .setTitle("Server Configuration")
+    .setAuthor(guild.name, guild.iconURL)
+    .setTitle("Server Configuration - "+ guild.name)
     .setDescription("Configure any of these options for your server by typing the following command: \n`!NM config <setting> <newvalue>`")
     .setColor(0xda8e35)
-    .setAuthor(guild.name, guild.iconURL)
-    .addField("Connected Accounts Role", `${linkedRole ? linkedRole : '*Not set*'} \nSet using \`linkedrole <role>\``, true)
-    .addField("Nexus Mods Author Role", `${authorRole ? authorRole : '*Not set*'} ${authorRole ? `\nAuthors with ${serverData.author_min_downloads || 1000}+ mod downloads.`: ""}\nSet using \`authorrole <role> <downloads>\``, true)
+    .addField("Role Settings", 'Set roles for linked accounts, mod authors and Nexus Mods membership. \n\n'
+        + `**Connected Accounts Role:** ${linkedRole ? linkedRole : '*Not set*'} -  Set using \`linkedrole <role>\` \n\n` 
+        + `**Mod Author Role:** ${authorRole ? authorRole : '*Not set*'} - Set using \`authorrole <role> <downloads>\` \n\n`
+        + `**Supporter Role:** ${supporterRole ? supporterRole : '*Not set*'} - Set using \`supporterrole <role>\` \n\n`
+        + `**Premium Role:** ${premiumRole ? premiumRole : '*Not set*'} - Set using \`premiumrole <role>\``)
     .addBlankField()
-    .addField("Nexus Mods Supporter Role", `${supporterRole ? supporterRole : '*Not set*'} \nSet using \`supporterrole <role>\``,true)
-    .addField("Nexus Mods Premium Role", `${premiumRole ? premiumRole : '*Not set*'} \nSet using \`premiumrole <role>\``, true)
-    .addField("Channels Settings", `**Bot:** ${botChannel ? `${botChannel} \nTo bot will only respond to commands here. Set using \`botchannel <channel>\`` : `_Not set._ \nTo bot will respond to commands in all channels. Set using \`botchannel <channel>\``}\n`)
-    .addField("Nexus Mods Logging", nexusChannel ? `Enabled in ${nexusChannel} \nTurn off using \`nexuslog\`` : "Disabled \nTurn on using `nexuslog <channel>`",true)
-    .addField("Search", `${searchChannel ? `Enabled in ${searchChannel}. Searching ${serverData.game_filter ? serverData.game_filter : "all"} mods. \nTurn off using \`togglesearch\`` : "Disabled. \nTurn on using `togglesearch` `<gamedomain> <channel>`"}`,true)
-    .setFooter(`Server ID: ${guild.id} | Owner: ${guildOwner.user.tag}`);
+    .addField("Channel Settings", 'Set a bot channel to limit bot replies to one place or set a channel for bot logging messages.\n\n'
+        + `**Reply Channel:** ${botChannel ? `${botChannel}` : '*Not set*'} Set using \`botchannel <channel>\` \n\n`
+        + `**Log Channel:** ${nexusChannel ? `${nexusChannel}` : '*Not set*'} Set using \`nexuslog <channel>\``)
+    .addBlankField()
+    .addField("Mod Search", `${searchChannel ? `Enabled in ${searchChannel}. Searching ${serverData.game_filter ? serverData.game_filter : "all"} mods. \nTurn off using \`togglesearch\`` : "Disabled. \nTurn on using `togglesearch` `<?gamedomain> <channel>`"}`,true)
+    .setFooter(`Server ID: ${guild.id} | Owner: ${guildOwner.user.tag}`, client.user.avatarURL);
 
     // These features are depreciated or only appear under specific conditions. 
-    if (newsChannel) embed.addField("New Channel", `${newsChannel}\nThis feature is now depreciated. Follow the announcments channel at https://discord.gg/nexusmods`);
+    if (newsChannel) embed.addField("News Channel", `${newsChannel}\nThis feature is now depreciated. Follow the announcments channel at https://discord.gg/nexusmods`);
     if (logChannel) embed.addField("Activity Logging", `Enabled in ${logChannel}. Depreciated. \nTurn off using \`loggingoff\``,true);
     if (serverData.official) embed.addField("Official Nexus Mods Server", 'This server is an official Nexus Mods server, all bot functions are enabled.');
 

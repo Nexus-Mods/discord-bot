@@ -145,15 +145,15 @@ exports.getDownloads = async (user, gameDomain, gameId = -1, modID = -1) => {
                 }
                 return {
                     id: parseInt(values[0]),
-                    totalDownloads: parseInt(values[1]),
-                    uniqueDownloads: parseInt(values[2])
+                    total_downloads: parseInt(values[1]),
+                    unique_downloads: parseInt(values[2])
                 }
             }
         ).filter(m => m !== undefined);
         //if we requested a specific mod, return the mod data.
         if (modID !== -1) {
             const modStat = gameStats.find(m => m.id === parseInt(modID))
-            return modStat || {id: modID, totalDownloads: 0, uniqueDownloads: 0}; //If the mod has never been downloaded it will return none.
+            return modStat || {id: modID, total_downloads: 0, unique_downloads: 0}; //If the mod has never been downloaded it will return none.
         }
         //otherwise return the entire game.
         else return gameStats;

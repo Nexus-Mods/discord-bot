@@ -85,8 +85,14 @@ exports.updateUser = async (discordId, newUser) => {
     });
 }
 
-exports.userEmbed = (userData, message, client) => {
+exports.userEmbed = async (userData, message, client) => {
     const discordUser = client.users.find(u => u.id === userData.d_id);
+    const mods = await exports.getModsbyUser(userData.id);
+    const totalDownloads = (mods) => {
+        let downloads = 0;
+        mods.forEach(m => downloads += m.total_downloads);
+        return downloads;
+        }
     let embed = new Discord.RichEmbed()
     .setAuthor("Member Search Results", discordUser.avatarURL)
     .addField("Nexus Mods", `[${userData.name}](https://nexusmods.com/users/${userData.id})\n${userData.premium ? "Premium Member" : userData.Supporter ? "Supporter" : "Member"}`, true)
@@ -95,10 +101,10 @@ exports.userEmbed = (userData, message, client) => {
     .setThumbnail(userData.avatar_url ? userData.avatar_url : client.user.avatarURL)
     .setTimestamp(userData.lastupdate)
     .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
-    if (userData.mods && userData.mods.length) {
-        let modData = userData.mods.map( mod => `[${mod.name}](${mod.url}) - ${mod.game}`);
+    if (mods && mods.length) {
+        let modData = mods.map( mod => `[${mod.name}](https://nexusmods.com/${mod.path}) - ${mod.game}`);
         if (modData.length > 5) modData = modData.slice(0,4); //Only show a maximum of 5.
-        embed.addField(`My Mods - ${userData.moddownloads.toLocaleString()} downloads for ${userData.mods.length} mod(s).`, `${modData.join("\n")}\n-----\n[**See all of ${userData.name}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${userData.id}?tab=user+files)`)
+        embed.addField(`My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, `${modData.join("\n")}\n-----\n[**See all of ${userData.name}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${userData.id}?tab=user+files)`)
     }
     // Show guilds.
     let guilds = userData.servers.map((guildid) => {
@@ -120,6 +126,57 @@ const modTotal = (allMods) => {
     allMods.forEach(m => m.unique_downloads ? downloads += m.unique_downloads : null );
     return downloads;
 }
+
+// USER MOD FUNCTIONS
+
+exports.getModsbyUser = async (userId) => {
+    return new Promise( (resolve, reject) => {
+        pool.query('SELECT * FROM user_mods WHERE owner = $1', [userId],
+        (error, results) => {
+            if (error) { console.log(error); return resolve([]) };
+            return resolve(results.rows);
+        });
+    })
+}
+
+exports.createMod = async (newMod) => {
+    return new Promise( (resolve, reject) => {
+        pool.query('INSERT INTO user_mods (domain, mod_id, name, game, unique_downloads, total_downloads, path, owner) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', 
+        [newMod.domain, newMod.mod_id, newMod.name, newMod.game, newMod.unique_downloads, newMod.total_downloads, newMod.path, newMod.owner],
+        (error, results) => {
+            if (error) {
+                console.log(error);
+                return reject(error);
+            }
+            resolve(true);
+        })
+    });
+
+}
+
+exports.deleteMod = async (mod) => {
+    return new Promise( (resolve,reject) => {
+        pool.query('DELETE FROM user_mods WHERE mod_id = $1 AND domain = $2', [mod.mod_id, mod.domain],
+        (error, results) => {
+            if (error) console.log(error); reject(error);
+            resolve(true);
+        })
+    });
+}
+
+exports.updateMod = async (mod, newData) => {
+    return new Promise( (resolve,reject) => {
+        Object.keys(newUser).forEach((key) => {
+            pool.query(`UPDATE users SET ${key} = $1 WHERE mod_id = $2 AND domain = $3`, [newData[key], mod.mod_id, mod.domain], (error, results) => {
+                if (error) errors += 1;
+            });
+        });
+        if (errors > 0) resolve(false);
+        else resolve(true);
+    });
+}
+
+// USER ROLE FUNCTIONS
 
 exports.updateAllRoles = async (userData, message, client) => {
     return new Promise(async (resolve, reject) => {
