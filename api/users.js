@@ -1,7 +1,6 @@
 const { query } = require('./dbConnect.js');
 const { getModsbyUser } = require('./user_mods.js');
-const { getServer, getAllServers } = require('./servers.js');
-const { getLinksByUser, addServerLink } = require('./user_servers.js');
+const { getLinksByUser } = require('./user_servers.js');
 const Discord = require('discord.js');
 
 const getAllUsers = async () => {
@@ -113,88 +112,4 @@ const userEmbed = async (userData, message, client) => {
     return embed;
 }
 
-const updateRoles = async (userData, guild, bRemove = false) => {
-    return new Promise(async (resolve, reject) => {
-        const guildMember = await guild.members.find(m => m.id === userData.d_id);
-        const guildData = await getServer(guild);
-        if (!guildData) return reject('No guild data for '+guild.name);
-
-        // Check we can actually assign roles.
-        const botMember = guild.members.find(user => user.id === client.user.id);
-        if (!botMember || !botMember.hasPermission('MANAGE_ROLES')) {
-            console.log(`${new Date().toLocaleString()} - Permissions in ${guild.name} do not allow role assignment.`);
-            return reject(`Permissions in ${guild.name} do not allow role assignment.`);
-        }
-
-        let rolesToAdd = [];
-        
-        // Get the roles
-        const premiumRole = guildData.role_premium ? guild.roles.find(r => r.id === guildData.role_premium) : undefined;
-        const supporterRole = guildData.role_supporter ? guild.roles.find(r => r.id === guildData.role_premium) : undefined;
-        const linkedRole = guildData.role_linked ? guild.roles.find(r => r.id === guildData.role_supporter) : undefined;
-        const modAuthorRole = guildData.role_author ? guild.roles.find(r => r.id === guildData.role_supporter) : undefined;
-        const modAuthorDownloads = guildData.author_min_downloads || 1000;
-
-        // Collect all the ids for removal. 
-        const allRoles = [
-            premiumRole ? premiumRole.id : '', 
-            supporterRole ? supporterRole.id : '', 
-            linkedRole ? linkedRole.id : '', 
-            modAuthorRole ? modAuthorRole.id : ' '
-        ];
-
-        // Remove all roles if we're unlinking.
-        if (bRemove) {
-            console.log(`Removing roles from ${guildMember.name} (${userData.name}) in ${guild.name}`);
-            guildMember.removeRoles(allRoles.filter(r => r !== ''), 'Nexus Mods Discord unlink')
-                .catch(err => console.log(`${new Date().toLocaleString()} - Could not remove roles from ${userData.name} in ${guild.name}`, err));
-            return resolve(true);
-        }
-
-        // Linked role
-        if (linkedRole && !guildMember.roles.has(linkedRole)) rolesToAdd.push(linkedRole.id);
-
-        // Membership roles
-        if (userData.premium && premiumRole && !guildMember.roles.has(premiumRole)) rolesToAdd.push(premiumRole.id)
-        else if (userData.supporter && supporterRole && !guildMember.roles.has(supporterRole)) rolesToAdd.push(supporterRole.id);
-
-        // Mod Author role
-        if (modAuthorRole && modTotal(allUserMods) >= modAuthorDownloads && !member.roles.has(modAuthorRole)) {
-            rolesToAdd.push(modAuthorRole.id);
-            member.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`);
-        };
-
-        console.log(`Adding ${rolesToAdd.length} roles to ${guildMember.name} (${userData.name}) in ${guild.name}`);
-
-        if (rolesToAdd.length) guildMember.addRoles(rolesToAdd, 'Nexus Mods Discord link')
-            .catch(err => console.log(`${new Date().toLocaleString()} - Could not add roles to ${userData.name} in ${guild.name}`, err));
-        
-        return resolve(true);
-
-
-    });
-}
-
-const updateAllRoles = async (userData, client, addAll = false) => {
-    return new Promise(async (resolve, reject) => {
-        const servers = await getAllServers();
-        const links = await getLinksByUser(userData.id);
-        for(server of servers) {
-            const guild = client.guilds.find(g => g.id === server.id);
-            const existingLink = !!links.find(l => l.server_id);
-            if (guild) {
-                if (addAll || existingLink) {
-                    await updateRoles(userData, guild);
-                    if (!existingLink) {
-                        console.log(`Adding link for ${userData.id}, ${guild.id}`);
-                        await addServerLink(userData, guild);
-
-                    };
-                }
-            }            
-        }
-        resolve();
-    })
-}
-
-module.exports = { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, updateRoles, updateAllRoles };
+module.exports = { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed };
