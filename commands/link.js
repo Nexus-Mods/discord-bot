@@ -26,15 +26,13 @@ exports.run = async (client, message, args, serverData) => {
     const replyChannel = serverData && serverData.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel;
     const discordId = message.author.id;
 
-    let accountData = await getUserByDiscordId(discordId);
+    const accountData = await getUserByDiscordId(discordId);
     const userServers = accountData ? await getLinksByUser(accountData.id) : undefined;
     //console.log(accountData);
 
     if (accountData) {
-        if (message.guild && userServers.find(s => s.server_id === message.guild.id) === -1) {
-            accountData.servers.push(message.guild);
-            console.log(`Adding server link ${accountData.id} ${message.guild.id}`);
-            await addServerLink(accountData.id, message.guild.id)
+        if (message.guild && !userServers.find(s => s.server_id === message.guild.id)) {
+            await addServerLink(accountData, message.guild)
                 .catch(error => console.error(error));
             return replyChannel.send((replyChannel !== message.channel ? message.author : message.author.tag)+" your account has been linked in this server. Type `!nexus whoami` to see your profile card.")
         }

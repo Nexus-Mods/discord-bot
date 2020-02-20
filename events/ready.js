@@ -5,6 +5,7 @@ const onlineEmbed = new Discord.RichEmbed()
 .setColor(0x009933);
 const newsFeed = require('../feeds/nexus-news.js');
 const gameFeed = require('../feeds/game-feeds.js');
+const modFeed = require('../feeds/mod-feeds.js');
 
 let firstStartUp = false
 
@@ -20,7 +21,7 @@ module.exports = async (client) => {
   // Start the news and feeds TODO!
   newsFeed.run(client);
   gameFeed.run(client);
-  //modFeed.run(client); // Coming in the future?
+  modFeed.run(client);
 
   const allServers = await getAllServers();
 

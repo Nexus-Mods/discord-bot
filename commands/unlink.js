@@ -1,4 +1,5 @@
-const { getUserByDiscordId, createUser, deleteUser, updateUser } = require('../api/bot-db.js');
+const { getUserByDiscordId, deleteUser } = require('../api/bot-db.js');
+const {getLinksByUser, deleteServerLink, deleteAllServerLinksByUser } = require('../api/user_servers.js');
 const Discord = require('discord.js');
 
 
@@ -17,18 +18,16 @@ exports.run = async (client, message, args, serverData) => {
 
     // TODO! Staff override manual unlink. 
 
-    // TODO! Reply channel setting from server config.
-
     let userData = await getUserByDiscordId(discordId);
+    const servers = userData? await getLinksByUser(userData.id) : undefined;
 
     if (!userData) return message.channel.send("You don't seem to have an account linked at the moment. See `!nexus link` for more information.").catch(console.error);
 
     if (message.guild) {
         // When this command triggers inside a server, only unlink that server.
         const guildId = message.guild.id;
-        if (userData.servers.indexOf(guildId) === -1) return message.channel.send("Your account is not linked in this server. To delete the link on all servers, please send this command in a DM.");
-        newUserData = {servers: userData.servers.filter(s => s !== guildId)};
-        await updateUser(discordId, newUserData);
+        if (!servers.find(link => link.server_id === guildId)) return message.channel.send("Your account is not linked in this server. To delete the link on all servers, please send this command in a DM.");
+        await deleteServerLink(userData, message.guild);
 
         // TODO! Reply channel setting
         replyChannel.send(`${replyChannel !== message.channel ? message.author+" " : "" }The link to your Nexus Mods account "${userData.name}" in ${message.guild.name} was removed successfully.\nTo relink in the server type \`!nexus link\`.`).catch(console.error);
@@ -36,12 +35,13 @@ exports.run = async (client, message, args, serverData) => {
     else {
         // When this command triggers in a DM, fully remove the account link.
 
-        // TODO! Remove roles from various servers. 
+        // Remove roles from various servers and delete from the database. 
+        await deleteAllServerLinksByUser(userData, client);
+        await deleteUser(discordId);
 
         // TODO! Report the unlink event to the logs.
         
         message.channel.send(`The link to your Nexus Mods account "${userData.name}" in was removed successfully in ${userData.servers.length} servers and your API key has been removed.\nSee \`!nexus link\` to reconnect your account.`).catch(console.error);
-        deleteUser(discordId);
 
     }
 
