@@ -29,7 +29,10 @@ const deleteMod = async (mod) => {
     return new Promise( (resolve,reject) => {
         query('DELETE FROM user_mods WHERE mod_id = $1 AND domain = $2', [mod.mod_id, mod.domain],
         (error, results) => {
-            if (error) console.log(error); reject(error);
+            if (error) {
+                console.log(error);
+                return reject(error);
+            }
             resolve(true);
         })
     });

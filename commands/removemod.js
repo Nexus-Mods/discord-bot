@@ -37,15 +37,14 @@ exports.run = async (client, message, args, serverData) => {
             );
             let removedMods = [];
             for (const match of matches) {
-                console.log("match",match);
-                const modToRemove = mods.find((mod) => mod.id === match.id && mod.domain === match.domain);
+                // console.log("match",match);
+                const modToRemove = mods.find((mod) => mod.mod_id === parseInt(match.id) && mod.domain === match.domain);
                 if (modToRemove) {
-                    console.log("modToRemove",modToRemove);
                     removedMods.push(modToRemove);
                     await deleteMod(modToRemove);
                 }
             }
-            console.log(`${new Date().toLocaleString()} - Removed mods ${removedMods.map(mod => mod.name || `Mod #${mod.id} for ${mod.game}`)} from ${userData.name} in ${message.guild || 'a DM'}.`);
+            console.log(`${new Date().toLocaleString()} - Removed mods ${removedMods.map(mod => mod.name || `Mod #${mod.mod_id} for ${mod.game}`).join(', ')} from ${userData.name} in ${message.guild || 'a DM'}.`);
             if (removedMods.length) return responseMessage.edit(`Removed the following mod(s) from ${message.author} (${userData.name}):\n${removedMods.map(mod => mod.name ? `- ${mod.name} ` : `- Mod #${mod.id} for ${mod.game}`).join("\n")}`);
             else return responseMessage.edit("Could not find any mods to remove for your search criteria.");
         }
