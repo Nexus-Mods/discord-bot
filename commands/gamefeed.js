@@ -1,12 +1,14 @@
-const {linkedAccounts} = require('./link.js');
-const Enmap = require("enmap");
+// const {linkedAccounts} = require('./link.js');
+// const Enmap = require("enmap");
+const { getUserByDiscordId } = require('../api/users.js');
+const { createGameFeed, deleteGameFeed, getGameFeedsForServer, getGameFeed, updateGameFeed } = require('../api/game_feeds.js');
 const Discord = require("discord.js");
 const nexusAPI = require('../api/nexus-discord.js');
-const gameUpdates = new Enmap({
-    name: "GameUpdates",
-    autoFetch: true,
-    fetchAll: true
-  });
+// const gameUpdates = new Enmap({
+//     name: "GameUpdates",
+//     autoFetch: true,
+//     fetchAll: true
+//   });
 
 //gameUpdates.defer.then(() => gameUpdates.deleteAll()); //wipe the database.
 
@@ -42,52 +44,57 @@ exports.run = async (client, message, args) => {
         .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL)
 
 
-        var channelSubs = await findAllSubs(gameUpdates, message.channel); //Pull all updates for this channel.
-        if (channelSubs.length > 0) tutorialEmbed.addField("Game Updates in this channel", channelSubs.join("\n"));
+        // var channelSubs = await findAllSubs(gameUpdates, message.channel); //Pull all updates for this channel.
+        const serverFeeds = async (guild) => {
+            const feeds = await getGameFeedsForServer(guild.id);
+            if (!feeds.length) return undefined;
+            return feeds.map(feed => {
+                const user = guild.members.find(m => m.id === feed.owner);
+                return `**#${feed._id}** - ${feed.title} feed created by ${user || '*Unknown user*'} in <#${feed.channel}>.\n🆕: ${feed.show_new} | ⏫: ${feed.show_updates} | 🔞: ${feed.nsfw} | 🕹: ${feed.sfw}`
+            })
+        } 
+        const feedMap = await serverFeeds(message.guild);
+        if (feedMap) tutorialEmbed.addField("Game Updates in this channel", feedMap.join("\n"));
         return message.channel.send(tutorialEmbed).catch(console.error);
     }
 
     //Find linked account
-    var linkedUser = linkedAccounts.get(message.author.id);
-    if (!linkedUser) return message.channel.send("Please link your Nexus Mods account to your Discord account before using this feature. See `!nexus link` help on linking your account.")
+    const userData = await getUserByDiscordId(message.author.id);
+    if (!userData) return message.channel.send("Please link your Nexus Mods account to your Discord account before using this feature. See `!nexus link` help on linking your account.")
 
 
     //CHECK FOR EDITING OPTION. !nexus gamefeed edit #{id}
     if (args[0].toLowerCase() === 'edit' && args[1].indexOf('#') === 0) {
-        var feedID = args[1].substring(1);
+        const feedID = args[1].substring(1);
         if (isNaN(feedID)) return message.channel.send("Invalid feed ID: "+args[1]);
-        var feedObject = gameUpdates.get(feedID);
+        const feedObject = await getGameFeed(feedID);
         if (!feedObject) return message.channel.send("Could not find a feed with ID: "+feedID);
-        var owner = client.users.find(u => u.id === feedObject.user);
+        const owner = message.guild.members.find(m => m.id === feedObject.owner);
         if (message.author !== owner && !message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to edit this feed.");
+        if (feedObject.guild !== message.guild.id) return message.channel.send(`Cannot managed feed #${feedID} as it is not set up in this server.`);
         var editEmbed = new Discord.RichEmbed()
         .setTitle('Editing Game Feed #'+feedID)
         .setColor(0xda8e35)
         .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL)
         .setDescription(`Game: ${feedObject.gameTitle}`+
-        `\nChannel: ${client.channels.find(c => c.id === feedObject.channel)} in ${client.guilds.find(g => g.id === feedObject.guild)}`+
-        `\nCreated by: ${owner.tag}`+
+        `\nChannel: ${client.channels.find(c => c.id === feedObject.channel) || 'Unknown channel'} in ${message.guild}`+
+        `\nCreated by: ${owner ? owner.tag : '???'}`+
         `\nMessage: ${feedObject.announceMsg ? `"${feedObject.announceMsg}" - Update: 📬 | Remove: 📭.` : "Not set. Add: 📬"}`+
         `\n\nTo change the feed settings, use the reaction with the matching icon. ✅ confirms the changes, ❌ cancels the feed.`)
-        .setTimestamp(new Date(feedObject.created*1000))
-        .addField("🆕 Show new:", feedObject.settings.newMods,true)
-        .addField("⏫ Show updates:", feedObject.settings.updatedMods,true)
-        .addField("🔞 Adult Content:", feedObject.settings.nsfw,true)
-        .addField("🕹 Safe Content:", feedObject.settings.sfw,true)
+        .setTimestamp(feedObject.created)
+        .addField("🆕 Show new:", feedObject.show_new,true)
+        .addField("⏫ Show updates:", feedObject.show_updates,true)
+        .addField("🔞 Adult Content:", feedObject.nsfw,true)
+        .addField("🕹 Safe Content:", feedObject.sfw,true)
 
-        var editMessage = await message.channel.send(editEmbed).catch(console.error);
+        const editMessage = await message.channel.send(editEmbed).catch(console.error);
         //Check for the 4 toggles
-        var toggles = ["✅", "❌", "🆕", "⏫", "🔞", "🕹","📬","📭"];
-        var reactionFilter = (reaction, user) => user.id === message.author.id && toggles.indexOf(reaction.emoji.name) !== -1;
-        var editCollector = editMessage.createReactionCollector(reactionFilter, {time: 30000, max: 4});
-        editMessage.react('✅');
-        editMessage.react('❌');
-        editMessage.react('🆕');
-        editMessage.react('⏫');
-        editMessage.react('🔞');
-        editMessage.react('🕹');
-        editMessage.react('📬');
-        editMessage.react('📭');
+        const toggles = ["✅", "❌", "🆕", "⏫", "🔞", "🕹","📬","📭"];
+        const reactionFilter = (reaction, user) => user.id === message.author.id && toggles.indexOf(reaction.emoji.name) !== -1;
+        const editCollector = editMessage.createReactionCollector(reactionFilter, {time: 30000, max: 4});
+        toggles.forEach(emoji => editMessage.react(emoji));
+
+        let newData = {};
 
         editCollector.on('collect', async r => {
             if (r.emoji.name === '✅') {
@@ -95,20 +102,20 @@ exports.run = async (client, message, args) => {
                 editCollector.stop("Stopped by user.");
             };
             if (r.emoji.name === '🆕') {
-                feedObject.settings.newMods = !feedObject.settings.newMods;
-                message.channel.send(`New mod uploads ${feedObject.settings.newMods ? "will" : "will **not**" } be included.`).catch(console.error);
+                newData.show_new = !feedObject.show_new
+                message.channel.send(`New mod uploads ${newData.show_new ? "will" : "will **not**" } be included.`).catch(console.error);
             };
             if (r.emoji.name === '⏫') {
-                feedObject.settings.updatedMods = !feedObject.settings.updatedMods;
-                message.channel.send(`Updated mods ${feedObject.settings.updatedMods ? "will" : "will **not**" } be included.`).catch(console.error);
+                newData.show_updates = !feedObject.show_updates
+                message.channel.send(`Updated mods ${feedObject.show_updates ? "will" : "will **not**" } be included.`).catch(console.error);
             };
             if (r.emoji.name === '🔞') {
-                feedObject.settings.nsfw = !feedObject.settings.nsfw;
-                message.channel.send(`Adult content ${feedObject.settings.nsfw ? "will" : "will **not**" } be included. ${message.channel.nsfw ? "" : "\n*Note: We recommend you set this channel to NSFW if you wish to showcase adult content.*"}`).catch(console.error);
+                newData.nsfw = !feedObject.nsfw;
+                message.channel.send(`Adult content ${newData.nsfw ? "will" : "will **not**" } be included. ${message.channel.nsfw ? "" : "\n*Note: We recommend you set this channel to NSFW if you wish to showcase adult content.*"}`).catch(console.error);
             };
             if (r.emoji.name === '🕹') {
-                feedObject.settings.sfw = !feedObject.settings.sfw;
-                message.channel.send(`Safe for work content ${feedObject.settings.sfw ? "will" : "will **not**" } be included.`).catch(console.error);
+                newData.sfw = !feedObject.sfw;
+                message.channel.send(`Safe for work content ${newData.sfw ? "will" : "will **not**" } be included.`).catch(console.error);
             };
             if (r.emoji.name === '❌') {
                 editCollector.stop("Deleted by user.");
@@ -118,7 +125,7 @@ exports.run = async (client, message, args) => {
                 await message.channel.send("Type the message you would like to send when new mods are available.");
                 var newMsgCollector = await message.channel.createMessageCollector(m => m.author === message.author, {maxMatches: 1, time: 15000});
                 newMsgCollector.on('collect', m => {
-                    feedObject.announceMsg = m.content
+                    newData.message = m.content;
                     message.channel.send(`Before each feed update the following message will be sent: "${m.content}"`);
                 });
                 newMsgCollector.on('end', mc => {
@@ -127,7 +134,7 @@ exports.run = async (client, message, args) => {
 
             };
             if (r.emoji.name === '📭' && feedObject.announceMsg) {
-                delete feedObject.announceMsg
+                newData.message = null;
                 message.channel.send("Update message cleared.") 
             };
         });
@@ -135,14 +142,22 @@ exports.run = async (client, message, args) => {
             if (rc.find(r => r.emoji.name === '❌')) {
                 //delete the feed
                 editMessage.clearReactions();
-                gameUpdates.delete(feedID);
-                return message.channel.send("Game feed was deleted.").catch(console.error);
+                return deleteGameFeed(feedObject._id)
+                .then(() => {
+                    message.channel.send("Game feed was deleted.");
+                    console.log(new Date() + ` - Game feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} deleted by ${rc.first().users.last().tag}`);
+                })
+                .catch(err => message.channel.send("Error deleting game feed."+err));
             }
             else {
                 //save the changes
                 editMessage.clearReactions();
-                gameUpdates.set(feedID, feedObject);
-                return message.channel.send("Game feed saved successfully.").catch(console.error);
+                return updateGameFeed(feedObject._id, newData)
+                .then(() => {
+                    message.channel.send("Game feed saved successfully.")
+                    console.log(new Date() + ` - Game feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} edited by ${message.author.tag}`);
+                })
+                .catch(err => message.channel.send("Error saving game feed."+err)));
             }
 
         });
@@ -172,12 +187,12 @@ exports.run = async (client, message, args) => {
     //Find game
     var gameQuery = args.join(" ");
     try {
-        var gameList = await nexusAPI.games(message.author, true);
+        var gameList = await nexusAPI.games(userData);
         var gameToSubscribe = gameList.find(g => g.name.toLowerCase() === gameQuery.toLowerCase()) || gameList.find(g => g.domain_name.toLowerCase() === gameQuery.toLowerCase()) || undefined
         if (!gameToSubscribe) return message.channel.send(`Could not find a game for your query: ${gameQuery}. Please ensure the name exactly matches the name as it appears on the Nexus Mods website **or** the name used in the web address (e.g. skyrimspecialedition).`).catch(console.error);
     }
     catch(err) {
-        return message.channel.send(err).catch(console.error);
+        return message.channel.send("Error in game lookup", err.stack).catch(console.error);
     }
 
     //Confirm settings and save
@@ -186,7 +201,7 @@ exports.run = async (client, message, args) => {
     .setColor(0xda8e35)
     .setTitle(`Create feed in ${message.channel.name}?`)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameToSubscribe.id}.jpg`)
-    .setDescription(`New and updated mods for ${gameToSubscribe.name} will be posted in ${message.channel} periodically. \nAdult content ${allowAdultContent ? "will" : "will not"} be included.\nThe API key for ${linkedUser.nexusName} will be used.`)
+    .setDescription(`New and updated mods for ${gameToSubscribe.name} will be posted in ${message.channel} periodically. \nAdult content ${allowAdultContent ? "will" : "will not"} be included.\nThe API key for ${userData.name} will be used.`)
     .addField(`Options`, "React with ✅ to confirm or ❌ to cancel.")
     .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
     var confirmMsg = await message.channel.send(confirmEmbed).catch(console.error);
@@ -207,26 +222,30 @@ exports.run = async (client, message, args) => {
         
         gameUpdate = {
             channel: message.channel.id,
-            webhook_id: wb_id,
-            webhook_token: wb_token,
             guild: message.guild.id,
-            user: message.author.id,
-            game: gameToSubscribe.domain_name,
-            gameTitle: gameToSubscribe.name,
-            settings: {
-                nsfw: allowAdultContent,
-                sfw: true,
-                newMods: true,
-                updatedMods: true
-            },
-            lastTimestamp: 0,
-            created: Math.round((new Date()).getTime() / 1000)//current Unix timestamp.
+            owner: message.author.id,
+            domain: gameToSubscribe.domain_name,
+            title: gameToSubscribe.name,
+            nsfw: allowAdultContent,
+            sfw: true,
+            show_new: true,
+            show_updates: true,
+            webhook_id: wb_id,
+            webhook_token: wb_token
         };
         //if (client.guild.me.hasPermission("MANAGE_WEBHOOKS"))
-        var id = gameUpdates.autonum
-        await gameUpdates.set(id, gameUpdate);
-        console.log(new Date() + ` - Registered game feed for ${gameToSubscribe.name} in ${message.channel.name} at ${message.guild.name} successfully. Reference #${id}`)
-        return message.channel.send(`Registered game feed for ${gameToSubscribe.name} in ${message.channel} successfully. Reference #${id}`);
+        // var id = gameUpdates.autonum
+        // await gameUpdates.set(id, gameUpdate);
+        try {
+            const id = await createGameFeed(gameUpdate);
+            console.log(new Date() + ` - Game feed created for ${gameToSubscribe.name} in ${message.channel.name} at ${message.guild.name} by ${message.author.tag} successfully. Reference #${id}`);
+            return message.channel.send(`Registered game feed for ${gameToSubscribe.name} in ${message.channel} successfully. Reference #${id}`);
+        }
+        catch(err) { 
+            console.log(err);
+            return message.channel.send(`Error creating gamefeed. \`\`\`${err}\`\`\``);
+        };
+        
       });
       collector.on('end', rc => {
         //End
