@@ -15,7 +15,7 @@ const getServer = (guild) => {
         query('SELECT * FROM servers WHERE id = $1', [guild.id], (error, result) => {
             if (error) return reject(error);
             if (!result.rows || result.rows.length === 0) {
-                console.log("Guild not found: "+guild.name);
+                console.log(`${new Date().toLocaleString()} - Server lookup. Guild not found: ${guild.name}`);
                 resolve(false);
             }
             else {

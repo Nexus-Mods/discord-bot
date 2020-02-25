@@ -12,10 +12,8 @@ let firstStartUp = false
 module.exports = async (client) => {
   console.log(`${new Date().toLocaleString()} - Ready to serve in ${client.channels.size} channels on ${client.guilds.size} servers, for a total of ${client.users.size} users.`);
   client.user.setActivity(`the channels for ${client.config.prefix[0]}`, {type: 'Watching'});
-  
-  if (client.config.testing) return console.log('Testing mode - did not publish online message.');
-  if (firstStartUp) return
 
+  if (firstStartUp) return
   firstStartUp = true;
 
   // Start the news and feeds TODO!
@@ -23,6 +21,7 @@ module.exports = async (client) => {
   gameFeed.run(client);
   modFeed.run(client);
 
+  if (client.config.testing) return console.log('Testing mode - did not publish online message.');
   const allServers = await getAllServers();
 
   // Post the online notice.
