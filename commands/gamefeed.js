@@ -157,7 +157,7 @@ exports.run = async (client, message, args) => {
                     message.channel.send("Game feed saved successfully.")
                     console.log(new Date() + ` - Game feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} edited by ${message.author.tag}`);
                 })
-                .catch(err => message.channel.send("Error saving game feed."+err)));
+                .catch(err => message.channel.send("Error saving game feed."+err));
             }
 
         });
