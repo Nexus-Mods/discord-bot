@@ -3,6 +3,10 @@ const nexusAPI = require('../api/nexus-discord.js');
 const Fuse = require('fuse.js'); //https://fusejs.io/
 const { getUserByDiscordId } = require('../api/bot-db.js');
 
+// Add total downloads for all mods in a game. Unused as it is very slow for the big games. 
+const downloadReducer = (total = 0, current) => {
+    return total.total_downloads ? total.total_downloads += current.total_downloads : total += current.total_downloads;
+}
 
 module.exports.help = {
     name: "games",
@@ -16,11 +20,11 @@ module.exports.help = {
 exports.run = async (client, message, args, serverData) => {
     const replyChannel = serverData && serverData.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
 
-    const userData = getUserByDiscordId(message.author.id);
+    const userData = await getUserByDiscordId(message.author.id);
     if(!userData) return replyChannel.send(`${replyChannel !== message.channel ? message.author+" " : ""}Please link your account to the before using this feature. See \`!nm link\` for more information.`)
 
     try {
-        const gamelist = await nexusAPI.games(userData, 1)
+        const gamelist = await nexusAPI.games(userData, true);
             
         var searchTerm = args.join(" ")
 
@@ -29,9 +33,9 @@ exports.run = async (client, message, args, serverData) => {
             tokenize: true,
             matchAllTokens: true,
             findAllMatches: true,
-            threshold: 0.4,
+            threshold: 0.3,
             location: 0,
-            distance: 25,
+            distance: 15,
             maxPatternLength: 16,
             minMatchCharLength: 3,
             keys: [
@@ -58,13 +62,16 @@ exports.run = async (client, message, args, serverData) => {
         }
         //only 1 result
         else if (results.length === 1) {
-            var gameInfo = results[0]
+            const gameInfo = results[0]
+            // Removed for performance. 
+            // const downloadData = await nexusAPI.getDownloads(userData, gameInfo.domain_name);
+            // const totalDownloads = downloadData.reduce(downloadReducer);
+
             const gameMessage = new Discord.RichEmbed()
             .setTitle(gameInfo.name)
             .setColor(0xda8e35)
             .setURL((gameInfo.nexusmods_url ? gameInfo.nexusmods_url : "https://www.nexusmods.com") )
             .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameInfo.id}.jpg`)
-            //.setThumbnail(client.user.avatarURL)
             .addField("Genre",(gameInfo.genre? gameInfo.genre : "Not specified" ),true)
             .addField("Mods",Number(gameInfo.mods).toLocaleString(),true)
             .addField("Downloads",Number(gameInfo.downloads).toLocaleString(),true)
@@ -88,7 +95,10 @@ exports.run = async (client, message, args, serverData) => {
             .setColor(0xda8e35)
             .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL)
             for (i = 0; i < (results.length < 5 ? results.length : 5); i++) {
-                var game = results[i]
+                const game = results[i];
+                // REMOVED - For popular games it can take up to 2 mins to actually run the calculation.
+                // const downloadData = await nexusAPI.getDownloads(user, game.domain_name);
+                // const totalDownloads = downloadData.reduce(downloadReducer);
                 gameMessage.addField(game.name, `**Genre:** ${game.genre ? game.genre : "Not specified"} | **Mods:** ${Number(game.mods).toLocaleString()}\n**Downloads**: ${Number(game.downloads).toLocaleString()} | **Endorsements**: ${Number(game.file_endorsements).toLocaleString()}${game.nexusmods_url !== "http://www.nexusmods.com/" ? "\n"+game.nexusmods_url : "\n*Pending approval. [What does this mean?](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)*"}`)
 
             }

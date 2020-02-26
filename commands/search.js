@@ -1,7 +1,7 @@
 const Discord = require('discord.js')
 const { getUserByDiscordId } = require('../api/bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
-const serverConfig = require('./../serverconfig.json') //For server specific settings.
+// const serverConfig = require('./../serverconfig.json') //For server specific settings.
 
 module.exports.help = {
     name: "search",
@@ -21,8 +21,8 @@ exports.run = async (client, message, args, serverSettings) => {
 
     if (!serverSettings || serverSettings.webhookID === "" || serverSettings.webookToken === "") return message.channel.send("Mod search is not set up in this server.")
 
-    var searchWebHook = new Discord.WebhookClient(serverSettings.webhookID,serverSettings.webhookToken)
-    var searchResultsChannel = serverSettings.webhookID ? await message.guild.fetchWebhooks().then((wl) => message.guild.channels.find(c => c.id === wl.find(w => w.id === serverSettings.webhookID).channelID)) : none
+    var searchWebHook = new Discord.WebhookClient(serverSettings.webhook_id,serverSettings.webhook_token);
+    var searchResultsChannel = serverSettings.webhook_id ? await message.guild.fetchWebhooks().then((wl) => message.guild.channels.find(c => c.id === wl.find(w => w.id === serverSettings.webhook_id).channelID)) : undefined;
     var gameID = serverSettings.searchGameFilter ? serverSettings.searchGameFilter.id : null
     var gameName = serverSettings.searchGameFilter && args[0] !== "-all" ? serverSettings.searchGameFilter.title : null
 

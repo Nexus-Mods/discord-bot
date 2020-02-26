@@ -46,6 +46,7 @@ exports.run = async (client, message, args, serverData) => {
                 break;
             case "togglesearch":
                 toggleSearch(args.slice(1), serverData, message);
+                break;
             default: 
                 return message.reply(`"${args[0]}" is an invalid command for config.`);       
         };
@@ -129,37 +130,38 @@ async function toggleSearch(args, serverData, message) {
             return message.channel.send("Disabled search in this server.").catch(console.error);
         }
         else {
-            return message.channel.send("Search is not enabled in this server.").catch(console.error);
+            // TODO - Fix this!
+
+            try {
+                if (!message.member.hasPermission("MANAGE_WEBHOOKS")) return message.reply("you do not have permission to create a webhook for the Search.").catch(err => console.log(err));
+        
+                const searchChannel = message.mentions.channels.first() ? message.mentions.channels.first() : message.channel;
+                const userData = await getUserByDiscordId(message.author.id);
+                const gamesList = userData ? await nexusAPI.games(userData) : null;
+                const searchFilter = gamesList.find(g => g.domain === args[0]).domain_name;
+        
+                let newData = {};
+        
+                await searchChannel.createWebhook("Nexus Mods Quick Search", client.user.avatarURL)
+                .then(webhook => webhook.edit("Nexus Mods Quick Search", client.user.avatarURL))
+                .then(webhook => {
+                    newData.search_whid = webhook.id;
+                    newData.search_whtoken = webhook.token;
+                    if (searchFilter) newData.game_filter = searchFilter;
+                });
+        
+                await updateServer(message.guild.id, newData);
+        
+                return message.channel.send(`Search initialised. Results will be posted in ${searchChannel}${searchFilter ? ` with a default game filter of ${searchFilter}.` : '.'}`).catch(err => console.log(err));
+        
+            }
+            catch(err) {
+                console.log("Error toggling search in "+message.guild, err);
+                return message.channel.reply(`Error toggling search: ${err}`).catch(err => console.log(err));
+            }
         };
     };
 
-    try {
-        if (!message.member.hasPermission("MANAGE_WEBHOOKS")) return message.reply("you do not have permission to create a webhook for the Search.").catch(err => console.log(err));;
-
-        const searchChannel = message.mentions.channels.first() ? message.mentions.channels.first() : message.channel;
-        const userData = await getUserByDiscordId(message.author.id);
-        const gamesList = userData ? await nexusAPI.games(userData) : null;
-        const searchFilter = gamesList.find(g => g.domain === args[0]).nexusmods_url;
-
-        let newData = {};
-
-        await searchChannel.createWebhook("Nexus Mods Quick Search", client.user.avatarURL)
-        .then(webhook => webhook.edit("Nexus Mods Quick Search", client.user.avatarURL))
-        .then(webhook => {
-            newData.search_whid = webhook.id;
-            newData.search_whtoken = webhook.token;
-            if (searchFilter) newData.game_filter = searchFilter;
-        });
-
-        await updateServer(message.guild.id, newData);
-
-        return message.channel.send(`Search initialised. Results will be posted in ${searchChannel}${searchFilter ? ` with a default game filter of ${searchFilter}.` : '.'}`).catch(err => console.log(err));
-
-    }
-    catch(err) {
-        console.log("Error toggling search in "+message.guild, err);
-        return message.channel.reply(`Error toggling search: ${err}`).catch(err => console.log(err));
-    }
 }
 
 async function serverEmbed(serverData, client) {
