@@ -18,6 +18,8 @@ exports.run = async (client, message, args) => {
     var fullMemberData = []
 
     linkedAccounts.forEach(function(element) {
+        const discordID = linkedAccounts.findKey(user => user.nexusID === element.nexusID);
+        discordID ? element.id = discordID : undefined;
         //console.log(element)
         //if (element.apikey) element.apikey = 'Valid'
         fullMemberData.push(element)
