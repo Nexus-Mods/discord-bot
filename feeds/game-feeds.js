@@ -34,6 +34,12 @@ async function checkForGameUpdates() {
             console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to missing permissions.`);
             return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(console.error);
         }
+        // Check if the webhook was created properly.
+        if (!webHook.channelID) {
+            await deleteGameFeed(gameFeed._id);
+            console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to invalid webhook.`)
+            return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the webhook appears to no longer exist. Game feed cancelled.`).catch(console.error);
+        }
         // Check if the channel or server doesn't exist.
         if (!feedGuild || !feedChannel) {
             await deleteGameFeed(gameFeed._id);
@@ -78,9 +84,6 @@ async function checkForGameUpdates() {
             let lastUpdateDate = new Date(0);
 
             // Loop through each mod and build embeds.
-            // const embedData = await getEmbeds(filteredNewMods, currentGame, gameFeed, userData, feedGuild);
-            // const modEmbeds = embedData.embeds;
-            // const lastUpdateDate = embedData.lastUpdateDate;
             for (const newMod of filteredNewMods) {
                 // We only want 10 at a time. 
                 if (modEmbeds.length >= 10) break;
@@ -121,7 +124,7 @@ async function checkForGameUpdates() {
     
             // Post embeds to the web hook.
             if (gameFeed.message) feedChannel.send(gameFeed.message).catch(err => undefined);
-            if (webHook) return webHook.send({embeds: modEmbeds, split: true}).catch(console.error);
+            if (webHook) return webHook.send({embeds: modEmbeds, split: true}).catch(err => console.error('Error posting to webhook', webHook.channelID, err.message));
             else {
                 // Webhook isn't working, attempt to post manually.
                 console.log(`${new Date().toLocaleString()} - Unable to use webhook, attempting manual posting of updates in ${feedGuild}. (${gameFeed._id})`);
@@ -131,21 +134,6 @@ async function checkForGameUpdates() {
         catch(err) {
             console.log("Error processing game feed", err);
         }
-
-        // await updateGameFeed(gameFeed._id, {last_timestamp: lastUpdateDate});
-
-        // console.log("final",modEmbeds.length);
-        // // No updates to post?
-        // if (!modEmbeds.length) return console.log(`${new Date().toLocaleString()} - No matching updates for ${gameFeed.title} in ${feedGuild} (${gameFeed._id})`)
-
-        // // Post embeds to the web hook.
-        // if (gameFeed.message) feedChannel.send(gameFeed.message).catch(err => undefined);
-        // if (webHook) return webHook.send({embeds: modEmbeds, split: true}).catch(console.error);
-        // else {
-        //     // Webhook isn't working, attempt to post manually.
-        //     console.log(`${new Date().toLocaleString()} - Unable to use webhook, attempting manual posting of updates in ${feedGuild}. (${gameFeed._id})`);
-        //     modEmbeds.forEach((mod) => feedChannel.send(mod).catch(err => undefined));
-        // }
 
     }
 

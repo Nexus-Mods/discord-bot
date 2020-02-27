@@ -233,6 +233,7 @@ exports.run = async (client, message, args) => {
             webhook_id: wb_id,
             webhook_token: wb_token
         };
+        console.log(`new Update`, gameUpdate);
         //if (client.guild.me.hasPermission("MANAGE_WEBHOOKS"))
         // var id = gameUpdates.autonum
         // await gameUpdates.set(id, gameUpdate);
