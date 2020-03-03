@@ -7,7 +7,7 @@ let client;
 // Game watcher
 exports.run = async (cl) => {
     client = cl;
-    await checkForGameUpdates()
+    await checkForGameUpdates();
     setInterval(checkForGameUpdates, pollTime);
     console.log(`${new Date().toLocaleString()} - Game updates scheduled every ${pollTime/60/1000} minutes.`);
 }
@@ -90,8 +90,10 @@ async function checkForGameUpdates() {
                 let modData = await nexusAPI.modInfo(userData, gameFeed.domain, newMod.mod_id)
                     .catch((err) => { 
                         console.error(`${new Date().toLocaleString()} - Could not get mod data for ${gameFeed.domain}/${newMod.mod_id}`, err);
-                        continue;
                     });
+                // Exit if modData is unfilled.
+                if (!modData) continue;
+                
                 // Skip unavailable mods.
                 if (modData.status !== "published") { 
                     console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || `Mod #${modData.mod_id}`} for ${gameFeed.title} in ${feedGuild} as it is not available. (${gameFeed._id})`);

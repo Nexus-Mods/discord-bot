@@ -54,7 +54,7 @@ exports.run = async (client, message, args) => {
             })
         } 
         const feedMap = await serverFeeds(message.guild);
-        if (feedMap) tutorialEmbed.addField("Game Updates in this channel", feedMap.join("\n"));
+        if (feedMap) tutorialEmbed.addField("Game Updates in this server", feedMap.join("\n"));
         return message.channel.send(tutorialEmbed).catch(console.error);
     }
 
@@ -70,7 +70,7 @@ exports.run = async (client, message, args) => {
         const feedObject = await getGameFeed(feedID);
         if (!feedObject) return message.channel.send("Could not find a feed with ID: "+feedID);
         const owner = message.guild.members.find(m => m.id === feedObject.owner);
-        if (message.author !== owner && !message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to edit this feed.");
+        if (message.author !== owner || !message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to edit this feed.");
         if (feedObject.guild !== message.guild.id) return message.channel.send(`Cannot managed feed #${feedID} as it is not set up in this server.`);
         var editEmbed = new Discord.RichEmbed()
         .setTitle('Editing Game Feed #'+feedID)
@@ -91,7 +91,7 @@ exports.run = async (client, message, args) => {
         //Check for the 4 toggles
         const toggles = ["✅", "❌", "🆕", "⏫", "🔞", "🕹","📬","📭"];
         const reactionFilter = (reaction, user) => user.id === message.author.id && toggles.indexOf(reaction.emoji.name) !== -1;
-        const editCollector = editMessage.createReactionCollector(reactionFilter, {time: 30000, max: 4});
+        const editCollector = editMessage.createReactionCollector(reactionFilter, {time: 30000, max: 15});
         toggles.forEach(emoji => editMessage.react(emoji));
 
         let newData = {};
