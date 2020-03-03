@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const { deleteGameFeed, getAllGameFeeds, getUserByDiscordId, updateGameFeed } = require('../api/bot-db.js');
+const { deleteGameFeed, getAllGameFeeds, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } = require('../api/bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
 const pollTime = (1000*60*10); //10 mins
 let client;
@@ -87,7 +87,11 @@ async function checkForGameUpdates() {
             for (const newMod of filteredNewMods) {
                 // We only want 10 at a time. 
                 if (modEmbeds.length >= 10) break;
-                const modData = await nexusAPI.modInfo(userData, gameFeed.domain, newMod.mod_id);
+                let modData = await nexusAPI.modInfo(userData, gameFeed.domain, newMod.mod_id)
+                    .catch((err) => { 
+                        console.error(`${new Date().toLocaleString()} - Could not get mod data for ${gameFeed.domain}/${newMod.mod_id}`, err);
+                        continue;
+                    });
                 // Skip unavailable mods.
                 if (modData.status !== "published") { 
                     console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || `Mod #${modData.mod_id}`} for ${gameFeed.title} in ${feedGuild} as it is not available. (${gameFeed._id})`);
@@ -103,6 +107,10 @@ async function checkForGameUpdates() {
                     console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || modData.id} for ${gameFeed.title} in ${feedGuild} as it contains SFW content. (${gameFeed._id})`);
                     continue;
                 };
+                // Get the Discord ID of the author, if possible (and they're in this server.)
+                const authorData = await getUserByNexusModsName(modData.uploaded_by).catch(() => undefined);
+                modData.authorDiscord = authorData ? await feedGuild.members.find(m => m.id === authorData.d_id) : undefined;
+
                 // Check if this mod is new or updated and if we should post it.
                 if ((modData.updated_timestamp - modData.created_timestamp) < 3600 && gameFeed.show_new) {
                     console.log(`${new Date().toLocaleString()} - Building new mod embed for ${modData.name} (${modData.mod_id}) for ${currentGame.name} (${gameFeed._id})`); 
@@ -111,7 +119,7 @@ async function checkForGameUpdates() {
                 }
                 else if (gameFeed.show_updates) {
                     // We want to try and get the changelogs.
-                    const changelog = await nexusAPI.modChangelogs(userData, gameFeed.domain, newMod.mod_id).catch(err => undefined);
+                    const changelog = await nexusAPI.modChangelogs(userData, gameFeed.domain, newMod.mod_id).catch(() => undefined);
                     console.log(`${new Date().toLocaleString()} - Building updated mod embed for ${modData.name} (${modData.mod_id}) for ${currentGame.name} (${gameFeed._id})`);
                     modEmbeds.push(createModEmbed(modData, currentGame, false, changelog));
                     lastUpdateDate = new Date(modData.updated_timestamp*1000);         
@@ -162,7 +170,7 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
         embed.addField("Changelog", versionChanges);
     }
     embed.addField("Author", modInfo.author, true)
-    .addField("Uploader", `[${modInfo.uploaded_by}](${modInfo.uploaded_users_profile_url})`, true)
+    .addField("Uploader", `[${modInfo.uploaded_by}](${modInfo.uploaded_users_profile_url})${modInfo.authorData ? `\n<@${modInfo.authorDiscord}>`: ''}`, true)
     .addField("Category", game.categories.find(c => c.category_id === modInfo.category_id).name)
     .setTimestamp(modInfo.updated_timestamp*1000)
     .setFooter(`Version: ${modInfo.version} - Mod ID: ${game.id}-${modInfo.mod_id}`,client.user.avatarURL);
