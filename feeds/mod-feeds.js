@@ -31,7 +31,7 @@ async function checkForGameUpdates() {
         // Check we can actually post to the game feed channel.
         if (botPermissions.indexOf("SEND_MESSAGES") !== -1) {
             await deleteModFeed(modFeed._id);
-            console.log(`${new Date().toLocaleString()} - Deleted game update ${modFeed._id} due to missing permissions.`);
+            console.log(`${new Date().toLocaleString()} - Deleted mod feed ${modFeed._id} due to missing permissions.`);
             return discordUser.send(`I'm not able to post ${modFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(console.error);
         }
         // Check if the channel or server doesn't exist.
