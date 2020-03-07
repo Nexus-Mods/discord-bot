@@ -1,44 +1,46 @@
 const Discord = require('discord.js');
-const { deleteModFeed, getAllModFeeds, getUserByDiscordId, updateModFeed } = require('../api/bot-db.js');
+const { deleteModFeed, getAllModFeeds, getUserByDiscordId, getUserByNexusModsName, updateModFeed } = require('../api/bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
 const pollTime = (1000*60*60); //1 hrs
 let client;
 
 // Game watcher
 exports.run = async (cl) => {
-    return console.log(`${new Date().toLocaleString()} - Mod Feeds are not yet available.`)
+    // return console.log(`${new Date().toLocaleString()} - Mod Feeds are not yet available.`)
     client = cl;
-    await checkForGameUpdates()
-    setInterval(checkForGameUpdates, pollTime);
+    await checkForModUpdates()
+    setInterval(checkForModUpdates, pollTime);
     console.log(`${new Date().toLocaleString()} - Mod updates scheduled every ${pollTime/60/1000} minutes.`);
 }
 
-async function checkForGameUpdates() {
+async function checkForModUpdates() {
     // Routinely check for new mods across registered games.
     const allModFeeds = await getAllModFeeds();
     let allGames // fill this from the first user with their API key. 
+    let cachedUpdates = {}; // save recently updated info rather than requesting it each time.
 
     for (modFeed of allModFeeds) {
         // Run the check for each game and post results. 
         const discordId = modFeed.owner;
         const discordUser = client.users.find(u => u.id === discordId);
-        const userData = getUserByDiscordId(discordId);
+        const userData = await getUserByDiscordId(discordId);
         const feedGuild = client.guilds.find(g => g.id === modFeed.guild);
-        const feedChannel = feedGuild ? guild.channels.find(c => c.id === modFeed.channel) : undefined;
-        const webHook = feedGuild ? new Discord.WebhookClient(modFeed.webhook_id, modFeed.webhook_token) : undefined;
-        const botPermissions = feedGuild? feedChannel.memberPermissions(feedGuild.members.find(client.user)) : [];
+        const feedChannel = feedGuild ? feedGuild.channels.find(c => c.id === modFeed.channel) : undefined;
+        const botPermissions = feedGuild? feedChannel.memberPermissions(feedGuild.me) : [];
 
         // Check we can actually post to the game feed channel.
-        if (botPermissions.indexOf("SEND_MESSAGES") !== -1) {
+        if (!botPermissions.has("SEND_MESSAGES", true)) {
             await deleteModFeed(modFeed._id);
             console.log(`${new Date().toLocaleString()} - Deleted mod feed ${modFeed._id} due to missing permissions.`);
-            return discordUser.send(`I'm not able to post ${modFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(console.error);
+            discordUser.send(`I'm not able to post ${modFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(console.error);
+            continue;
         }
         // Check if the channel or server doesn't exist.
         if (!feedGuild || !feedChannel) {
             await deleteModFeed(modFeed._id);
             console.log(`${new Date().toLocaleString()} - Deleted game update ${modFeed._id} due to missing guild or channel data.`)
-            return discordUser.send(`I'm not able to post ${modFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the channel or server could not be found. Game feed cancelled.`).catch(console.error);
+            discordUser.send(`I'm not able to post ${modFeed.title} updates to ${feedChannel || 'Unknown channel'} in ${feedGuild || 'Unknown server'} anymore as the channel or server could not be found. Game feed cancelled.`).catch(console.error);
+            continue;
         }
         // Check if the user is missing.
         if (!discordUser || !userData) {
@@ -50,7 +52,7 @@ async function checkForGameUpdates() {
         // Check the user's API key is valid. 
         try {await nexusAPI.validate(userData.apikey)}
         catch(err) {
-            if(err.indexOf("401") !== -1) {
+            if(err.toString().indexOf("401") !== -1) {
                 await deleteModFeed(modFeed._id);
                 console.log(`${new Date().toLocaleString()} - Deleted game update ${modFeed._id} due to invalid API key.`)
                 return discordUser.send(`${new Date().toLocaleString()} - Cancelled Game Feed for ${modFeed.title} in ${feedGuild} as your API key is invalid.`).catch(err => undefined)
@@ -63,15 +65,75 @@ async function checkForGameUpdates() {
         if (!allGames) allGames = await nexusAPI.games(userData, false);
 
         // Get current game data.
-        const currentGame = allGames.find(g => g.domain === modFeed.domain);
+        const currentGame = allGames.find(g => g.domain_name === modFeed.domain);
 
         // Get the updated mods for game. 
         try {
-            const newMods = await nexusAPI.updatedMods(userData, gamFeed.domain, "1d");
-            // Filter out mods that were check on a previous loop. Sort the updates by date as the API sometimes returns them out of order.
-            let filteredNewMods = newMods.filter(mod => mod.latest_file_update > modFeed.last_timestamp && mod.available).sort(compareDates);
-            // Exit if there's nothing to process.
-            if (!filteredNewMods.length) return console.log(`${new Date().toLocaleString()} - No unchecked updates for ${modFeed.title} in ${feedGuild} (${modFeed._id})`);
+            const newMods = cachedUpdates[modFeed.domain] || await nexusAPI.updatedMods(userData, modFeed.domain, "1w");
+            // Save this list of updated mods so we don't need to check it again. 
+            if (!cachedUpdates[modFeed.domain_name]) cachedUpdates[modFeed.domain] = newMods;
+            
+
+            const modUpdate = newMods.find(m => m.mod_id === modFeed.mod_id);
+            // If the mod has not been updated recently, back out of the process.
+            if (!modUpdate) {
+                console.log(`${new Date().toLocaleString()} - ${modFeed.title} has not been in the last week ${feedGuild} (${modFeed._id})`);
+                continue;
+            }
+            
+            // Convert last_update to an EPOC
+            const lastUpdateEpoc = modFeed.last_timestamp.getTime() / 1000;
+            // If there's nothing new since the last update we can exit.
+            if (lastUpdateEpoc > modUpdate.latest_file_update && lastUpdateEpoc > modUpdate.lastest_mod_activity) {
+                console.log(`${new Date().toLocaleString()} - ${modFeed.title} has not been updated recently ${feedGuild} (${modFeed._id})\nLast Update: ${modFeed.last_timestamp}\nMod Update: ${new Data(modUpdate.latest_file_update * 1000)}`);
+                continue;
+            }
+            
+            // Now we want to get mod data
+            const modData = await nexusAPI.modInfo(userData, modFeed.domain, modFeed.mod_id)
+                .catch(err => console.log(`${new Date().toLocaleString()} - Error getting ${modFeed.title} data from the API (${modFeed._id})`, err));
+
+            if (!modData) continue;
+
+            const uploaderData = await getUserByNexusModsName(modData.uploaded_by);
+            const uploaderDiscord = uploaderData ? await client.users.find(u => u.id === uploaderData.d_id) : undefined;
+
+            if (!feedChannel.nsfw && modData.contains_adult_content) {
+                feedChannel.send(`Cannot post mod update for ||${modFeed.title}|| as this channel is not marked NSFW`);
+                continue;
+            }
+
+            // If a new file has been updated, we'll want to get the file and changelog data.
+            if (modFeed.show_files && lastUpdateEpoc < modUpdate.latest_file_update) {
+                modData.files = await nexusAPI.modFiles(userData, modFeed.domain, modFeed.mod_id)
+                    .then(result => { return result.files })
+                    .catch(() => console.log(`Could not get file info for ${modFeed.title}`));
+                const latestFile = modData.files.find(f => f.uploaded_timestamp === modUpdate.latest_file_update);
+                const updateFileEmbed = new Discord.RichEmbed()
+                .setAuthor(`Mod Updated (${currentGame ? currentGame.name : modFeed.domain})`, `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${currentGame.id}.jpg`)
+                .setTitle(`${modFeed.title}`)
+                .setURL(`https://nexusmods.com/${modFeed.domain}/${modFeed.mod_id}`)
+                .setColor(0xda8e35)
+                .setDescription(`Author: [${modData.uploaded_by}](${modData.uploaded_users_profile_url}) ${uploaderDiscord || ''}\n${modData.summary}`)
+                .setThumbnail(modData.picture_url)
+                .addField(`New File Uploaded`, `[${latestFile.name} (v${latestFile.mod_version})](https://www.nexusmods.com/${modFeed.domain}/mods/${modFeed.mod_id}?tab=files&file_id=${latestFile.file_id})`)
+                .addField(`Changelog`, latestFile.changelog_html ? latestFile.changelog_html.substring(0,1024) : 'No changelog provided.')
+                .setFooter(`ID: ${modFeed._id} | Feed Owner: ${discordUser.tag || '???'}`)
+                .setTimestamp(latestFile.uploaded_time);
+
+                feedChannel.send(modFeed.message || '', updateFileEmbed).catch(() => null);
+                continue;
+            }
+
+
+
+            // return console.log("modData", !!modData);
+            // If ()
+
+            // Get the mod data.
+
+
+
             // Prepare to recieve embeds.
             let modEmbeds = [];
 
@@ -97,22 +159,22 @@ async function checkForGameUpdates() {
             }
         }
         catch(err) {
-            console.log("Error processing game feed", err);
+            console.log(`${new Date().toLocaleString()} - Error processing mod feed ${modFeed._id}`, err);
         }
 
-        await updateModFeed(modFeed._id, {last_update: modFeed.last_update});
+        // await updateModFeed(modFeed._id, {last_update: modFeed.last_update});
 
-        // No updates to post?
-        if (!modEmbeds.length) return console.log(`${new Date().toLocaleString()} - No matching updates for ${modFeed.title} in ${feedGuild} (${modFeed._id})`)
+        // // No updates to post?
+        // if (!modEmbeds.length) return console.log(`${new Date().toLocaleString()} - No matching updates for ${modFeed.title} in ${feedGuild} (${modFeed._id})`)
 
-        // Post embeds to the web hook.
-        if (modFeed.message) feedChannel.send(modFeed.message).catch(err => undefined);
-        if (webHook) return webHook.send({embeds: modEmbeds, split: true}).catch(console.error);
-        else {
-            // Webhook isn't working, attempt to post manually.
-            console.log(`${new Date().toLocaleString()} - Unable to use webhook, attempting manual posting of updates in ${feedGuild}. (${modFeed._id})`);
-            modEmbeds.forEach((mod) => feedChannel.send(mod).catch(err => undefined));
-        }
+        // // Post embeds to the web hook.
+        // if (modFeed.message) feedChannel.send(modFeed.message).catch(err => undefined);
+        // if (webHook) return webHook.send({embeds: modEmbeds, split: true}).catch(console.error);
+        // else {
+        //     // Webhook isn't working, attempt to post manually.
+        //     console.log(`${new Date().toLocaleString()} - Unable to use webhook, attempting manual posting of updates in ${feedGuild}. (${modFeed._id})`);
+        //     modEmbeds.forEach((mod) => feedChannel.send(mod).catch(err => undefined));
+        // }
 
     }
 
