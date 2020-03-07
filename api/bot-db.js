@@ -16,7 +16,7 @@ const { getSavedNews, updateSavedNews } = require('./news.js');
 const { getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed } = require('./game_feeds.js');
 
 // MOD FEED MANAGEMENT 
-const {  } = require('./mod_feeds.js');
+const { getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed } = require('./mod_feeds.js');
 
 // USER SERVER LINK MANAGEMENT
 
@@ -28,5 +28,6 @@ module.exports = {
                     getAllServers, getServer, addServer, updateServer, deleteServer,
                     getSavedNews, updateSavedNews,
                     getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed,
+                    getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed,
                     getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles                  
                 };

@@ -120,7 +120,7 @@ exports.run = async (client, message, args) => {
                 return deleteModFeed(feedObject._id)
                 .then(() => {
                     editMessage.edit("Mod feed deleted.", { embed: null });
-                    console.log(new Date() + ` - Game feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} deleted by ${rc.first().users.last().tag}`);
+                    console.log(new Date() + ` - Mod feedGame feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} deleted by ${rc.first().users.last().tag}`);
                 })
                 .catch(err => meditMessage.edit("Error deleting mod feed."+err, { embed: null }));
             }
@@ -130,7 +130,7 @@ exports.run = async (client, message, args) => {
                 return updateModFeed(feedObject._id, newData)
                 .then(() => {
                     editMessage.edit("Mod feed saved successfully.", { embed: null })
-                    console.log(new Date() + ` - Game feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} edited by ${message.author.tag}`);
+                    console.log(new Date() + ` - Mod feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} edited by ${message.author.tag}`);
                 })
                 .catch(err => editMessage.edit("Error saving mod feed."+err, { embed: null }));
             }
@@ -157,7 +157,7 @@ exports.run = async (client, message, args) => {
         gameData = gameList ? gameList.find(g => g.domain_name === domain) : undefined;
         modData = await nexusAPI.modInfo(userData, domain, mod_id)
             .catch((err) => { 
-                return message.channel.send(`Error getting mod data.\n\`\`\`${err}\`\`\``);
+                return editMessage.edit(`Error getting mod data.\n\`\`\`${err}\`\`\``, { embed: null }).catch(() => undefined);
             });
 
     }
@@ -165,16 +165,19 @@ exports.run = async (client, message, args) => {
     else {
         const search = await nexusAPI.quicksearch(args.join(" "), true)
             .catch((err) => {
-                return message.channel.send(`Error searching for mods.\n\`\`\`${err}\`\`\``);
+                return replyMessage.edit(`Error searching for mods.\n\`\`\`${err}\`\`\``, { embed: null }).catch(() => undefined);
             });
         
+        // If we didn't find anything.
+        if (!search.results || !search.results.length) return replyMessage.edit(`Could not find any mods for "${args.join(" ")}". Check your spelling or try using the URL instead.`, { embed: null }).catch(() => undefined)
+
         // Grab the first match.
         const result = search.results[0];
         // console.log('Quicksearch found the following mod', result.name);
         gameData = gameList ? gameList.find(g => g.domain_name === result.game_name) : undefined;
         modData = await nexusAPI.modInfo(userData, result.game_name, result.mod_id)
             .catch((err) => { 
-                return message.channel.send(`Error getting mod data.\n\`\`\`${err}\`\`\``);
+                return replyMessage.edit(`Error getting mod data.\n\`\`\`${err}\`\`\``, { embed: null }).catch(() => null);
             });
     }
 
@@ -211,7 +214,7 @@ exports.run = async (client, message, args) => {
                 channel: message.channel.id,
                 guild: message.guild.id,
                 owner: message.author.id,
-                domain: gameData ? gameData.name : modData.domain_name,
+                domain: gameData ? gameData.domain_name : modData.domain_name,
                 mod_id: modData.mod_id,
                 title: modData.name,
                 last_status: modData.status,
@@ -257,7 +260,7 @@ const feedSuccessEmbed = (id, feed, modData, gameData, message) => {
 
 const editEmbed = (feed, owner, message, client) => {
     const editEmbed = new Discord.RichEmbed()
-        .setTitle('Editing Game Feed #'+feed._id)
+        .setTitle('Editing Mod Feed #'+feed._id)
         .setColor(0xda8e35)
         .setDescription(`Mod: ${feed.title}`+
         `\nChannel: ${client.channels.find(c => c.id === feed.channel) || 'Unknown channel'} in ${message.guild}`+

@@ -90,7 +90,7 @@ exports.updatedMods = async (user, gameDomain, period = "1d") => {
         return JSON.parse(updatedMods);
     }
     catch (err) {
-        throw new Error(`API Error: Nexus Mods API responded with ${err.statusCode}.`)
+        throw new Error(`API Error: Nexus Mods API responded with ${err.statusCode}. ${err.message}`)
     }
 }
 
@@ -105,6 +105,20 @@ exports.modInfo = async (user, gameDomain, modID) => {
     }
     catch (err) {
         throw new Error(`Nexus Mods API responded with ${err.statusCode} while fetching mod data. Please try again later.`)
+    }
+}
+
+exports.modFiles = async (user, gameDomain, modID) => {
+    const apiKey = user.apikey ? user.apikey : undefined;
+    if (!apiKey) throw new Error("API Error 403: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.");
+    requestHeader.apikey = apiKey
+
+    try {
+        const modData = await requestPromise({url: nexusAPI+'/v1/games/'+gameDomain+'/mods/'+modID+'/files.json', headers: requestHeader});
+        return JSON.parse(modData);
+    }
+    catch (err) {
+        throw new Error(`Nexus Mods API responded with ${err.statusCode} while fetching mod files. Please try again later.`)
     }
 }
 
