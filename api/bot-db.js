@@ -19,7 +19,6 @@ const { getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, upd
 const { getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed } = require('./mod_feeds.js');
 
 // USER SERVER LINK MANAGEMENT
-
 const { getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles } = require('./user_servers.js');
 
 module.exports = {
