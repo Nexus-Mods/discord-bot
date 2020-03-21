@@ -15,6 +15,7 @@ const genericEmbed = new Discord.RichEmbed()
 .setColor(0xda8e35);
 
 exports.run = async (client, message, args, serverData) => {
+    const replyChannel = serverData && serverData.channel_bot ? message.guild.channels.find(c => c.id === serverData.channel_bot) : message.channel;
 
     cachedInfo = {};
     cachedInfo.data = [
@@ -31,7 +32,7 @@ exports.run = async (client, message, args, serverData) => {
             name: "xse",
             embed_title: "Script Extenders",
             embed_description: "Ensure you have the latest version of the script extender.",
-            embed_url: 'https://www.nexusmods.com/skyrimspecialedition/mods/30379',
+            // embed_url: 'https://www.nexusmods.com/skyrimspecialedition/mods/30379',
             embed_thumb: 'https://staticdelivery.nexusmods.com/mods/1704/images/thumbnails/30457/30457-1574161389-1639080579.jpeg',
             embed_fields: [
                 {
@@ -79,7 +80,9 @@ exports.run = async (client, message, args, serverData) => {
                     value: "[F4SE 0.0.15](https://f4se.silverlock.org/)",
                     inline: true
                 }
-            ]
+            ],
+            last_edit: 'Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)',
+            created_by: "Pickysaurus"
         },
         {
             name: 'smapi',
@@ -97,17 +100,19 @@ exports.run = async (client, message, args, serverData) => {
 
     // No arguements specified.
     if (!args || !args.length) {
-        const embed = new Discord.MessageEmbed()
+        const embed = new Discord.RichEmbed()
+        .setColor(0xda8e35)
         .setTitle('Info Command Help')
         .setDescription('This command will return an embed or message based on a preset help topic.\nUse `!nm i {topic}` to invoke this command.')
-        .addField('Available Topics (case insensitive)', cachedInfo.data.map(i => `${i.embed_title} [${i.name}]`).join(", ").substr(0, 1024));
+        .addField('Available Topics (case insensitive)', cachedInfo.data.map(i => `${i.embed_title} [${i.name}]`).join("\n").substr(0, 1024))
+        .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
 
-        return message.channel.send(embed);
+        return replyChannel.send(replyChannel !== message.channel ? message.author : '', embed);
     }
 
     const query = args[0].toLowerCase();
     const result = cachedInfo.data.find(i => i.name.toLowerCase() === query);
-    if (!result) return message.channel.send(`Not found: ${query}`);
+    if (!result) return replyChannel.send(`${replyChannel !== message.channel ? `${message.author}, ` : ''}No matching info documents found for "${query}".`);
 
     const embed = new Discord.RichEmbed()
     .setFooter(`Added by ${result.created_by || '???'} - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL)

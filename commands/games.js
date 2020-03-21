@@ -18,7 +18,7 @@ module.exports.help = {
 }
 
 exports.run = async (client, message, args, serverData) => {
-    const replyChannel = serverData && serverData.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
+    const replyChannel = serverData && serverData.channel_bot ? message.guild.channels.find(c => c.id === serverData.channel_bot) : message.channel
 
     const userData = await getUserByDiscordId(message.author.id);
     if(!userData) return replyChannel.send(`${replyChannel !== message.channel ? message.author+" " : ""}Please link your account to the before using this feature. See \`!nm link\` for more information.`)
