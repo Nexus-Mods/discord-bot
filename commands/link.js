@@ -23,7 +23,7 @@ module.exports.help = {
 
 exports.run = async (client, message, args, serverData) => {
     //Get reply channel from server settings.
-    const replyChannel = serverData && serverData.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel;
+    const replyChannel = serverData && serverData.channel_bot ? message.guild.channels.find(c => c.id === serverData.channel_bot) : message.channel;
     const discordId = message.author.id;
 
     const accountData = await getUserByDiscordId(discordId);

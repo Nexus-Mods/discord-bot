@@ -14,7 +14,7 @@ module.exports.help = {
 
 exports.run = async (client, message, args, serverData) => {
     // This could eventually be added into addmod.js
-    const replyChannel = serverData && serverData.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel;
+    const replyChannel = serverData && serverData.channel_bot ? message.guild.channels.find(c => c.id === serverData.channel_bot) : message.channel;
     const discordId = message.author.id;
 
     let userData = await getUserByDiscordId(discordId);

@@ -3,7 +3,7 @@ const fs = require("fs");
 
 exports.run = (client, message, args, serverData) => {
     //Where should we reply?
-    const replyChannel = serverData && serverData.defaultChannel ? message.guild.channels.find(c => c.id === serverData.defaultChannel) : message.channel
+    const replyChannel = serverData && serverData.channel_bot ? message.guild.channels.find(c => c.id === serverData.channel_bot) : message.channel
     
     //Collect permission settings
     const userPermsModerator = message.guild ? message.member.hasPermission("BAN_MEMBERS") : false
