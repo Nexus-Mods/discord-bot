@@ -11,7 +11,8 @@ let firstStartUp = false
 
 module.exports = async (client) => {
   console.log(`${new Date().toLocaleString()} - Ready to serve in ${client.channels.size} channels on ${client.guilds.size} servers, for a total of ${client.users.size} users.`);
-  client.user.setActivity(`the channels for ${client.config.prefix[0]}`, {type: 'Watching'});
+  client.user.setActivity(`the channels for ${client.config.prefix[0]}`, {type: 'Watching', url: "https://discord.gg/nexusmods"});
+  if (client.user.username !== "Nexus Mods") client.user.setUsername("Nexus Mods");
 
   if (firstStartUp) return
   firstStartUp = true;
