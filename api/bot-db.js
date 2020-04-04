@@ -21,6 +21,9 @@ const { getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateM
 // USER SERVER LINK MANAGEMENT
 const { getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles } = require('./user_servers.js');
 
+// INFO MANAGEMENT 
+const { getAllInfos, createInfo, deleteInfo, displayInfo } = require('./infos.js');
+
 module.exports = {
                     getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, 
                     getModsbyUser, createMod, deleteMod, updateMod, 
@@ -28,5 +31,6 @@ module.exports = {
                     getSavedNews, updateSavedNews,
                     getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed,
                     getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed,
-                    getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles                  
+                    getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles,
+                    getAllInfos, createInfo, deleteInfo, displayInfo
                 };
