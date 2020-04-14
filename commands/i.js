@@ -38,5 +38,5 @@ exports.run = async (client, message, args, serverData) => {
     const result = cachedInfo.data.find(i => i.name.toLowerCase() === query.trim());
     if (!result) return replyChannel.send(`${replyChannel !== message.channel ? `${message.author}, ` : ''}No matching info documents found for "${query}".`);
 
-    return displayInfo(client, message, result);
+    return displayInfo(client, message, result, true);
 }
