@@ -34,13 +34,19 @@ const editInfo = (infoName, newData) => {
     //return new Promise(())
 }
 
-const displayInfo = (client, message, info) => {
-    if (!info.approved) return message.channel.send(`Info for ${info.title || info.name} is pending moderator approval.`).catch(err => console.error('Failed to send info', message.guild.name, err));
+const displayInfo = (client, message, info, sendMessage) => {
+    if (!info.approved) {
+        const approvalRequired = `Info for ${info.title || info.name} is pending moderator approval.`;
+        return !sendMessage ? approvalRequired 
+        : message.channel.send()
+            .catch(err => console.error('Failed to send info', message.guild.name, err))
+    };
 
-    if (!info.description && !info.url && !info.fields && !info.image && !info.thumbnail && !info.url) {
+    if (sendMessage && !info.description && !info.url && !info.fields && !info.image && !info.thumbnail && !info.url) {
         // Doesn't appear to be an embed.
-        if (info.message) return message.channel.send(info.message);
+        if (info.message) return !sendMessage ? info.message : message.channel.send(info.message).catch(() => null);
         else console.error('Tried to send invalid info.', info);
+        return undefined;
     }
 
     const infoEmbed = new Discord.RichEmbed()
@@ -52,7 +58,9 @@ const displayInfo = (client, message, info) => {
     if (info.url) infoEmbed.setURL(info.url);
     if (info.thumbnail) infoEmbed.setThumbnail(info.thumbnail);
     if (info.fields) info.fields.map(field => infoEmbed.addField(field.name, field.value, field.inline));
-    return message.channel.send(info.message || '', infoEmbed).catch(err => console.error('Failed to send info', message.guild.name, err));;
+    return !sendMessage ? infoEmbed 
+    : message.channel.send(info.message || '', infoEmbed)
+        .catch(err => console.error('Failed to send info', message.guild.name, err));;
 }
 
 module.exports = { getAllInfos, createInfo, deleteInfo, displayInfo };
