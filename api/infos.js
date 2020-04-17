@@ -57,6 +57,7 @@ const displayInfo = (client, message, info, sendMessage) => {
     if (info.description) infoEmbed.setDescription(info.description);
     if (info.url) infoEmbed.setURL(info.url);
     if (info.thumbnail) infoEmbed.setThumbnail(info.thumbnail);
+    if (info.image) infoEmbed.setImage(info.image);
     if (info.fields) info.fields.map(field => infoEmbed.addField(field.name, field.value, field.inline));
     return !sendMessage ? infoEmbed 
     : message.channel.send(info.message || '', infoEmbed)
