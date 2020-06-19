@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "better-sqlite-pool": "^0.2.3",
+    "bluebird": "^3.7.2",
     "discord.js": "^11.6.3",
     "dotenv": "^8.2.0",
     "enmap": "^4.8.7",

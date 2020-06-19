@@ -18,9 +18,9 @@ module.exports = async (client) => {
   firstStartUp = true;
 
   // Start the news and feeds TODO!
-  newsFeed.run(client);
-  gameFeed.run(client);
-  modFeed.run(client);
+  newsFeed.run(client).catch(() => undefined);
+  gameFeed.run(client).catch(() => undefined);
+  modFeed.run(client).catch(() => undefined);
 
   if (client.config.testing) return console.log('Testing mode - did not publish online message.');
   const allServers = await getAllServers();

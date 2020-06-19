@@ -5,7 +5,7 @@ const Discord = require('discord.js');
 
 const getAllUsers = async () => {
     return new Promise( (resolve, reject) => {
-        query('SELECT * FROM users', (error, result) => {
+        query('SELECT * FROM users', [], (error, result) => {
             if (error) return reject("Failed to get all users.");
             return resolve(result.rows);
         });
