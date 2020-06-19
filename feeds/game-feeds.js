@@ -35,9 +35,9 @@ async function checkForGameUpdates() {
             return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(console.error);
         }
         // Check if the webhook was created properly.
-        if (!webHook.channelID) {
+        if (!webHook) {
             await deleteGameFeed(gameFeed._id);
-            console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to invalid webhook.`)
+            console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to invalid webhook.`);
             return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the webhook appears to no longer exist. Game feed cancelled.`).catch(console.error);
         }
         // Check if the channel or server doesn't exist.
@@ -116,14 +116,14 @@ async function checkForGameUpdates() {
                 // Check if this mod is new or updated and if we should post it.
                 if ((modData.updated_timestamp - modData.created_timestamp) < 3600 && gameFeed.show_new) {
                     console.log(`${new Date().toLocaleString()} - Building new mod embed for ${modData.name} (${modData.mod_id}) for ${currentGame.name} (${gameFeed._id})`); 
-                    modEmbeds.push(createModEmbed(modData, currentGame, true));
+                    modEmbeds.push(createModEmbed(modData, currentGame, true, undefined, gameFeed.compact));
                     lastUpdateDate = new Date(modData.created_timestamp*1000);
                 }
                 else if (gameFeed.show_updates) {
                     // We want to try and get the changelogs.
                     const changelog = await nexusAPI.modChangelogs(userData, gameFeed.domain, newMod.mod_id).catch(() => undefined);
                     console.log(`${new Date().toLocaleString()} - Building updated mod embed for ${modData.name} (${modData.mod_id}) for ${currentGame.name} (${gameFeed._id})`);
-                    modEmbeds.push(createModEmbed(modData, currentGame, false, changelog));
+                    modEmbeds.push(createModEmbed(modData, currentGame, false, changelog, gameFeed.compact));
                     lastUpdateDate = new Date(modData.updated_timestamp*1000);         
                 }
             }
@@ -156,7 +156,10 @@ function compareDates(a, b) {
 }
 
 
-function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
+function createModEmbed(modInfo, game, newMod, changeLog = undefined, compact) {
+    const gameThumbURL = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
+    const category = game.categories.find(c => c.category_id === modInfo.category_id).name;
+
     //Build the embed for posting.
     let embed = new Discord.RichEmbed()
     .setAuthor(`${newMod ? "New Mod Upload" : "Updated Mod"} (${game.name})`,client.user.avatarURL)
@@ -164,8 +167,8 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
     .setColor(newMod? 0xda8e35 : 0x57a5cc)
     .setURL(`https://www.nexusmods.com/${modInfo.domain_name}/mods/${modInfo.mod_id}`)
     .setDescription(sanitiseBreaks(modInfo.summary))
-    .setImage(modInfo.picture_url)
-    .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`)
+    .setImage(!compact ? modInfo.picture_url: '')
+    .setThumbnail(compact ? modInfo.picture_url : gameThumbURL)
     if (changeLog && Object.keys(changeLog).find(id => modInfo.version === id)) {
         let versionChanges = changeLog[Object.keys(changeLog).find(id => modInfo.version === id)].join("\n");
         if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
@@ -173,11 +176,11 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined) {
     }
     embed.addField("Author", modInfo.author, true)
     .addField("Uploader", `[${modInfo.uploaded_by}](${modInfo.uploaded_users_profile_url})${modInfo.authorData ? `\n<@${modInfo.authorDiscord}>`: ''}`, true)
-    .addField("Category", game.categories.find(c => c.category_id === modInfo.category_id).name)
+    .addField("Category",category, true)
     .setTimestamp(modInfo.updated_timestamp*1000)
     .setFooter(`Version: ${modInfo.version} - Mod ID: ${game.id}-${modInfo.mod_id}`,client.user.avatarURL);
 
-    return embed
+    return embed;
 }
 
 function sanitiseBreaks(string) {

@@ -87,7 +87,8 @@ const GameFeed = (
     webhook_id,
     webhook_token,
     last_timestamp,
-    created
+    created,
+    compact
 ) => {}
 
 module.exports = { getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed };
