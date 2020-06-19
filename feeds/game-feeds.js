@@ -7,8 +7,8 @@ let client;
 // Game watcher
 exports.run = async (cl) => {
     client = cl;
-    await checkForGameUpdates();
-    setInterval(checkForGameUpdates, pollTime);
+    await checkForGameUpdates().catch((err) => console.warn('Game feeds aborted', err));
+    setInterval(checkForGameUpdates().catch((err) => console.warn('Game feeds aborted', err)), pollTime);
     console.log(`${new Date().toLocaleString()} - Game updates scheduled every ${pollTime/60/1000} minutes.`);
 }
 
@@ -25,32 +25,35 @@ async function checkForGameUpdates() {
         const feedGuild = client.guilds.find(g => g.id === gameFeed.guild);
         const feedChannel = feedGuild ? feedGuild.channels.find(c => c.id === gameFeed.channel) : undefined;
         const webHook = feedGuild ? new Discord.WebhookClient(gameFeed.webhook_id, gameFeed.webhook_token) : undefined;
-        const botMember = feedGuild.members.find(m => m.id === client.user.id);
+        const botMember = feedGuild ? feedGuild.members.find(m => m.id === client.user.id): undefined;
         const botPermissions = feedGuild? await feedChannel.permissionsFor(botMember) : undefined; //Got to get the bitfield, as this doesn't resolve to searchable perms.
 
         // Check we can actually post to the game feed channel.
-        if (!botPermissions.has('SEND_MESSAGES', true)) {
+        if (botPermissions && !botPermissions.has('SEND_MESSAGES', true)) {
             await deleteGameFeed(gameFeed._id);
-            console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to missing permissions.`);
-            return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(console.error);
+            console.log(`${new Date().toLocaleString()} - Deleted game update #${gameFeed._id} (${gameFeed.title}) due to missing permissions.`);
+            discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(() => undefined);
+            continue;
         }
         // Check if the webhook was created properly.
-        if (!webHook) {
-            await deleteGameFeed(gameFeed._id);
-            console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to invalid webhook.`);
-            return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the webhook appears to no longer exist. Game feed cancelled.`).catch(console.error);
-        }
+        // if (!webHook) {
+        //     await deleteGameFeed(gameFeed._id);
+        //     console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to invalid webhook.`);
+        //     return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the webhook appears to no longer exist. Game feed cancelled.`).catch(console.error);
+        // }
         // Check if the channel or server doesn't exist.
-        if (!feedGuild || !feedChannel) {
+        if (discordUser && (!feedGuild || !feedChannel)) {
             await deleteGameFeed(gameFeed._id);
-            console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to missing guild or channel data.`)
-            return discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the channel or server could not be found. Game feed cancelled.`).catch(console.error);
+            console.log(`${new Date().toLocaleString()} - Deleted game update #${gameFeed._id} (${gameFeed.title}) due to missing guild or channel data.`)
+            discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the channel or server could not be found. Game feed cancelled.`).catch(() => undefined);
+            continue;
         }
         // Check if the user is missing.
         if (!discordUser || !userData) {
             if (feedChannel) feedChannel.send(`**Cancelled Game Feed for ${gameFeed.title} as the user who created it could not be found.**`)
             await deleteGameFeed(gameFeed._id);
-            return console.log(`${new Date().toLocaleString()} - GameFeed ${gameFeed._id} - User does not exist. Deleted feed.`);
+            console.log(`${new Date().toLocaleString()} - GameFeed #${gameFeed._id} (${gameFeed.title}) - User does not exist. Deleted feed.`);
+            continue;
         }
 
         // Check the user's API key is valid. 
@@ -58,10 +61,11 @@ async function checkForGameUpdates() {
         catch(err) {
             if(err.indexOf("401") !== -1) {
                 await deleteGameFeed(gameFeed._id);
-                console.log(`${new Date().toLocaleString()} - Deleted game update ${gameFeed._id} due to invalid API key.`)
-                return discordUser.send(`${new Date().toLocaleString()} - Cancelled Game Feed for ${gameFeed.title} in ${feedGuild} as your API key is invalid.`).catch(err => undefined);
+                console.log(`${new Date().toLocaleString()} - Deleted game update #${gameFeed._id} (${gameFeed.title}) due to invalid API key.`)
+                discordUser.send(`${new Date().toLocaleString()} - Cancelled Game Feed for ${gameFeed.title} in ${feedGuild} as your API key is invalid.`).catch(() => undefined);
             }
-            else return console.log(`${new Date().toLocaleString()} - Unable to post ${gameFeed.title} updates in ${feedGuild}. API returned an error on validating. \n${err}`).catch(err => undefined);
+            else console.log(`${new Date().toLocaleString()} - Unable to post ${gameFeed.title} updates in ${feedGuild}. API returned an error on validating. \n${err}`).catch(() => undefined);
+            continue;
         };
 
 
@@ -133,13 +137,12 @@ async function checkForGameUpdates() {
             if (!modEmbeds.length) return console.log(`${new Date().toLocaleString()} - No matching updates for ${gameFeed.title} in ${feedGuild} (${gameFeed._id})`)
     
             // Post embeds to the web hook.
-            if (gameFeed.message) feedChannel.send(gameFeed.message).catch(err => undefined);
-            if (webHook) return webHook.send({embeds: modEmbeds, split: true}).catch(err => console.error('Error posting to webhook', webHook.channelID, err.message));
-            else {
-                // Webhook isn't working, attempt to post manually.
+            if (gameFeed.message) feedChannel.send(gameFeed.message).catch(() => undefined);
+            webHook.send({embeds: modEmbeds, split: true}).catch(err => {
                 console.log(`${new Date().toLocaleString()} - Unable to use webhook, attempting manual posting of updates in ${feedGuild}. (${gameFeed._id})`);
                 modEmbeds.forEach((mod) => feedChannel.send(mod).catch(err => undefined));
-            }
+
+            });
         }
         catch(err) {
             console.log("Error processing game feed", err);

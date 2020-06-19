@@ -15,7 +15,8 @@ function doQuery(text, values, callback) {
         client.query(text, values, (err, result) => {
             if (err) console.error('Error in query', text, err.stack);
             release();
-            callback(err, result);
+            if (callback) callback(err, result);
+            else console.warn('Callback undefined in query', text);
         })
     })
 }
