@@ -35,8 +35,8 @@ const getUserByNexusModsName = async (username) => {
 const createUser = async (user) => {
     return new Promise(
         (resolve, reject) => {
-        query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, servers, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-        [user.d_id, user.id, user.name, user.avatar_url, user.apikey, user.supporter, user.premium, user.servers, new Date()], 
+        query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [user.d_id, user.id, user.name, user.avatar_url, user.apikey, user.supporter, user.premium, new Date()], 
         (error, results) => {
             if (error) {
                 //throw error;
@@ -89,7 +89,7 @@ const userEmbed = async (userData, message, client) => {
     .addField("Nexus Mods", `[${userData.name}](https://nexusmods.com/users/${userData.id})\n${userData.premium ? "Premium Member" : userData.Supporter ? "Supporter" : "Member"}`, true)
     .addField("Discord", `${discordUser}\n${discordUser.tag}`, true)
     .setColor(0xda8e35)
-    .setThumbnail(userData.avatar_url ? userData.avatar_url : client.user.avatarURL)
+    .setThumbnail(userData.avatar_url ? userData.avatar_url : 'https://www.nexusmods.com/assets/images/default/avatar.png')
     .setTimestamp(userData.lastupdate)
     .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
     if (mods && mods.length) {

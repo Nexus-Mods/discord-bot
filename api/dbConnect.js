@@ -13,7 +13,7 @@ function doQuery(text, values, callback) {
     pool.connect((err, client, release) => {
         if (err) return console.error('Error acquiring client', text, err.stack);
         client.query(text, values, (err, result) => {
-            if (err) console.error('Error in query', text, err.stack);
+            if (err) console.error('Error in query', text, values, err.stack);
             release();
             if (callback) callback(err, result);
             else console.warn('Callback undefined in query', text);
