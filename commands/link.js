@@ -102,7 +102,6 @@ async function checkAPIKey(client, message, apiKeyToCheck) {
             apikey: apiData.key,
             supporter: !apiData.is_premium && apiData.is_supporter ? true : false,
             premium: apiData.is_premium,
-            servers: []
         }
         await createUser(memberData);
         await updateAllRoles(memberData, client, true);

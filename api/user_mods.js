@@ -39,9 +39,10 @@ const deleteMod = async (mod) => {
 }
 
 const updateMod = async (mod, newData) => {
+    let errors = 0;
     return new Promise( (resolve,reject) => {
-        Object.keys(newUser).forEach((key) => {
-            query(`UPDATE users SET ${key} = $1 WHERE mod_id = $2 AND domain = $3`, [newData[key], mod.mod_id, mod.domain], (error, results) => {
+        Object.keys(newData).forEach((key) => {
+            query(`UPDATE user_mods SET ${key} = $1 WHERE mod_id = $2 AND domain = $3`, [newData[key], mod.mod_id, mod.domain], (error, results) => {
                 if (error) errors += 1;
             });
         });
