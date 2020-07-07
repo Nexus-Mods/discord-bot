@@ -1,4 +1,3 @@
-const serverConfig = require("../serverconfig.json");
 const Discord = require('discord.js');
 const { getAllServers } = require('../api/servers.js');
 const offlineEmbed = new Discord.RichEmbed()
