@@ -77,7 +77,7 @@ async function checkForGameUpdates() {
 
         // Get the updated mods for game. 
         try {
-            const newMods = await nexusAPI.updatedMods(userData, gameFeed.domain, "1d");
+            const newMods = await nexusAPI.updatedMods(userData, gameFeed.domain, "1w");
             // Filter out mods that were check on a previous loop. Sort the updates by date as the API sometimes returns them out of order.
             const lastTimestampEpoc = Math.floor(gameFeed.last_timestamp / 1000); //Need to convert to EPOC to compare.
             let filteredNewMods = newMods.filter(mod => mod.latest_file_update > lastTimestampEpoc).sort(compareDates);
