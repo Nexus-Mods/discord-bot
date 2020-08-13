@@ -2,7 +2,6 @@ const Enmap = require("enmap");
 const { query } = require('./dbConnect.js');
 const { getAllGameFeeds, getAllServers, getAllUsers } = require('./bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
-const oldServerConfig = require('../data/serverconfig.json');
 const Promise = require('bluebird');
 
 const oldGameFeeds = new Enmap({
@@ -26,9 +25,11 @@ exports.migrate = async function migrate(client, admin) {
     const allFeeds = await getAllGameFeeds();
     const allServers = await getAllServers();
 
+    const oldServerConfig = require('../data/serverconfig.json');
+
     console.group('Migration');
-    console.log(`Starting Migration of ${oldUsers.count} users, ${oldServerConfig.length} servers and ${oldGameFeeds.count} game feeds`);
-    admin.send(`Starting Migration of ${oldUsers.count} users, ${oldServerConfig.length} servers and ${oldGameFeeds.count} game feeds`).catch(() => console.warn);
+    console.log(`Starting Migration of ${oldUsers.count} users, ${oldServerConfig.length || 0} servers and ${oldGameFeeds.count} game feeds`);
+    admin.send(`Starting Migration of ${oldUsers.count} users, ${oldServerConfig.length || 0} servers and ${oldGameFeeds.count} game feeds`).catch(() => console.warn);
 
     return Promise.mapSeries(oldUsers.indexes, async (index, key) => {
         const user = oldUsers.get(index);
@@ -119,6 +120,7 @@ exports.migrate = async function migrate(client, admin) {
 
         }).then(() => {
             console.log('Done importing feeds');
+            if (!oldServerConfig) return [];
             return Promise.map(oldServerConfig, server => {
                 if (allServers.find(s => s.id === server.id)) {
                     console.log(`Skipping server ${server.name} because it already exists.`);

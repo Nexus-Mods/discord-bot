@@ -71,7 +71,7 @@ async function checkForModUpdates() {
         try {
             const newMods = cachedUpdates[modFeed.domain] || await nexusAPI.updatedMods(userData, modFeed.domain, "1w");
             // Save this list of updated mods so we don't need to check it again. 
-            if (!cachedUpdates[modFeed.domain_name]) cachedUpdates[modFeed.domain] = newMods;
+            if (!cachedUpdates[modFeed.domain]) cachedUpdates[modFeed.domain] = newMods;
             
 
             const modUpdate = newMods.find(m => m.mod_id === modFeed.mod_id);
