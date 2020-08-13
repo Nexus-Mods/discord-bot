@@ -128,7 +128,7 @@ exports.migrate = async function migrate(client, admin) {
                 }
 
                 console.log(`Importing server: ${server.name}`);
-                const serverData = client.guilds.get(g => g.id === server.id);
+                const serverData = client.guilds.find(g => g.id === server.id);
                 const newServer = {
                     id: server.id,
                     official: server.official,
@@ -143,7 +143,7 @@ exports.migrate = async function migrate(client, admin) {
                     search_whid: server.webhookID || null,
                     search_whtoken: server.webhookToken || null,
                     game_filter: null,
-                    server_owner: serverData ? serverData.owner.id : 'placedholder',
+                    server_owner: serverData ? serverData.ownerID : 'placedholder',
                 }
                 return insertToDB(newServer, 'servers', true);
             }).then(() => {
