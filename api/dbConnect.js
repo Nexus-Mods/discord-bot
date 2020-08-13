@@ -6,6 +6,9 @@ const config = {
     host: process.env.HOST,
     database: process.env.DATABASE,
     port: process.env.PORT,
+    ssl: {
+        rejectUnauthorized: false,
+    },
 }
 const pool = new Pool(config);
 
