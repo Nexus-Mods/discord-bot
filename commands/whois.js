@@ -1,4 +1,4 @@
-const { getUserByDiscordId, getAllUsers, userEmbed } = require('../api/bot-db.js');
+const { getUserByDiscordId, getAllUsers, userEmbed, getLinksByUser } = require('../api/bot-db.js');
 const botData = (client) => {
     return {
         d_id: client.user.id,
@@ -49,8 +49,12 @@ exports.run = async (client, message, args, serverData) => {
     // If one of the two accounts is missing, no match was found.
     if (!discordUser || !userInfo) return replyChannel.send(`${replyChannel === message.channel ? "" : message.author + " "}No members found for "${searchQuery}".`).catch(console.error);
 
+    // Get the servers for this user
+    const links = await getLinksByUser(userInfo.id);
+    const servers = links.map(s => s.server_id);
+
     // Check if they share a server
-    if (message.guild && userInfo.servers.indexOf(message.guild.id) !== -1) return replyChannel.send(`${replyChannel === message.channel ? "" : message.author + " "}You do not share a server with "${userData.name} so their information is not available.".`).catch(console.error);
+    if (userInfo.d_id !== message.author.id && message.guild && servers.indexOf(message.guild.id) !== -1) return replyChannel.send(`${replyChannel === message.channel ? "" : message.author + " "}You do not share a server with "${userData.name} so their information is not available.".`).catch(console.error);
 
     // Send a profile embed. 
     const embed = await userEmbed(userInfo, message, client);
