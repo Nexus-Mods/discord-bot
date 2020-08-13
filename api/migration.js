@@ -111,12 +111,12 @@ exports.migrate = async function migrate(client, admin) {
                 sfw: feed.settings ? feed.settings.sfw : true,
                 show_new: feed.settings ? feed.settings.newMods : true,
                 show_updates: feed.settings ? feed.settings.updatedMods : true,
-                webhook_id: feed.wb_id,
-                webhook_token: feed.wb_token,
+                webhook_id: feed.webhook_id,
+                webhook_token: feed.webhook_token,
                 created: new Date(feed.created*1000),
                 last_timestamp: new Date()
             };
-            insertToDB(newFeed, 'game_feeds');
+            return insertToDB(newFeed, 'game_feeds');
 
         }).then(() => {
             console.log('Done importing feeds');
@@ -145,7 +145,7 @@ exports.migrate = async function migrate(client, admin) {
                     game_filter: null,
                     server_owner: serverData ? serverData.owner.id : 'placedholder',
                 }
-                insertToDB(newServer, 'servers', true);
+                return insertToDB(newServer, 'servers', true);
             }).then(() => {
                 console.log('Done importing servers');
                 return errors;
@@ -163,8 +163,7 @@ function insertToDB(object, tableName, cleanO = false) {
 
     const queryString = `INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${placeHolders.join(', ')})`;
 
-    //console.log('Test query', queryString, values);
-    query(queryString, values, (err, result) => err ? console.warn(queryString, err, values): undefined);
+    return query(queryString, values, (err, result) => err ? console.warn(queryString, err, values): undefined);
 
 }
 
