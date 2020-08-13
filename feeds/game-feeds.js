@@ -82,7 +82,10 @@ async function checkForGameUpdates() {
             const lastTimestampEpoc = Math.floor(gameFeed.last_timestamp / 1000); //Need to convert to EPOC to compare.
             let filteredNewMods = newMods.filter(mod => mod.latest_file_update > lastTimestampEpoc).sort(compareDates);
             // Exit if there's nothing to process.
-            if (!filteredNewMods.length) return console.log(`${new Date().toLocaleString()} - No unchecked updates for ${gameFeed.title} in ${feedGuild} (${gameFeed._id})`);
+            if (!filteredNewMods.length) {
+                console.log(`${new Date().toLocaleString()} - No unchecked updates for ${gameFeed.title} in ${feedGuild} (${gameFeed._id})`);
+                continue;
+            };
             // Prepare to recieve embeds.
             let modEmbeds = [];
             let lastUpdateDate = new Date(0);
@@ -134,7 +137,10 @@ async function checkForGameUpdates() {
             await updateGameFeed(gameFeed._id, {last_timestamp: lastUpdateDate});
 
             // No updates to post?
-            if (!modEmbeds.length) return console.log(`${new Date().toLocaleString()} - No matching updates for ${gameFeed.title} in ${feedGuild} (${gameFeed._id})`)
+            if (!modEmbeds.length) {
+                console.log(`${new Date().toLocaleString()} - No matching updates for ${gameFeed.title} in ${feedGuild} (${gameFeed._id})`);
+                continue;
+            }
     
             // Post embeds to the web hook.
             if (gameFeed.message) feedChannel.send(gameFeed.message).catch(() => undefined);
