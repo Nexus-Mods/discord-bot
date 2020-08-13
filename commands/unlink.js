@@ -41,7 +41,7 @@ exports.run = async (client, message, args, serverData) => {
 
         // TODO! Report the unlink event to the logs.
         
-        message.channel.send(`The link to your Nexus Mods account "${userData.name}" in was removed successfully in ${userData.servers.length} servers and your API key has been removed.\nSee \`!nexus link\` to reconnect your account.`).catch(console.error);
+        message.channel.send(`The link to your Nexus Mods account "${userData.name}" in was removed successfully in ${servers.length} servers and your API key has been removed.\nSee \`!nexus link\` to reconnect your account.`).catch(console.error);
 
     }
 

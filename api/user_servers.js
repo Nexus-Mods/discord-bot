@@ -54,12 +54,13 @@ const updateRoles = async (userData, guild, bRemove = false) => {
         const guildMember = await guild.members.find(m => m.id === userData.d_id);
         const guildData = await getServer(guild);
         if (!guildData) return reject('No guild data for '+guild.name);
+        if (!guildMember) return resolve(console.log(`${new Date().toLocaleString()} - ${userData.name} is a not a member of ${guild.name}`));
 
         // Check we can actually assign roles.
         const botMember = guild.members.find(user => user.id === client.user.id);
         if (!botMember || !botMember.hasPermission('MANAGE_ROLES')) {
             console.log(`${new Date().toLocaleString()} - Permissions in ${guild.name} do not allow role assignment.`);
-            return reject(`Permissions in ${guild.name} do not allow role assignment.`);
+            return resolve(console.log(`${new Date().toLocaleString()} - Permissions in ${guild.name} do not allow role assignment.`));
         }
 
         let rolesToAdd = [];
@@ -121,7 +122,7 @@ const updateAllRoles = async (userData, client, addAll = false) => {
             const existingLink = !!links.find(l => l.server_id);
             if (guild) {
                 if (addAll || existingLink) {
-                    await updateRoles(userData, guild);
+                    await updateRoles(userData, guild).catch(err => console.warn(`${new Date().toLocaleString()} - Unable to assign roles to ${userData.name}`, err));
                     if (!existingLink) {
                         console.log(`Adding link for ${userData.id}, ${guild.id}`);
                         await addServerLink(userData, guild);
