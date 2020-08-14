@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
-const link = require("./../commands/link.js");
-const serverConfig = require("../serverconfig.json");
+// const link = require("./../commands/link.js");
+// const serverConfig = require("../serverconfig.json");
 
 module.exports = async (client, member) => {
   return;

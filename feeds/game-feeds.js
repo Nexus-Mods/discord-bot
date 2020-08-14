@@ -95,7 +95,6 @@ async function checkForGameUpdates() {
                 let modData = await nexusAPI.modInfo(userData, gameFeed.domain, newMod.mod_id)
                     .catch((err) => { 
                         console.error(`${new Date().toLocaleString()} - Could not get mod data for ${gameFeed.domain}/${newMod.mod_id}`, err);
-                        continue;
                     });
                 // Exit if modData is unfilled.
                 if (!modData) continue;
