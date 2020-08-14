@@ -9,7 +9,7 @@ exports.run = async (cl) => {
     client = cl;
     await checkForGameUpdates().catch((err) => console.warn('Game feeds aborted', err));
     setInterval(() => {
-        checkForGameUpdates.catch((err) => console.warn('Game feeds aborted', err));
+        checkForGameUpdates().catch((err) => console.warn('Game feeds aborted', err));
     }, pollTime);
     console.log(`${new Date().toLocaleString()} - Game updates scheduled every ${pollTime/60/1000} minutes.`);
 }
