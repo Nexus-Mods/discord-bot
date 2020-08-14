@@ -18,9 +18,9 @@ module.exports = async (client) => {
   firstStartUp = true;
 
   // Start the news and feeds TODO!
-  newsFeed.run(client).catch(() => console.warn('Setting up news feed failed', err.message));
-  gameFeed.run(client).catch(() => console.warn('Setting up game feeds failed', err.message));
-  modFeed.run(client).catch(() => console.warn('Setting up mod feeds failed', err.message));
+  newsFeed.run(client).catch((err) => console.warn('Setting up news feed failed', err.message));
+  gameFeed.run(client).catch((err) => console.warn('Setting up game feeds failed', err.message));
+  modFeed.run(client).catch((err) => console.warn('Setting up mod feeds failed', err.message));
 
   if (client.config.testing) return console.log('Testing mode - did not publish online message.');
   const allServers = await getAllServers();
