@@ -17,7 +17,7 @@ async function checkForGameUpdates() {
     const allGameFeeds = await getAllGameFeeds();
     let allGames // fill this from the first user with their API key. 
 
-    console.log(`${new Date().toLocaleString()} - Found ${allGameFeeds.count} game feeds, checking for updates.`);
+    console.log(`${new Date().toLocaleString()} - Found ${allGameFeeds.length} game feeds, checking for updates.`);
 
     for (gameFeed of allGameFeeds) {
         // Run the check for each game and post results. 
@@ -95,23 +95,24 @@ async function checkForGameUpdates() {
                 let modData = await nexusAPI.modInfo(userData, gameFeed.domain, newMod.mod_id)
                     .catch((err) => { 
                         console.error(`${new Date().toLocaleString()} - Could not get mod data for ${gameFeed.domain}/${newMod.mod_id}`, err);
+                        continue;
                     });
                 // Exit if modData is unfilled.
                 if (!modData) continue;
                 
                 // Skip unavailable mods.
                 if (modData.status !== "published") { 
-                    console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || `Mod #${modData.mod_id}`} for ${gameFeed.title} in ${feedGuild} as it is not available. (${gameFeed._id})`);
+                    // console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || `Mod #${modData.mod_id}`} for ${gameFeed.title} in ${feedGuild} as it is not available. (${gameFeed._id})`);
                     continue;
                 };
                 // Skip adult content if disabled.
                 if (modData.contains_adult_content && !gameFeed.nsfw) {
-                    console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || modData.id} for ${gameFeed.title} in ${feedGuild} as it contains NSFW content. (${gameFeed._id})`);
+                    // console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || modData.id} for ${gameFeed.title} in ${feedGuild} as it contains NSFW content. (${gameFeed._id})`);
                     continue;
                 };
                 // Skip non-adult content if disabled.
                 if (!modData.contains_adult_content && !gameFeed.sfw) {
-                    console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || modData.id} for ${gameFeed.title} in ${feedGuild} as it contains SFW content. (${gameFeed._id})`);
+                    // console.log(`${new Date().toLocaleString()} - Skipped ${modData.name || modData.id} for ${gameFeed.title} in ${feedGuild} as it contains SFW content. (${gameFeed._id})`);
                     continue;
                 };
                 // Get the Discord ID of the author, if possible (and they're in this server.)
