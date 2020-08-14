@@ -30,7 +30,7 @@ async function checkForGameUpdates() {
         const botMember = feedGuild ? feedGuild.members.find(m => m.id === client.user.id): undefined;
         const botPermissions = feedGuild? await feedChannel.permissionsFor(botMember) : undefined; //Got to get the bitfield, as this doesn't resolve to searchable perms.
 
-        console.log(`${new Date().toLocaleString()} - Checking game feed ${gameFeed.id} for updates (${gameFeed.title}): ${feedGuild.name}`);
+        console.log(`${new Date().toLocaleString()} - Checking game feed ${gameFeed._id} for updates (${gameFeed.title}): ${feedGuild}`);
 
         // Check we can actually post to the game feed channel.
         if (botPermissions && !botPermissions.has('SEND_MESSAGES', true)) {
@@ -143,7 +143,7 @@ async function checkForGameUpdates() {
             // Post embeds to the web hook.
             if (gameFeed.message) feedChannel.send(gameFeed.message).catch(() => undefined);
 
-            console.log(`${new Date().toLocaleString()} - Posting ${modEmbeds.length} updates for ${gameFeed.title} in ${feedGuild.name} (${gameFeed._id})`);
+            console.log(`${new Date().toLocaleString()} - Posting ${modEmbeds.length} updates for ${gameFeed.title} in ${feedGuild} (${gameFeed._id})`);
 
             webHook.send({embeds: modEmbeds, split: true}).catch(() => {
                 console.log(`${new Date().toLocaleString()} - Unable to use webhook, attempting manual posting of updates in ${feedGuild}. (${gameFeed._id})`);
