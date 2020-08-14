@@ -258,25 +258,3 @@ exports.run = async (client, message, args) => {
       });
 
 };
-
-const delay = 1000*60*10; //10mins
-let gameUpdateTimer
-
-// gameUpdates.defer.then(() => {
-//     gameUpdateTimer = setInterval(checkGames, delay);
-//     console.log(`${new Date()} - Game updates scheduled every ${delay/60/1000} minutes.`);
-//     client.on("ready", checkGames);
-// });
-
-async function findAllSubs(updateMap, channel) {
-    //return an array of updates for the specified channel
-    results = []
-    updateMap.forEach(async function(update) {
-        var user = linkedAccounts.get(update.user) || client.users.find(u => u.id === update.user);
-        if (update.guild === channel.guild.id) {
-            var id = updateMap.findKey(u => u === update);
-            results.push(`**#${id}** - ${update.gameTitle} feed created by ${user.tag || user.nexusName} in ${client.channels.find(c => c.id === update.channel)}.\n🆕: ${update.settings.newMods} | ⏫: ${update.settings.updatedMods} | 🔞: ${update.settings.nsfw} | 🕹: ${update.settings.sfw} `)
-        };
-    });
-    return results
-}

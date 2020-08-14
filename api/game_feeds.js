@@ -55,7 +55,10 @@ const updateGameFeed = (feedId, newData) => {
         let errors = 0;
         Object.keys(newData).forEach((key) => {
             query(`UPDATE game_feeds SET ${key} = $1 WHERE _id = $2`, [newData[key], feedId], (error, results) => {
-                if (error) errors += 1;
+                if (error) {
+                    errors += 1;
+                    console.warn('Error updating game feed', feedId, err);
+                };
             });
         });
         if (errors > 0) resolve(false);
