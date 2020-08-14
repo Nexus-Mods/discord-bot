@@ -34,6 +34,7 @@ async function checkForGameUpdates() {
 
         // Check we can actually post to the game feed channel.
         if (botPermissions && !botPermissions.has('SEND_MESSAGES', true)) {
+            if (client.config.testing) continue;
             await deleteGameFeed(gameFeed._id);
             console.log(`${new Date().toLocaleString()} - Deleted game update #${gameFeed._id} (${gameFeed.title}) due to missing permissions.`);
             discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as I do not have permission to post there. Game feed cancelled.`).catch(() => undefined);
@@ -41,6 +42,7 @@ async function checkForGameUpdates() {
         }
 
         if (discordUser && (!feedGuild || !feedChannel)) {
+            if (client.config.testing) continue;
             await deleteGameFeed(gameFeed._id);
             console.log(`${new Date().toLocaleString()} - Deleted game update #${gameFeed._id} (${gameFeed.title}) due to missing guild or channel data.`)
             discordUser.send(`I'm not able to post ${gameFeed.title} updates to ${feedChannel} in ${feedGuild} anymore as the channel or server could not be found. Game feed cancelled.`).catch(() => undefined);
@@ -48,6 +50,7 @@ async function checkForGameUpdates() {
         }
         // Check if the user is missing.
         if (!discordUser || !userData) {
+            if (client.config.testing) continue;
             if (feedChannel) feedChannel.send(`**Cancelled Game Feed for ${gameFeed.title} as the user who created it could not be found.**`)
             await deleteGameFeed(gameFeed._id);
             console.log(`${new Date().toLocaleString()} - GameFeed #${gameFeed._id} (${gameFeed.title}) - User does not exist. Deleted feed.`);
@@ -58,6 +61,7 @@ async function checkForGameUpdates() {
         try {await nexusAPI.validate(userData.apikey)}
         catch(err) {
             if(err.indexOf("401") !== -1) {
+                if (client.config.testing) continue;
                 await deleteGameFeed(gameFeed._id);
                 console.log(`${new Date().toLocaleString()} - Deleted game update #${gameFeed._id} (${gameFeed.title}) due to invalid API key.`)
                 discordUser.send(`${new Date().toLocaleString()} - Cancelled Game Feed for ${gameFeed.title} in ${feedGuild} as your API key is invalid.`).catch(() => undefined);
