@@ -1,16 +1,8 @@
-// const {linkedAccounts} = require('./link.js');
-// const Enmap = require("enmap");
 const { getUserByDiscordId } = require('../api/users.js');
 const { createGameFeed, deleteGameFeed, getGameFeedsForServer, getGameFeed, updateGameFeed } = require('../api/game_feeds.js');
 const Discord = require("discord.js");
 const nexusAPI = require('../api/nexus-discord.js');
-// const gameUpdates = new Enmap({
-//     name: "GameUpdates",
-//     autoFetch: true,
-//     fetchAll: true
-//   });
 
-//gameUpdates.defer.then(() => gameUpdates.deleteAll()); //wipe the database.
 
 module.exports.help = {
     name: "gamefeed",
