@@ -57,7 +57,7 @@ const updateGameFeed = (feedId, newData) => {
             query(`UPDATE game_feeds SET ${key} = $1 WHERE _id = $2`, [newData[key], feedId], (error, results) => {
                 if (error) {
                     errors += 1;
-                    console.warn('Error updating game feed', feedId, err);
+                    C
                 };
             });
         });

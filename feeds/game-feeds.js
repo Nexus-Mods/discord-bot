@@ -176,6 +176,8 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined, compact) {
     const gameThumbURL = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
     const category = game.categories.find(c => c.category_id === modInfo.category_id).name;
 
+    // console.log('Building embed', modInfo.name, game.name, newMod ? 'new' : 'updated', compact );
+
     //Build the embed for posting.
     let embed = new Discord.RichEmbed()
     .setAuthor(`${newMod ? "New Mod Upload" : "Updated Mod"} (${game.name})`,client.user.avatarURL)
