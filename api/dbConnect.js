@@ -1,16 +1,17 @@
 require("dotenv").config();
+const config = require("../config.json");
 const Pool = require('pg').Pool;
-const config = {
+const poolConfig = {
     user: process.env.DBUSER,
     password: process.env.DBPASS,
     host: process.env.HOST,
     database: process.env.DATABASE,
     port: process.env.PORT,
-    ssl: {
+    ssl: !config.testing ? {
         rejectUnauthorized: false,
-    },
+    } : false,
 }
-const pool = new Pool(config);
+const pool = new Pool(poolConfig);
 
 function doQuery(text, values, callback) {
     pool.connect((err, client, release) => {

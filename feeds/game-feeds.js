@@ -32,7 +32,7 @@ async function checkForGameUpdates() {
         const botMember = feedGuild ? feedGuild.members.find(m => m.id === client.user.id): undefined;
         const botPermissions = feedGuild? await feedChannel.permissionsFor(botMember) : undefined; //Got to get the bitfield, as this doesn't resolve to searchable perms.
 
-        console.log(`${new Date().toLocaleString()} - Checking game feed ${gameFeed._id} for updates (${gameFeed.title}): ${feedGuild}`);
+        console.log(`${new Date().toLocaleString()} - Checking game feed #${gameFeed._id} for updates (${gameFeed.title}): ${feedGuild}`);
 
         // Check we can actually post to the game feed channel.
         if (botPermissions && !botPermissions.has('SEND_MESSAGES', true)) {
@@ -92,7 +92,7 @@ async function checkForGameUpdates() {
             };
             // Prepare to recieve embeds.
             let modEmbeds = [];
-            let lastUpdateDate = new Date(0);
+            let lastUpdateDate = new Date(gameFeed.lastUpdateDate);
 
             // Loop through each mod and build embeds.
             for (const newMod of filteredNewMods) {
@@ -104,6 +104,9 @@ async function checkForGameUpdates() {
                     });
                 // Exit if modData is unfilled.
                 if (!modData) continue;
+
+                // Record the file update time, we'll need this if we post an update. 
+                const fileUpdateTime = new Date(newMod.latest_file_update * 1000);
                 
                 // Skip unavailable mods.
                 if (modData.status !== "published") { 
@@ -128,17 +131,17 @@ async function checkForGameUpdates() {
                 if ((modData.updated_timestamp - modData.created_timestamp) < 3600 && gameFeed.show_new) {
                     // console.log(`${new Date().toLocaleString()} - Building new mod embed for ${modData.name} (${modData.mod_id}) for ${currentGame.name} (${gameFeed._id})`); 
                     modEmbeds.push(createModEmbed(modData, currentGame, true, undefined, gameFeed.compact));
-                    lastUpdateDate = new Date(modData.created_timestamp*1000);
+                    lastUpdateDate = fileUpdateTime;//new Date(modData.created_timestamp*1000);
                 }
                 else if (gameFeed.show_updates) {
                     // We want to try and get the changelogs.
                     const changelog = await nexusAPI.modChangelogs(userData, gameFeed.domain, newMod.mod_id).catch(() => undefined);
                     // console.log(`${new Date().toLocaleString()} - Building updated mod embed for ${modData.name} (${modData.mod_id}) for ${currentGame.name} (${gameFeed._id})`);
                     modEmbeds.push(createModEmbed(modData, currentGame, false, changelog, gameFeed.compact));
-                    lastUpdateDate = new Date(modData.updated_timestamp*1000);         
+                    lastUpdateDate = fileUpdateTime;//new Date(modData.updated_timestamp*1000);         
                 }
             }
-            await updateGameFeed(gameFeed._id, {last_timestamp: lastUpdateDate});
+            if (lastUpdateDate > new Date(gameFeed.last_timestamp)) await updateGameFeed(gameFeed._id, {last_timestamp: lastUpdateDate});
 
             // No updates to post?
             if (!modEmbeds.length) {
@@ -196,7 +199,7 @@ function createModEmbed(modInfo, game, newMod, changeLog = undefined, compact) {
     .addField("Uploader", `[${modInfo.uploaded_by}](${modInfo.uploaded_users_profile_url})${modInfo.authorData ? `\n<@${modInfo.authorDiscord}>`: ''}`, true)
     .addField("Category",category, true)
     .setTimestamp(modInfo.updated_timestamp*1000)
-    .setFooter(`Version: ${modInfo.version} - Mod ID: ${game.id}-${modInfo.mod_id}`,client.user.avatarURL);
+    .setFooter(`Version: ${modInfo.version} - Mod ID: ${modInfo.mod_id}`,client.user.avatarURL);
 
     return embed;
 }
