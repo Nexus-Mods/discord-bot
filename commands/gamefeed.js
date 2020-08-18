@@ -209,8 +209,11 @@ exports.run = async (client, message, args) => {
         //Cancel
         if (r.emoji.name === '❌') return message.reply('Game feed setup cancelled.')
         //Confirm
-        var gameHook = await message.guild.fetchWebhooks().then(wh => wh.find(wb => wb.channelID === message.channel.id && wb.name === "Nexus Mods Game Feed"));        
-        if (!gameHook) gameHook = await message.channel.createWebhook("Nexus Mods Game Feed", client.user.avatarURL,"Game Feed").catch(console.error);
+        var gameHook = await message.guild.fetchWebhooks()
+            .then(wh => wh.find(wb => wb.channelID === message.channel.id && wb.name === "Nexus Mods Game Feed"))
+            .catch(err => console.error('Failed to fetch webhooks', err));        
+        if (!gameHook) gameHook = await message.channel.createWebhook("Nexus Mods Game Feed", client.user.avatarURL,"Game Feed")
+            .catch(err => console.error('Failed to create webhook', err));
         var wb_id = gameHook ? gameHook.id : undefined; 
         var wb_token = gameHook ? gameHook.token: undefined;
         
