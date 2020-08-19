@@ -1,6 +1,6 @@
 const Promise = require('bluebird');
 const { query } = require('../api/dbConnect.js');
-const { getAllUsers, getAllServers, getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink } = require('../api/bot-db.js');
+const { getAllUsers, getAllServers, addServerLink } = require('../api/bot-db.js');
 
 exports.run = (client, message, args, serverData) => {
     if (!client.config.ownerID.includes(message.author.id)) return message.reply('Not authorised.');
