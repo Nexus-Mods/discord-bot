@@ -27,8 +27,6 @@ async function retrylogin() {
       console.log(`${new Date()} - Reconnect success. (error.js)`)
     }
     catch(err) {
-      //console.log(err)
-      //console.log("Client Status: "+myClient ? myClient.status : "myClient undefined.")
       console.error(`${new Date()} - Reconnect failed, trying again in 10 seconds. (error.js).\n${err.message}`)
       if (!retryInterval) retryInterval = setInterval(retrylogin, 10000)
     }

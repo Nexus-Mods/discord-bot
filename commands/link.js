@@ -32,7 +32,7 @@ exports.run = async (client, message, args, serverData) => {
 
     if (accountData) {
         if (message.guild && !userServers.find(s => s.server_id === message.guild.id)) {
-            await addServerLink(accountData, message.guild)
+            await addServerLink(accountData, message.author, message.guild)
                 .catch(error => console.error(error));
             return replyChannel.send((replyChannel !== message.channel ? message.author : message.author.tag)+" your account has been linked in this server. Type `!nexus whoami` to see your profile card.")
         }
