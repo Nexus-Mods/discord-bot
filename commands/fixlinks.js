@@ -6,6 +6,8 @@ exports.run = (client, message, args, serverData) => {
     if (!client.config.ownerID.includes(message.author.id)) return message.reply('Not authorised.');
 
     query('DELETE FROM user_servers', [], () => callback(client));
+    message.reply('Checking links.');
+    message.delete();
 }
 
 async function callback(client) {
@@ -15,12 +17,12 @@ async function callback(client) {
     return Promise.map(servers, server => {
         const guild = client.guilds.find(g => g.id = server.id);
         if (!guild) return console.log('No server found for id', server.id);
-        const guildMembers = guild.members.filter(member => users.find(u => u.d_id === member.id));
-        console.log(`${guildMembers.size} members in ${guild}`);
-        guildMembers.forEach(async (member) => {
-            const user = users.find(u => u.d_id === member.id);
+        console.log(`Checking links for ${guild}`);
+        users.forEach(async (user) => {
+            const guildMember = guild.members.find(m => m.id === user.d_id);
+            if (!guildMember) return console.log(`${user.name} is not am member of ${guild}.`);
             console.log(`Adding link: ${user.name}, ${guild}`);
-            return await addServerLink(user, member.user, guild);
+            return await addServerLink(user, guildMember.user, guild);
         });
     });
 
