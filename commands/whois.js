@@ -54,7 +54,9 @@ exports.run = async (client, message, args, serverData) => {
     const servers = links.map(s => s.server_id);
 
     // Check if they share a server
-    if (userInfo.d_id !== message.author.id && message.guild && servers.indexOf(message.guild.id) !== -1) return replyChannel.send(`${replyChannel === message.channel ? "" : message.author + " "}You do not share a server with "${discordUser.tag || discordUser.user.tag} so their information is not available.".`).catch(console.error);
+    const isMe = userInfo.d_id === message.author.id;
+    const sharesGuild = message.guild ? servers.includes(message.guild.id) : true;
+    if (!isMe && !sharesGuild) return replyChannel.send(`${replyChannel === message.channel ? "" : message.author + " "}You do not share a server with "${discordUser.tag || discordUser.user.tag}" so their information is not available.`).catch(console.error);
 
     // Send a profile embed. 
     const embed = await userEmbed(userInfo, message, client);

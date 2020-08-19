@@ -11,14 +11,15 @@ const getLinksByUser = (userId) => {
     });
 }
 
-const addServerLink = async (user, server) => {
-    if (typeof(user.id) !== "number") throw new Error(`Invalid member ID. ${user.id} for ${user}.`);
-    if (typeof(server.id) !== "string") throw new Error(`Invalid member ID. ${server.id} for ${server.name}.`);
+const addServerLink = async (user, discordUser, server) => {
+    if (typeof(user.id) !== "number") throw new Error(`Invalid member ID. ${user.id} for ${user.name}.`);
+    if (!discordUser) throw new Error(`Invalid Discord User for ${user.name}.`);
+    if (typeof(server.id) !== "string") throw new Error(`Invalid server ID. ${server.id} for ${server}.`);
 
     return new Promise((resolve, reject) => {
         query('INSERT INTO user_servers (user_id, server_id) VALUES ($1, $2)', [user.id, server.id], async (error, result) => {
             if (error) return reject(error);
-            await updateRoles(user, server);
+            await updateRoles(user, discordUser, server);
             resolve();
         });
     });
@@ -49,12 +50,12 @@ const deleteAllServerLinksByUser = async (user, client) => {
     });
 }
 
-const updateRoles = async (userData, guild, bRemove = false) => {
+const updateRoles = async (userData, discordUser, guild, bRemove = false) => {
     return new Promise(async (resolve, reject) => {
-        const guildMember = await guild.members.find(m => m.id === userData.d_id);
+        const guildMember = discordUser//await guild.members.find(m => m.id === userData.d_id);
         const guildData = await getServer(guild);
         if (!guildData) return reject('No guild data for '+guild.name);
-        if (!guildMember) return resolve(console.log(`${new Date().toLocaleString()} - ${userData.name} is a not a member of ${guild.name}`));
+        if (!guildMember) return resolve(console.log(`${new Date().toLocaleString()} - ${userData.name} is not a member of ${guild.name}`));
 
         // Check we can actually assign roles.
         const botMember = guild.members.find(user => user.id === client.user.id);
