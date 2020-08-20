@@ -25,17 +25,17 @@ const addServerLink = async (user, discordUser, server) => {
     });
 }
 
-const deleteServerLink = async (user, server) => {
+const deleteServerLink = async (user, discordUser, server) => {
     return new Promise( (resolve, reject) => {
         query('DELETE FROM user_servers WHERE user_id = $1 AND server_id = $2', [user.id, server.id], async (error, result) => {
             if (error) return reject(error);
-            await updateRoles(user, server, true);
+            await updateRoles(user, discordUser, server, true);
             resolve();
         });
     });
 }
 
-const deleteAllServerLinksByUser = async (user, client) => {
+const deleteAllServerLinksByUser = async (user, discordUser, client) => {
     const links = await getLinksByUser(user.id);
 
     return new Promise((resolve, reject) => {
@@ -43,7 +43,7 @@ const deleteAllServerLinksByUser = async (user, client) => {
             if (error) return reject(error);
             for (link of links) {
                 const server = client.guilds.find(g => g.id === link.server_id);
-                if (server) await updateRoles(user, server, true);
+                if (server) await updateRoles(user, discordUser, server, true);
             }
             resolve();
         });
