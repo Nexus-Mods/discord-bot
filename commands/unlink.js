@@ -27,16 +27,16 @@ exports.run = async (client, message, args, serverData) => {
         // When this command triggers inside a server, only unlink that server.
         const guildId = message.guild.id;
         if (!servers.find(link => link.server_id === guildId)) return message.channel.send("Your account is not linked in this server. To delete the link on all servers, please send this command in a DM.");
-        await deleteServerLink(userData, message.author, message.guild);
+        await deleteServerLink(userData, message.author.user, message.guild);
 
         // TODO! Reply channel setting
-        replyChannel.send(`${replyChannel !== message.channel ? message.author+" " : "" }The link to your Nexus Mods account "${userData.name}" in ${message.guild.name} was removed successfully.\nTo relink in the server type \`!nexus link\`.`).catch(console.error);
+        replyChannel.send(`${replyChannel !== message.channel ? message.author+" " : "" }The link to your Nexus Mods account "${userData.name}" in ${message.guild.name} was removed successfully. To relink in this server type \`!nexus link\`.`).catch(console.error);
     }
     else {
         // When this command triggers in a DM, fully remove the account link.
 
         // Remove roles from various servers and delete from the database. 
-        await deleteAllServerLinksByUser(userData, message.author, client);
+        await deleteAllServerLinksByUser(userData, message.author.user, client);
         await deleteUser(discordId);
 
         // TODO! Report the unlink event to the logs.
