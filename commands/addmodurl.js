@@ -1,4 +1,4 @@
-const { getUserByDiscordId, getModsbyUser, createMod } = require('../api/bot-db.js');
+const { getUserByDiscordId, updateAllRoles, getModsbyUser, createMod } = require('../api/bot-db.js');
 const Discord = require('discord.js');
 const nexusAPI = require('../api/nexus-discord.js');
 const modUrlRegex = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i
@@ -97,6 +97,9 @@ exports.run = async (client, message, args, serverData) => {
         .setDescription(`Added ${newMods.length} mod(s) to your account. ${messages.length ? `Unable to added ${messages.length} mod(s).` : ""}`);
         if (newMods.length) completeEmbed.addField("Added Mods", newMods.map(mod => `[${mod.name}](${mod.url}) for ${mod.game} (${mod.total_downloads} downloads)`));
         if (messages.length) completeEmbed.addField("Warnings", messages.join('\n'));
+        
+        // Update roles and return message.
+        await updateAllRoles(userData, client);
         workingMessage.edit(completeEmbed);
 
     }

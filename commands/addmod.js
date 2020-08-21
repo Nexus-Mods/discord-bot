@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const { getUserByDiscordId, updateUser, getModsbyUser, updateMod, createMod } = require('../api/bot-db.js');
+const { getUserByDiscordId, updateAllRoles, getModsbyUser, updateMod, createMod } = require('../api/bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
 
 module.exports.help = {
@@ -91,11 +91,11 @@ exports.run = async (client, message, args, serverData) => {
             addedModsEmbed.addField("Added mods", newModList)
             .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
 
+            // Update Mod Author roles
+            await updateAllRoles(userData, client);
+
             // Update the message
             responseMessage.edit(replyChannel !== message.channel ? message.author : "",addedModsEmbed).catch(console.error);
-
-            // Update Mod Author roles - TODO!
-
         }
         
 

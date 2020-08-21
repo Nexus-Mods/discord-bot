@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const { getUserByDiscordId, getModsbyUser, deleteMod } = require('../api/bot-db.js');
+const { getUserByDiscordId, updateAllRoles, getModsbyUser, deleteMod } = require('../api/bot-db.js');
 const modUrlRegex = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i
 
 module.exports.help = {
@@ -54,6 +54,7 @@ exports.run = async (client, message, args, serverData) => {
             // Remove the mod
             await deleteMod(modToRemove);
             console.log(`${new Date().toLocaleString()} - Removed ${modToRemove.name} from ${userData.name} in ${message.guild || 'a DM'}.`);
+            await updateAllRoles(userData, client);
             return responseMessage.edit(`Removed ${modToRemove.name} from ${message.author} (${userData.name}).`);
         }
         else {

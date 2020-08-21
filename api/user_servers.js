@@ -100,13 +100,14 @@ const updateRoles = async (userData, discordUser, guild, bRemove = false) => {
         if (modAuthorRole && modTotal(allUserMods) >= modAuthorDownloads && !member.roles.has(modAuthorRole)) {
             rolesToAdd.push(modAuthorRole.id);
             member.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`);
-        };
+        }
+        else if (member.roles.has(modAuthorRole)) { guildMember.removeRole(modAuthorRole) };
 
         if (rolesToAdd.length) {
             console.log(`${new Date().toLocaleString()} - Adding ${rolesToAdd.length} roles to ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
             guildMember.addRoles(rolesToAdd, 'Nexus Mods Discord link')
             .catch(err => console.log(`${new Date().toLocaleString()} - Could not add roles to ${userData.name} in ${guild.name}`, err));
-        }
+        };
         
         return resolve(true);
 
