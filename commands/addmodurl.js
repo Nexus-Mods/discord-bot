@@ -99,7 +99,7 @@ exports.run = async (client, message, args, serverData) => {
         if (messages.length) completeEmbed.addField("Warnings", messages.join('\n'));
         
         // Update roles and return message.
-        await updateAllRoles(userData, client);
+        await updateAllRoles(userData, message.author, client);
         workingMessage.edit(completeEmbed);
 
     }

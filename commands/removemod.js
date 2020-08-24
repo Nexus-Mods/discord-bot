@@ -54,7 +54,7 @@ exports.run = async (client, message, args, serverData) => {
             // Remove the mod
             await deleteMod(modToRemove);
             console.log(`${new Date().toLocaleString()} - Removed ${modToRemove.name} from ${userData.name} in ${message.guild || 'a DM'}.`);
-            await updateAllRoles(userData, client);
+            await updateAllRoles(userData, message.author, client);
             return responseMessage.edit(`Removed ${modToRemove.name} from ${message.author} (${userData.name}).`);
         }
         else {

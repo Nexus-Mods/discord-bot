@@ -53,7 +53,7 @@ const deleteAllServerLinksByUser = async (user, discordUser, client) => {
 const updateRoles = async (userData, discordUser, guild, bRemove = false) => {
     return new Promise(async (resolve, reject) => {
         const guildMember = discordUser//await guild.members.find(m => m.id === userData.d_id);
-        const guildData = await getServer(guild);
+        const guildData = await getServer(guild).catch((err) => console.log('Error getting guild data', guild.name, userData.name, err.stack));
         if (!guildData) return reject('No guild data for '+guild.name);
         if (!guildMember) return resolve(console.log(`${new Date().toLocaleString()} - ${userData.name} is not a member of ${guild.name}`));
 
@@ -115,7 +115,7 @@ const updateRoles = async (userData, discordUser, guild, bRemove = false) => {
     });
 }
 
-const updateAllRoles = async (userData, client, addAll = false) => {
+const updateAllRoles = async (userData, discordUser, client, addAll = false) => {
     return new Promise(async (resolve, reject) => {
         const servers = await getAllServers();
         const links = await getLinksByUser(userData.id);
@@ -124,7 +124,7 @@ const updateAllRoles = async (userData, client, addAll = false) => {
             const existingLink = !!links.find(l => l.server_id);
             if (guild) {
                 if (addAll || existingLink) {
-                    await updateRoles(userData, guild).catch(err => console.warn(`${new Date().toLocaleString()} - Unable to assign roles to ${userData.name}`, err));
+                    await updateRoles(userData, discordUser, guild).catch(err => console.warn(`${new Date().toLocaleString()} - Unable to assign roles to ${userData.name}`, err));
                     if (!existingLink) {
                         console.log(`Adding link for ${userData.id}, ${guild.id}`);
                         await addServerLink(userData, guild);

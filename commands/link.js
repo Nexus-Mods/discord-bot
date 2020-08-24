@@ -104,7 +104,7 @@ async function checkAPIKey(client, message, apiKeyToCheck) {
             premium: apiData.is_premium,
         }
         await createUser(memberData);
-        await updateAllRoles(memberData, client, true);
+        await updateAllRoles(memberData, message.author, client, true);
         const links = await getLinksByUser(memberData.id);
 
 

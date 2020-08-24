@@ -92,7 +92,7 @@ exports.run = async (client, message, args, serverData) => {
             .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
 
             // Update Mod Author roles
-            await updateAllRoles(userData, client);
+            await updateAllRoles(userData, message.author, client);
 
             // Update the message
             responseMessage.edit(replyChannel !== message.channel ? message.author : "",addedModsEmbed).catch(console.error);
