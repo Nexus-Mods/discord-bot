@@ -97,11 +97,11 @@ const updateRoles = async (userData, discordUser, guild, bRemove = false) => {
         else if (userData.supporter && supporterRole && !guildMember.roles.has(supporterRole)) rolesToAdd.push(supporterRole.id);
 
         // Mod Author role
-        if (modAuthorRole && modTotal(allUserMods) >= modAuthorDownloads && !member.roles.has(modAuthorRole)) {
+        if (modAuthorRole && modTotal(allUserMods) >= modAuthorDownloads && !guildMember.roles.has(modAuthorRole)) {
             rolesToAdd.push(modAuthorRole.id);
-            member.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`);
+            guildMember.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`);
         }
-        else if (member.roles.has(modAuthorRole)) { guildMember.removeRole(modAuthorRole) };
+        else if (guildMember.roles.has(modAuthorRole)) { guildMember.removeRole(modAuthorRole) };
 
         if (rolesToAdd.length) {
             console.log(`${new Date().toLocaleString()} - Adding ${rolesToAdd.length} roles to ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
