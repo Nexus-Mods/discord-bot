@@ -49,7 +49,7 @@ exports.run = async (client, message, args, serverData) => {
             try {
                 resultEmbed.addField('User Data', `Updated ${keys.length} value(s): ${keys.join(', ')}`);
                 await updateUser(discordId, newUserInfo);
-                await updateAllRoles(userData, client, false);
+                await updateAllRoles(userData, message.author, client, false);
             }
             catch(err) {
                 resultEmbed.addField('User Data', `Error updating user data: ${err}`);
