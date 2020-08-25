@@ -1,6 +1,6 @@
-const Discord = require('discord.js');
-const { getUserByDiscordId, updateAllRoles, getModsbyUser, updateMod, createMod } = require('../api/bot-db.js');
-const nexusAPI = require('../api/nexus-discord.js');
+import Discord from "discord.js";
+import { getUserByDiscordId, updateAllRoles, getModsbyUser, updateMod, createMod } from "../api/bot-db";
+import nexusAPI from '../api/nexus-discord.js';
 
 module.exports.help = {
     name: "addmod",
@@ -39,7 +39,7 @@ exports.run = async (client, message, args, serverData) => {
         // We can exit if nothing was found. 
         if (filteredResults.length === 0) return responseMessage.edit(`Could not locate a mod owned by ${userData.name} for the query: "${args.join(" ")}".`);
 
-        for (i=0; i < filteredResults.length; i ++){ //filteredResults.forEach(async (result) => {
+        for (var i=0; i < filteredResults.length; i ++){ //filteredResults.forEach(async (result) => {
             let result = filteredResults[i];
             // Is the result already saved to our profile?
             if (userMods.find(m => m.domain === result.game_name && result.url.endsWith(m.modid))) {

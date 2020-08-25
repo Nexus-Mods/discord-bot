@@ -34,3 +34,5 @@ packages/
 data/
 serverconfig.json
 config.json
+
+dist/

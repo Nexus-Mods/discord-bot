@@ -5,5 +5,6 @@ npm install --no-package-lock \
 
 # Install packages
 npm install
+npm run build
 
-node $WORK_DIR/index.js
+node $WORK_DIR/dist/index.js

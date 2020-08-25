@@ -2,7 +2,8 @@ const Enmap = require("enmap");
 const { query } = require('./dbConnect.js');
 const { getAllGameFeeds, getAllServers, getAllUsers } = require('./bot-db.js');
 const nexusAPI = require('../api/nexus-discord.js');
-const Promise = require('bluebird');
+import PromiseBB from "bluebird";
+import path from "path";
 
 const oldGameFeeds = new Enmap({
     name: "GameUpdates",
@@ -25,13 +26,13 @@ exports.migrate = async function migrate(client, admin) {
     const allFeeds = await getAllGameFeeds();
     const allServers = await getAllServers();
 
-    const oldServerConfig = require('../data/serverconfig.json');
+    const oldServerConfig = require(path.join(__dirname, '../data/serverconfig.json'));
 
     console.group('Migration');
     console.log(`Starting Migration of ${oldUsers.count} users, ${oldServerConfig.length || 0} servers and ${oldGameFeeds.count} game feeds`);
     admin.send(`Starting Migration of ${oldUsers.count} users, ${oldServerConfig.length || 0} servers and ${oldGameFeeds.count} game feeds`).catch(() => console.warn);
 
-    return Promise.mapSeries(oldUsers.indexes, async (index, key) => {
+    return PromiseBB.mapSeries(oldUsers.indexes, async (index, key) => {
         const user = oldUsers.get(index);
 
         if (allUsers.find(u => u.id === user.nexusID)) {
@@ -61,7 +62,7 @@ exports.migrate = async function migrate(client, admin) {
 
         let serverLinks = user.serversLinked ? user.serversLinked.map(s => { return {user_id: newUser.d_id, server_id: s} }) : [];
         if (!user.mods) user.mods = [];
-        return Promise.all(user.mods.map(m => {
+        return PromiseBB.all(user.mods.map((m: any): any => {
             // name, downloads, game, domain, modid, url
             return nexusAPI.getDownloads(newUser, m.domain, -1, m.modid).catch(() => console.warn)
             .then((dls) => {
@@ -84,14 +85,14 @@ exports.migrate = async function migrate(client, admin) {
                 console.log(`Importing Link: ${newUser.name} in ${l.server_id}`);
                 return insertToDB(l, 'user_servers')
             });
-            mods.map(m => {
+            mods.map((m: any) => {
                 console.log(`Importing Mod: ${m.name} for ${m.game}`);
                 return insertToDB(m, 'user_mods');
             });
         });
     }).then(() => {
         console.log('Done Importing users');
-        return Promise.map(oldGameFeeds.indexes, (index, key) => {
+        return PromiseBB.map(oldGameFeeds.indexes, (index, key) => {
             const feed = oldGameFeeds.get(index);
             if (allFeeds.find(f => f.guild === feed.guild && f.owner === feed.user && f.created === new Date(feed.created*1000))) {
                 console.log(`Skipping feed ${feed.gameTitle} #${index} because it already exists.`);
@@ -121,7 +122,7 @@ exports.migrate = async function migrate(client, admin) {
         }).then(() => {
             console.log('Done importing feeds');
             if (!oldServerConfig) return [];
-            return Promise.map(oldServerConfig, server => {
+            return PromiseBB.map(oldServerConfig, (server: any) => {
                 if (allServers.find(s => s.id === server.id)) {
                     console.log(`Skipping server ${server.name} because it already exists.`);
                     return;

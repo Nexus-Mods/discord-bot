@@ -1,15 +1,16 @@
 const Discord = require("discord.js");
 const Enmap = require("enmap");
 const fs = require("fs");
+const path = require('path');
 require("dotenv").config();
 
 //Setup the Discord Client
-client = new Discord.Client({sync: true, disabledEvents : ['TYPING_START',]});
+var client = new Discord.Client({sync: true, disabledEvents : ['TYPING_START',]});
 const config = require("./config.json");
 client.config = config;
 exports.clientshared = client;
 
-fs.readdir("./events/", (err, files) => {
+fs.readdir(path.join(__dirname, "./events/"), (err, files) => {
     if (err) return console.error(err);
     files.forEach(file => {
         const event = require(`./events/${file}`);
@@ -20,7 +21,7 @@ fs.readdir("./events/", (err, files) => {
 
 client.commands = new Enmap();
 
-fs.readdir("./commands/", (err, files) => {
+fs.readdir(path.join(__dirname, "./commands/"), (err, files) => {
     if (err) return console.error(err);
     files.forEach(file => {
         if (!file.endsWith(".js")) return;
