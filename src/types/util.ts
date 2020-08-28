@@ -24,3 +24,12 @@ export interface ModDownloadInfo {
 export interface IModInfoExt extends IModInfo {
     authorDiscord?: GuildMember|null;
 }
+
+export interface CommandHelp {
+    name: string;
+    usage: string;
+    description: string;
+    adminOnly: boolean;
+    moderatorOnly: boolean;
+    officialOnly?: boolean;
+}
