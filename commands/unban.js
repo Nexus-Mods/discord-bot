@@ -1,6 +1,5 @@
 //FUTURE DEVELOPMENT: Explore using Guild.fetchAuditLogs to retrieve the ban record. 
 const Discord = require('discord.js');
-const serverConfig = require('./../serverconfig.json') //For server specific settings.
 
 module.exports.help = {
     name: "unban",
@@ -11,12 +10,11 @@ module.exports.help = {
     officialOnly: true   
 }
 
-exports.run = async (client, message, args) => {
+exports.run = async (client, message, args, serverSettings) => {
     //if a DM return 
     if (!message.guild) return
 
     //Check if this is an official server.
-    const serverSettings = serverConfig.find(s => s.id === message.guild.id);
     if (!serverSettings || !serverSettings.official) return // doesn't work on non-Nexus Mods servers.
     var logChannel = serverSettings.logging ? message.guild.channels.find(c => c.id === serverSettings.logChannel) : undefined //where are we going to output the ban info?
 

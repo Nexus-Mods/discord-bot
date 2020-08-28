@@ -1,17 +1,14 @@
 const Discord = require("discord.js");
-const serverConfig = require("../serverconfig.json");
-const config = require("./../config.json");
 const fs = require("fs");
 
-exports.run = (client, message, args) => {
+exports.run = (client, message, args, serverData) => {
     //Where should we reply?
-    const serverSettings = message.guild && serverConfig.find(s => s.id === message.guild.id);
-    var replyChannel = serverSettings && serverSettings.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
+    const replyChannel = serverData && serverData.channel_bot ? message.guild.channels.find(c => c.id === serverData.channel_bot) : message.channel
     
     //Collect permission settings
     const userPermsModerator = message.guild ? message.member.hasPermission("BAN_MEMBERS") : false
     const userPermsAdminstrator = message.guild ? message.member.hasPermission("ADMINISTRATOR") : false
-    const nexusOfficial = serverSettings ? serverSettings.official : false
+    const nexusOfficial = serverData ? serverData.official : false
 
     //If there is no valid command with args
     if (args.length > 0 && !fs.existsSync(`./commands/${args}.js`)) return replyChannel.send(`${replyChannel !== message.channel ? message.author+" ": "" }Could not find a command for "${args.join(" ")}". To see all commands try \`!Nexus help\`.`)
@@ -21,7 +18,7 @@ exports.run = (client, message, args) => {
     .setTitle("Nexus Mods Bot Help")
     .setAuthor(client.user.username, client.user.avatarURL)
     .setColor(0xda8e35)
-    .setDescription(`All commands for this bot can be accessed with one of the following prefixes: ${config.prefix.join(", ")}.`)
+    .setDescription(`All commands for this bot can be accessed with one of the following prefixes: ${client.config.prefix.join(", ")}.`)
     .setFooter(`Nexus Mods bot - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL)
     if (!args[0]){
         fs.readdir("./commands/", (err, files) => {

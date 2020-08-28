@@ -1,7 +1,7 @@
 const Discord = require('discord.js')
-const link = require('./link.js')
-const nexusAPI = require('./../nexus-discord.js');
-const serverConfig = require('./../serverconfig.json') //For server specific settings.
+const { getUserByDiscordId } = require('../api/bot-db.js');
+const nexusAPI = require('../api/nexus-discord.js');
+// const serverConfig = require('./../serverconfig.json') //For server specific settings.
 
 module.exports.help = {
     name: "search",
@@ -12,29 +12,24 @@ module.exports.help = {
 }
 
 
-exports.run = async (client, message, args) => {
+exports.run = async (client, message, args, serverSettings) => {
     if (!message.guild) return //this doesn't work in DMs
     
     //Grab settings for current server
-    var serverSettings = message.guild && serverConfig.find(s => s.id === message.guild.id)
-    var searchResultsChannel = serverSettings && serverSettings.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
+    //const searchResultsChannel = serverSettings && serverSettings.defaultChannel ? message.guild.channels.find(c => c.id === serverSettings.defaultChannel) : message.channel
 
 
     if (!serverSettings || serverSettings.webhookID === "" || serverSettings.webookToken === "") return message.channel.send("Mod search is not set up in this server.")
 
-    var searchWebHook = new Discord.WebhookClient(serverSettings.webhookID,serverSettings.webhookToken)
-    var searchResultsChannel = serverSettings.webhookID ? await message.guild.fetchWebhooks().then((wl) => message.guild.channels.find(c => c.id === wl.find(w => w.id === serverSettings.webhookID).channelID)) : none
+    var searchWebHook = new Discord.WebhookClient(serverSettings.webhook_id,serverSettings.webhook_token);
+    var searchResultsChannel = serverSettings.webhook_id ? await message.guild.fetchWebhooks().then((wl) => message.guild.channels.find(c => c.id === wl.find(w => w.id === serverSettings.webhook_id).channelID)) : undefined;
     var gameID = serverSettings.searchGameFilter ? serverSettings.searchGameFilter.id : null
     var gameName = serverSettings.searchGameFilter && args[0] !== "-all" ? serverSettings.searchGameFilter.title : null
 
     //If the webHook was deleted externally or results channel could not be found..
     if (!searchWebHook || !searchResultsChannel) {
-        serverSettings.webhookID = ""
-        serverSettings.webhookID = ""
-        fs.writeFile("serverconfig.json", JSON.stringify(serverConfig, null, 2), function(err){
-            if (err) throw err;
-            //console.log('The "data to append" was appended to file!')
-        });
+        serverSettings.webhookID = "";
+        // TODO - Save this change
         return message.channel.send("There was a problem with the WebHook required by the search, please contact a server admin to check the bot configuration.")
     } 
 
@@ -48,12 +43,12 @@ exports.run = async (client, message, args) => {
 
     //Check if we need to apply a filter.
     var gameFilter = (gameID && args[0] !== "-all") ? gameID : undefined
-    var nexusMember = link.linkedAccounts.get(message.author.id)
+    var nexusMember = getUserByDiscordId(message.author.id);
     if (!nexusMember) replyMessageText.push("_Hint: Link your Nexus Mods account to narrow your search by game. See `!nexus help link` for more._");
 
     if (nexusMember && !gameFilter && (args[0] === "-all"? args.length > 2 : args.length > 1)) {
         try {
-            var gameResult = await nexusAPI.gameInfo(message.author, (args[0] === "-all" ? args[1] : args[0]))
+            var gameResult = await nexusAPI.gameInfo(nexusMember, (args[0] === "-all" ? args[1] : args[0]))
             gameName = gameResult.name
             gameID = gameResult.id
             gameFilter = gameID

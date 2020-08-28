@@ -1,41 +1,42 @@
-const serverConfig = require("../serverconfig.json");
-const config = require("../config.json");
+const { deleteServer, getAllServers } = require('../api/bot-db.js');
 const Discord = require('discord.js');
-const fs = require('fs');
 const onlineEmbed = new Discord.RichEmbed()
 .setTitle('Nexus Mods Discord Bot is online.')
-.setColor(0x009933)
+.setColor(0x009933);
+const newsFeed = require('../feeds/nexus-news.js');
+const gameFeed = require('../feeds/game-feeds.js');
+const modFeed = require('../feeds/mod-feeds.js');
 
 let firstStartUp = false
 
 module.exports = async (client) => {
-    console.log(`${new Date()} - Ready to serve in ${client.channels.size} channels on ${client.guilds.size} servers, for a total of ${client.users.size} users.`);
-    client.user.setActivity(`the channels for ${client.config.prefix[0]}`, {type: 'Watching'});
-    
-    if (config.testing) return console.log('Testing mode - did not publish online message.');
-    if (firstStartUp) return
+  console.log(`${new Date().toLocaleString()} - Ready to serve in ${client.channels.size} channels on ${client.guilds.size} servers, for a total of ${client.users.size} users.`);
+  client.user.setActivity(`the channels for ${client.config.prefix[0]}`, {type: 'Watching', url: "https://discord.gg/nexusmods"});
+  if (client.user.username !== "Nexus Mods") client.user.setUsername("Nexus Mods");
 
-    firstStartUp = true
+  if (firstStartUp) return
+  firstStartUp = true;
 
-    for (i=0; i < serverConfig.length; i++) {
-      var curServer = serverConfig[i];
-      if (curServer.id && !client.guilds.find(s => s.id === curServer.id)) {
-        console.log(`${new Date()} - Deleting non-existant server: ${curServer.name}`)
-        serverConfig.splice(i,1)
-        i--
-        updateJSON(serverConfig)
-      }
-      if (curServer.nexusLogChannel) {
-        var botChannel = client.channels.find(c => c.id === curServer.nexusLogChannel);
-        onlineEmbed.setTimestamp(new Date());
-        if (botChannel) botChannel.send(onlineEmbed).catch(console.error);
-      };
+  // Start the news and feeds TODO!
+  newsFeed.run(client).catch((err) => console.warn('Setting up news feed failed', err));
+  gameFeed.run(client).catch((err) => console.warn('Setting up game feeds failed', err));
+  modFeed.run(client).catch((err) => console.warn('Setting up mod feeds failed', err));
+
+  if (client.config.testing) return console.log('Testing mode - did not publish online message.');
+  const allServers = await getAllServers();
+
+  // Post the online notice.
+  for(const server of allServers) {
+    const discordGuild = await client.guilds.find(s => s.id === server.id);
+    if (!discordGuild) {
+      await deleteServer(server.id);
+      return console.log(`${new Date().toLocaleString()} - Deleting non-existant server: ${server.id}`);
+    };
+    if (server.channel_news) {
+      const logChannel = discordGuild.channels.find(c => c.id === server.channel_nexus);
+      if (!logChannel) return console.log(`${new Date().toLocaleString()} - Log channel no longer exists for: ${discordGuild.name}`)
+      onlineEmbed.setTimestamp(new Date());
+      logChannel.send(onlineEmbed).catch((err) => console.error(`${new Date().toLocaleString()} - Error posting online notice to log channel in ${discordGuild.name}\n${err}`));
     };
   };
-
-  function updateJSON(newJSON) {
-    fs.writeFile("serverconfig.json", JSON.stringify(newJSON, null, 2), function(err){
-        if (err) throw err;
-        //console.log('The "data to append" was appended to file!')
-    });
 }

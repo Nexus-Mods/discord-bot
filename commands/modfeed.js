@@ -1,200 +1,276 @@
-//THIS COMMAND IS A WORK IN PROGRESS.
-const {linkedAccounts} = require('./link.js');
-const Enmap = require("enmap");
-const serverConfig = require('./../serverconfig.json') //For server specific settings.
+const { getUserByDiscordId } = require('../api/users.js');
+const { getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed } = require('../api/mod_feeds.js');
 const Discord = require("discord.js");
-const nexusAPI = require('./../nexus-discord.js');
-const modUpdates = new Enmap({
-    name: "ModUpdates",
-    autoFetch: true,
-    fetchAll: true
-  });
+const nexusAPI = require('../api/nexus-discord.js');
+const modUrlRegex = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i
 
-// module.exports.help = {
-//     name: "modfeed",
-//     description: "Creates a mod feed in this channel, periodically checking for updates for the chosen mod and posting if any are found.",
-//     usage: "<mod name or url>",
-//     moderatorOnly: true,
-//     adminOnly: false  
-// }
+
+module.exports.help = {
+    name: "gamefeed",
+    description: "Creates a mod feed in this channel, publishing new or updated mods every 10 minutes.",
+    usage: "<mod name or URL>",
+    moderatorOnly: true,
+    adminOnly: false  
+}
 
 exports.run = async (client, message, args) => {
-    //Abort for now
-    return message.channel.send("This feature is coming soon.");
-    
-    //Not allowed in server/rolecheck
+    // Check we're in a server
     if (!message.guild) return message.channel.send("This feature is not available in DMs.").catch(console.error);
 
+    // Check the user is a moderator
     if (!message.member.hasPermission("MANAGE_CHANNELS")) return message.channel.send("You do not have permission to use this feature.");
+
+    const replyMessage = await message.channel.send(`Looking for feed data...`);
 
     //No args - explain feature, show subs for this channel.
     if (args.length === 0) {
-        //EXPLAIN
-        var tutorialEmbed = new Discord.RichEmbed()
-        //.setAuthor()
+        const tutorialEmbed = new Discord.RichEmbed()
         .setThumbnail(client.user.avatarURL)
         .setTitle("Set up a mod feed")
-        .setDescription("Using this feature you can create a feed in this channel which will periodically report any new updates to a specified mod."+
-        "\n\nTo set up the feed add the name or url of the game to the end of the command e.g. \"SkyUI\" or \"https://www.nexusmods.com/skyrimspecialedition/mods/12604\"."+
-        "\n\nAdult content will only be included if the channel is marked NSFW in Discord."+
+        .setDescription("Using this feature you can create a feed in this channel which will periodically report changes for a specfied game."+
+        "\n\nTo set up the feed add the name or url of the mod to the end of the command e.g. \"Vortex\" or \"https://nexusmods.com/site/mods/1\"."+
+        "\n\nAdult content will only be posted if the channel is marked NSFW in Discord."+
         "\n\n*The feed will use the API key linked to your account and can consume approximately 24 - 100 requests per day depending on your settings and the number of updates posted.*")
-        .addField("Editing or cancelling feeds", "To edit an existing feed, added edit followed by a hash and the number reference of your feed e.g. !nexus modfeed edit #1.")
+        .addField("Editing or cancelling feeds", "To edit an existing feed, added edit followed by a hash and the number reference of your feed e.g. `!nexus modfeed edit #1`.")
         .setColor(0xda8e35)
         .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL)
 
 
-        var channelSubs = await findAllSubs(gameUpdates, message.channel); //Pull all updates for this channel.
-        if (channelSubs.length > 0) tutorialEmbed.addField("Mod Updates in this server", channelSubs.join("\n"));
-        return message.channel.send(tutorialEmbed).catch(console.error);
+        //Pull all updates for this server.
+        const serverFeeds = async (guild) => {
+            const feeds = await getModFeedsForServer(guild.id).catch(() => console.log('Error getting mod feeds', err));
+            if (!feeds || !feeds.length) return undefined;
+            return feeds.map(feed => {
+                const user = guild.members.find(m => m.id === feed.owner);
+                return `**#${feed._id}** - [${feed.title}](https://nexusmods.com/${feed.domain}/mods/${feed.mod_id}) in <#${feed.channel}> (${user || '*Unknown user*'}).\n🗄️: ${feed.show_files} | 🗒️: ${feed.show_other}`
+            });
+        } 
+        const feeds = await serverFeeds(message.guild)
+        const feedMap = feeds.join("\n");
+        if (feedMap) tutorialEmbed.addField(`Mod Updates in this server (${feeds.length})`, feedMap.length > 1000 ? feedMap.substring(0, 1000) : feedMap );
+        return replyMessage.edit("", tutorialEmbed).catch(console.error);
     }
 
     //Find linked account
-    var linkedUser = linkedAccounts.get(message.author.id);
-    if (!linkedUser) return message.channel.send("Please link your Nexus Mods account to your Discord account before using this feature. See `!nexus link` help on linking your account.");
+    const userData = await getUserByDiscordId(message.author.id);
+    if (!userData) return replyMessage.edit("Please link your Nexus Mods account to your Discord account before using this feature. See `!nexus link` help on linking your account.");
 
-    //Find the mod domain and ID
-    let gameDomain 
-    let modID
+    //CHECK FOR EDITING OPTION. !nexus modfeed edit #{id}
+    if (args[0].toLowerCase() === 'edit' && args[1].indexOf('#') === 0) {
+        const feedID = args[1].substring(1);
+        if (isNaN(feedID)) return replyMessage.edit("Invalid feed ID: "+args[1]);
+        let feedObject = await getModFeed(feedID);
+        if (!feedObject) return replyMessage.edit("Could not find a feed with ID: "+feedID);
+        const owner = message.guild.members.find(m => m.id === feedObject.owner);
+        if (message.member !== owner || !message.member.hasPermission("MANAGE_CHANNELS")) return replyMessage.edit("You do not have permission to edit this feed.");
+        if (feedObject.guild !== message.guild.id) return replyMessage.edit(`Cannot managed feed #${feedID} as it is not set up in this server.`);
 
-    if (args[0].contains('https://')) {
-        let urlObject = convertURL(args[0])
-        gameDomain = urlObject.game
-        modID = urlObject.ID
-    }
-    else {
-        try {
-            let searchResults = await nexusAPI.quicksearch(args.join(" "), true);
-            if (searchResults.length > 0) {
-                let foundResult = searchResults[0];
-                gameDomain = foundResult.game_name;
-                modID = foundResult.url.substring(result.url.lastIndexOf('/')+1,result.url.length);
+        // Show feed details
+        const editMessage = await replyMessage.edit("", editEmbed(feedObject, owner, message, client)).catch(console.error);
+        //Check for the 6 toggles
+        const toggles = ["✅", "❌", "🗄️", "🗒️", "📬","📭"];
+        const reactionFilter = (reaction, user) => user.id === message.author.id && toggles.indexOf(reaction.emoji.name) !== -1;
+        const editCollector = editMessage.createReactionCollector(reactionFilter, {time: 30000, max: 15});
+        toggles.forEach(emoji => editMessage.react(emoji));
+
+        let newData = {};
+        editCollector.on('collect', async r => {
+            if (r.emoji.name === '✅') {
+                editMessage.clearReactions();
+                editCollector.stop("Stopped by user.");
             };
+            if (r.emoji.name === '🗄️') {
+                newData.show_files = !feedObject.show_files;
+                feedObject.show_files = newData.show_files;
+                editMessage.edit(`New file uploads ${newData.show_files ? "will" : "will **not**" } be included.`, editEmbed(feedObject, owner, message, client)).catch(console.error);
+            };
+            if (r.emoji.name === '🗒️') {
+                newData.show_other = !feedObject.show_other;
+                feedObject.show_other = newData.show_other;
+                editMessage.edit(`Updated mods ${feedObject.show_updates ? "will" : "will **not**" } be included.`, editEmbed(feedObject, owner, message, client)).catch(console.error);
+            };
+            if (r.emoji.name === '❌') {
+                editCollector.stop("Deleted by user.");
+            };
+            if (r.emoji.name === '📬') {
+                //Collect a new notification message.
+                await message.channel.send("Type the message you would like to send with update alerts.");
+                var newMsgCollector = await message.channel.createMessageCollector(m => m.author === message.author, {maxMatches: 1, time: 15000});
+                newMsgCollector.on('collect', m => {
+                    newData.message = m.content;
+                    feedObject.message = m.content;
+                    editMessage.edit(`Before each feed update the following message will be sent: "${m.content}"`, editEmbed(feedObject, owner, message, client)).catch(console.error);
+                });
+                newMsgCollector.on('end', mc => {
+                    if (mc.size === 0) message.channel.send("No new message was set.")
+                })
+
+            };
+            if (r.emoji.name === '📭' && feedObject.announceMsg) {
+                newData.message = null;
+                feedObject.message = null;
+                editMessage.edit("", editEmbed(feedObject, owner, message, client)).catch(console.error);
+                message.channel.send("Update message cleared.");
+            };
+        });
+        editCollector.on('end', rc => {
+            if (rc.find(r => r.emoji.name === '❌')) {
+                //delete the feed
+                editMessage.clearReactions();
+                return deleteModFeed(feedObject._id)
+                .then(() => {
+                    editMessage.edit("Mod feed deleted.", { embed: null });
+                    console.log(new Date() + ` - Mod feedGame feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} deleted by ${rc.first().users.last().tag}`);
+                })
+                .catch(err => meditMessage.edit("Error deleting mod feed."+err, { embed: null }));
+            }
+            else {
+                //save the changes
+                editMessage.clearReactions();
+                return updateModFeed(feedObject._id, newData)
+                .then(() => {
+                    editMessage.edit("Mod feed saved successfully.", { embed: null })
+                    console.log(new Date() + ` - Mod feed #${feedObject._id} for ${feedObject.title} in ${message.channel.name} at ${message.guild.name} edited by ${message.author.tag}`);
+                })
+                .catch(err => editMessage.edit("Error saving mod feed."+err, { embed: null }));
+            }
+
+        });
+
+        return;
+
+    }
+
+
+    // GET THE GAME LIST
+    const gameList = await nexusAPI.games(userData).catch(() => console.error(`Could not get games in modfeed command`, err));
+    let modData;
+    let gameData;
+
+    // IDENIFY MOD BY URL
+    if (args.join(" ").match(modUrlRegex)) {
+        const match = args.join(" ").match(modUrlRegex);
+        const domain = match[1];
+        const mod_id = match[2];
+        // console.log(`Found matching url for Mod #${mod_id} in ${domain}`);
+
+        gameData = gameList ? gameList.find(g => g.domain_name === domain) : undefined;
+        modData = await nexusAPI.modInfo(userData, domain, mod_id)
+            .catch((err) => { 
+                return editMessage.edit(`Error getting mod data.\n\`\`\`${err}\`\`\``, { embed: null }).catch(() => undefined);
+            });
+
+    }
+    // IDENTIFY BY NAME
+    else {
+        const search = await nexusAPI.quicksearch(args.join(" "), true)
+            .catch((err) => {
+                return replyMessage.edit(`Error searching for mods.\n\`\`\`${err}\`\`\``, { embed: null }).catch(() => undefined);
+            });
+        
+        // If we didn't find anything.
+        if (!search.results || !search.results.length) return replyMessage.edit(`Could not find any mods for "${args.join(" ")}". Check your spelling or try using the URL instead.`, { embed: null }).catch(() => undefined)
+
+        // Grab the first match.
+        const result = search.results[0];
+        // console.log('Quicksearch found the following mod', result.name);
+        gameData = gameList ? gameList.find(g => g.domain_name === result.game_name) : undefined;
+        modData = await nexusAPI.modInfo(userData, result.game_name, result.mod_id)
+            .catch((err) => { 
+                return replyMessage.edit(`Error getting mod data.\n\`\`\`${err}\`\`\``, { embed: null }).catch(() => null);
+            });
+    }
+
+    if (!modData) return replyMessage.edit('No mods found.');
+
+    if (!message.channel.nsfw && modData.contains_adult_content) return replyMessage.edit(`${modData.name} contains adult content. Please mark this channel as NSFW to set up this feed.`)
+
+    const confirmEmbed = new Discord.RichEmbed()
+    .setAuthor(gameData ? gameData.name : modData.domain_name, `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameData.id}.jpg`)
+    .setColor(0xda8e35)
+    .setTitle(modData.name)
+    .setDescription(modData.summary)
+    .setThumbnail(modData.picture_url)
+    .addField('Wrong Mod?', "Try again using the mod page URL or the exact title of the mod.")
+    .addField("Confirm", `Updates for ${modData.name} (${gameData ? gameData.name : modData.domain_name}) will be posted in ${message.channel} periodically.\nThe API key for ${userData.name} (${message.author}) will be used.\nReact with ✅ to confirm or ❌ to cancel.`)
+    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
+
+    const confirmMsg = await replyMessage.edit(confirmEmbed).catch(console.error);
+
+    const reactionFilter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❌') && user.id === message.author.id
+    var collector = confirmMsg.createReactionCollector(reactionFilter, {time: 15000, max: 1})
+    confirmMsg.react('✅');
+    confirmMsg.react('❌');
+
+    collector.on('collect', async r => {
+        //Cancel
+        if (r.emoji.name === '❌') {
+            confirmMsg.delete();
+            return message.channel.send('Mod feed setup cancelled.');
+        }
+        //Confirm
+        else if (r.emoji.name === '✅') {
+            modFeed = {
+                channel: message.channel.id,
+                guild: message.guild.id,
+                owner: message.author.id,
+                domain: gameData ? gameData.domain_name : modData.domain_name,
+                mod_id: modData.mod_id,
+                title: modData.name,
+                last_status: modData.status,
+            }
+            
+            try {
+                const id = await createModFeed(modFeed);
+                console.log(new Date() + ` - Mod feed created for ${modFeed.title} (${gameData ? gameData.name : modData.domain_name}) in ${message.channel.name} at ${message.guild.name} by ${message.author.tag} successfully. Reference #${id}`);
+                confirmMsg.clearReactions();
+                confirmMsg.edit("", {embed: feedSuccessEmbed(id, modFeed, modData, gameData, message)});
+                return confirmMsg.pin().catch(() => undefined);
+            }
+            catch(err) {
+                console.log(err);
+                confirmMsg.clearReactions();
+                return confirmMsg.edit(`Error creating modfeed. \`\`\`${err}\`\`\``, { embed: null });
+            }
 
         }
-        catch (err) {
-            console.log(err);
-        }
-    };
-    
-    if (!gameDomain && !modID) return message.channel.send("No mod found for "+args.join(" "));
+        
+      });
+      collector.on('end', rc => {
+        //End
+        if (rc.size === 0) {
+            confirmMsg.clearReactions();
+            return confirmMsg.edit('Mod feed setup cancelled.', { embed: null });
+        };
+      });
 
-    //Grab mod info and confirm it's correct
-    try {
-        let modInfo = await nexusAPI.modInfo(message.author, gameDomain, modID);
-        if (!modInfo.available) message.channel.send(`The mod you are search for is currently unavailable, please try again later. You may be able to see the reason for this by visiting the mod page. \nhttps://www.nexusmods.com/${gameDomain}/mods/${modID}`);
+}
 
-        let modUpdate = {
-            channel: message.channel.id,
-            guild: message.guild.id,
-            user: message.author.id,
-            game: gameDomain,
-            //gameTitle: .name,
-            modID: modID,
-            settings: {
-            },
-            lastTimestamp: modInfo.updated_timestamp,
-            created: Math.round((new Date()).getTime() / 1000)
-        }
+const feedSuccessEmbed = (id, feed, modData, gameData, message) => {
+    const embed = new Discord.RichEmbed()
+    .setAuthor(`${modData.name} (${gameData ? gameData.name : modData.domain_name})`, (gameData ? `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameData.id}.jpg` : undefined), `https://www.nexusmods.com/${modData.domain_name}/mods/${modData.mod_id}`)
+    .setColor(0xda8e35)
+    .setDescription('Mod feed created successfully.')
+    .setThumbnail(modData.picture_url)
+    .setFooter(`Owner - ${message.author.tag} | ID: #${id}`,client.user.avatarURL)
+    .setTimestamp(new Date());
 
-        if (modInfo.contains_adult_content && !message.channel.nsfw) return message.channel.send(`${modInfo.name} contains adult content and can only post a feed in a channel marked NSFW.`);
+    return embed;
+}
 
-        //Save
-        let updateEmbed = new Discord.RichEmbed()
-        .setAuthor(message.author.tag, message.author.avatarURL)
+const editEmbed = (feed, owner, message, client) => {
+    const editEmbed = new Discord.RichEmbed()
+        .setTitle('Editing Mod Feed #'+feed._id)
         .setColor(0xda8e35)
-        .setTitle(`Create mod feed in ${message.channel.name}?`)
-        .setThumbnail(modInfo.image)
-        .setDescription(`Updates for [${modInfo.name}](${`https://www.nexusmods.com/${gameDomain}/mods/${modID}`}) will be posted in ${message.channel} periodically. \n${modInfo.contains_adult_content ? `**This mod contains adult content.**` : `The mod is safe for work.`}\nThe API key for ${linkedUser.nexusName} will be used.`)
-        .addField(`Options`, "React with ✅ to confirm or ❌ to cancel.")
+        .setDescription(`Mod: ${feed.title}`+
+        `\nChannel: ${client.channels.find(c => c.id === feed.channel) || 'Unknown channel'} in ${message.guild}`+
+        `\nCreated by: ${owner ? owner.user.tag : '???'}`+
+        `\nMessage: ${feed.messsage ? `"${feed.messsage}" - Update: 📬 | Remove: 📭.` : "Not set. Add: 📬"}`+
+        `\n\nTo change the feed settings, use the reaction with the matching icon. ✅ confirms the changes, ❌ cancels the feed.`)
+        .addField("🗄️ Show new files:", feed.show_files,true)
+        .addField("🗒️ Show other:", feed.show_other,true)
+        .setTimestamp(feed.created)
         .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user.avatarURL);
 
-        let confirmMessage = await message.channel.send(updateEmbed);
-        let reactionFilter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❌') && user.id === message.author.id
-        let collector = confirmMessage.createReactionCollector(reactionFilter, {time: 15000, max: 1})
-        confirmMessage.react('✅');
-        confirmMessage.react('❌');
-
-        collector.on('collect', async r => {
-            //Cancel
-            if (r.emoji.name === '❌') return message.reply('Mod feed setup cancelled.')
-            //Confirm
-            var id = modUpdates.autonum
-            await modUpdates.set(id, modUpdate);
-            console.log(new Date() + ` - Registered game feed for ${modInfo.name} in ${message.channel.name} at ${message.guild.name} successfully. Reference #${id}`)
-            return message.channel.send(`Registered game feed for ${modInfo.name} in ${message.channel} successfully. Reference #${id}`);
-        });
-        collector.on('end', rc => {
-            //End
-            confirmMsg.clearReactions();
-            if (rc.size === 0) return message.reply('Mod feed setup cancelled.');
-          });
-
-    }
-    catch (err) {
-        message.channel.send(`An error occurred: ${err}`);
-    };
-
-};
-
-const delay = 1000*60*60; //1 hour
-let modUpdateTimer
-
-modUpdates.defer.then(() => {
-    client.on("ready", checkMods);
-    modUpdateTimer = setInterval(checkMods, delay);
-    console.log(`${new Date()} - Mod updates schedule every ${delay/60/1000} minutes.`)
-});
-
-async function checkMods() {
-    if (modUpdates.count === 0) return
-    console.log(`${new Date()} - Checking for updates across ${modUpdates.count} game feeds.`);
-    modUpdates.forEach(async function (update) {
-        //Get member data
-
-        //Check API key
-
-        //Check channel (including NSFW settings)
-
-        //Pull mod info
-
-        //Check for problems (mod deleted/not available) and compare to previously saved update.
-
-        //Get files and changelogs?
-
-        //build and post embed.
-
-    });
+    return editEmbed;
 }
-
-
-async function findAllSubs(updateMap, channel) {
-    //return an array of updates for the specified guild
-    let results = []
-    updateMap.forEach(async function(update) {
-        var user = linkedAccounts.get(update.user) || client.users.find(u => u.id === update.user);
-        if (update.guild === channel.guild.id) {
-            var id = updateMap.findKey(u => u === update);
-            //results.push(`**#${id}** - ${update.gameTitle} feed created by ${user.tag || user.nexusName} in ${client.channels.find(c => c.id === update.channel)}.\n🆕: ${update.settings.newMods} | ⏫: ${update.settings.updatedMods} | 🔞: ${update.settings.nsfw} | 🕹: ${update.settings.sfw} `)
-        };
-    });
-    return results
-}
-
-
-async function convertURL(modLink) {
-    let result
-    modLink = modLink.replace("https://", "");
-    modLink = modLink.replace("www.", "");
-    modLink = modLink.replace("nexusmods.com/", "");
-    modLink = modLink.replace("mods/", "");
-    modLink = modLink.replace("?tab", "/");
-    modLink = modLink.split("/");
-    
-    modLink = modLink.splice(0,2);
-    let gameDomain = modLink[0];
-    let modID = modLink[1];
-    console.log(`gameName: ${gameDomain}, ID: ${modID}`);
-    result = {game: gameDomain, ID: modID};
-
-    return result
-};

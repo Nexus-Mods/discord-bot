@@ -8,15 +8,17 @@
     "npm": "*"
   },
   "dependencies": {
-    "better-sqlite-pool": "^0.2.2",
-    "discord.js": "^11.5.1",
+    "better-sqlite-pool": "^0.2.3",
+    "better-sqlite3": "^7.1.0",
+    "bluebird": "^3.7.2",
+    "discord.js": "^11.6.3",
     "dotenv": "^8.2.0",
     "enmap": "^4.8.7",
-    "fuse.js": "^3.4.6",
-    "pg": "^7.14.0",
-    "request": "^2.88.0",
+    "fuse.js": "^3.6.1",
+    "pg": "^7.18.2",
+    "request": "^2.88.2",
     "request-promise-native": "^1.0.8",
-    "rss-parser": "^3.7.3"
+    "rss-parser": "^3.7.6"
   },
   "devDependencies": {},
   "scripts": {
