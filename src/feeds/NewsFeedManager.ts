@@ -84,8 +84,9 @@ export class NewsFeedManager {
             };
         }
         catch(err) {
-            console.log('Error checking news', err);
-            Promise.reject(err);
+            console.log(`${new Date().toLocaleString()} - Error checking news`, (err as Error) ? (err as Error).message : err);
+            if ((err as Error) && (err as Error).message.includes('404')) return Promise.reject({ message: `404 Not Found - ${url}` });
+            return Promise.reject(err);
         }
         
 
@@ -94,12 +95,13 @@ export class NewsFeedManager {
     async forceUpdate(message: Message, domain?: string): Promise<void> {
         clearInterval(NewsFeedManager.instance.updateTimer);
         NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
+        console.log(`${new Date().toLocaleString()} - Forced news feed update check`, domain || 'all');
         return NewsFeedManager.instance.checkNews(domain)
             .then(() => { 
-                message.channel.send('News updated successfully');
+                message.edit('News updated successfully');
             })
             .catch((err: Error) => { 
-                message.channel.send('Error updating news'+err.message);
+                message.edit('Error updating news: '+err.message);
                 return;
             });
     }
