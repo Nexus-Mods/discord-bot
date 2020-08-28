@@ -262,7 +262,7 @@ function createModEmbed(client: Client,
         post.addField("Changelog", versionChanges);
     }
     post.addField('Author', mod.author, true)
-    .addField('Uploader', `[${mod.uploaded_by}](${uploaderProfile})${mod.authorDiscord ? `\n<@${mod.authorDiscord.id}>`: ''}`, true)
+    .addField('Uploader', `[${mod.uploaded_by}](${uploaderProfile})${mod.authorDiscord ? `\n${mod.authorDiscord.toString()}`: ''}`, true)
     .addField('Category', category, true)
     .setTimestamp(new Date(mod.updated_time))
     .setFooter(`Version: ${mod.version} - Mod ID: ${mod.mod_id}`, client?.user?.avatarURL() || '')

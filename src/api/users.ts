@@ -88,7 +88,7 @@ async function userEmbed(userData: NexusUser, message: Message, client: Client):
     let embed = new MessageEmbed()
     .setAuthor("Member Search Results", discordUser.avatarURL() || '')
     .addField("Nexus Mods", `[${userData.name}](https://nexusmods.com/users/${userData.id})\n${userData.premium ? "Premium Member" : userData.supporter ? "Supporter" : "Member"}`, true)
-    .addField("Discord", `${discordUser}\n${discordUser.tag}`, true)
+    .addField("Discord", `${discordUser.toString()}\n${discordUser.tag}`, true)
     .setColor(0xda8e35)
     .setThumbnail(userData.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
     .setTimestamp(userData.lastupdate)
