@@ -2,6 +2,7 @@ import query from '../api/dbConnect';
 import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { Client, MessageEmbed, Message, User, Guild } from 'discord.js';
+import { getModsbyUser, getLinksByUser } from './bot-db';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     return new Promise( (resolve, reject) => {
@@ -79,8 +80,8 @@ async function updateUser(discordId: string, newUser: any): Promise<boolean> {
 async function userEmbed(userData: NexusUser, message: Message, client: Client): Promise<MessageEmbed> {
     const discordUser: User = await client.users.fetch(userData.d_id);
     if (!discordUser) return Promise.reject('Unknown User');
-    const mods: NexusLinkedMod[] = []//await getModsbyUser(userData.id);
-    const servers: NexusUserServerLink[] = []//await getLinksByUser(userData.id);
+    const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
+    const servers: NexusUserServerLink[] = userData.servers || await getLinksByUser(userData.id);
     const totalDownloads = (mods: NexusLinkedMod[]): number => {
         let downloads: number = mods.reduce((prev, cur) => prev = prev + cur.total_downloads, 0);
         return downloads;

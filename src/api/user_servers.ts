@@ -134,12 +134,8 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
             const existingLink: boolean = !!links.find(l => l.server_id);
             if (guild) {
                 if (addAll || existingLink) {
-                    await updateRoles(client, userData, discordUser, guild).catch(err => console.warn(`${new Date().toLocaleString()} - Unable to assign roles to ${userData.name}`, err));
-                    if (!existingLink) {
-                        // console.log(`Adding link for ${userData.id}, ${guild.id}`);
-                        await addServerLink(client, userData, discordUser, guild);
-
-                    };
+                    if (!existingLink) await addServerLink(client, userData, discordUser, guild).catch(console.error);
+                    else await updateRoles(client, userData, discordUser, guild).catch(err => console.warn(`${new Date().toLocaleString()} - Unable to assign roles to ${userData.name}`, err));
                 }
             }            
         }
@@ -155,7 +151,7 @@ const modTotal = (allMods: NexusLinkedMod[]) => {
 const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): MessageEmbed => {
     const embed = new MessageEmbed()
     .setAuthor(`Account ${remove ? 'Unlinked' : 'Linked'}`, user.avatar_url)
-    .setDescription(`<@${discord}> ${remove ? 'unlinked from' : 'linked to'} [${user.name}](https://nexusmods.com/users/${user.id}).`)
+    .setDescription(`${discord.toString()} ${remove ? 'unlinked from' : 'linked to'} [${user.name}](https://nexusmods.com/users/${user.id}).`)
     .setTimestamp(new Date())
     .setColor(0xda8e35)
     .setFooter('🔗 Nexus Mods API link');

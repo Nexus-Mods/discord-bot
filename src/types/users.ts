@@ -8,6 +8,7 @@ interface NexusUser {
     premium: boolean;
     modauthor?: boolean;
     lastupdate?: Date;
+    servers?: NexusUserServerLink[];
 }
 
 interface NexusUserServerLink {
