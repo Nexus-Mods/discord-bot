@@ -23,6 +23,7 @@
     "@types/request-promise-native": "^1.0.17",
     "discord.js": "^12.3.1",
     "dotenv": "^8.2.0",
+    "fuse.js": "^6.4.1",
     "pg": "^8.3.2",
     "request-promise-native": "^1.0.9",
     "rss-parser": "^3.9.0"
