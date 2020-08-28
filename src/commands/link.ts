@@ -104,7 +104,7 @@ const sendKeyEmbed = (client: Client, message: Message): MessageEmbed => {
     .setDescription(`Please send your API key in this channel within the next ${apiCollectorDuration/1000/60} minute(s) or use the command \`!nexus link apikeyhere\`.`
     +`\nYou can get your API key by visiting your [Nexus Mods account settings](https://www.nexusmods.com/users/myaccount?tab=api+access).`)
     .setImage('https://i.imgur.com/Cb4NPv9.gif')
-    .setFooter(`Nexus Mods API Link = ${message.author.tag}: ${message.cleanContent} ${message.channel}`, client.user?.avatarURL() || '');
+    .setFooter(`Nexus Mods API Link - ${message.author.tag}: ${message.cleanContent} ${message.channel}`, client.user?.avatarURL() || '');
 
     return embed;
 }

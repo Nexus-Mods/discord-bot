@@ -50,7 +50,7 @@ async function gameInfo(user: NexusUser, domainQuery: string): Promise<IGameList
     }
     catch(err) {
         if (err.statusCode === 404) return Promise.reject(`${err.statusCode} - Game ${domainQuery} not found`);
-        return Promise.reject(`API Error: Nexus Mods API responded with ${err.statusCode}.`)
+        return Promise.reject(`API Error(gameInfo): Nexus Mods API responded with ${err.statusCode}.`)
     }
 }
 
@@ -87,11 +87,11 @@ async function updatedMods(user: NexusUser, gameDomain: string, period: string =
     requestHeader.apikey = apiKey;
 
     try {
-        const updatedMods = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}'/mods/updated.json`, headers: requestHeader, qs: {period: period}});
+        const updatedMods = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/updated.json`, headers: requestHeader, qs: {period: period}});
         return JSON.parse(updatedMods);
     }
     catch(err) {
-        return Promise.reject(`API Error: Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error(updateMods): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
     }
 }
 
@@ -102,11 +102,11 @@ async function modInfo(user: NexusUser, gameDomain: string, modId: number): Prom
     requestHeader.apikey = apiKey;
 
     try {
-        const modInfo = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}'/mods/${modId}.json`, headers: requestHeader});
+        const modInfo = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/${modId}.json`, headers: requestHeader});
         return JSON.parse(modInfo);
     }
     catch(err) {
-        return Promise.reject(`API Error: Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error(modInfo): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
     }
 }
 
@@ -117,11 +117,11 @@ async function modFiles(user: NexusUser, gameDomain: string, modId: number): Pro
     requestHeader.apikey = apiKey;
 
     try {
-        const modFiles = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}'/mods/${modId}/files.json`, headers: requestHeader});
+        const modFiles = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/${modId}/files.json`, headers: requestHeader});
         return JSON.parse(modFiles);
     }
     catch(err) {
-        return Promise.reject(`API Error: Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error (modFiles): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
     }
 
 }
@@ -133,11 +133,11 @@ async function modChangelogs(user: NexusUser, gameDomain: string, modId: number)
     requestHeader.apikey = apiKey;
 
     try {
-        const modChangelogs = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}'/mods/${modId}/changelogs.json`, headers: requestHeader});
+        const modChangelogs = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/${modId}/changelogs.json`, headers: requestHeader});
         return JSON.parse(modChangelogs);
     }
     catch(err) {
-        return Promise.reject(`API Error: Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error(modChangelogs): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
     }
 
 }

@@ -23,9 +23,7 @@ async function main (client: ClientExt) {
 
     // Start up the feeds
     const gameFeeds: GameFeedManager = GameFeedManager.getInstance(client);
-    gameFeeds.updateFeeds().catch((err) => console.warn(`${timeNow()} - Error updating game feeds`, err));
     const modFeeds: ModFeedManager = ModFeedManager.getInstance(client);
-    modFeeds.updateFeeds().catch((err) => console.warn(`${timeNow()} - Error updating mod feeds`, err));
     const newsFeed: NewsFeedManager = NewsFeedManager.getInstance(client);
 
     // Publish online message to servers. (Cache server listing?)

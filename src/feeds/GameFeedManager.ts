@@ -2,7 +2,7 @@ import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from '../DiscordBot';
 import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, MessageEmbed, Client, Message } from 'discord.js';
+import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, MessageEmbed, Client } from 'discord.js';
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modInfo, modChangelogs } from '../api/nexus-discord';
 import { IModInfoExt } from '../types/util';
@@ -35,6 +35,7 @@ export class GameFeedManager {
         this.getFeeds()
             .then(() => {
                 console.log(`${tn()} - Initialised with ${this.GameFeeds.length} game feeds, checking every ${pollTime/1000/60} minutes`);
+                this.updateFeeds().catch((err) => console.warn(`${tn()} - Error updating game feeds`, err));
             })
             .catch((err) => console.error('Error in GameFeedManager contructor', err));
     }
@@ -90,7 +91,7 @@ export class GameFeedManager {
         // TODO! - Do the update for each feed.
         Promise.all(manager.GameFeeds
                 .map((feed: GameFeed) => checkForGameUpdates(client, feed)
-                    .catch((err: Error) => console.warn('Error checking game feed', feed._id, err)))
+                    .catch((err: Error) => console.warn(`${tn()} - Error checking game feed`, feed._id, err)))
         )
         .then(() => { 
             console.log(`${tn()} - Finished checking game feeds.`);
@@ -114,7 +115,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     const botMember: GuildMember|null = guild ? guild.me : null;
     const botPerms: Readonly<Permissions>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
 
-    console.log(`${tn()} - Checking game feed #${feed._id} for updates (${feed.title}) in ${guild}`);
+    console.log(`${tn()} - Checking game feed #${feed._id} for updates (${feed.title}) in ${guild?.name}`);
 
     // If we can't reach the feed owner. 
     if (!discordUser || !userData) {
@@ -136,8 +137,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     if (discordUser && (!guild || !channel)) {
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
-        discordUser.send(`I'm not able to post ${feed.title} updates to ${channel || 'missing channel'} in ${guild || 'missing guild'} anymore as the channel or server could not be found. Game feed cancelled.`).catch(() => undefined);
-        return Promise.reject(`Server ${guild} or channel ${channel} could not be reached.`);
+        discordUser.send(`I'm not able to post ${feed.title} updates to ${channel || 'missing channel'} in ${guild?.name || 'missing guild'} anymore as the channel or server could not be found. Game feed cancelled.`).catch(() => undefined);
+        return Promise.reject(`Server ${guild?.name} or channel ${channel} could not be reached.`);
     }
 
     // Validate the API key
@@ -148,7 +149,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         if (err.includes('401')) {
             if (client.config.testing) return;
             await deleteGameFeed(feed._id);
-            if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild} as your API key is invalid`).catch(() => undefined);
+            if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild?.name} as your API key is invalid`).catch(() => undefined);
             return Promise.reject('User API ket invalid.');
         }
         else return Promise.reject(`An error occurred when validing game key for ${userData.name}: ${err.message || err}`);
@@ -169,7 +170,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
         if (!filteredMods.length) {
-            console.log(`${tn} - No unchecked updates for ${feed.title} in ${guild} (${feed._id})`);
+            console.log(`${tn()} - No unchecked updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
             return;
         }
 
@@ -180,7 +181,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         for (const mod of filteredMods) {
             // Stop if we have 10 embeds.
             if (modEmbeds.length >= 10) break;
-            const modData: IModInfoExt|undefined = await modInfo(userData, feed.domain, mod.mod_id).catch(() => undefined);
+            const modData: IModInfoExt|undefined = await modInfo(userData, feed.domain, mod.mod_id).catch((e) => {console.error(e); return undefined});
 
             // Stop if we failed to get the mod data.
             if (!modData) continue;
@@ -215,14 +216,14 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
         // Nothing to post?
         if (!modEmbeds.length) { 
-            console.log(`${tn} - No matching updates for ${feed.title} in ${guild} (${feed._id})`)
+            console.log(`${tn()} - No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
             return;
         };
 
         // Post a message ahead of the feed posts, if configured.
         if (feed.message) channel?.send(feed.message).catch(() => undefined);
 
-        console.log(`${tn} - Posting ${modEmbeds.length} updates for ${feed.title} in ${guild} (${feed._id})`)
+        console.log(`${tn()} - Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
 
         webHook.send({embeds: modEmbeds, split: true}).catch(() => {
             modEmbeds.forEach(mod => channel?.send(mod).catch(() => undefined));
@@ -230,7 +231,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
-        return Promise.reject(`Error processing game feed ${err.message}`);
+        return Promise.reject(`Error processing game feed ${err}`);
     }
 
 
@@ -245,7 +246,7 @@ function createModEmbed(client: Client,
                         compact: boolean): MessageEmbed {
     const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
     const category: string = game.categories.find(c => c.category_id === mod.category_id)?.name || 'Unknown';
-    const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.user.member_id}`
+    const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.user.member_id}`;
 
     let post = new MessageEmbed()
     .setAuthor(`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, client.user?.avatarURL() || '')
