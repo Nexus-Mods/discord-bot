@@ -63,6 +63,8 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             return `[${remove?.name}](https://nexusmods.com/${remove?.path})`;
         });
     
+    console.log(`${new Date().toLocaleString()} - ${allRemovals.length} removemod queries sent by ${userData.name} (${message.author.tag})`);
+    
     embed.setTitle(`Deleted ${allRemovals.length} mod(s)`)
     .setDescription(allRemovals.length ? allRemovals.join('\n') : '*none*');
 
