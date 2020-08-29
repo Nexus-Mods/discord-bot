@@ -40,7 +40,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         if (userData.lastupdate && userData.lastupdate.getTime() + cooldown > new Date().getTime()) {
             result.setTitle('Update cancelled')
             .setDescription(`Your must wait at least ${cooldown/1000/60} minute(s) before refreshing your account.`);
-            return replyMsg?.edit('', { embed: result }).catch(() => undefined);
+            return replyMsg?.edit({ embed: result }).catch(() => undefined);
         }
 
         let newData: any = { lastupdate: new Date() };
@@ -72,7 +72,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             result.addField('User Info', `Error updating user data:\n${err}`);
         }
 
-        await replyMsg?.edit('', { embed: result }).catch(() => undefined);
+        await replyMsg?.edit({ embed: result }).catch(() => undefined);
 
         // Update download counts for mods
         try {
@@ -104,7 +104,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         }
 
         result.setTitle('Update Complete');
-        await replyMsg?.edit('', { embed: result }).catch(() => undefined);
+        await replyMsg?.edit({ embed: result }).catch(() => undefined);
 }
 
 export { run, help };

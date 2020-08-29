@@ -161,9 +161,9 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
                     return;
                 }
                 return {
-                    id: parseInt(row[0]),
-                    total_downloads: parseInt(row[1]),
-                    unique_downloads: parseInt(row[3])
+                    id: parseInt(values[0]),
+                    total_downloads: parseInt(values[1]),
+                    unique_downloads: parseInt(values[2])
                 }
             }
         ).filter((info: ModDownloadInfo | undefined) => info !== undefined);

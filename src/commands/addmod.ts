@@ -2,11 +2,9 @@ import { Client, Message, GuildChannel, TextChannel, DMChannel, MessageEmbed, Em
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, createMod } from "../api/bot-db";
-import { CommandHelp, ModDownloadInfo, NexusSearchResult, NexusSearchModResult } from "../types/util";
-import { IGameListEntry, IGameInfo, IModInfo } from "@nexusmods/nexus-api";
+import { CommandHelp, ModDownloadInfo, NexusSearchModResult } from "../types/util";
+import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 import { games, modInfo, getDownloads, quicksearch } from "../api/nexus-discord";
-import { filter } from "bluebird";
-import { fileURLToPath } from "url";
 
 const modUrlExp = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i;
 
@@ -46,7 +44,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     console.log(`${new Date().toLocaleString()} - ${queries.length} addmod queries sent by ${userData.name} (${message.author.tag})`, urlQueries, strQueries);
 
     embed.setTitle(`Checking for ${queries.length} mod(s)...`);
-    await msg.edit('', { embed }).catch(() => undefined);
+    await msg.edit({ embed }).catch(() => undefined);
     const allGames: IGameInfo[] = await games(userData);
 
     const urlResults: EmbedFieldData[] = await Promise.all(
@@ -61,7 +59,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     embed.setTitle('Adding mods complete')
     .addFields(allResults);
 
-    return msg.edit('', embed).catch(() => undefined);
+    return msg.edit(embed).catch(() => undefined);
 
 }
 
