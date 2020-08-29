@@ -84,7 +84,7 @@ export class GameFeedManager {
 
     async updateFeeds(): Promise<void> {
         const manager: GameFeedManager = GameFeedManager.instance;
-        if (manager.GameFeeds.length) await manager.getFeeds();
+        await manager.getFeeds();
         const client: ClientExt = manager.client;
         console.log(`${tn()} - Checking for updates in ${manager.GameFeeds.length} game feeds`);
 
@@ -220,12 +220,10 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             return;
         };
 
-        // Post a message ahead of the feed posts, if configured.
-        if (feed.message) channel?.send(feed.message).catch(() => undefined);
-
         console.log(`${tn()} - Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
 
-        webHook.send({embeds: modEmbeds, split: true}).catch(() => {
+        webHook.send(feed.message, {embeds: modEmbeds, split: true}).catch(() => {
+            if (feed.message) channel?.send(feed.message).catch(() => undefined);
             modEmbeds.forEach(mod => channel?.send(mod).catch(() => undefined));
         });
         

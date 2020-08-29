@@ -17,18 +17,19 @@ const cachePeriod: number = (5*60*1000);
 
 // Pass the user so we can grab their API key
 
-let cachedGames : { update: number, games: IGameInfo[] }; //cache the game list for 5 mins.
+let cachedGames : { update: number, games: IGameInfo[], unapproved: boolean }; //cache the game list for 5 mins.
 
-async function games(user: NexusUser, bUnapproved: boolean): Promise<IGameInfo[]>  {
+async function games(user: NexusUser, bUnapproved?: boolean): Promise<IGameInfo[]>  {
     const apiKey: string = user.apikey;
     if (!apiKey) Promise.reject('API Error 403: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.');
 
     // If we have cached the games recently.
-    if (cachedGames && cachedGames.update > new Date().getTime()) return Promise.resolve(cachedGames.games);
+    const useCache = (bUnapproved === cachedGames?.unapproved || !bUnapproved)
+    if (useCache && cachedGames && cachedGames.update > new Date().getTime()) return Promise.resolve(cachedGames.games);
     requestHeader.apikey = apiKey;
     try {
         const gameList = await requestPromise({url: `${nexusAPI}v1/games`, headers: requestHeader, qs: { include_unapproved: bUnapproved }});
-        cachedGames = { games: JSON.parse(gameList), update: new Date().getTime() + cachePeriod };
+        cachedGames = { games: JSON.parse(gameList), update: new Date().getTime() + cachePeriod, unapproved: (bUnapproved === true) };
         return cachedGames.games;
     }
     catch(err) {
