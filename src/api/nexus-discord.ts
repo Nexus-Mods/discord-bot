@@ -146,15 +146,15 @@ async function modChangelogs(user: NexusUser, gameDomain: string, modId: number)
 async function getDownloads(user: NexusUser, gameDomain: string, gameId: number = -1, modId: number = -1): Promise<ModDownloadInfo | ModDownloadInfo[]> {
     try {
         const gameList: IGameListEntry[] = await games(user, false);
-        const game: IGameListEntry | undefined = gameList.find(game => (gameId !== -1 && game.id === gameId) || (game.domain_name === game.domain_name));
+        const game: IGameListEntry | undefined = gameList.find(game => (gameId !== -1 && game.id === gameId) || (gameDomain === game.domain_name));
         if (!game) return Promise.reject(`Unable to resolve game for ${gameId}, ${gameDomain}`);
         gameId = game.id;
         // Get stats CSV
-        const statsCsv = await requestPromise({ url: `${nexusStatsAPI}${gameId}`, encoding: 'utf8' });
+        const statsCsv = await requestPromise({ url: `${nexusStatsAPI}${gameId}.csv`, encoding: 'utf8' });
         // Map into an object
         const gameStats: ModDownloadInfo[] = statsCsv.split(/\n/).map(
             (row: string) => {
-                if (row !== '') return;
+                if (row === '') return;
                 const values = row.split(',');
                 if (values.length !=3) {
                     console.log(`Invalid CSV row for ${game.domain_name} (${gameId}): ${row}`);
@@ -176,7 +176,7 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
         else return gameStats;
     }
     catch(err) {
-        return Promise.reject(`Could not retrieve download data for ${gameDomain} ${modId} \n ${err}`)
+        return Promise.reject(`Could not retrieve download data for ${gameDomain} (${gameId}) ${modId} \n ${err}`)
     }
 }
 
