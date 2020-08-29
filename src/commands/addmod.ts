@@ -118,7 +118,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         mods.push(newMod);
 
         await createMod(newMod);
-        return { name: modName, value: `[${newMod.name}](${url}) added successfully.` };
+        return { name: modName, value: `- [${newMod.name}](${url}) added.` };
     }
     catch(err) {
         return { name: modName || link, value: err.message };
