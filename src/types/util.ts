@@ -33,3 +33,25 @@ export interface CommandHelp {
     moderatorOnly: boolean;
     officialOnly?: boolean;
 }
+
+export interface NexusSearchResult {
+    terms: string[];
+    exclude_authors: string[];
+    include_adult: boolean;
+    took: number;
+    total: number;
+    results: NexusSearchModResult[]
+}
+
+export interface NexusSearchModResult {
+    name: string;
+    downloads: number;
+    endorsements: number;
+    url: string;
+    image: string;
+    username: string;
+    user_id: number;
+    game_name: string;
+    game_id: number;
+    mod_id: number;
+}

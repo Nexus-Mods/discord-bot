@@ -95,7 +95,7 @@ async function userEmbed(userData: NexusUser, message: Message, client: Client):
     .setTimestamp(userData.lastupdate)
     .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '');
     if (mods && mods.length) {
-        let modData = mods.map( mod => `[${mod.name}](https://nexusmods.com/${mod.path}) - ${mod.game}`);
+        let modData = mods.sort(modsort).map( mod => `[${mod.name}](https://nexusmods.com/${mod.path}) - ${mod.game}`);
         if (modData.length > 5) modData = modData.slice(0,4); //Only show a maximum of 5.
         embed.addField(`My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, `${modData.join("\n")}\n-----\n[**See all of ${userData.name}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${userData.id}?tab=user+files)`)
     }
@@ -113,5 +113,7 @@ async function userEmbed(userData: NexusUser, message: Message, client: Client):
 
     return embed;
 }
+
+const modsort = (lh: NexusLinkedMod, rh: NexusLinkedMod): number => lh.total_downloads > rh.total_downloads ? 1 : -1;
 
 export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed };
