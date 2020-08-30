@@ -1,5 +1,5 @@
 import { IModInfo } from "@nexusmods/nexus-api";
-import { GuildMember, MessageEmbed } from "discord.js";
+import { GuildMember, MessageEmbed, EmbedFieldData } from "discord.js";
 
 export interface InfoResult {
     name: string;
@@ -10,7 +10,7 @@ export interface InfoResult {
     timestamp?: Date;
     thumbnail?: string;
     image?: string;
-    fields?: {name: string, value: string, inline?: boolean}[];
+    fields?: EmbedFieldData[];
     approved?: boolean;
     author?: string;
 }
