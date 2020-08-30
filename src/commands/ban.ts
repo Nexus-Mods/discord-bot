@@ -46,8 +46,8 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         return message.delete().catch(() => undefined)
     }
 
-    // if (banMember === message.member) return message.reply('You can\'t ban yourself!').catch(() => undefined);
-    // if (!banMember.bannable) return message.reply('I do not have permission to ban that user.').catch(() => undefined);
+    if (banMember === message.member) return message.reply('You can\'t ban yourself!').catch(() => undefined);
+    if (!banMember.bannable) return message.reply('I do not have permission to ban that user.').catch(() => undefined);
 
     let banReason: string = userTag? query.replace(userTag, '').trim() : query.replace(args[0], '').trim();
     if (!banReason.length) banReason = 'Breaching the Nexus Mods Terms of Service.';
@@ -71,7 +71,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     message.channel.send(channelNotice).catch(() => undefined);
 
     try {
-        // await banMember.ban({ days: postDays, reason: banReason });
+        await banMember.ban({ days: postDays, reason: banReason });
         console.log(`${new Date().toLocaleString()} - ${banMember.user.username} (${banMember.user.tag}) has been banned by ${message.author.tag}`);
     }   
     catch(err) {

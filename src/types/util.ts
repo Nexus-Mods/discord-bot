@@ -1,7 +1,7 @@
 import { IModInfo } from "@nexusmods/nexus-api";
-import { GuildMember } from "discord.js";
+import { GuildMember, MessageEmbed } from "discord.js";
 
-export interface PostableInfo {
+export interface InfoResult {
     name: string;
     message?: string;
     title?: string;
@@ -55,4 +55,14 @@ export interface NexusSearchModResult {
     game_name: string;
     game_id: number;
     mod_id: number;
+}
+
+export interface InfoCache {
+    expiry: Date;
+    data: InfoResult[];
+}
+
+export interface PostableInfo {
+    content?: string;
+    embed?: MessageEmbed;
 }
