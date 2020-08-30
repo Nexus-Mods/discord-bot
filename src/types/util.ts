@@ -41,6 +41,7 @@ export interface NexusSearchResult {
     took: number;
     total: number;
     results: NexusSearchModResult[]
+    fullSearchURL?: string;
 }
 
 export interface NexusSearchModResult {

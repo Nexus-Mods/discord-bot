@@ -10,7 +10,7 @@ export interface BotServer {
     role_supporter?: string;
     role_linked?: string;
     author_min_downloads: number;
-    game_filter?: string;
+    game_filter?: number;
     search_whid?: string;
     search_whtoken?: string;
     server_owner: string;

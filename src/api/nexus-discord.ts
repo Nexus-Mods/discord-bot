@@ -68,7 +68,7 @@ async function validate(apiKey: string): Promise<IValidateKeyResponse> {
 }
 
 async function quicksearch(query: string, bIncludeAdult: boolean, game_id: number = 0): Promise<NexusSearchResult> {
-    query = query.replace(/[^A-Za-z0-9\s]/gi, '').split(' ').join(',');
+    query = query.split(' ').toString();//query.replace(/[^A-Za-z0-9\s]/gi, '').split(' ').join(',');
     try {
         const searchQuery = await requestPromise({ url: nexusSearchAPI, qs: { terms: encodeURI(query), game_id, include_adult: bIncludeAdult }, timeout: 15000 });
         let results = JSON.parse(searchQuery);
@@ -76,8 +76,8 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
         return results;
     }
     catch(err) {
-        if (err.message.toLowerCase().includes('cloudflare')) return Promise.reject('Cloudflare error: Quicksearch request timed out.');
-        return Promise.reject(`Nexus Mods Search API responded with ${err.statusCode} while fetching results. Please try again later.`);
+        if (err.message.toLowerCase().includes('cloudflare')) return Promise.reject(new Error('Cloudflare error: Quicksearch request timed out.'));
+        return Promise.reject(new Error(`Nexus Mods Search API responded with ${err.statusCode} while fetching results. Please try again later.`));
     }
 }
 
