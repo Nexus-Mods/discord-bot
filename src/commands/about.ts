@@ -3,7 +3,6 @@ import { getAllUsers, getAllGameFeeds } from "../api/bot-db";
 import { CommandHelp } from "../types/util";
 import { NexusUser } from "../types/users";
 import { GameFeed } from "../types/feeds";
-import { uptime } from "process";
 
 const help: CommandHelp = {
     name: 'about',
@@ -24,7 +23,7 @@ async function run(client: Client, message: Message) {
     .setDescription(
         `**Version:** ${process.env.npm_package_version}\n`+
         `**Source:** [GitHub](https://github.com/Nexus-Mods/discord-bot)\n\n`+
-        `Integrate your community with Nexus Mods with our Disord bot. Link accounts, search, get notified of the latest mod for your favourite games and more.`
+        `Integrate your community with Nexus Mods using our Disord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`
     )
     .addField('Support', 'If you have feedback or questions about this bot, head over to the [Nexus Mods Discord Server](https://discord.gg/nexusmods).')
     .addField('Stats', 
