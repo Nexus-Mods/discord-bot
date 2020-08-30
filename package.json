@@ -1,6 +1,6 @@
 {
   "name": "nexus-bot-typescript",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "index.js",
   "scripts": {
