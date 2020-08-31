@@ -5,6 +5,7 @@ import { BotServer } from '../types/servers';
 import { getAllServers, getServer } from './bot-db';
 import { Client, User, Guild, GuildMember, Role, GuildChannel, MessageEmbed, TextChannel } from 'discord.js';
 import { getModsbyUser } from './user_mods';
+import { NexusSearchResult } from '../types/util';
 
 async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
     return new Promise((resolve, reject) => {
@@ -91,7 +92,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         if (bRemove) {
             console.log(`${new Date().toLocaleString()} - Removing roles from ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
             guildMember.roles.remove(allRoles.filter(r => r !== ''), 'Nexus Mods Discord unlink')
-                .catch(err => console.log(`${new Date().toLocaleString()} - Could not remove roles from ${userData.name} in ${guild.name}`, err));
+                .catch(err => console.log(`${new Date().toLocaleString()} - Could not remove roles from ${userData.name} in ${guild.name}`, err.message));
             if (nexusLogChannel) (nexusLogChannel as TextChannel).send(linkEmbed(userData, discordUser, true)).catch(() => undefined);
             return resolve();
         }
@@ -116,7 +117,9 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
             .catch(err => console.log(`${new Date().toLocaleString()} - Could not add roles to ${userData.name} in ${guild.name}`, err));
         }
 
-        if (nexusLogChannel) (nexusLogChannel as TextChannel).send(linkEmbed(userData, discordUser)).catch(() => undefined);
+        const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
+        const existingLink: NexusUserServerLink|undefined = links.find(l => l.server_id === guild.id);
+        if (nexusLogChannel && !existingLink) (nexusLogChannel as TextChannel).send(linkEmbed(userData, discordUser)).catch(() => undefined);
         
         return resolve();
 

@@ -37,13 +37,15 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         const replyMsg = await rc.send(result).catch(() => undefined);
         
         // Spam protection
-        if (userData.lastupdate && userData.lastupdate.getTime() + cooldown > new Date().getTime()) {
+        const nextUpdate = new Date( userData.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
+        if (nextUpdate > new Date()) {
             result.setTitle('Update cancelled')
             .setDescription(`Your must wait at least ${cooldown/1000/60} minute(s) before refreshing your account.`);
             return replyMsg?.edit({ embed: result }).catch(() => undefined);
         }
 
-        let newData: any = { lastupdate: new Date() };
+        let newData: any = {};
+        newData.lastupdate = new Date();
 
         // Update any changes to their membership, name, etc.
         try {
@@ -57,11 +59,12 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             try {
                 if (Object.keys(newData).length > 1) {
                     const keys = Object.keys(userData);
-                    await updateUser(discordId, newData);
-                    await updateAllRoles(client, userData, message.author);
+                    // await updateUser(discordId, newData);
+                    // await updateAllRoles(client, userData, message.author);
                     result.addField('User Info', `Updated ${keys.length} value(s):\n${keys.join('\n')}`);
                 }
                 else result.addField('User Info', 'No changes required');
+                await updateUser(discordId, newData);
             }
             catch(err) {
                 result.addField('User Info', `Error updating user data:\n${err}`);
@@ -102,6 +105,8 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         catch(err) {
             result.addField('Mods', `Error checking mod downloads:\n${err}`);
         }
+
+        await updateAllRoles(client, userData, message.author);
 
         result.setTitle('Update Complete');
         await replyMsg?.edit({ embed: result }).catch(() => undefined);
