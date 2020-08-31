@@ -22,9 +22,10 @@ export class DiscordBot {
         this.client
             .login(process.env.D_TOKEN)
             .then(() => console.log(`${new Date().toLocaleString()} - Connected to Discord`))
-            .catch(err => 
-                console.error(`${new Date().toLocaleString()} - Could not connect to Discord. Error: ${err.message}`)
-            );
+            .catch(err => {
+                console.error(`${new Date().toLocaleString()} - Could not connect to Discord. Error: ${err.message}`);
+                process.exit();
+            });
     }
 
     private initializeClient(): void {
