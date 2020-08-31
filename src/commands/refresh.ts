@@ -59,8 +59,6 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             try {
                 if (Object.keys(newData).length > 1) {
                     const keys = Object.keys(userData);
-                    // await updateUser(discordId, newData);
-                    // await updateAllRoles(client, userData, message.author);
                     result.addField('User Info', `Updated ${keys.length} value(s):\n${keys.join('\n')}`);
                 }
                 else result.addField('User Info', 'No changes required');
