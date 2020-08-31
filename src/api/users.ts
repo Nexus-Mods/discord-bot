@@ -114,6 +114,6 @@ async function userEmbed(userData: NexusUser, message: Message, client: Client):
     return embed;
 }
 
-const modsort = (lh: NexusLinkedMod, rh: NexusLinkedMod): number => lh.total_downloads > rh.total_downloads ? 1 : -1;
+const modsort = (lh: NexusLinkedMod, rh: NexusLinkedMod): number => lh.total_downloads > rh.total_downloads ? -1 : 1;
 
 export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed };

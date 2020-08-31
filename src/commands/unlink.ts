@@ -14,7 +14,7 @@ const help = {
 async function run(client: Client, message: Message, args: string[], serverData: BotServer) {
     // Get reply channel
     const replyChannel: (GuildChannel | DMChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
-    const replyPrefix: string = replyChannel === message.channel ? `${message.author} - `: ''
+    const replyPrefix: string = replyChannel === message.channel ? `${message.author.toString()} - `: ''
     const discordId: string = message.author.id;
 
     const userData: NexusUser | undefined = await getUserByDiscordId(discordId).catch(() => undefined);

@@ -54,9 +54,9 @@ async function deleteAllServerLinksByUser(client: Client, user: NexusUser, disco
 
 async function updateRoles(client: Client, userData: NexusUser, discordUser: User, guild: Guild, bRemove: boolean = false): Promise<void> {
     return new Promise(async (resolve, reject) => {
-        const guildMember: GuildMember = await guild.members.fetch(discordUser.id);
+        const guildMember: GuildMember|undefined = await guild.members.fetch(discordUser.id).catch(() => undefined);
         const allUserMods: NexusLinkedMod[] = await getModsbyUser(userData.id);
-        const guildData: BotServer = await getServer(guild);
+        const guildData: BotServer|undefined = await getServer(guild).catch(() => undefined);
         if (!guildData) return reject('No guild data for '+guild.name);
         // If the user isn't a member of this guild we can exit.
         if (!guildMember) return resolve();
@@ -131,6 +131,8 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
         // console.log(`${new Date().toLocaleString()} - Updating all roles for ${userData.name} (${discordUser.tag})`);
         for(const server of servers) {
             const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
+            const guildMember: GuildMember|undefined = guild ? await guild.members.fetch(discordUser.id).catch(() => undefined) : undefined;
+            if (!guildMember) continue;
             const existingLink: boolean = !!links.find(l => l.server_id);
             if (guild) {
                 if (addAll || existingLink) {
