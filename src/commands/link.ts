@@ -33,7 +33,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
                     return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author} there was an error linking your account in this server: ${e.message}`).catch(() => undefined);
                 });
             return (replyChannel as TextChannel)
-                .send(`${replyChannel === message.channel ? message.author.tag : message.author} your account has been linked in this server. Type \`!nexus whoami\` to see your profile card.`)
+                .send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()} your account has been linked in this server. Type \`!nexus whoami\` to see your profile card.`)
                 .catch(() => undefined);
         }
         else return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author} your Discord account is already linked to ${userData.name}${message.channel.type === 'text' ? ' in this server': ''}.`)

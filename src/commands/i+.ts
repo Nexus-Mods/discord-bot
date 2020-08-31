@@ -11,7 +11,8 @@ const help: CommandHelp = {
 }
 
 async function run(client: Client, message: Message, args: string[]) {
-
+    if (!process.env.ownerID?.includes(message.author.id)) return message.reply('You do not have permission to use this command').catch(() => undefined);
+    
 }
 
 export { run, help };
