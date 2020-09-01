@@ -95,8 +95,8 @@ function resolveFilter(games: IGameInfo[], term: string|undefined): IGameInfo|un
 }
 
 const updateEmbed = (data: any): MessageEmbed => { 
-    const curVal = (data.cur as IGameInfo) ? data.cur?.name : (data.cur as undefined) ? '*none*' : data.cur?.toString();
-    const newVal = (data.new as IGameInfo) ? data.new?.name : (data.cur as undefined) ? '*none*' : data.cur?.toString();
+    const curVal = (data.cur as IGameInfo) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
+    const newVal = (data.new as IGameInfo) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
     return new MessageEmbed()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)
