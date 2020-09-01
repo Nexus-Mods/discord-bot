@@ -99,7 +99,7 @@ const updateEmbed = (data: any): MessageEmbed => {
     return new MessageEmbed()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)
-    .setDescription(`${data.name} updated from ${(data.cur as IGameInfo) ? data.cur?.name : data.cur?.toString() || '*none*'} to ${(data.new as IGameInfo) ? data.new?.name : data.new.toString() || '*none'}.`);
+    .setDescription(`${data.name} updated from ${(data.cur as IGameInfo) ? data.cur?.name : data.cur?.toString() || '*none*'} to ${(data.new as IGameInfo) ? data.new?.name : data.new.toString() || data || '*none'}.`);
 }
 
 const serverEmbed = (client: Client, guild: Guild, server: BotServer, gameName?: string): MessageEmbed => {

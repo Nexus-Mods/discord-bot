@@ -34,8 +34,8 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     // Get game info.
     let allGames: IGameInfo[] = userData ? await games(userData, false): [];
-    let filterId: number = server.game_filter || 0;
-    let filterGame: IGameInfo|undefined = allGames.find(g => g.id === filterId);
+    let filterId: number|string = server.game_filter || 0;
+    let filterGame: IGameInfo|undefined = allGames.find(g => g.id === ( typeof(filterId) == 'string' ? parseInt(filterId) : filterId));
 
     if (args.find(a => a.startsWith('-for:'))) {
         const splitQuery: string[] = query.split('-for:');
@@ -62,7 +62,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         if (!search.results.length) {
             // No results
             embed.setTitle('Search complete')
-            .setDescription(`No results for "${query}".`);
+            .setDescription(`No results for "${query}".\nTry using the [full search](${search.fullSearchURL}) on the website.`);
             return reply.edit({ embed }).catch(() => undefined);
         }
         else if (search.results.length === 1) {
@@ -81,6 +81,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                 `Query: "${query}" - Time: ${search.took}ms - Adult content: ${search.include_adult}`
             )
             .addFields(top5.map(createResultField));
+            if (!userData) embed.addField('Get better results', 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.')
             reply.edit({ embed }).catch(() => undefined);
             await Promise.all(top5.map(async e => await reply.react(e.id)));
             const filter = (r: MessageReaction, user: User) => numberEmoji.includes(r.emoji.name) && user === message.author;
@@ -150,6 +151,7 @@ const singleModEmbed = (client: Client, message: Message, res: NexusSearchModRes
         .setAuthor(res.username, '', `https://nexusmods.com/users/${res.user_id}`)
         .setImage(`https://staticdelivery.nexusmods.com${res.image}`)
         .setDescription(game ? `for [${game?.name}](https://nexusmods.com/${game.domain_name})` : '')
+        .addField('Get better results', 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.')
     }
     
     return embed;
