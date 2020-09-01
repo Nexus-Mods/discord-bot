@@ -94,11 +94,13 @@ function resolveFilter(games: IGameInfo[], term: string|undefined): IGameInfo|un
     return game;
 }
 
-const updateEmbed = (data: any): MessageEmbed => {   
+const updateEmbed = (data: any): MessageEmbed => { 
+    const curVal = (data.cur as IGameInfo) ? data.cur?.name : (data.cur as undefined) ? '*none*' : data.cur?.toString();
+    const newVal = (data.new as IGameInfo) ? data.new?.name : (data.cur as undefined) ? '*none*' : data.cur?.toString();
     return new MessageEmbed()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)
-    .setDescription(`${data.name} updated from ${(data.cur as IGameInfo) ? data.cur?.name : data.cur?.toString() || '*none*'} to ${(data.new as IGameInfo) ? data.new?.name : data.new.toString() || '*none'}.`);
+    .setDescription(`${data.name} updated from ${curVal} to ${newVal}`);
 }
 
 const serverEmbed = (client: Client, guild: Guild, server: BotServer, gameName?: string): MessageEmbed => {
