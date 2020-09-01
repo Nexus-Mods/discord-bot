@@ -153,7 +153,8 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
         if (!game) return Promise.reject(`Unable to resolve game for ${gameId}, ${gameDomain}`);
         gameId = game.id;
         // Check for a cached version of the stats
-        if (dlCache[gameId] && dlCache[gameId].expires < new Date()) return (modId !== -1) ? dlCache[gameId].data[modId] : dlCache[gameId].data;
+        if (dlCache[gameId] && dlCache[gameId].expires < new Date()) 
+            return (modId !== -1) ? dlCache[gameId].data.find(m => m.id === modId) || {id: modId, unique_downloads: 0, total_downloads: 0} : dlCache[gameId].data;
         // Get stats CSV
         const statsCsv = await requestPromise({ url: `${nexusStatsAPI}${gameId}.csv`, encoding: 'utf8' });
         // Map into an object
