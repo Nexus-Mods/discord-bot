@@ -70,7 +70,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             if (!user && args[1]) return message.channel.send('Unable to set game filter. Please link your Nexus Mods acount first. See `!nm link` for more.').catch(() => undefined);
             newData.name = 'Game Filter';
             newData.cur = server.game_filter ? resolveFilter(allGames, server.game_filter?.toString()) : undefined;
-            newData.new = resolveFilter(allGames, args[1]);
+            newData.new = resolveFilter(allGames, args.slice(1).join(' ')[1]);
             newData.data.game_filter = newData.new?.id;
             break;
         default:
