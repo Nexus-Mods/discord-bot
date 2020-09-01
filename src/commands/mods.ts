@@ -24,7 +24,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     // Get User data
     const userData: NexusUser | undefined = await getUserByDiscordId(discordId).catch(() => undefined);
-    if (!userData) return rc.send(`${prefix}You do not have a Nexus Mods account linked to your Discord profile.`).catch(() => undefined);
+    // if (!userData) return rc.send(`${prefix}You do not have a Nexus Mods account linked to your Discord profile.`).catch(() => undefined);
 
 
     // Get the query
@@ -68,7 +68,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         else if (search.results.length === 1) {
             // Single result
             const res: NexusSearchModResult = search.results[0];
-            const mod: IModInfo|undefined = await modInfo(userData, res.game_name, res.mod_id).catch(() => undefined);
+            const mod: IModInfo|undefined = userData ? await modInfo(userData, res.game_name, res.mod_id).catch(() => undefined) : undefined;
             embed = singleModEmbed(client, message, res, mod, allGames.find(g => g.domain_name === res.game_name));
             return reply.edit({ embed }).catch(() => undefined);
         }
@@ -97,7 +97,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                     return reply.edit({ embed }).catch(() => undefined);
                 }
                 
-                const mod: IModInfo|undefined = await modInfo(userData, res.game_name, res.mod_id).catch(() => undefined);
+                const mod: IModInfo|undefined = userData? await modInfo(userData, res.game_name, res.mod_id).catch(() => undefined) : undefined;
                 embed = singleModEmbed(client, message, res, mod, found?.game);
                 return reply.edit({ embed }).catch(() => undefined);
             });
