@@ -5,7 +5,6 @@ import { NexusUser } from "../types/users";
 import { getUserByDiscordId, updateServer } from "../api/bot-db";
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { games } from "../api/nexus-discord";
-import { all, filter } from "bluebird";
 
 const help: CommandHelp = {
     name: "config",
@@ -70,7 +69,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         case 'filter':
             if (!user && args[1]) return message.channel.send('Unable to set game filter. Please link your Nexus Mods acount first. See `!nm link` for more.').catch(() => undefined);
             newData.name = 'Game Filter';
-            newData.cur = resolveFilter(allGames, server.game_filter?.toString());
+            newData.cur = server.game_filter ? resolveFilter(allGames, server.game_filter?.toString()) : undefined;
             newData.new = resolveFilter(allGames, args[1]);
             newData.data.game_filter = newData.new?.id;
             break;
@@ -99,7 +98,7 @@ const updateEmbed = (data: any): MessageEmbed => {
     return new MessageEmbed()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)
-    .setDescription(`${data.name} updated from ${(data.cur as IGameInfo) ? data.cur?.name : data.cur?.toString() || '*none*'} to ${(data.new as IGameInfo) ? data.new?.name : data.new.toString() || data || '*none'}.`);
+    .setDescription(`${data.name} updated from ${(data.cur as IGameInfo) ? data.cur?.name : data.cur?.toString() || '*none*'} to ${(data.new as IGameInfo) ? data.new?.name : data.new.toString() || '*none'}.`);
 }
 
 const serverEmbed = (client: Client, guild: Guild, server: BotServer, gameName?: string): MessageEmbed => {
