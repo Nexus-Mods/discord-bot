@@ -143,12 +143,17 @@ async function modChangelogs(user: NexusUser, gameDomain: string, modId: number)
 
 }
 
+let dlCache: { [id: number]: { data: ModDownloadInfo[], expires: Date } } = {};
+const dlCacheExp: number = (5*60*1000);
+
 async function getDownloads(user: NexusUser, gameDomain: string, gameId: number = -1, modId: number = -1): Promise<ModDownloadInfo | ModDownloadInfo[]> {
     try {
         const gameList: IGameListEntry[] = await games(user, false);
         const game: IGameListEntry | undefined = gameList.find(game => (gameId !== -1 && game.id === gameId) || (gameDomain === game.domain_name));
         if (!game) return Promise.reject(`Unable to resolve game for ${gameId}, ${gameDomain}`);
         gameId = game.id;
+        // Check for a cached version of the stats
+        if (dlCache[gameId] && dlCache[gameId].expires < new Date()) return (modId !== -1) ? dlCache[gameId].data[modId] : dlCache[gameId].data;
         // Get stats CSV
         const statsCsv = await requestPromise({ url: `${nexusStatsAPI}${gameId}.csv`, encoding: 'utf8' });
         // Map into an object
@@ -167,6 +172,9 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
                 }
             }
         ).filter((info: ModDownloadInfo | undefined) => info !== undefined);
+
+        // Save to cache
+        dlCache[gameId] = { data: gameStats, expires: new Date(new Date().getTime() + dlCacheExp) };
 
         // Get info for the mod, if we're looking for it.
         if (modId !== -1) {
