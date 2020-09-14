@@ -105,10 +105,11 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         else if (userData.supporter && supporterRole && !guildMember.roles.cache.has(supporterRole.id)) rolesToAdd.push(supporterRole.id);
 
         // Mod Author role
-        const modUniqueTotal: number = modTotal(allUserMods)
+        const modUniqueTotal: number = modTotal(allUserMods);
+        console.log(`${new Date().toLocaleString()} - ${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length}. ${guild.name} threshold ${modAuthorDownloads}`);
         if (modAuthorRole && modUniqueTotal >= modAuthorDownloads && !guildMember.roles.cache.has(modAuthorRole.id)) {
             rolesToAdd.push(modAuthorRole.id);
-            guildMember.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`);
+            guildMember.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`).catch(() => undefined);
         }
         else if (modAuthorRole && guildMember.roles.cache.has(modAuthorRole.id) && modUniqueTotal < modAuthorDownloads) guildMember.roles.remove(modAuthorRole);
 
