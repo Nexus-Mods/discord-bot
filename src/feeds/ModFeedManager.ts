@@ -9,7 +9,7 @@ export class ModFeedManager {
 
     private ModFeeds: ModFeed[] = [];
     private client: ClientExt;
-    private updateTimer: NodeJS.Timeout;
+    // private updateTimer: NodeJS.Timeout;
 
     static getInstance(client: ClientExt): ModFeedManager {
         if (!ModFeedManager.instance) {
@@ -23,7 +23,7 @@ export class ModFeedManager {
         // Save the client for later
         this.client = client;
         // Set the update interval.
-        this.updateTimer = setInterval(this.updateFeeds, pollTime);
+        // this.updateTimer = setInterval(this.updateFeeds, pollTime);
         this.getFeeds()
             .then(() => {
                 console.log(`${new Date().toLocaleString()} - Initialised with ${this.ModFeeds.length} mod feeds, checking every ${pollTime/1000/60} minutes`);
@@ -39,8 +39,8 @@ export class ModFeedManager {
     async updateAll(): Promise<void> {
         await this.getFeeds();
         await this.updateFeeds();
-        clearInterval(this.updateTimer);
-        this.updateTimer = setInterval(this.updateFeeds, pollTime);
+        // clearInterval(this.updateTimer);
+        // this.updateTimer = setInterval(this.updateFeeds, pollTime);
     }
 
     getAllFeeds(): ModFeed[] {

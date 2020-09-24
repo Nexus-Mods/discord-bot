@@ -2,7 +2,7 @@ import { Client, Message, GuildChannel, DMChannel, TextChannel, EmbedFieldData, 
 import { BotServer } from "../types/servers";
 import { CommandHelp } from "../types/util";
 import { NexusUser, NexusLinkedMod } from "../types/users";
-import { getModsbyUser, getUserByDiscordId, deleteMod } from "../api/bot-db";
+import { getModsbyUser, getUserByDiscordId, deleteMod, updateAllRoles } from "../api/bot-db";
 
 const modUrlExp = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i;
 
@@ -67,6 +67,8 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     
     embed.setTitle(`Deleted ${allRemovals.length} mod(s)`)
     .setDescription(allRemovals.length ? allRemovals.join('\n') : '*none*');
+
+    await updateAllRoles(client, userData, message.author, false);
 
     return reply?.edit(embed).catch(() => undefined);
 }

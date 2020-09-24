@@ -1,7 +1,7 @@
 import { Client, Message, GuildChannel, TextChannel, DMChannel, MessageEmbed, EmbedFieldData } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
-import { getUserByDiscordId, getModsbyUser, createMod } from "../api/bot-db";
+import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from "../api/bot-db";
 import { CommandHelp, ModDownloadInfo, NexusSearchModResult } from "../types/util";
 import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 import { games, modInfo, getDownloads, quicksearch } from "../api/nexus-discord";
@@ -58,6 +58,8 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     embed.setTitle('Adding mods complete')
     .addFields(allResults);
+
+    await updateAllRoles(client, userData, message.author, false);
 
     return msg.edit(embed).catch(() => undefined);
 
