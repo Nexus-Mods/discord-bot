@@ -30,25 +30,25 @@ async function run(client: Client, message: Message, args: string[], serverData:
         if (message.guild && !userServers?.find(link => link.server_id === message.guild?.id)) {
             await addServerLink(client, userData, message.author, message.guild)
                 .catch((e: Error) => {
-                    return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author} there was an error linking your account in this server: ${e.message}`).catch(() => undefined);
+                    return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()} there was an error linking your account in this server: ${e.message}`).catch(() => undefined);
                 });
             return (replyChannel as TextChannel)
                 .send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()} your account has been linked in this server. Type \`!nexus whoami\` to see your profile card.`)
                 .catch(() => undefined);
         }
-        else return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author} your Discord account is already linked to ${userData.name}${message.channel.type === 'text' ? ' in this server': ''}.`)
+        else return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()} your Discord account is already linked to ${userData.name}${message.channel.type === 'text' ? ' in this server': ''}.`)
             .catch(() => undefined);
     }
 
     let apiCollect : MessageCollector;
     // If the user hasn't started this process in a DM
     if (message.channel.type !== 'dm') {
-        (replyChannel as TextChannel).send(`${message.author.tag}, I've sent you a Direct Message about verifying your account. Your API key should never be posted publicly.`).catch(() => undefined);
+        (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()}, I've sent you a Direct Message about verifying your account. Your API key should never be posted publicly.`).catch(() => undefined);
         const author: User = message.author;
         const msg = await author.send(sendKeyEmbed(client, message))
             .catch(() => {
                 if (args.length > 0 && message.deletable) message.delete().catch(() => undefined);
-                return (replyChannel as TextChannel).send(`${message.author} - Looks like you might have DMs disabled for this server. You\'ll need to enable them to link your account.`).catch(() => undefined);
+                return (replyChannel as TextChannel).send(`${message.author.toString()} - Looks like you might have DMs disabled for this server. You\'ll need to enable them to link your account.`).catch(() => undefined);
             });
         if (!msg) return;
         apiCollect = msg.channel.createMessageCollector(apiFilter, { maxProcessed: 1, time: apiCollectorDuration });
