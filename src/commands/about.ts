@@ -23,7 +23,7 @@ async function run(client: Client, message: Message) {
     .setDescription(
         `**Version:** ${process.env.npm_package_version}\n`+
         `**Source:** [GitHub](https://github.com/Nexus-Mods/discord-bot)\n\n`+
-        `Integrate your community with Nexus Mods using our Disord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`
+        `Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`
     )
     .addField('Support', 'If you have feedback or questions about this bot, head over to the [Nexus Mods Discord Server](https://discord.gg/nexusmods).')
     .addField('Stats', 
