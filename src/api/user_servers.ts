@@ -105,7 +105,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         else if (userData.supporter && supporterRole && !guildMember.roles.cache.has(supporterRole.id)) rolesToAdd.push(supporterRole.id);
 
         // Mod Author role
-        const modUniqueTotal: number = modTotal(allUserMods);
+        const modUniqueTotal: number = modUniqueDLTotal(allUserMods);
         if (modAuthorRole) console.log(`${new Date().toLocaleString()} - ${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length}. ${guild.name} threshold ${modAuthorDownloads}`);
         if (modAuthorRole && modUniqueTotal >= modAuthorDownloads && !guildMember.roles.cache.has(modAuthorRole.id)) {
             rolesToAdd.push(modAuthorRole.id);
@@ -151,7 +151,7 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
     })
 }
 
-const modTotal = (allMods: NexusLinkedMod[]) => {
+const modUniqueDLTotal = (allMods: NexusLinkedMod[]) => {
     let downloads = allMods.reduce((prev, cur) => prev = prev + cur.unique_downloads, 0);
     return downloads;
 }
@@ -167,4 +167,4 @@ const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): MessageEmb
     return embed;
 }
 
-export { getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles };
+export { getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal };

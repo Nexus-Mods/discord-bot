@@ -1,7 +1,7 @@
 import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
-import { getUserByDiscordId, updateUser, updateAllRoles, getModsbyUser, updateMod } from "../api/bot-db";
+import { getUserByDiscordId, updateUser, updateAllRoles, getModsbyUser, updateMod, modUniqueDLTotal } from "../api/bot-db";
 import { validate, modInfo, getDownloads } from "../api/nexus-discord";
 import { IValidateKeyResponse, IModInfo } from "@nexusmods/nexus-api";
 import Bluebird from 'bluebird';
@@ -58,7 +58,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             
             try {
                 if (Object.keys(newData).length > 1) {
-                    const keys = Object.keys(userData);
+                    const keys = Object.keys(newData);
                     result.addField('User Info', `Updated ${keys.length} value(s):\n${keys.join('\n')}`);
                 }
                 else result.addField('User Info', 'No changes required');
@@ -78,7 +78,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         // Update download counts for mods
         try {
             const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
-            const modsToUpdate: (NexusLinkedMod|undefined)[] = await Bluebird.map(mods, async (mod) => {
+            const modsToUpdate: NexusLinkedMod[] = await Bluebird.map(mods, async (mod) => {
                 const info: IModInfo = await modInfo(userData, mod.domain, mod.mod_id);
                 const dls: ModDownloadInfo = await getDownloads(userData, mod.domain, info.game_id, mod.mod_id) as ModDownloadInfo;
                 let newInfo: any = {};
@@ -86,8 +86,10 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                 if (dls.unique_downloads > mod.unique_downloads) newInfo.unique_downloads = dls.unique_downloads;
                 if (dls.total_downloads > mod.total_downloads) newInfo.total_downloads = dls.total_downloads;
                 if (Object.keys(newInfo).length) await updateMod(mod, newInfo);
-                return Object.keys(newInfo).length ? mod : undefined;
-            }).filter(m => m !== undefined);
+                mod = { ...info, ...newInfo };
+                return mod;
+                // return Object.keys(newInfo).length ? mod : undefined;
+            }).filter(u => !!mods.find(m => m === u));
 
             const displayable: string = modsToUpdate.reduce((prev, cur) => {
                 const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.path})\n`;
@@ -96,8 +98,12 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                 return prev;
             }, `${modsToUpdate.length} mods updated:\n`);
 
-            if (modsToUpdate.length) result.addField('Mods', displayable);
-            else result.addField('Mods', 'No changes required.');
+            const udlTotal: number = modUniqueDLTotal(
+                mods.filter(m => modsToUpdate.find(u => u?.domain === m.domain && u.mod_id === m.mod_id)).concat(modsToUpdate)
+            );
+
+            if (modsToUpdate.length) result.addField(`Mods (${udlTotal} unique downloads, ${mods.length} mods)`, displayable);
+            else result.addField(`Mods (${udlTotal} unique downloads, ${mods.length} mods)`, 'No changes required.');
             
         }
         catch(err) {
