@@ -106,7 +106,7 @@ const tn = () => new Date().toLocaleString();
 async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<void> {
 
     // Gather all the setup information.
-    const discordUser: User|null = client.users.resolve(feed.owner);
+    const discordUser: User|null = await client.users.fetch(feed.owner)  //resolve(feed.owner);
     const userData: NexusUser = await getUserByDiscordId(feed.owner)
         .catch(() => Promise.reject(`Unable to find user data for ${discordUser}`));
     const guild: Guild|null = client.guilds.resolve(feed.guild);
@@ -122,7 +122,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
         if (channel) channel.send(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${userData?.name || '???' }`).catch(() => undefined);
-        return Promise.reject(`Deleted game update #${feed._id} (${feed.title}) due to missing guild or channel data. Discord user: ${discordUser} Nexus User: ${userData}`);
+        return Promise.reject(`Deleted game update #${feed._id} (${feed.title}) due to missing guild or channel data. Discord user: ${discordUser} Nexus User: ${userData?.name || '???' }`);
     }
 
     // Check for relevant permissions.
