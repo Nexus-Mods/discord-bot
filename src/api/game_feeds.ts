@@ -46,8 +46,15 @@ function createGameFeed (newFeed: GameFeed): Promise<number> {
             // GET THE ID FOR THIS FEED;
             query('SELECT _id FROM game_feeds WHERE webhook_id = $1 AND webhook_token = $2', [newFeed.webhook_id, newFeed.webhook_token],
             (error: Error, indexResult: QueryResult) => {
-                if (error) return console.error(error);
-                return resolve(indexResult.rows[0]._id)
+                if (error) {
+                    console.error(error);
+                    return reject(`Error creating game feed. ${error.message}`);
+                }
+                else if (!indexResult.rows || !indexResult.rows.length) {
+                    console.error(`Could not retrieve feed id for ${newFeed.title}, setup failed.`);
+                    return reject(`Error creating game feed. ID could not be retrieved, saving may have failed.`);
+                }
+                else return resolve(indexResult.rows[0]._id);
             });
         })
     });
