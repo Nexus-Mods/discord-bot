@@ -32,5 +32,6 @@ _ReSharper*/
 packages/
 *.env
 data/
+dist/
 serverconfig.json
 config.json
