@@ -91,7 +91,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
         try {
             const id = await createGameFeed(newFeed);
-            console.log(new Date() + ` - Game feed created for ${gameForFeed?.name} in ${message.channel.toString()} at ${message.guild?.name} by ${message.author.tag} successfully. Reference #${id}`);
+            console.log(new Date().toLocaleString() + ` - Game feed created for ${gameForFeed?.name} in ${message.channel.toString()} at ${message.guild?.name} by ${message.author.tag} successfully. Reference #${id}`);
             await newFeedMsg?.edit('', { embed: successEmbed(message, newFeed, gameForFeed, id) }).catch(() => undefined);
             return newFeedMsg?.pin().catch(undefined);
         }
@@ -257,7 +257,7 @@ async function manageFeed(client: Client, message: Message, feed: GameFeed): Pro
             // Update feed
             try {
                 if (Object.keys(newData).length) await updateGameFeed(feed._id, newData);
-                console.log(`${new Date().toLocaleString()} - Game feed #${feed._id} for ${feed.title} in ${message.channel.toString()} at ${message.guild?.name} edited by ${rc.first()?.users.cache.first()?.tag}`);
+                console.log(`${new Date().toLocaleString()} - Game feed #${feed._id} for ${feed.title} in ${message.channel.toString()} at ${message.guild?.name} edited by ${rc.first()?.users.cache.last()?.tag}`);
                 return editMsg.edit('Game feed saved successfully.', { embed: null }).catch(() => undefined);
             }
             catch (err) {
