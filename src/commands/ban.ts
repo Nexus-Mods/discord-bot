@@ -14,7 +14,7 @@ const help: CommandHelp = {
 }
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
-    if (!message.guild || server.official) return;
+    if (!message.guild || !server.official) return;
 
     if (!message.member?.hasPermission('BAN_MEMBERS')) return;
     if (!message.guild.me?.hasPermission('BAN_MEMBERS')) return message.author.send(`I can't complete the requested ban in ${message.channel} as I don't have the required permissions.`).catch(() => undefined);
