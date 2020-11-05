@@ -67,7 +67,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const lastPostChannel: TextChannel | undefined = banMember.lastMessage?.channel as TextChannel;
     const channelNotice = channelEmbed(banMember, banLogMessage);
 
-    if (lastPostChannel !== message.channel && lastPostChannel !== logChannel) lastPostChannel.send(channelNotice).catch(() => undefined);
+    if (lastPostChannel && lastPostChannel !== message.channel && lastPostChannel !== logChannel) lastPostChannel.send(channelNotice).catch(() => undefined);
     message.channel.send(channelNotice).catch(() => undefined);
 
     try {
