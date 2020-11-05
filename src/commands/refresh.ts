@@ -78,32 +78,33 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         // Update download counts for mods
         try {
             const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
-            const modsToUpdate: NexusLinkedMod[] = await Bluebird.map(mods, async (mod) => {
+            let updatedMods: NexusLinkedMod[] = [];
+            await Bluebird.map(mods, async (mod) => {
                 const info: IModInfo = await modInfo(userData, mod.domain, mod.mod_id);
                 const dls: ModDownloadInfo = await getDownloads(userData, mod.domain, info.game_id, mod.mod_id) as ModDownloadInfo;
                 let newInfo: any = {};
                 if (info.name && mod.name !== info.name) newInfo.name = info.name;
                 if (dls.unique_downloads > mod.unique_downloads) newInfo.unique_downloads = dls.unique_downloads;
                 if (dls.total_downloads > mod.total_downloads) newInfo.total_downloads = dls.total_downloads;
-                if (Object.keys(newInfo).length) await updateMod(mod, newInfo);
-                mod = { ...info, ...newInfo };
+                if (Object.keys(newInfo).length) {
+                    await updateMod(mod, newInfo);
+                    mod = { ...info, ...newInfo };
+                    updatedMods.push(mod);
+                }
                 return mod;
-                // return Object.keys(newInfo).length ? mod : undefined;
-            }).filter(u => !!mods.find(m => m === u));
+            });
 
-            const displayable: string = modsToUpdate.reduce((prev, cur) => {
+            const displayable: string = updatedMods.reduce((prev, cur) => {
                 const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.path})\n`;
                 if (newStr.length > 1024) return prev;
                 else prev = newStr;
                 return prev;
-            }, `${modsToUpdate.length} mods updated:\n`);
+            }, `${updatedMods.length} mods updated:\n`);
 
-            const udlTotal: number = modUniqueDLTotal(
-                mods.filter(m => modsToUpdate.find(u => u?.domain === m.domain && u.mod_id === m.mod_id)).concat(modsToUpdate)
-            );
+            const udlTotal: number = modUniqueDLTotal(mods);
 
-            if (modsToUpdate.length) result.addField(`Mods (${udlTotal} unique downloads, ${mods.length} mods)`, displayable);
-            else result.addField(`Mods (${udlTotal} unique downloads, ${mods.length} mods)`, 'No changes required.');
+            if (updatedMods.length) result.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, displayable);
+            else result.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, 'No changes required.');
             
         }
         catch(err) {
