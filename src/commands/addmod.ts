@@ -45,23 +45,32 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     embed.setTitle(`Checking for ${queries.length} mod(s)...`);
     await msg.edit({ embed }).catch(() => undefined);
-    const allGames: IGameInfo[] = await games(userData);
 
-    const urlResults: EmbedFieldData[] = await Promise.all(
-        urlQueries.map((url: string) => urlCheck(url, mods, allGames, userData))
-    );
-    const strResults: EmbedFieldData[] = await Promise.all(
-        strQueries.map((query: string) => stringCheck(query, mods, allGames, userData))
-    );
+    try {
+        const allGames: IGameInfo[] = await games(userData);
 
-    const allResults: EmbedFieldData[] = urlResults.concat(strResults).filter(r => r !== undefined);
+        const urlResults: EmbedFieldData[] = await Promise.all(
+            urlQueries.map((url: string) => urlCheck(url, mods, allGames, userData))
+        );
+        const strResults: EmbedFieldData[] = await Promise.all(
+            strQueries.map((query: string) => stringCheck(query, mods, allGames, userData))
+        );
 
-    embed.setTitle('Adding mods complete')
-    .addFields(allResults);
+        const allResults: EmbedFieldData[] = urlResults.concat(strResults).filter(r => r !== undefined);
 
-    await updateAllRoles(client, userData, message.author, false);
+        embed.setTitle('Adding mods complete')
+        .addFields(allResults);
 
-    return msg.edit(embed).catch(() => undefined);
+        await updateAllRoles(client, userData, message.author, false);
+
+        return msg.edit(embed).catch(() => undefined);
+
+    }
+    catch (err) {
+        embed.setColor(0xff000);
+        embed.setTitle('An error occurred adding this mod');
+        embed.setDescription(`Error details:\n\'\'\'${JSON.stringify(err, null, 2)}\'\'\'\nPlease try again later. If this problem persists please report it to Nexus Mods.`);
+    }
 
 }
 
