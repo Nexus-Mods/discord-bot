@@ -70,6 +70,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         embed.setColor(0xff000);
         embed.setTitle('An error occurred adding this mod');
         embed.setDescription(`Error details:\n\'\'\'${JSON.stringify(err, null, 2)}\'\'\'\nPlease try again later. If this problem persists please report it to Nexus Mods.`);
+        return msg.edit(embed).catch(() => undefined);
     }
 
 }
