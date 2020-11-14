@@ -31,7 +31,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const data: InfoResult[] = await getAllInfos().catch(() => []);
 
 
-    if (!args.length) return rc.send(prefix, helpEmbed(client, message)).catch(() => undefined);
+    if (!args.length) return rc.send(prefix, helpEmbed(client, message, data)).catch(() => undefined);
 
     const query: string = args[0].toLowerCase();
     const result: InfoResult|undefined = data.find(i => i.name.toLowerCase() === query);
@@ -41,12 +41,12 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     message.delete().catch(() => undefined);
 }
 
-const helpEmbed = (client: Client, message: Message): MessageEmbed => {
+const helpEmbed = (client: Client, message: Message, data: InfoResult[]): MessageEmbed => {
     return new MessageEmbed()
     .setColor(0xda8e35)
     .setTitle('Info Command Help')
     .setDescription('This command will return an embed or message based on a preset help topic.\nUse `!nm i {topic}` to invoke this command.')
-    .addField('Available Topics (case insensitive)', cachedInfo.data.map(i => `${i.title} [${i.name}]`).join("\n").substr(0, 1024))
+    .addField('Available Topics (case insensitive)', data.map(i => `${i.title} [${i.name}]`).join("\n").substr(0, 1024))
     .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, client.user?.avatarURL() || '');
 }
 
