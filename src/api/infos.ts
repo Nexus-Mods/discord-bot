@@ -108,8 +108,8 @@ function displayInfo(client: Client, message: Message, info: InfoResult): Postab
 
 function addBreaks(text: string): string {
     let result = text;
-    while (result.includes('\\\\n')) {
-        result = result.replace('\\\\n', '\n')
+    while (result.includes('\\n')) {
+        result = result.replace('\\n', '\n')
     }
     return result;
 }
