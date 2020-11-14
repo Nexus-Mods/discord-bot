@@ -1,28 +1,70 @@
 import query from './dbConnect';
 import { PostableInfo, InfoResult } from '../types/util';
 import { QueryResult } from 'pg';
-import { Client, Message, MessageEmbed } from 'discord.js';
+import { Client, Message, MessageEmbed, EmbedFieldData } from 'discord.js';
 
 async function getAllInfos(): Promise<InfoResult[]> {
     return new Promise((resolve, reject) => {
         query('SELECT * FROM infos', [], 
         (error: Error, result: QueryResult) => {
             if (error) return reject(error);
-            resolve(result.rows);
+            query('SELECT * FROM info_fields', [], (fielderror: Error, fieldResult: QueryResult) => {
+                if (fielderror) return reject(fielderror);
+                const fields = fieldResult.rows;
+                const infos: InfoResult[] = result.rows.map(info => {
+                    info.fields = fields
+                    .filter(field => field.info_id === info.name)
+                    .sort((a,b) => a.priority >= b.priority ? -1 : 1);
+                    return info;
+                });
+                return resolve(infos);
+            });
         });
     });
 }
 
 async function createInfo(infoData: InfoResult): Promise<InfoResult> {
     return new Promise((resolve, reject) => {
-        query('INSERT INTO infos (name, message, title, description, url, timestamp, thumbnail, image, fields, author) VALUES ($1 , $2, $3, $4, $5, $6, $7, $8, $9, $10)', 
-        [infoData.name, infoData.message, infoData.title, infoData.description, infoData.url, infoData.timestamp, infoData.thumbnail, infoData.image, infoData.fields, infoData.author], 
+        query('INSERT INTO infos (name, message, title, description, url, timestamp, thumbnail, image, author) VALUES ($1 , $2, $3, $4, $5, $6, $7, $8, $9)', 
+        [infoData.name, infoData.message, infoData.title, infoData.description, infoData.url, infoData.timestamp, infoData.thumbnail, infoData.image, infoData.author], 
         (error: Error, result: QueryResult) => {
             if (error) return reject(error);
             infoData.approved = false;
-            resolve(infoData);
+            if (infoData.fields) return addFieldsBatch(infoData.name, infoData.fields)
+                .then(() => resolve(infoData))
+                .catch((err) => reject(err));
+            else return resolve(infoData);
         });
+    });
+}
+
+async function addField(infoId: string, field: EmbedFieldData, priority: number) {
+    return new Promise((resolve, reject) => {
+        query('INSERT INTO info_fields (info_id, name, value, inline, priority) VALUES ($1, $2, $3, $4)', 
+            [infoId, field.name, field.value, field.inline], 
+            (error: Error, result: QueryResult) => {
+                if (error) return reject(error);
+                return resolve(field);
+            }
+        );
     })
+}
+
+async function addFieldsBatch(infoId: string, fields: EmbedFieldData[]) {
+    // Map the fields for bulk insert.
+    const queryValues = fields.map(
+        (field: EmbedFieldData, index: number) => 
+            `(${infoId},${field.name}, ${field.value}, ${field.inline || false}, ${index})`
+    );
+    // Insert into the DB.
+    return new Promise((resolve, reject) => {
+        query(`INSERT INTO info_fields (info_id, name, value, inline, priority) VALUES ${queryValues.join("\n")}`, [], 
+            (error: Error, results: QueryResult) => {
+                if (error) return reject(error);
+                resolve(fields);      
+            }
+        );
+    });
 }
 
 async function deleteInfo(infoName: string): Promise<boolean> {
@@ -51,7 +93,7 @@ function displayInfo(client: Client, message: Message, info: InfoResult): Postab
     }
 
     const infoEmbed = new MessageEmbed()
-    .setFooter(`Added by ${info.author || '???'} - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
+    .setFooter(`Info added by ${info.author || '???'} - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
     .setTimestamp(info.timestamp || new Date())
     .setColor(0xda8e35);
     if (info.title) infoEmbed.setTitle(info.title);
