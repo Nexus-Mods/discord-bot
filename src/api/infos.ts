@@ -14,7 +14,7 @@ async function getAllInfos(): Promise<InfoResult[]> {
                 const infos: InfoResult[] = result.rows.map(info => {
                     info.fields = fields
                     .filter(field => field.info_id === info.name)
-                    .sort((a,b) => a.priority >= b.priority ? -1 : 1);
+                    .sort((a,b) => a.priority >= b.priority ? 1 : -1);
                     return info;
                 });
                 return resolve(infos);

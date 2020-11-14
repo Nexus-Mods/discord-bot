@@ -20,20 +20,25 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const rc: TextChannel = (replyChannel as TextChannel);
     const prefix = rc === message.channel ? '' : `${message.author.toString()}`
 
-    if (!cachedInfo || cachedInfo.expiry < new Date()) {
-        const data = await getAllInfos().catch(() => []);
-        const expiry = new Date(new Date().getTime() + 5*60000);
-        cachedInfo = { data, expiry };
-        console.log(`${new Date().toLocaleString()} - Updated info cache.`, cachedInfo.data.length);
-    }
+    // if (!cachedInfo || cachedInfo.expiry < new Date()) {
+    //     const data = await getAllInfos().catch(() => []);
+    //     const expiry = new Date(new Date().getTime() + 5*60000);
+    //     cachedInfo = { data, expiry };
+    //     console.log(`${new Date().toLocaleString()} - Updated info cache.`, cachedInfo.data.length);
+    // }
+
+    // LOOK INTO CACHING ONCE THIS FEATURE IS READY TO GO
+    const data: InfoResult[] = await getAllInfos().catch(() => []);
+
 
     if (!args.length) return rc.send(prefix, helpEmbed(client, message)).catch(() => undefined);
 
     const query: string = args[0].toLowerCase();
-    const result: InfoResult|undefined = cachedInfo.data.find(i => i.name.toLowerCase() === query);
+    const result: InfoResult|undefined = data.find(i => i.name.toLowerCase() === query);
     if (!result) return rc.send(prefix, notFound(client, message, query)).catch(() => undefined);
     const postable: PostableInfo = displayInfo(client, message, result);
     message.channel.send(postable.content, postable.embed).catch(() => undefined);
+    message.delete().catch(() => undefined);
 }
 
 const helpEmbed = (client: Client, message: Message): MessageEmbed => {
