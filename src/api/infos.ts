@@ -40,7 +40,7 @@ async function createInfo(infoData: InfoResult): Promise<InfoResult> {
 
 async function addField(infoId: string, field: EmbedFieldData, priority: number) {
     return new Promise((resolve, reject) => {
-        query('INSERT INTO info_fields (info_id, name, value, inline, priority) VALUES ($1, $2, $3, $4)', 
+        query('INSERT INTO infos_fields (info_id, name, value, inline, priority) VALUES ($1, $2, $3, $4)', 
             [infoId, field.name, field.value, field.inline], 
             (error: Error, result: QueryResult) => {
                 if (error) return reject(error);
@@ -58,7 +58,7 @@ async function addFieldsBatch(infoId: string, fields: EmbedFieldData[]) {
     );
     // Insert into the DB.
     return new Promise((resolve, reject) => {
-        query(`INSERT INTO info_fields (info_id, name, value, inline, priority) VALUES ${queryValues.join("\n")}`, [], 
+        query(`INSERT INTO infos_fields (info_id, name, value, inline, priority) VALUES ${queryValues.join("\n")}`, [], 
             (error: Error, results: QueryResult) => {
                 if (error) return reject(error);
                 resolve(fields);      
