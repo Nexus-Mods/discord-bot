@@ -8,7 +8,7 @@ async function getAllInfos(): Promise<InfoResult[]> {
         query('SELECT * FROM infos', [], 
         (error: Error, result: QueryResult) => {
             if (error) return reject(error);
-            query('SELECT * FROM info_fields', [], (fielderror: Error, fieldResult: QueryResult) => {
+            query('SELECT * FROM infos_fields', [], (fielderror: Error, fieldResult: QueryResult) => {
                 if (fielderror) return reject(fielderror);
                 const fields = fieldResult.rows;
                 const infos: InfoResult[] = result.rows.map(info => {
