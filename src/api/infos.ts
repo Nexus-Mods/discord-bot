@@ -97,12 +97,20 @@ function displayInfo(client: Client, message: Message, info: InfoResult): Postab
     .setTimestamp(info.timestamp || new Date())
     .setColor(0xda8e35);
     if (info.title) infoEmbed.setTitle(info.title);
-    if (info.description) infoEmbed.setDescription(info.description);
+    if (info.description) infoEmbed.setDescription(addBreaks(info.description));
     if (info.url) infoEmbed.setURL(info.url);
     if (info.thumbnail) infoEmbed.setThumbnail(info.thumbnail);
     if (info.image) infoEmbed.setImage(info.image);
     if (info.fields) info.fields.map(field => infoEmbed.addField(field.name, field.value, field.inline));
     result.embed = infoEmbed;
+    return result;
+}
+
+function addBreaks(text: string): string {
+    let result = text;
+    while (result.includes('\\\\n')) {
+        result = result.replace('\\\\n', '\n')
+    }
     return result;
 }
 
