@@ -26,7 +26,9 @@ async function main (client: ClientExt, message: Message) {
     if (!cmd) return;
 
     // Get server data. 
-    const serverData: BotServer|undefined = message.guild ? await getServer(message.guild).catch(() => undefined) : undefined;
+    const serverData: BotServer|undefined = message.guild 
+        ? await getServer(message.guild).catch(() => undefined) 
+        : undefined;
 
     cmd.run(client, message, args, serverData);
 }

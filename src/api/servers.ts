@@ -16,14 +16,21 @@ async function getAllServers(): Promise<BotServer[]> {
 async function getServer(guild: Guild): Promise<BotServer> {
     return new Promise((resolve, reject) => {
         query('SELECT * FROM servers WHERE id = $1', [guild.id], 
-        (error: Error, result: QueryResult) => {
+        async (error: Error, result: QueryResult) => {
             if (error) return reject(error);
             if (!result.rows || result.rows.length === 0) {
                 console.log(`${new Date().toLocaleString()} - Server lookup. Guild not found: ${guild.name}`);
-                reject('Not found');
+                try {
+                    await addServer(guild);
+                    const newResult = await getServer(guild);
+                    return resolve(newResult);
+                }
+                catch(err) {
+                    return reject('Not found and could not be created.');
+                }
             }
             else {
-                resolve(result.rows[0]);
+                return resolve(result.rows[0]);
             }
         })
 
