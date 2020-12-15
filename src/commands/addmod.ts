@@ -39,7 +39,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     let queries: string[] = args.join(' ').split(',').slice(0, 25);
     const urlQueries: string[] = queries.filter(q => q.trim().match(modUrlExp));
-    const strQueries: string[] = queries.filter(q => !urlQueries.includes(q));
+    const strQueries: string[] = queries.filter(q => !!q && !urlQueries.includes(q));
 
     console.log(`${new Date().toLocaleString()} - ${queries.length} addmod queries sent by ${userData.name} (${message.author.tag})`, urlQueries, strQueries);
 
