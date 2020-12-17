@@ -78,7 +78,8 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         // Update download counts for mods
         try {
             const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
-            let updatedMods: NexusLinkedMod[] = [];
+            // Using the "any" type is the result of the map is a bastardisation of IModInfo and NexusLinkedMod
+            let updatedMods: any[] = [];
             await Bluebird.map(mods, async (mod) => {
                 const info: IModInfo = await modInfo(userData, mod.domain, mod.mod_id);
                 const dls: ModDownloadInfo = await getDownloads(userData, mod.domain, info.game_id, mod.mod_id) as ModDownloadInfo;
@@ -95,7 +96,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             });
 
             const displayable: string = updatedMods.reduce((prev, cur) => {
-                const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain}/${cur?.mod_id})\n`;
+                const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name}/${cur?.mod_id})\n`;
                 if (newStr.length > 1024) return prev;
                 else prev = newStr;
                 return prev;
