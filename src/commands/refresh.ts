@@ -96,7 +96,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             });
 
             const displayable: string = updatedMods.reduce((prev, cur) => {
-                const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name}/${cur?.mod_id})\n`;
+                const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name}/mods/${cur?.mod_id})\n`;
                 if (newStr.length > 1024) return prev;
                 else prev = newStr;
                 return prev;
