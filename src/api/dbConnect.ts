@@ -9,6 +9,7 @@ const poolConfig: PoolConfig = {
     ssl: !config.testing ? {
         rejectUnauthorized: false,
     } : false,
+    statement_timeout: 10000
 };
 
 const pool = new Pool(poolConfig);
