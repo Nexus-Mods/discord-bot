@@ -21,7 +21,8 @@ async function run(client: Client, message: Message, args: string[], serverData:
             .catch((err) => (replyChannel as TextChannel).send(`Error: ${err.message}`));
     }
     catch(err) {
-        return (replyChannel as TextChannel).send(`An Error occured with your request: ${err.message}`);
+        if (err.code === 'ETIMEOUT') return (replyChannel as TextChannel).send('I\'m afraid I can\'t connect to my database right now. Please try again later.').catch(() => undefined);
+        return (replyChannel as TextChannel).send(`An Error occured with your request: \`\`\`${JSON.stringify(err)}\`\`\``).catch(() => undefined);
     }
 
 }
