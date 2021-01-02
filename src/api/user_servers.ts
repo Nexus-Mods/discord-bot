@@ -9,9 +9,9 @@ import { NexusSearchResult } from '../types/util';
 
 async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
     return new Promise((resolve, reject) => {
-        query('SELECT * FROM user_servers WHERE user_id = $1', [userId], (error: Error, result: QueryResult) => {
+        query('SELECT * FROM user_servers WHERE user_id = $1', [userId], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            resolve(result.rows);
+            resolve(result?.rows || []);
         });
 
     });
@@ -19,7 +19,7 @@ async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
 
 async function addServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild): Promise<void> {
     return new Promise((resolve, reject) => {
-        query('INSERT INTO user_servers (user_id, server_id) VALUES ($1, $2)', [user.id, server.id], async (error: Error, result: QueryResult) => {
+        query('INSERT INTO user_servers (user_id, server_id) VALUES ($1, $2)', [user.id, server.id], async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             await updateRoles(client, user, discordUser, server);
             resolve();
@@ -30,7 +30,7 @@ async function addServerLink(client: Client, user: NexusUser, discordUser: User,
 async function deleteServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild): Promise<void> {
     return new Promise( (resolve, reject) => {
         query('DELETE FROM user_servers WHERE user_id = $1 AND server_id = $2', [user.id, server.id], 
-        async (error: Error, result: QueryResult) => {
+        async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             await updateRoles(client, user, discordUser, server, true);
             resolve();
@@ -42,7 +42,7 @@ async function deleteAllServerLinksByUser(client: Client, user: NexusUser, disco
     const links: NexusUserServerLink[] = await getLinksByUser(user.id);
 
     return new Promise((resolve, reject) => {
-        query('DELETE FROM user_servers WHERE user_id = $1', [user.id], async (error: Error, result: QueryResult) => {
+        query('DELETE FROM user_servers WHERE user_id = $1', [user.id], async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             for (const link of links) {
                 const server = await client.guilds.fetch(link.server_id);

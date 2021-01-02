@@ -5,9 +5,9 @@ import { Guild } from 'discord.js';
 
 async function getAllServers(): Promise<BotServer[]> {
     return new Promise((resolve, reject) => {
-        query('SELECT * FROM servers', [], (error: Error, result: QueryResult) => {
+        query('SELECT * FROM servers', [], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            resolve(result.rows);
+            resolve(result?.rows || []);
         })
 
     });
@@ -16,9 +16,9 @@ async function getAllServers(): Promise<BotServer[]> {
 async function getServer(guild: Guild): Promise<BotServer> {
     return new Promise((resolve, reject) => {
         query('SELECT * FROM servers WHERE id = $1', [guild.id], 
-        async (error: Error, result: QueryResult) => {
+        async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            if (!result.rows || result.rows.length === 0) {
+            if (!result?.rows || result.rows.length === 0) {
                 console.log(`${new Date().toLocaleString()} - Server lookup. Guild not found: ${guild.name}`);
                 try {
                     await addServer(guild);
@@ -40,7 +40,7 @@ async function getServer(guild: Guild): Promise<BotServer> {
 async function addServer(guild: Guild): Promise<boolean> {
     return new Promise((resolve, reject) => {
         query('INSERT INTO servers (id, server_owner) VALUES ($1, $2)', [guild.id, guild.owner?.id], 
-        (error: Error, result: QueryResult) => {
+        (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             console.log(new Date().toLocaleString() + " - Added server to database: "+guild.name);
             resolve(true);
@@ -53,7 +53,7 @@ async function updateServer (guildId: string, newData: any): Promise<boolean> {
         let errors = 0;
         Object.keys(newData).forEach((key) => {
             query(`UPDATE servers SET ${key} = $1 WHERE id = $2`, [newData[key], guildId], 
-            (error: Error, result: QueryResult) => {
+            (error: Error, result?: QueryResult) => {
                 if (error) errors += 1;
             });
         });
@@ -65,7 +65,7 @@ async function updateServer (guildId: string, newData: any): Promise<boolean> {
 async function deleteServer(guildId: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
         query('DELETE FROM servers WHERE id = $1', [guildId], 
-        (error: Error, result: QueryResult) => {
+        (error: Error, result?: QueryResult) => {
             if (error) {
                 //throw error;
                 reject(false);

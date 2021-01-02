@@ -13,18 +13,18 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
-function doQuery(query: string, values: any[], callback: (err: Error, result: QueryResult) => void) {
+function doQuery(query: string, values: any[], callback: (err: Error, result?: QueryResult) => void) {
     pool.connect((err: Error, client: PoolClient, release) => {
         if (err) {
             console.error('Error acquiring client', query, err);
             release();
-            return err;
+            return callback(err);
         };
         client.query(query, values, (err: Error, result: QueryResult) => {
             release();
             if (err) {
                 console.error('Error in query', query, values, err);
-                return err;
+                return callback(err);
             };
             if (callback) callback(err, result);
             else console.warn('Callback undefined in query', query, values);

@@ -5,9 +5,9 @@ import query from './dbConnect';
 function getAllGameFeeds(): Promise<GameFeed[]> {
     return new Promise((resolve, reject) => {
         query('SELECT * FROM game_feeds', [], 
-            (error: Error, result: QueryResult) => {
+            (error: Error, result?: QueryResult) => {
                 if (error) return reject(error);
-                resolve(result.rows);
+                resolve(result?.rows || []);
             });
     });
 }
@@ -15,9 +15,9 @@ function getAllGameFeeds(): Promise<GameFeed[]> {
 function getGameFeed(feedId: number): Promise<GameFeed> {
     return new Promise((resolve, reject) => {
         query('SELECT * FROM game_feeds WHERE _id = $1', [feedId], 
-            (error: Error, result: QueryResult) => {
+            (error: Error, result?: QueryResult) => {
                 if (error) return reject(error);
-                resolve(result.rows[0]);
+                resolve(result?.rows[0]);
             });
     });
 }
@@ -25,9 +25,9 @@ function getGameFeed(feedId: number): Promise<GameFeed> {
 function getGameFeedsForServer(serverId: string): Promise<GameFeed[]> {
     return new Promise((resolve, reject) => {
         query('SELECT * FROM game_feeds WHERE guild = $1', [serverId], 
-            (error: Error, result: QueryResult) => {
+            (error: Error, result?: QueryResult) => {
                 if (error) return reject(error);
-                resolve(result.rows);
+                resolve(result?.rows || []);
             });
     });
 }
@@ -45,16 +45,16 @@ function createGameFeed (newFeed: GameFeed): Promise<number> {
             };
             // GET THE ID FOR THIS FEED;
             query('SELECT _id FROM game_feeds WHERE webhook_id = $1 AND webhook_token = $2', [newFeed.webhook_id, newFeed.webhook_token],
-            (error: Error, indexResult: QueryResult) => {
+            (error: Error, indexResult?: QueryResult) => {
                 if (error) {
                     console.error(error);
                     return reject(`Error creating game feed. ${error.message}`);
                 }
-                else if (!indexResult.rows || !indexResult.rows.length) {
+                else if (!indexResult?.rows || !indexResult?.rows.length) {
                     console.error(`Could not retrieve feed id for ${newFeed.title}, setup failed.`);
                     return reject(`Error creating game feed. ID could not be retrieved, saving may have failed.`);
                 }
-                else return resolve(indexResult.rows[0]._id);
+                else return resolve(indexResult?.rows[0]._id);
             });
         })
     });
@@ -79,9 +79,9 @@ function updateGameFeed(feedId: number, newData: any): Promise<boolean> {
 function deleteGameFeed (feedId: number): Promise<any> {
     return new Promise((resolve, reject) => {
         query('DELETE FROM game_feeds WHERE _id = $1', [feedId], 
-            (error: Error,result: QueryResult) => {
+            (error: Error,result?: QueryResult) => {
                 if (error) return reject(error);
-                resolve(result.rows);
+                resolve(result?.rows);
             });
     });
 }

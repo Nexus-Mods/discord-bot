@@ -6,19 +6,19 @@ import { getModsbyUser, getLinksByUser } from './bot-db';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     return new Promise( (resolve, reject) => {
-        query('SELECT * FROM users', [], (error: Error, result: QueryResult) => {
+        query('SELECT * FROM users', [], (error: Error, result?: QueryResult) => {
             if (error) return reject("Failed to get all users.");
-            return resolve(result.rows);
+            return resolve(result?.rows || []);
         });
     });
 }
 
 async function getUserByDiscordId(discordId: string): Promise<NexusUser> {
     return new Promise( (resolve, reject) => {
-        query('SELECT * FROM users WHERE d_id = $1', [discordId], (error: Error, result: QueryResult) => {
+        query('SELECT * FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             //console.log(result.rows);
-            resolve(result.rows[0]);
+            resolve(result?.rows[0]);
         })
     
     });
@@ -26,9 +26,9 @@ async function getUserByDiscordId(discordId: string): Promise<NexusUser> {
 
 async function getUserByNexusModsName(username: string): Promise<NexusUser> {
     return new Promise( (resolve, reject) => {
-        query('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username], (error: Error, result: QueryResult) => {
+        query('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            resolve(result.rows[0]);
+            resolve(result?.rows[0]);
         })
     });
 }
@@ -38,7 +38,7 @@ async function createUser(user: NexusUser): Promise<boolean> {
         (resolve, reject) => {
         query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
         [user.d_id, user.id, user.name, user.avatar_url, user.apikey, user.supporter, user.premium, new Date()], 
-        (error: Error, result: QueryResult) => {
+        (error: Error, result?: QueryResult) => {
             if (error) {
                 //throw error;
                 console.log(error);
@@ -53,7 +53,7 @@ async function createUser(user: NexusUser): Promise<boolean> {
 
 async function deleteUser(discordId: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
-        query('DELETE FROM users WHERE d_id = $1', [discordId], (error: Error, result: QueryResult) => {
+        query('DELETE FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
             if (error) {
                 //throw error;
                 reject(false);
@@ -68,7 +68,7 @@ async function updateUser(discordId: string, newUser: any): Promise<boolean> {
         let errors = 0;
         newUser.lastupdate = new Date();
         Object.keys(newUser).forEach((key: string) => {
-            query(`UPDATE users SET ${key} = $1 WHERE d_id = $2`, [newUser[key], discordId], (error: Error, result: QueryResult) => {
+            query(`UPDATE users SET ${key} = $1 WHERE d_id = $2`, [newUser[key], discordId], (error: Error, result?: QueryResult) => {
                 if (error) errors += 1;
             });
         });
