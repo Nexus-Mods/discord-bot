@@ -1,12 +1,12 @@
-import { MessageEmbed } from 'discord.js';
+import { Message, MessageEmbed } from 'discord.js';
 
-function errorReply(e: Error): MessageEmbed {
+function errorReply(e: Error, message: Message): MessageEmbed {
     const errEmbed = new MessageEmbed()
     .setAuthor('Error', 'https://i.imgur.com/GkXTERx.png')
     .setColor('#ff0000')
     .setDescription(getText(e))
     .setTimestamp(new Date())
-    .setFooter('https://discord.gg/nexusmods');
+    .setFooter(`${message.author.tag}: ${message.cleanContent}`);
 
     return errEmbed;
 }
