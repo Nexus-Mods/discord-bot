@@ -15,7 +15,6 @@ let firstStartUp: boolean = false;
 
 async function main (client: ClientExt) {
     const timeNow = (): string => new Date().toLocaleString();
-    console.log(`${timeNow()} - Ready to serve in ${client.channels.cache.size} channels on ${client.guilds.cache.size} servers.`);
     client.user?.setActivity(`the channels for ${client.config?.prefix[0]}`, {type: 'WATCHING', url: "https://discord.gg/nexusmods"});
     if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
 
@@ -54,6 +53,8 @@ async function main (client: ClientExt) {
             (postChannel as TextChannel).send(onlineEmbed).catch((err) =>console.log(`${timeNow()} - Error posting online notice to log channel in ${guild.name}`, err))
         }
     }
+
+    console.log(`${timeNow()} - Ready to serve in ${client.channels.cache.size} channels on ${client.guilds.cache.size} servers.`);
 
 }
 

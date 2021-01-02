@@ -2,9 +2,9 @@ import { MessageEmbed } from 'discord.js';
 
 function errorReply(e: Error): MessageEmbed {
     const errEmbed = new MessageEmbed()
-    .setTitle('Error')
+    .setAuthor('Error', )
     .setColor('#ff0000')
-    .setThumbnail('https://discord.com/assets/289673858e06dfa2e0e3a7ee610c3a30.svg')
+    .setThumbnail('https://i.imgur.com/GkXTERx.png')
     .setDescription(getText(e))
     .setTimestamp(new Date())
     .setFooter('');
