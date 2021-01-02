@@ -3,6 +3,7 @@ import { BotServer } from "../types/servers";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
 import { NexusUser, NexusUserServerLink } from "../types/users";
+import errorReply from "../api/errorHandler";
 
 // Message filter to detect API keys
 const apiFilter = (m: Message) => m.content.length > 50 && !m.content.includes(' ');
@@ -22,9 +23,16 @@ async function run(client: Client, message: Message, args: string[], serverData:
     const replyChannel: (GuildChannel | DMChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const discordId: string = message.author.id;
 
-    const userData: NexusUser | undefined = await getUserByDiscordId(discordId).catch(() => undefined);
-    const userServers: NexusUserServerLink[] | undefined = userData ? await getLinksByUser(userData.id).catch(() => undefined) : undefined;
+    let userData: NexusUser | undefined;
+    let userServers: NexusUserServerLink[] | undefined;
 
+    try {
+        userData = await getUserByDiscordId(discordId);
+        userServers = await getLinksByUser(userData.id);
+    }
+    catch(err) {
+        return (replyChannel as TextChannel).send(errorReply(err)).catch(() => undefined);
+    }
     // If the user is already linked, toggle the server link.
     if (userData) {
         if (message.guild && !userServers?.find(link => link.server_id === message.guild?.id)) {
