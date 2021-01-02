@@ -15,7 +15,7 @@ let firstStartUp: boolean = false;
 
 async function main (client: ClientExt) {
     const timeNow = (): string => new Date().toLocaleString();
-    console.log(`${timeNow()} - Ready to serve in ${client.channels.cache.size} channels on ${client.guilds.cache.size} servers, for a total of ${client.users.cache.size} users.`);
+    console.log(`${timeNow()} - Ready to serve in ${client.channels.cache.size} channels on ${client.guilds.cache.size} servers.`);
     client.user?.setActivity(`the channels for ${client.config?.prefix[0]}`, {type: 'WATCHING', url: "https://discord.gg/nexusmods"});
     if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
 
@@ -28,10 +28,10 @@ async function main (client: ClientExt) {
 
     // Publish online message to servers. (Cache server listing?)
     if (client.config.testing) return console.log(`${timeNow()} - Testing mode - did not send online message`);
-    const allServers: (BotServer[] | any) = await getAllServers()
+    const allServers: BotServer[] = await getAllServers()
         .catch((err) => {
             console.warn(`${timeNow()} - Error getting all servers when publishing online message.`, err);
-            return;
+            return [];
         });
     for (let server of allServers) {
         const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
