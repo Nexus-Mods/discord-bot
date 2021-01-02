@@ -22,7 +22,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
             .catch((err) => (replyChannel as TextChannel).send(`Error: ${err.message}`));
     }
     catch(err) {
-        return (replyChannel as TextChannel).send(errorReply(err)).catch(() => undefined);
+        return (replyChannel as TextChannel).send(errorReply(err, message)).catch(() => undefined);
     }
 
 }

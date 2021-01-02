@@ -31,7 +31,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
         userServers = await getLinksByUser(userData.id);
     }
     catch(err) {
-        return (replyChannel as TextChannel).send(errorReply(err)).catch(() => undefined);
+        return (replyChannel as TextChannel).send(errorReply(err, message)).catch(() => undefined);
     }
     // If the user is already linked, toggle the server link.
     if (userData) {
