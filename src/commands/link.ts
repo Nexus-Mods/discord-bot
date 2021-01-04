@@ -28,7 +28,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
 
     try {
         userData = await getUserByDiscordId(discordId);
-        userServers = userData ? await getLinksByUser(userData.id) : undefined;
+        userServers = userData ? await getLinksByUser(userData?.id) : undefined;
     }
     catch(err) {
         return (replyChannel as TextChannel).send(errorReply(err, message)).catch(() => undefined);
