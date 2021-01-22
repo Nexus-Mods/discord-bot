@@ -7,7 +7,8 @@ import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modInfo, modChangelogs } from '../api/nexus-discord';
 import { IModInfoExt } from '../types/util';
 
-const pollTime = (1000*60*10); //10 mins
+const pollTime: number = (1000*60*10); //10 mins
+const timeNew: number = 1800 //How long after publishing a mod is "New" (30mins)
 
 // Temporary storage for game data during the feed update.
 let allGames: IGameInfo[] | undefined = undefined;
@@ -201,7 +202,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             modData.authorDiscord = guild && authorData ? guild.members.resolve(authorData?.d_id) : null;
 
             // Determine if this a new or updated mod and build the embed.
-            if ((modData.updated_timestamp - modData.created_timestamp) < 3600 && feed.show_new) {
+            if ((modData.updated_timestamp - modData.created_timestamp) < timeNew && feed.show_new) {
                 modEmbeds.push(createModEmbed(client, modData, game, true, undefined, feed.compact));
                 lastUpdate = updateTime;
             }
