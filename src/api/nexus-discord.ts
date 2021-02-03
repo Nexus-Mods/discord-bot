@@ -154,7 +154,7 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
         gameId = game.id;
         // Check for a cached version of the stats
         if (dlCache[gameId] && dlCache[gameId].expires > new Date()) {
-            console.log('Using cached download value for game '+game.name, modId, dlCache[gameId].expires);
+            // console.log('Using cached download value for game '+game.name, modId, dlCache[gameId].expires);
             if (modId == -1) return dlCache[gameId].data;
             else return dlCache[gameId].data.find(m => m.id === modId) || {id: modId, unique_downloads: 0, total_downloads: 0};
         }
@@ -179,7 +179,7 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
 
         // Save to cache
         dlCache[gameId] = { data: gameStats, expires: new Date(new Date().getTime() + dlCacheExp) };
-        console.log('Cached download stats', game.name, dlCache[gameId].expires);
+        // console.log('Cached download stats', game.name, dlCache[gameId].expires);
 
         // Get info for the mod, if we're looking for it.
         if (modId !== -1) {
