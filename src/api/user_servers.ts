@@ -68,7 +68,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         const botMember = client.user ? await guild.members.fetch(client.user.id): undefined;
         if (!botMember || !botMember.hasPermission('MANAGE_ROLES')) {
             console.log(`${new Date().toLocaleString()} - Permissions in ${guild.name} do not allow role assignment.`);
-            return resolve(console.log(`${new Date().toLocaleString()} - Permissions in ${guild.name} do not allow role assignment.`));
+            return resolve();
         }
 
         let rolesToAdd: string[] = [];
@@ -106,7 +106,9 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         // Mod Author role
         const modUniqueTotal: number = modUniqueDLTotal(allUserMods);
-        if (modAuthorRole) console.log(`${new Date().toLocaleString()} - ${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length}. ${guild.name} threshold ${modAuthorDownloads}`);
+        // Log the details if the user isn't recognised yet. 
+        if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) console.log(`${new Date().toLocaleString()} - ${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
+        // Apply the MA role if the criteria has been met.
         if (modAuthorRole && modUniqueTotal >= modAuthorDownloads && !guildMember.roles.cache.has(modAuthorRole.id)) {
             rolesToAdd.push(modAuthorRole.id);
             console.log(`${new Date().toLocaleString()} - ${userData.name} as now a recognised mod author in ${guild.name}`);
