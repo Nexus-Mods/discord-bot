@@ -153,7 +153,7 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
         if (!game) return Promise.reject(`Unable to resolve game for ${gameId}, ${gameDomain}`);
         gameId = game.id;
         // Check for a cached version of the stats
-        if (dlCache[gameId] && dlCache[gameId].expires < new Date()) {
+        if (dlCache[gameId] && new Date(dlCache[gameId].expires) < new Date()) {
             console.log('Using cached download value for game'+game.name, modId, dlCache[gameId].expires);
             if (modId == -1) return dlCache[gameId].data;
             else return dlCache[gameId].data.find(m => m.id === modId) || {id: modId, unique_downloads: 0, total_downloads: 0};
