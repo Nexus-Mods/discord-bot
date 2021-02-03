@@ -179,6 +179,7 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
 
         // Save to cache
         dlCache[gameId] = { data: gameStats, expires: new Date(new Date().getTime() + dlCacheExp) };
+        console.log('Cached download stats', game.name, dlCache[gameId].expires);
 
         // Get info for the mod, if we're looking for it.
         if (modId !== -1) {
