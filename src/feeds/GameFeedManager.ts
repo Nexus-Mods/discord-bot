@@ -258,13 +258,14 @@ function createModEmbed(client: Client,
     if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
         let versionChanges = changeLog[mod.version].join("\n");
         if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
-        post.addField("Changelog", versionChanges);
+        post.addField(`Changelog (v${mod.version})`, versionChanges);
     }
     post.addField('Author', mod.author, true)
-    .addField('Uploader', `[${mod.uploaded_by}](${uploaderProfile})${mod.authorDiscord ? `\n${mod.authorDiscord.toString()}`: ''}`, true)
-    .addField('Category', category, true)
-    .setTimestamp(new Date(mod.updated_time))
-    .setFooter(`Version: ${mod.version} - Mod ID: ${mod.mod_id}`, client?.user?.avatarURL() || '')
+    .addField('Uploader', `[${mod.uploaded_by}](${uploaderProfile})${mod.authorDiscord ? ` (${mod.authorDiscord.toString()})`: ''}`, true)
+    if (mod.authorDiscord) post.addField('Discord', mod.authorDiscord.toString(), true)
+    if (!compact) post.addField('Category', category, true)
+    post.setTimestamp(new Date(mod.updated_time))
+    .setFooter(`${game.name}  •  ${category}  • v${mod.version} `, client?.user?.avatarURL() || '');
 
     return post;
 
