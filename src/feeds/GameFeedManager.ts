@@ -217,7 +217,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
         // Nothing to post?
         if (!modEmbeds.length) { 
-            console.log(`${tn()} - No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
+            // console.log(`${tn()} - No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
             return;
         };
 
