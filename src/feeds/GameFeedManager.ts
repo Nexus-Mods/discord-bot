@@ -116,7 +116,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     const botMember: GuildMember|null = guild ? guild.me : null;
     const botPerms: Readonly<Permissions>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
 
-    console.log(`${tn()} - Checking game feed #${feed._id} for updates (${feed.title}) in ${guild?.name}`);
+    // console.log(`${tn()} - Checking game feed #${feed._id} for updates (${feed.title}) in ${guild?.name}`);
 
     // If we can't reach the feed owner. 
     if (!discordUser || !userData) {
@@ -171,7 +171,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
         if (!filteredMods.length) {
-            console.log(`${tn()} - No unchecked updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
+            // console.log(`${tn()} - No unchecked updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
             return;
         }
 
