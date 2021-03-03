@@ -80,7 +80,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
             // Using the "any" type is the result of the map is a bastardisation of IModInfo and NexusLinkedMod
             let updatedMods: any[] = [];
-            await Bluebird.map(mods, async (mod) => {
+            const allMods = await Bluebird.map(mods, async (mod) => {
                 const info: IModInfo = await modInfo(userData, mod.domain, mod.mod_id);
                 const dls: ModDownloadInfo = await getDownloads(userData, mod.domain, info.game_id, mod.mod_id) as ModDownloadInfo;
                 let newInfo: any = {};
@@ -102,7 +102,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                 return prev;
             }, `${updatedMods.length} mods updated:\n`);
 
-            const udlTotal: number = modUniqueDLTotal(mods);
+            const udlTotal: number = modUniqueDLTotal(allMods);
 
             if (updatedMods.length) result.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, displayable);
             else result.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, 'No changes required.');
