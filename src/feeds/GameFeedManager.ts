@@ -8,7 +8,7 @@ import { validate, games, updatedMods, modInfo, modChangelogs } from '../api/nex
 import { IModInfoExt } from '../types/util';
 
 const pollTime: number = (1000*60*10); //10 mins
-const timeNew: number = 9000 //How long after publishing a mod is "New" (15mins)
+const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
 
 // Temporary storage for game data during the feed update.
 let allGames: IGameInfo[] | undefined = undefined;
