@@ -3,13 +3,14 @@ import requestPromise from 'request-promise-native'; //For making API requests
 import { NexusUser } from '../types/users';
 import { IGameListEntry, IValidateKeyResponse, IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api'
 import { ModDownloadInfo, NexusSearchResult } from '../types/util';
+const { version } = require('../package.json');
 
 const nexusAPI: string = 'https://api.nexusmods.com/'; //for all regular API functions
 const nexusSearchAPI: string ='https://search.nexusmods.com/mods'; //for quicksearching mods
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
 const requestHeader = {
     'Application-Name': 'Nexus Mods Discord Bot',
-    'Application-Version': 2.0,
+    'Application-Version': version,
     'apikey': '' 
 };
 
