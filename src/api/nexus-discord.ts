@@ -166,7 +166,8 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
             (row: string) => {
                 if (row === '') return;
                 const values = row.split(',');
-                if (values.length !=3) {
+                if (values.length != 4) {
+                    // Since 2021-04-28 the CSV now includes page views as the 4th value.
                     console.log(`Invalid CSV row for ${game.domain_name} (${gameId}): ${row}`);
                     return;
                 }
