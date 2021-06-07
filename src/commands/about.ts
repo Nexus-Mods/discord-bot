@@ -28,7 +28,6 @@ async function run(client: Client, message: Message) {
     .addField('Support', 'If you have feedback or questions about this bot, head over to the [Nexus Mods Discord Server](https://discord.gg/nexusmods).')
     .addField('Stats', 
         `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+
-        `Users: ${client.users.cache.size.toLocaleString()}\n`+
         `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
         `Game Feeds: ${allFeeds.length.toLocaleString()}`
     )
