@@ -132,7 +132,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         await createMod(newMod);
         return { name: modName, value: `- [${newMod.name}](${url}) added.` };
     }
-    catch(err) {
+    catch(err: any) {
         return { name: modName || link, value: err.message };
     }
 
@@ -173,7 +173,7 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
 
         return { name: query, value: messages.join('\n').substr(0, 1024) };
     }
-    catch(err) {
+    catch(err: any) {
         return { name: query, value: err.message };
     }
 
