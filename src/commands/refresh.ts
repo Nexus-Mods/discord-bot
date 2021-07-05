@@ -1,7 +1,7 @@
 import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
-import { getUserByDiscordId, updateUser, updateAllRoles, getModsbyUser, updateMod, modUniqueDLTotal } from "../api/bot-db";
+import { getUserByDiscordId, updateUser, updateAllRoles, getModsbyUser, updateMod, modUniqueDLTotal, deleteMod } from "../api/bot-db";
 import { validate, modInfo, getDownloads } from "../api/nexus-discord";
 import { IValidateKeyResponse, IModInfo } from "@nexusmods/nexus-api";
 import Bluebird from 'bluebird';
@@ -80,8 +80,15 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
             // Using the "any" type is the result of the map is a bastardisation of IModInfo and NexusLinkedMod
             let updatedMods: any[] = [];
+            let deletedMods: any[] = [];
             const allMods = await Bluebird.map(mods, async (mod) => {
                 const info: IModInfo = await modInfo(userData, mod.domain, mod.mod_id);
+                if (info.status = ("removed" || "wastebinned")) {
+                    // If the mod page has been removed, remove it from our database. 
+                    await deleteMod(mod);
+                    deletedMods.push(mod);
+                    return mod;
+                }
                 const dls: ModDownloadInfo = await getDownloads(userData, mod.domain, info.game_id, mod.mod_id) as ModDownloadInfo;
                 let newInfo: any = {};
                 if (info.name && mod.name !== info.name) newInfo.name = info.name;
@@ -102,7 +109,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                 return prev;
             }, `${updatedMods.length} mods updated:\n`);
 
-            const udlTotal: number = modUniqueDLTotal(allMods);
+            const udlTotal: number = modUniqueDLTotal(allMods.filter(mod => deletedMods.indexOf(mod) === -1));
 
             if (updatedMods.length) result.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, displayable);
             else result.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, 'No changes required.');
