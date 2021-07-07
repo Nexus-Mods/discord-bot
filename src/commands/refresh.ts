@@ -83,7 +83,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             let deletedMods: any[] = [];
             const allMods = await Bluebird.map(mods, async (mod) => {
                 const info: IModInfo = await modInfo(userData, mod.domain, mod.mod_id);
-                if (info.status = ("removed" || "wastebinned")) {
+                if (info.status === "removed" || info.status ===  "wastebinned") {
                     // If the mod page has been removed, remove it from our database. 
                     await deleteMod(mod);
                     deletedMods.push(mod);
