@@ -2,7 +2,7 @@ import { NewsArticle } from '../types/feeds';
 import { updateSavedNews, getSavedNews, getAllServers } from '../api/bot-db';
 import { ClientExt } from '../DiscordBot';
 import Parser = require('rss-parser');
-import { Message, MessageEmbed, Guild, GuildChannel, TextChannel } from 'discord.js';
+import { Message, MessageEmbed, Guild, GuildChannel, TextChannel, Snowflake, ThreadChannel } from 'discord.js';
 import { BotServer } from '../types/servers';
 const parser = new Parser({
     customFields: {
@@ -69,13 +69,13 @@ export class NewsFeedManager {
 
             console.log(`${new Date().toLocaleString()} - Publishing news post ${latest.title} to ${allServers.length} servers.`);
             for (const server of allServers) {
-                const guildId: string | undefined = (server as BotServer).id;
-                const channelId: string | undefined = server.channel_news;
+                const guildId: Snowflake | undefined = (server as BotServer).id;
+                const channelId: Snowflake | undefined = server.channel_news;
                 const guild: Guild | undefined = channelId ? await NewsFeedManager.instance.client.guilds.fetch(guildId).catch(() => undefined) : undefined;
                 if (!guild) continue;
-                const channel: GuildChannel | null = channelId ? guild.channels.resolve(channelId) : null;
+                const channel: GuildChannel | ThreadChannel | null = channelId ? guild.channels.resolve(channelId) : null;
                 if (!channel) continue;
-                (channel as TextChannel).send(post).catch((err) => console.log(`${new Date().toLocaleString()} - Failed to post news in ${guild}.`, err));
+                (channel as TextChannel).send({ embeds: [post] }).catch((err) => console.log(`${new Date().toLocaleString()} - Failed to post news in ${guild}.`, err));
             }
 
             if (!domain) {

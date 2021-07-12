@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, User, MessageEmbed } from "discord.js";
+import { Client, Message, GuildChannel, DMChannel, TextChannel, User, MessageEmbed, Snowflake, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getUserByDiscordId, userEmbed, getAllUsers } from "../api/users";
@@ -14,7 +14,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel| DMChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel| DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const discordId: string = message.author.id;
     const prefix: string = replyChannel === message.channel ? message.author.username : message.author.toString();
 
@@ -32,7 +32,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     // If the bot is pinged.
     if (message.mentions.users.first() === client.user || query === client.user?.username || query === client.user?.tag) {
-        return (replyChannel as TextChannel).send('That\'s me!', await userEmbed(botUser(client), message, client)).catch(() => undefined);
+        return (replyChannel as TextChannel).send({content: 'That\'s me!',  embeds: [await userEmbed(botUser(client), message, client)] }).catch(() => undefined);
     }
 
     // Get all the user accounts to make searching easier.
@@ -57,11 +57,11 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     // Check if we should display the result, return if the user isn't in the current server.
     const isMe: boolean = userData.d_id === message.author.id;
     const inGuild: boolean = !!foundServers.find(link => link.server_id === message.guild?.id);
-    if (!isMe || !inGuild) return (replyChannel as TextChannel).send(replyChannel === message.channel ? '' : message.author, notAllowed(client, message)).catch(() => undefined);
+    if (!isMe || !inGuild) return (replyChannel as TextChannel).send({content: replyChannel === message.channel ? '' : message.author.toString(), embeds: [notAllowed(client, message)] }).catch(() => undefined);
 
     // Send the profile card.
     const embed: MessageEmbed|void = await userEmbed(foundNexus, message, client).catch(console.error);
-    if (embed) return (replyChannel as TextChannel).send(replyChannel !== message.channel ? prefix: '', embed).catch(() => undefined);
+    if (embed) return (replyChannel as TextChannel).send({ content: replyChannel !== message.channel ? prefix: '', embeds: [embed] }).catch(() => undefined);
 
 }
 
@@ -90,9 +90,9 @@ const notAllowed = (client: Client, message: Message): MessageEmbed => {
 }
 
 const botUser = (client: Client): NexusUser => {
-    const d_id = client.user?.id ? client.user?.id.toString() : '';
+    const d_id: Snowflake = client.user?.id ? client.user?.id.toString() as Snowflake : '' as Snowflake;
     const avatar_url = client.user?.avatarURL() || '';
-    const servers: NexusUserServerLink[] = client.guilds.cache.map(g => { return { server_id: g.id, user_id: 1234042 } })
+    const servers: NexusUserServerLink[] = client.guilds.cache.map(g => { return { server_id: g.id as Snowflake, user_id: 1234042 } })
 
     return {
         d_id,

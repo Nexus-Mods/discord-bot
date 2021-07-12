@@ -1,7 +1,7 @@
 import query from '../api/dbConnect';
 import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
-import { Client, MessageEmbed, Message, User, Guild } from 'discord.js';
+import { Client, MessageEmbed, Message, User, Guild, Snowflake } from 'discord.js';
 import { getModsbyUser, getLinksByUser } from './bot-db';
 
 async function getAllUsers(): Promise<NexusUser[]> {
@@ -13,7 +13,7 @@ async function getAllUsers(): Promise<NexusUser[]> {
     });
 }
 
-async function getUserByDiscordId(discordId: string): Promise<NexusUser> {
+async function getUserByDiscordId(discordId: string | Snowflake): Promise<NexusUser> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);

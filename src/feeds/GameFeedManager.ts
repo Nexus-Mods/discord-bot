@@ -112,7 +112,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         .catch(() => Promise.reject(`Unable to find user data for ${discordUser}`));
     const guild: Guild|null = client.guilds.resolve(feed.guild);
     const channel: TextChannel|null = guild ? (guild.channels.resolve(feed.channel) as TextChannel) : null;
-    const webHook: WebhookClient = new WebhookClient(feed.webhook_id || '', feed.webhook_token || '');
+    let webHook: WebhookClient | undefined = undefined;
+    if (feed.webhook_id && feed.webhook_token) webHook = new WebhookClient(feed.webhook_id, feed.webhook_token);
     const botMember: GuildMember|null = guild ? guild.me : null;
     const botPerms: Readonly<Permissions>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
 
@@ -146,7 +147,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     try {
         await validate(userData.apikey);
     }
-    catch(err) {
+    catch(err: any) {
         if (err.includes('401')) {
             if (client.config.testing) return;
             await deleteGameFeed(feed._id);
@@ -223,10 +224,14 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
         console.log(`${tn()} - Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
 
-        webHook.send(feed.message, {embeds: modEmbeds, split: true}).catch(() => {
+        if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).catch(() => {
             if (feed.message) channel?.send(feed.message).catch(() => undefined);
-            modEmbeds.forEach(mod => channel?.send(mod).catch(() => undefined));
+            modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
         });
+        else {
+            if (feed.message) channel?.send(feed.message).catch(() => undefined);
+            modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
+        }
         
     }
     catch(err) {

@@ -1,4 +1,4 @@
-import { Client, Message, TextChannel, GuildChannel, DMChannel } from 'discord.js';
+import { Client, Message, TextChannel, GuildChannel, DMChannel, ThreadChannel } from 'discord.js';
 import { BotServer } from '../types/servers';
 import { getUserByDiscordId, deleteUser, getLinksByUser, deleteAllServerLinksByUser, deleteServerLink } from '../api/bot-db';
 import { NexusUser, NexusUserServerLink } from '../types/users';
@@ -13,7 +13,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], serverData: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const replyPrefix: string = replyChannel === message.channel ? `${message.author.toString()} - `: ''
     const discordId: string = message.author.id;
 
@@ -39,7 +39,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
             await deleteUser(discordId);
             (replyChannel as TextChannel).send(`The link to your Nexus Mods account "${userData.name}" in was removed successfully in ${userServers?.length || 0} servers and your API key has been removed.\nSee \`!nexus link\` to reconnect your account.`).catch(console.error);
         }
-        catch(err) {
+        catch(err: any) {
             await (replyChannel as TextChannel).send(`There was a problem unlinking your account: ${err.message}`).catch(() => undefined);
             console.log(`Unlink failed for ${userData.name} (${message.author.tag})`, err);
         }

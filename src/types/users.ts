@@ -1,5 +1,7 @@
+import { Snowflake } from 'discord.js';
+
 interface NexusUser {
-    d_id: string;
+    d_id: Snowflake;
     id: number;
     name: string;
     avatar_url?: string;
@@ -13,7 +15,7 @@ interface NexusUser {
 
 interface NexusUserServerLink {
     user_id: number;
-    server_id: string;
+    server_id: Snowflake;
 }
 
 interface NexusLinkedMod {

@@ -1,4 +1,6 @@
 
+import { Snowflake } from 'discord.js';
+
 export interface GameFeed extends Feed {
     domain: string;
     title: string;
@@ -25,10 +27,10 @@ export interface ModFeed extends Feed {
 
 interface Feed {
     _id: number;
-    channel: string;
-    guild: string;
-    owner: string;
-    webhook_id?: string;
+    channel: Snowflake;
+    guild: Snowflake;
+    owner: Snowflake;
+    webhook_id?: Snowflake;
     webhook_token?: string;
     last_timestamp: Date;
     created?: Date;

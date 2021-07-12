@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed } from "discord.js";
+import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp, InfoCache, PostableInfo, InfoResult } from "../types/util";
 import { getAllInfos, displayInfo } from "../api/bot-db";
@@ -16,7 +16,7 @@ let cachedInfo: InfoCache;
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = (replyChannel as TextChannel);
     const prefix = rc === message.channel ? '' : `${message.author.toString()}`
 
@@ -31,13 +31,13 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const data: InfoResult[] = await getAllInfos().catch(() => []);
 
 
-    if (!args.length) return rc.send(prefix, helpEmbed(client, message, data)).catch(() => undefined);
+    if (!args.length) return rc.send({content: prefix, embeds: [helpEmbed(client, message, data)]}).catch(() => undefined);
 
     const query: string = args[0].toLowerCase();
     const result: InfoResult|undefined = data.find(i => i.name.toLowerCase() === query);
-    if (!result) return rc.send(prefix, notFound(client, message, query)).catch(() => undefined);
+    if (!result) return rc.send({ content: prefix, embeds: [notFound(client, message, query)] }).catch(() => undefined);
     const postable: PostableInfo = displayInfo(client, message, result);
-    message.channel.send(postable.content, postable.embed).catch(() => undefined);
+    message.channel.send({ content: postable.content, embeds: postable.embed ? [postable.embed] : undefined }).catch(() => undefined);
     message.delete().catch(() => undefined);
 }
 

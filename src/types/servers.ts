@@ -1,17 +1,19 @@
+import { Snowflake } from 'discord.js';
+
 export interface BotServer {
-    id: string;
+    id: Snowflake;
     official: boolean;
-    channel_bot?: string;
-    channel_nexus?: string;
-    channel_log?: string;
-    channel_news?: string;
-    role_author?: string;
-    role_premium?: string;
-    role_supporter?: string;
-    role_linked?: string;
+    channel_bot?: Snowflake;
+    channel_nexus?: Snowflake;
+    channel_log?: Snowflake;
+    channel_news?: Snowflake;
+    role_author?: Snowflake;
+    role_premium?: Snowflake;
+    role_supporter?: Snowflake;
+    role_linked?: Snowflake;
     author_min_downloads: number;
     game_filter?: number;
-    search_whid?: string;
+    search_whid?: Snowflake;
     search_whtoken?: string;
-    server_owner: string;
+    server_owner: Snowflake;
 }

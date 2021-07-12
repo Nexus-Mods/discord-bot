@@ -1,5 +1,5 @@
 import { CommandHelp } from "../types/util";
-import { Client, Message, MessageEmbed, Guild, Role, GuildChannel } from "discord.js";
+import { Client, Message, MessageEmbed, Guild, Role, GuildChannel, ThreadChannel, GuildMember } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser } from "../types/users";
 import { getUserByDiscordId, updateServer } from "../api/bot-db";
@@ -19,13 +19,13 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     // Ignore this command in DMs
     if (!message.guild || !server) return;
 
-    if (!message.member?.hasPermission('ADMINISTRATOR')) return message.channel.send('Server configuration is only available to admininstrators.').catch(() => undefined);
+    if (!message.member?.permissions.has('ADMINISTRATOR')) return message.channel.send('Server configuration is only available to admininstrators.').catch(() => undefined);
 
     const user: NexusUser|undefined = await getUserByDiscordId(message.author.id).catch(() => undefined);
     const allGames: IGameInfo[] = user? await games(user) : [];
     const filterGame: IGameInfo|undefined = allGames.length && server.game_filter ? allGames.find(g => g.id.toString() === server.game_filter?.toString()) : undefined;
 
-    if (!args.length) return message.channel.send(serverEmbed(client, message.guild, server, filterGame?.name)).catch(() => undefined);
+    if (!args.length) return message.channel.send({ embeds: [await serverEmbed(client, message.guild, server, filterGame?.name)] }).catch(() => undefined);
 
     let newData: any = {name: '', new: undefined, data: {}};
     
@@ -79,9 +79,9 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     try {
         await updateServer(server.id, newData.data)
-        return message.channel.send(updateEmbed(newData)).catch(() => undefined);        
+        return message.channel.send({ embeds: [updateEmbed(newData)] }).catch(() => undefined);        
     }
-    catch(err) {
+    catch(err: any) {
         return message.channel.send(`Error updating your server data: ${err.message || err}`).catch(() => undefined)
     }
 
@@ -103,15 +103,16 @@ const updateEmbed = (data: any): MessageEmbed => {
     .setDescription(`${data.name} updated from ${curVal} to ${newVal}`);
 }
 
-const serverEmbed = (client: Client, guild: Guild, server: BotServer, gameName?: string): MessageEmbed => {
+const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameName?: string): Promise<MessageEmbed> => {
     const linkedRole: Role|null = server.role_linked ? guild.roles.resolve(server.role_linked) : null;
     const premiumRole: Role|null = server.role_premium ? guild.roles.resolve(server.role_premium) : null;
     const supporterRole: Role|null = server.role_supporter ? guild.roles.resolve(server.role_supporter) : null;
     const authorRole: Role|null = server.role_author ? guild.roles.resolve(server.role_author) : null;
-    const botChannel: GuildChannel|null = server.channel_bot ? guild.channels.resolve(server.channel_bot) : null;
-    const nexusChannel: GuildChannel|null = server.channel_nexus ? guild.channels.resolve(server.channel_nexus) : null;
-    const logChannel: GuildChannel|null = server.channel_log ? guild.channels.resolve(server.channel_log) : null;
-    const newsChannel: GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
+    const botChannel: ThreadChannel | GuildChannel|null = server.channel_bot ? guild.channels.resolve(server.channel_bot) : null;
+    const nexusChannel: ThreadChannel | GuildChannel|null = server.channel_nexus ? guild.channels.resolve(server.channel_nexus) : null;
+    const logChannel: ThreadChannel | GuildChannel|null = server.channel_log ? guild.channels.resolve(server.channel_log) : null;
+    const newsChannel: ThreadChannel|GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
+    const owner: GuildMember = await guild.fetchOwner();
 
     const embed = new MessageEmbed()
     .setAuthor(guild.name, guild.iconURL() || '')
@@ -135,7 +136,7 @@ const serverEmbed = (client: Client, guild: Guild, server: BotServer, gameName?:
         'Search', 
         `Showing ${server.game_filter ? `mods from ${gameName || server.game_filter}` : 'all games' }. - set using \`filter <game name/domain>\``
     )
-    .setFooter(`Server ID: ${guild.id} | Owner: ${guild.owner?.user.tag}`, client.user?.avatarURL() || '');
+    .setFooter(`Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, client.user?.avatarURL() || '');
 
     if (newsChannel || logChannel) embed.addField('Depreciated Channels', `News: ${newsChannel?.toString() || 'n/a'}, Log: ${logChannel?.toString() || 'n/a'}`);
     if (server.official) embed.addField('Official Nexus Mods Server', 'This server is an official Nexus Mods server, all bot functions are enabled.');

@@ -1,6 +1,6 @@
 import { ClientExt } from '../DiscordBot';
 import { GameFeedManager } from '../feeds/GameFeedManager';
-import { MessageEmbed, Guild, GuildChannel, TextChannel } from 'discord.js';
+import { MessageEmbed, Guild, GuildChannel, TextChannel, Snowflake, ThreadChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
 import { ModFeedManager } from '../feeds/ModFeedManager';
@@ -43,14 +43,15 @@ async function main (client: ClientExt) {
             continue;
         }
         if ((server as BotServer).channel_nexus) {
-            const channelId: string | undefined = (server as BotServer).channel_nexus
+            const channelId: Snowflake | undefined = (server as BotServer).channel_nexus
             if (!channelId) continue;
-            const postChannel: GuildChannel | null = guild.channels.resolve(channelId);
+            const postChannel: GuildChannel | ThreadChannel | null = guild.channels.resolve(channelId);
             if (!postChannel) {
                 console.log(`${timeNow()} - Could not get Nexus Log channel for ${guild}`);
                 continue;
-            };            onlineEmbed.setTimestamp(new Date());
-            (postChannel as TextChannel).send(onlineEmbed).catch((err) =>console.log(`${timeNow()} - Error posting online notice to log channel in ${guild.name}`, err))
+            };            
+            onlineEmbed.setTimestamp(new Date());
+            (postChannel as TextChannel).send({embeds: [onlineEmbed]}).catch((err) =>console.log(`${timeNow()} - Error posting online notice to log channel in ${guild.name}`, err))
         }
     }
 

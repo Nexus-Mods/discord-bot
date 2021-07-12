@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, TextChannel, DMChannel, MessageEmbed, EmbedFieldData } from "discord.js";
+import { Client, Message, GuildChannel, TextChannel, DMChannel, MessageEmbed, EmbedFieldData, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from "../api/bot-db";
@@ -19,7 +19,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = (replyChannel as TextChannel);
     const prefix = rc === message.channel ? '' : `${message.author.toString()} - `
     const discordId: string = message.author.id;
@@ -34,7 +34,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     // Get started by sending a working message and processing the query.
     let embed: MessageEmbed = startUpEmbed(client, message, userData);
-    const msg: Message|undefined = await rc.send(message.channel === rc ? '' : message.author, embed).catch(() => undefined);
+    const msg: Message|undefined = await rc.send({ content: message.channel === rc ? '' : message.author. toString(), embeds: [embed] }).catch(() => undefined);
     if (!msg) return console.log(`${new Date().toLocaleString()} - Could not post addmod message, aborting.`, userData.name, message.guild);
 
     let queries: string[] = args.join(' ').split(',').slice(0, 25);
@@ -44,7 +44,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     console.log(`${new Date().toLocaleString()} - ${queries.length} addmod queries sent by ${userData.name} (${message.author.tag})`, urlQueries, strQueries);
 
     embed.setTitle(`Checking for ${queries.length} mod(s)...`);
-    await msg.edit({ embed }).catch(() => undefined);
+    await msg.edit({ embeds: [embed] }).catch(() => undefined);
 
     try {
         const allGames: IGameInfo[] = await games(userData);
@@ -63,14 +63,14 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
         await updateAllRoles(client, userData, message.author, false);
 
-        return msg.edit(embed).catch(() => undefined);
+        return msg.edit({ embeds : [embed] }).catch(() => undefined);
 
     }
     catch (err) {
         embed.setColor(0xff000);
         embed.setTitle('An error occurred adding this mod');
         embed.setDescription(`Error details:\n\'\'\'${JSON.stringify(err, null, 2)}\'\'\'\nPlease try again later. If this problem persists please report it to Nexus Mods.`);
-        return msg.edit(embed).catch(() => undefined);
+        return msg.edit({ embeds : [embed] }).catch(() => undefined);
     }
 
 }

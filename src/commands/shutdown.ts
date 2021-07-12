@@ -1,4 +1,4 @@
-import { Message, User, MessageReaction, MessageEmbed, TextChannel } from "discord.js";
+import { Message, User, MessageReaction, MessageEmbed, TextChannel, ReactionCollector } from "discord.js";
 import { ClientExt } from "../DiscordBot";
 import { getAllServers } from "../api/bot-db";
 
@@ -8,7 +8,7 @@ async function run(client: ClientExt, message: Message) {
     const shutdownMsg: Message|undefined = await message.reply('Are you sure you want to shut down the Discord bot?').catch(() => undefined);
     if (!shutdownMsg) return;
     const filter = (reaction: MessageReaction, user: User) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❌') && user.id === message.author.id;
-    const collect = shutdownMsg?.createReactionCollector(filter, { time: 15000, max: 1 });
+    const collect: ReactionCollector = shutdownMsg?.createReactionCollector({ filter, time: 15000, max: 1 });
     shutdownMsg.react('✅');
     shutdownMsg.react('❌');
 
@@ -37,7 +37,7 @@ async function sendShutdownMessages(client: ClientExt) {
         const guild = client.guilds.resolve(server.id);
         const channel = guild && server.channel_nexus ? guild.channels.resolve(server.channel_nexus) : undefined;
         if (!guild || !channel) continue;
-        (channel as TextChannel).send(embed).catch(() => undefined);
+        (channel as TextChannel).send({embeds: [embed]}).catch(() => undefined);
     }
 }
 
