@@ -1,10 +1,8 @@
-import { CommandInteraction, Snowflake, MessageEmbed, Client, Message, Interaction, User, Guild } from "discord.js";
+import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Guild } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/util";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
-
-const apiCollectorDuration = 60000;
 
 const discordInteraction: DiscordInteraction = {
     command: {
@@ -17,7 +15,7 @@ const discordInteraction: DiscordInteraction = {
             required: false,
         }]
     },
-    public: false,
+    public: true,
     guilds: [
         '581095546291355649'
     ],
