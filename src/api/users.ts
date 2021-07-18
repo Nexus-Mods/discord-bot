@@ -13,7 +13,7 @@ async function getAllUsers(): Promise<NexusUser[]> {
     });
 }
 
-async function getUserByDiscordId(discordId: string | Snowflake): Promise<NexusUser> {
+async function getUserByDiscordId(discordId: Snowflake | string): Promise<NexusUser> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
