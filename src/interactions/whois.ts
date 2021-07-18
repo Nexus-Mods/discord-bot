@@ -64,12 +64,12 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     }
 
     if (!userData) {
-        interaction.followUp('You need to link a Nexus Mods account to use this feature. See /link for more.');
+        interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', ephemeral: true});
         return;
     }
 
     if (!nexus && !user) {
-        interaction.followUp('You must provide a Discord user or Nexus Mods username.');
+        interaction.followUp({ content: 'You must provide a Discord user or Nexus Mods username.', ephemeral: true});
         return;
     }
 
@@ -106,7 +106,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
                         
     }
     catch (err: any) {
-        interaction.followUp('Error looking up users.');
+        interaction.followUp({ content: 'Error looking up users.', ephemeral: true});
         console.error('Error looking up users from slash command', err);
         return;
     }
