@@ -114,13 +114,18 @@ export class DiscordBot {
 
                 const guild: Guild | undefined = this.client.guilds.cache.get(guildId as Snowflake);
 
+                if (!guild) {
+                    console.warn('Unable to set up slash commands for invalid guild', guildId);
+                    continue;
+                }
+
                 if (!guildCommandList.length) {
                     console.log(`No non-global commands for ${guild?.name}, skipping.`);
-                    guild?.commands.set([]);
-                    continue
+                    guild.commands.set([]).catch(err => console.warn(`Unable to reset guild command list for ${guild.name}`, err));
+                    continue;
                 };
                 
-                guild?.commands.set(guildCommandList)
+                guild.commands.set(guildCommandList)
                     .then(() => console.log(`Set guild slash commands for ${guild.name}`, guildCommandList.map(c => c.name)))
                     .catch(err => console.error(`Failed to set up guild slash commands for ${guild?.name}`, err))
             }
