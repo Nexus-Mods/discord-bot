@@ -33,7 +33,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         userServers = userData ? await getLinksByUser(userData?.id) : undefined;
     }
-    catch(err: any) {
+    catch(err) {
         console.error('Error checking if user exists in DB when linking', err);
     }
 

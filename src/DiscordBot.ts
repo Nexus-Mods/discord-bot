@@ -110,7 +110,7 @@ export class DiscordBot {
             for(const guildId of guildToSet) {
                 const guildCommandList: ApplicationCommandData[] = guildCommands[guildId]
                 // UNCOMMENT WHEN READY, FILER DUPLICATE PUBLIC COMMANDS (for testing we want them to duplicate due to the delay in updating commands in Discord).
-                    // .filter(c => !allCommands.find(gc => gc.name === c.name));
+                    .filter(c => !allCommands.find(gc => gc.name === c.name));
 
                 const guild: Guild | undefined = this.client.guilds.cache.get(guildId as Snowflake);
 
