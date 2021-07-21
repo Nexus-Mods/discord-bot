@@ -88,3 +88,5 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     }
 }
+
+export { discordInteraction };
