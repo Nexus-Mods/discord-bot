@@ -11,7 +11,7 @@ const discordInteraction: DiscordInteraction = {
         options: [{
             name: 'apikey',
             type: 'STRING',
-            description: 'Blah blah blah',
+            description: 'Provide your API key for your Nexus Mods account',
             required: false,
         }]
     },
