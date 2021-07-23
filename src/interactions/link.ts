@@ -75,7 +75,7 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
     // const reply = await message.reply('Checking your API key...').catch(() => undefined);
 
     try {
-        const d_id = interact.member?.user.id;
+        const d_id = interact.user.id;
         if (!d_id) throw new Error('Could not resolve Discord ID');
         const apiData = await validate(key);
         const userData: NexusUser = {
