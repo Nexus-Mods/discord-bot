@@ -34,7 +34,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     // Get started by sending a working message and processing the query.
     let embed: MessageEmbed = startUpEmbed(client, message, userData);
-    const msg: Message|undefined = await rc.send({ content: message.channel === rc ? '' : message.author. toString(), embeds: [embed] }).catch(() => undefined);
+    const msg: Message|undefined = await rc.send({ content: message.channel === rc ? undefined : message.author.toString(), embeds: [embed] }).catch(() => undefined);
     if (!msg) return console.log(`${new Date().toLocaleString()} - Could not post addmod message, aborting.`, userData.name, message.guild?.name);
 
     let queries: string[] = args.join(' ').split(',').slice(0, 25);
