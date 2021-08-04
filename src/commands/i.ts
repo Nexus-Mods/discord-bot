@@ -37,7 +37,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const result: InfoResult|undefined = data.find(i => i.name.toLowerCase() === query);
     if (!result) return rc.send({ content: prefix, embeds: [notFound(client, message, query)] }).catch(() => undefined);
     const postable: PostableInfo = displayInfo(client, message, result);
-    message.channel.send({ content: postable.content, embeds: postable.embed ? [postable.embed] : undefined }).catch(() => undefined);
+    message.channel.send({ content: postable.content || undefined, embeds: postable.embed ? [postable.embed] : undefined }).catch((err) => console.log(err));
     message.delete().catch(() => undefined);
 }
 
