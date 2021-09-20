@@ -34,7 +34,7 @@ async function run(client: Client, message: Message) {
     .setFooter(`Uptime: ${upTime}`, client.user?.avatarURL() || '')
     .setTimestamp(new Date());
 
-    return message.channel.send(info);
+    return message.channel.send({ embeds: [info] });
     
 }
 

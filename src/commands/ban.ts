@@ -16,8 +16,8 @@ const help: CommandHelp = {
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     if (!message.guild || !server.official) return;
 
-    if (!message.member?.hasPermission('BAN_MEMBERS')) return;
-    if (!message.guild.me?.hasPermission('BAN_MEMBERS')) return message.author.send(`I can't complete the requested ban in ${message.channel} as I don't have the required permissions.`).catch(() => undefined);
+    if (!message.member?.permissions.has('BAN_MEMBERS')) return;
+    if (!message.guild.me?.permissions.has('BAN_MEMBERS')) return message.author.send(`I can't complete the requested ban in ${message.channel} as I don't have the required permissions.`).catch(() => undefined);
 
     if (!args.length) {
         message.author.send(`Ban failed in ${message.channel.toString()} (${message.guild.name}). Please specify a user to ban in the following format and attach a screenshot if required. \n \`!nexus ban {discordping} {reason} {?number of posts to remove (days)}\``).catch(() => undefined);
@@ -56,25 +56,25 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     // Post a message to the nexus log channel
     const banLogMessage: Message|undefined = logChannel 
-        ? await logChannel.send(logEmbed(message.member, banMember, banReason, postDays, evidence, banMemberNexus)).catch(() => undefined)
+        ? await logChannel.send({ embeds: [logEmbed(message.member, banMember, banReason, postDays, evidence, banMemberNexus)] }).catch(() => undefined)
         : undefined;
     
     // DM the user (if possible)
-    await banMember.user.send(youAreBanned(client, message.guild, banReason)).catch(() => {
+    await banMember.user.send({ embeds: [youAreBanned(client, message.guild, banReason)] }).catch(() => {
         if (logChannel) logChannel.send(`${banMember.user.tag} does not accept DMs, so I could not inform them of the ban reason.`).catch(() => undefined);
     });
 
-    const lastPostChannel: TextChannel | undefined = banMember.lastMessage?.channel as TextChannel;
+    // const lastPostChannel: TextChannel | undefined = banMember.lastMessage?.channel as TextChannel;
     const channelNotice = channelEmbed(banMember, banLogMessage);
 
-    if (lastPostChannel && lastPostChannel !== message.channel && lastPostChannel !== logChannel) lastPostChannel.send(channelNotice).catch(() => undefined);
-    message.channel.send(channelNotice).catch(() => undefined);
+    // if (lastPostChannel && lastPostChannel !== message.channel && lastPostChannel !== logChannel) lastPostChannel.send({ embeds: [channelNotice] }).catch(() => undefined);
+    message.channel.send({ embeds: [channelNotice] }).catch(() => undefined);
 
     try {
         await banMember.ban({ days: postDays, reason: banReason });
         console.log(`${new Date().toLocaleString()} - ${banMember.user.username} (${banMember.user.tag}) has been banned by ${message.author.tag}`);
     }   
-    catch(err) {
+    catch(err: any) {
         message.reply(`${new Date().toLocaleString()} - There was an error banning ${banMember.user.toString()}. You may need to do it manually. \n${err.message}`);
     }
 

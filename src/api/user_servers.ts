@@ -3,7 +3,7 @@ import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { BotServer } from '../types/servers';
 import { getAllServers, getServer } from './bot-db';
-import { Client, User, Guild, GuildMember, Role, GuildChannel, MessageEmbed, TextChannel } from 'discord.js';
+import { Client, User, Guild, GuildMember, Role, GuildChannel, MessageEmbed, TextChannel, ThreadChannel, Snowflake, RoleResolvable } from 'discord.js';
 import { getModsbyUser } from './user_mods';
 import { NexusSearchResult } from '../types/util';
 
@@ -62,16 +62,16 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         // If the user isn't a member of this guild we can exit.
         if (!guildMember) return resolve();
 
-        const nexusLogChannel: GuildChannel|undefined|null = guildData.channel_nexus ? guild.channels.resolve(guildData.channel_nexus) : undefined;
+        const nexusLogChannel: GuildChannel|ThreadChannel|undefined|null = guildData.channel_nexus ? guild.channels.resolve(guildData.channel_nexus) : undefined;
 
         // Check we can actually assign roles.
         const botMember = client.user ? await guild.members.fetch(client.user.id): undefined;
-        if (!botMember || !botMember.hasPermission('MANAGE_ROLES')) {
+        if (!botMember || !botMember.permissions.has('MANAGE_ROLES')) {
             console.log(`${new Date().toLocaleString()} - Permissions in ${guild.name} do not allow role assignment.`);
             return resolve();
         }
 
-        let rolesToAdd: string[] = [];
+        let rolesToAdd: RoleResolvable[] = [];
         
         // Get the roles
         const premiumRole: (Role | null) = guildData.role_premium ? await guild.roles.fetch(guildData.role_premium) : null;
@@ -81,19 +81,19 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         const modAuthorDownloads: number = guildData.author_min_downloads || 1000;
 
         // Collect all the ids for removal. 
-        const allRoles = [
-            premiumRole ? premiumRole.id : '', 
-            supporterRole ? supporterRole.id : '', 
-            linkedRole ? linkedRole.id : '', 
-            modAuthorRole ? modAuthorRole.id : ''
-        ];
+        const allRoles: (RoleResolvable|undefined)[] = [
+            premiumRole ? premiumRole.id : undefined, 
+            supporterRole ? supporterRole.id : undefined, 
+            linkedRole ? linkedRole.id : undefined, 
+            modAuthorRole ? modAuthorRole.id : undefined
+        ].filter(r => r !== undefined);
 
         // Remove all roles if we're unlinking.
         if (bRemove) {
             console.log(`${new Date().toLocaleString()} - Removing roles from ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
-            guildMember.roles.remove(allRoles.filter(r => r !== ''), 'Nexus Mods Discord unlink')
+            guildMember.roles.remove(allRoles as RoleResolvable[], 'Nexus Mods Discord unlink')
                 .catch(err => console.log(`${new Date().toLocaleString()} - Could not remove roles from ${userData.name} in ${guild.name}`, err.message));
-            if (nexusLogChannel) (nexusLogChannel as TextChannel).send(linkEmbed(userData, discordUser, true)).catch(() => undefined);
+            if (nexusLogChannel) (nexusLogChannel as TextChannel).send({ embeds: [linkEmbed(userData, discordUser, true)] }).catch(() => undefined);
             return resolve();
         }
 
@@ -124,7 +124,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
         const existingLink: NexusUserServerLink|undefined = links.find(l => l.server_id === guild.id);
-        if (nexusLogChannel && !existingLink) (nexusLogChannel as TextChannel).send(linkEmbed(userData, discordUser)).catch(() => undefined);
+        if (nexusLogChannel && !existingLink) (nexusLogChannel as TextChannel).send({ embeds: [linkEmbed(userData, discordUser)] }).catch(() => undefined);
         
         return resolve();
 

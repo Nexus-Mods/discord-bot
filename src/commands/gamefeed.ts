@@ -1,4 +1,4 @@
-import { Client, Message, MessageEmbed, EmbedFieldData, GuildMember, MessageReaction, User, TextChannel, Webhook, Collection } from "discord.js";
+import { Client, Message, MessageEmbed, EmbedFieldData, GuildMember, MessageReaction, User, TextChannel, Webhook, Collection, ReactionCollector, Collector, MessageCollector } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp } from "../types/util";
 import { getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed, getUserByDiscordId, createGameFeed } from "../api/bot-db";
@@ -22,7 +22,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     if (!message.guild) message.reply('This feature is not available in DMs.').catch(() => undefined);
 
     // Tutorial of no args have been sent. 
-    if (!args.length) return message.channel.send(await tutorialEmbed(client, message)).catch(() => undefined);
+    if (!args.length) return message.channel.send({embeds: [await tutorialEmbed(client, message)]}).catch(() => undefined);
 
     // Catch command to edit the existing feed.
     if (args[0].toLowerCase() === 'edit' && args[1].startsWith('#')) {
@@ -32,13 +32,13 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         const feed: GameFeed|undefined = await getGameFeed(feedId).catch(() => undefined);
         if (!feed) return message.channel.send(`Could not find a feed with ID: ${feedId}`).catch(() => undefined);
         const owner: GuildMember | undefined = message.guild?.members.resolve(feed.owner) || undefined;
-        if (message.member !== owner && !message.member?.hasPermission('MANAGE_CHANNELS')) return message.channel.send("You do not have permission to edit this feed.").catch(() => undefined); 
+        if (message.member !== owner && !message.member?.permissions.has('MANAGE_CHANNELS')) return message.channel.send("You do not have permission to edit this feed.").catch(() => undefined); 
         if (feed.guild !== message.guild?.id) return message.channel.send(`Feed #${feedId} can only be managed from the server it was created in.`).catch(() => undefined);
         return manageFeed(client, message, feed).catch((err) => message.channel.send(`Something went wrong managing your feed: ${err.message}`).catch(() => undefined));
     }
 
     // Prevent non-moderators from setting up the feed.
-    if (!message.member?.hasPermission('MANAGE_CHANNELS')) return message.channel.send('Gamefeeds can only be created or managed by server moderators with the "Manage Channels" permission.').catch(() => undefined);
+    if (!message.member?.permissions.has('MANAGE_CHANNELS')) return message.channel.send('Gamefeeds can only be created or managed by server moderators with the "Manage Channels" permission.').catch(() => undefined);
 
     // Get user data
     const userData: NexusUser|undefined = await getUserByDiscordId(message.author.id).catch(() => undefined);
@@ -54,24 +54,24 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         gameForFeed = allGames.find(g => g.name.toLowerCase() === query || g.domain_name.toLowerCase() === query );
         if (!gameForFeed) throw new Error(`No matching game for ${query}`);
     }
-    catch(err) {
+    catch(err: any) {
         return newFeedMsg?.edit(`Error in game lookup: ${err.message || err}`).catch(() => undefined);
     }
 
     const confirm = confirmEmbed(client, message, gameForFeed, userData, nsfw);
-    newFeedMsg?.edit('', confirm).catch(() => undefined);
-    const filter = (reaction: MessageReaction, user: User) => (['✅', '❌'].includes(reaction.emoji.name) && user.id === message.author.id);
-    const collector = newFeedMsg?.createReactionCollector(filter, { max: 1, time: 15000 });
+    newFeedMsg?.edit({ content: '', embeds: [confirm] }).catch(() => undefined);
+    const filter = (reaction: MessageReaction, user: User) => (!!reaction.emoji.name && ['✅', '❌'].includes(reaction.emoji.name) && user.id === message.author.id);
+    const collector: ReactionCollector | undefined = newFeedMsg?.createReactionCollector({ filter, max: 1, time: 15000 });
     newFeedMsg?.react('✅');
     newFeedMsg?.react('❌');
 
     collector?.on('collect', async r => {
         // Cancel
-        if (r.emoji.name === '❌') return newFeedMsg?.edit('Game feed setup cancelled.', { embed: null }).catch(() => undefined);
+        if (r.emoji.name === '❌') return newFeedMsg?.edit({ content: 'Game feed setup cancelled.', embeds: null }).catch(() => undefined);
         // Create
         let gameHook: Webhook|undefined;
         const webHooks: Collection<string, Webhook>|undefined = await message.guild?.fetchWebhooks().catch(() => undefined);
-        const existing: Webhook|undefined = webHooks?.find(wh => wh.channelID === message.channel.id && wh.name === 'Nexus Mods Game Feed');
+        const existing: Webhook|undefined = webHooks?.find(wh => wh.channelId === message.channel.id && wh.name === 'Nexus Mods Game Feed');
         if (!existing) gameHook = await (message.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'} ).catch(() => undefined);
         else gameHook = existing;
 
@@ -92,19 +92,19 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         try {
             const id = await createGameFeed(newFeed);
             console.log(new Date().toLocaleString() + ` - Game feed created for ${gameForFeed?.name} in ${(message.channel as TextChannel).name} at ${message.guild?.name} by ${message.author.tag} successfully. Reference #${id}`);
-            await newFeedMsg?.edit('', { embed: successEmbed(message, newFeed, gameForFeed, id) }).catch(() => undefined);
+            await newFeedMsg?.edit({ content: null, embeds: [successEmbed(message, newFeed, gameForFeed, id)] }).catch(() => undefined);
             return newFeedMsg?.pin().catch(undefined);
         }
-        catch(err) {
+        catch(err: any) {
             console.log(err);
-            return newFeedMsg?.edit(`Error creating gamefeed: ${err.message || err}`, { embed: null }).catch(() => undefined);
+            return newFeedMsg?.edit({ content: `Error creating gamefeed: ${err.message || err}`, embeds: null }).catch(() => undefined);
         }
 
     });
 
     collector?.on('end', rc => {
         newFeedMsg?.reactions.removeAll().catch(() => undefined);
-        if (!rc.size) newFeedMsg?.edit('Game feed setup cancelled.', { embed: null }).catch(() => undefined);
+        if (!rc.size) newFeedMsg?.edit({ content: 'Game feed setup cancelled.', embeds: null }).catch(() => undefined);
     });
 
 }
@@ -170,9 +170,9 @@ async function manageFeed(client: Client, message: Message, feed: GameFeed): Pro
     );
 
     // Send the embed
-    const editMsg = await message.channel.send(embed).catch((e) => Promise.reject(e));
-    const filter = (reaction: MessageReaction, user: User) => user.id === message.author.id && toggles.includes(reaction.emoji.name);
-    const collector = editMsg.createReactionCollector(filter, {time: 30000, max: 15});
+    const editMsg = await message.channel.send({embeds: [embed]}).catch((e) => Promise.reject(e));
+    const filter = (reaction: MessageReaction, user: User) => user.id === message.author.id && !!reaction.emoji.name && toggles.includes(reaction.emoji.name);
+    const collector: ReactionCollector = editMsg.createReactionCollector({ filter, time: 30000, max: 15});
     toggles.forEach(emoji => editMsg.react(emoji));
 
     let newData: any = {};
@@ -211,7 +211,7 @@ async function manageFeed(client: Client, message: Message, feed: GameFeed): Pro
 
             case('📬'): {
                 const msg = await message.channel.send('Type a message you would like to send when new mods are available.');
-                const msgCollect = message.channel.createMessageCollector(m => m.author === message.author, {max: 1, time: 15000});
+                const msgCollect: MessageCollector = message.channel.createMessageCollector({ filter: m => m.author === message.author, max: 1, time: 15000});
                 msgCollect.on('collect', m => {
                     newData.message = m.content;
                     msg.edit(`Before each feed update the following message will be sent: "${m.content}"`).catch(err => undefined);
@@ -247,10 +247,10 @@ async function manageFeed(client: Client, message: Message, feed: GameFeed): Pro
             try {
                 await deleteGameFeed(feed._id);
                 console.log(`${new Date().toLocaleString()} - Game feed #${feed._id} for ${feed.title} in ${(message.channel as TextChannel).name} at ${message.guild?.name} deleted by ${rc.first()?.users.cache.first()?.tag}`);
-                return editMsg.edit('The GameFeed has been deleted.', { embed: null }).catch(() => undefined);
+                return editMsg.edit({ content: 'The GameFeed has been deleted.', embeds: null }).catch(() => undefined);
             }
-            catch(err) {
-                return editMsg.edit(`There was a problem deleting your feed: ${err.message || err}`, { embed: null }).catch(() => undefined);
+            catch(err: any) {
+                return editMsg.edit({ content: `There was a problem deleting your feed: ${err.message || err}`, embeds: null }).catch(() => undefined);
             }
         }
         else {
@@ -258,9 +258,9 @@ async function manageFeed(client: Client, message: Message, feed: GameFeed): Pro
             try {
                 if (Object.keys(newData).length) await updateGameFeed(feed._id, newData);
                 console.log(`${new Date().toLocaleString()} - Game feed #${feed._id} for ${feed.title} in ${(message.channel as TextChannel).name} at ${message.guild?.name} edited by ${rc.first()?.users.cache.last()?.tag}`);
-                return editMsg.edit('Game feed saved successfully.', { embed: null }).catch(() => undefined);
+                return editMsg.edit({ content: 'Game feed saved successfully.', embeds: null }).catch(() => undefined);
             }
-            catch (err) {
+            catch (err: any) {
                 return editMsg.edit(`There was a problem updating your feed: ${err.message || err}`).catch(() => undefined);
             }
 

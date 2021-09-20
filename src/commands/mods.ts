@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData, Emoji, MessageReaction, User } from "discord.js";
+import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData, Emoji, MessageReaction, User, ThreadChannel, ReactionCollector } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp, NexusSearchResult, NexusSearchModResult } from "../types/util";
 import { NexusUser } from "../types/users";
@@ -17,7 +17,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = (replyChannel as TextChannel);
     const prefix = rc === message.channel ? '' : `${message.author.toString()}`
     const discordId: string = message.author.id;
@@ -30,7 +30,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     // Get the query
     let query: string = args.join(' ');
     let embed: MessageEmbed = startUpEmbed(client, message, query)
-    const reply: Message = await rc.send(prefix, embed)
+    const reply: Message = await rc.send({content: prefix, embeds: [embed] });
 
     // Get game info.
     let allGames: IGameInfo[] = userData ? await games(userData, false): [];
@@ -53,7 +53,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         embed.setTitle(`Searching for ${filterGame.name} mods...`)
         .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${filterId}.jpg`)
         .setDescription(`Search query: ${query}`);
-        await reply.edit({ embed }).catch(() => undefined);
+        await reply.edit({ embeds: [embed] }).catch(() => undefined);
     }
 
     // Perform the search
@@ -63,14 +63,14 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             // No results
             embed.setTitle('Search complete')
             .setDescription(`No results for "${query}".\nTry using the [full search](${search.fullSearchURL}) on the website.`);
-            return reply.edit({ embed }).catch(() => undefined);
+            return reply.edit({ embeds: [embed] }).catch(() => undefined);
         }
         else if (search.results.length === 1) {
             // Single result
             const res: NexusSearchModResult = search.results[0];
             const mod: IModInfo|undefined = userData ? await modInfo(userData, res.game_name, res.mod_id).catch(() => undefined) : undefined;
             embed = singleModEmbed(client, message, res, mod, allGames.find(g => g.domain_name === res.game_name));
-            return reply.edit({ embed }).catch(() => undefined);
+            return reply.edit({ embeds: [embed] }).catch(() => undefined);
         }
         else {
             // Multiple results (Only show the top 5)
@@ -82,10 +82,10 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             )
             .addFields(top5.map(createResultField));
             if (!userData) embed.addField('Get better results', 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.')
-            reply.edit({ embed }).catch(() => undefined);
+            reply.edit({ embeds: [embed] }).catch(() => undefined);
             await Promise.all(top5.map(async e => await reply.react(e.id)));
-            const filter = (r: MessageReaction, user: User) => numberEmoji.includes(r.emoji.name) && user === message.author;
-            const collector = reply.createReactionCollector(filter, { time: 45000, max: 1 });
+            const filter = (r: MessageReaction, user: User): boolean => user === message.author && (!!r.emoji.name && numberEmoji.includes(r.emoji.name));
+            const collector: ReactionCollector = reply.createReactionCollector({ filter, time: 45000, max: 1 });
 
             collector.on('collect', async r => {
                 collector.stop('Collected required emoji');
@@ -95,22 +95,22 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                     embed.setColor('#ff0000')
                     .setTitle(`Search failed`)
                     .setDescription(`There was an error with your search. Please try again later.\n${`There doesn't seem to be a mod associated with ${r.emoji.name}`}`);
-                    return reply.edit({ embed }).catch(() => undefined);
+                    return reply.edit({ embeds: [embed] }).catch(() => undefined);
                 }
                 
                 const mod: IModInfo|undefined = userData? await modInfo(userData, res.game_name, res.mod_id).catch(() => undefined) : undefined;
                 embed = singleModEmbed(client, message, res, mod, found?.game);
-                return reply.edit({ embed }).catch(() => undefined);
+                return reply.edit({ embeds: [embed] }).catch(() => undefined);
             });
             collector.on('end', rc => reply.reactions.removeAll().catch(() => undefined));
             
         };
     }
-    catch(err) {
+    catch(err: any) {
         embed.setColor('#ff0000')
         .setTitle(`Search failed`)
         .setDescription(`There was an error with your search. Please try again later.\n${err.message}`)
-        return reply.edit({ embed }).catch(() => undefined);
+        return reply.edit({ embeds: [embed] }).catch(() => undefined);
     }
 
 }
@@ -138,7 +138,7 @@ const singleModEmbed = (client: Client, message: Message, res: NexusSearchModRes
     .setThumbnail(game? `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`: client.user?.avatarURL() || '')
     
     if (mod) {
-        embed.setTitle(mod.name)
+        embed.setTitle(mod.name || 'Mod name unavailable')
         .setURL(`https://nexusmods.com/${mod.domain_name}/mods/${mod.mod_id}`)
         .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${game.categories.find(c => c.category_id === mod.category_id)?.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/\<br \/\>/g, '\n')}`)
         .setTimestamp(new Date(mod.updated_time))

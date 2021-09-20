@@ -1,7 +1,7 @@
 import query from '../api/dbConnect';
 import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
-import { Client, MessageEmbed, Message, User, Guild } from 'discord.js';
+import { Client, MessageEmbed, Message, User, Guild, Snowflake } from 'discord.js';
 import { getModsbyUser, getLinksByUser } from './bot-db';
 
 async function getAllUsers(): Promise<NexusUser[]> {
@@ -13,7 +13,7 @@ async function getAllUsers(): Promise<NexusUser[]> {
     });
 }
 
-async function getUserByDiscordId(discordId: string): Promise<NexusUser> {
+async function getUserByDiscordId(discordId: Snowflake | string): Promise<NexusUser> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
@@ -27,6 +27,15 @@ async function getUserByDiscordId(discordId: string): Promise<NexusUser> {
 async function getUserByNexusModsName(username: string): Promise<NexusUser> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username], (error: Error, result?: QueryResult) => {
+            if (error) return reject(error);
+            resolve(result?.rows[0]);
+        })
+    });
+}
+
+async function getUserByNexusModsId(id: number): Promise<NexusUser> {
+    return new Promise( (resolve, reject) => {
+        query('SELECT * FROM users WHERE id = $1', [id], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             resolve(result?.rows[0]);
         })
@@ -48,7 +57,7 @@ async function createUser(user: NexusUser): Promise<boolean> {
             //console.log("User inserted into the database: "+user.nexusName);
             resolve(true);
         })
-        });
+    });
 }
 
 async function deleteUser(discordId: string): Promise<boolean> {
@@ -116,4 +125,4 @@ async function userEmbed(userData: NexusUser, message: Message, client: Client):
 
 const modsort = (lh: NexusLinkedMod, rh: NexusLinkedMod): number => lh.total_downloads > rh.total_downloads ? -1 : 1;
 
-export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed };
+export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId };

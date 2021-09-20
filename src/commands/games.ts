@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData } from "discord.js";
+import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp } from "../types/util";
 import { NexusUser } from "../types/users";
@@ -18,7 +18,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = replyChannel as TextChannel;
     const discordId: string = message.author.id;
 
@@ -51,13 +51,13 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         const results: IGameInfo[] = fuse.search(query).map(r => r.item);
 
         // No results
-        if (!results.length) return (msg as Message).edit(message.channel !== rc ? message.author: '', noResults(client, allGames, query)).catch(() => undefined);
+        if (!results.length) return (msg as Message).edit({ content: message.channel !== rc ? message.author.toString(): '', embeds: [noResults(client, allGames, query)] }).catch(() => undefined);
         // One result
-        else if (results.length === 1) return (msg as Message).edit(message.channel !== rc ? message.author: '', oneResult(client, message, results[0])).catch(() => undefined);
+        else if (results.length === 1) return (msg as Message).edit({ content: message.channel !== rc ? message.author.toString(): '', embeds: [oneResult(client, message, results[0])] }).catch(() => undefined);
         // Several results
-        else return (msg as Message).edit(message.channel !== rc ? message.author: '', multiResult(client, message, results, query)).catch(() => undefined);
+        else return (msg as Message).edit({ content: message.channel !== rc ? message.author.toString(): '', embeds: [multiResult(client, message, results, query)] }).catch(() => undefined);
     }
-    catch(err) {
+    catch(err: any) {
         console.error(err);
         return (msg as Message).edit(`${message.channel === rc ? '' : message.author.toString()+', '}There was an error completing the game search: ${err.message}.`).catch(() => undefined);
     }

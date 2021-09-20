@@ -1,4 +1,4 @@
-import { Client, Message, MessageEmbed, TextChannel, GuildChannel, DMChannel, MessageCollector, User } from "discord.js";
+import { Client, Message, MessageEmbed, TextChannel, GuildChannel, DMChannel, MessageCollector, User, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
@@ -20,7 +20,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], serverData: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const discordId: string = message.author.id;
 
     let userData: NexusUser | undefined;
@@ -30,8 +30,8 @@ async function run(client: Client, message: Message, args: string[], serverData:
         userData = await getUserByDiscordId(discordId);
         userServers = userData ? await getLinksByUser(userData?.id) : undefined;
     }
-    catch(err) {
-        return (replyChannel as TextChannel).send(errorReply(err, message)).catch(() => undefined);
+    catch(err: any) {
+        return (replyChannel as TextChannel).send({ embeds: [errorReply(err, message)] }).catch(() => undefined);
     }
     // If the user is already linked, toggle the server link.
     if (userData) {
@@ -44,40 +44,40 @@ async function run(client: Client, message: Message, args: string[], serverData:
                 .send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()} your account has been linked in this server. Type \`!nexus whoami\` to see your profile card.`)
                 .catch(() => undefined);
         }
-        else return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()} your Discord account is already linked to ${userData.name}${message.channel.type === 'text' ? ' in this server': ''}.`)
+        else return (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()} your Discord account is already linked to ${userData.name}${message.channel.type === 'GUILD_TEXT' ? ' in this server': ''}.`)
             .catch(() => undefined);
     }
 
     let apiCollect : MessageCollector;
     // If the user hasn't started this process in a DM
-    if (message.channel.type !== 'dm') {
+    if (message.channel.type !== 'DM') {
         (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()}, I've sent you a Direct Message about verifying your account. Your API key should never be posted publicly.`).catch(() => undefined);
         const author: User = message.author;
-        const msg = await author.send(sendKeyEmbed(client, message))
+        const msg = await author.send({embeds: [sendKeyEmbed(client, message)]})
             .catch(() => {
                 if (args.length > 0 && message.deletable) message.delete().catch(() => undefined);
                 return (replyChannel as TextChannel).send(`${message.author.toString()} - Looks like you might have DMs disabled for this server. You\'ll need to enable them to link your account.`).catch(() => undefined);
             });
         if (!msg) return;
-        apiCollect = msg.channel.createMessageCollector(apiFilter, { maxProcessed: 1, time: apiCollectorDuration });
+        apiCollect = msg.channel.createMessageCollector({ filter: apiFilter, maxProcessed: 1, time: apiCollectorDuration });
         apiCollect.on('collect', m => checkAPIKey(client, m, m.cleanContent));
-        apiCollect.on('end', collected => !collected.size ? author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined);
+        apiCollect.on('end', collected => {!collected.size ? author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined});
         if (args.length > 0 && message.deletable) message.delete().catch(() => undefined);
     }
     else {
         if (args.length > 0) return checkAPIKey(client, message, args[0]);
-        const dm = await message.author.send(sendKeyEmbed(client, message)).catch(err => undefined);
+        const dm = await message.author.send({ embeds: [sendKeyEmbed(client, message)]}).catch(err => undefined);
         if (dm) {
-            apiCollect = message.channel.createMessageCollector(apiFilter, { maxProcessed: 1, time: apiCollectorDuration });
+            apiCollect = message.channel.createMessageCollector({ filter: apiFilter, maxProcessed: 1, time: apiCollectorDuration });
             apiCollect.on('collect', m => checkAPIKey(client, m, m.cleanContent));
-            apiCollect.on('end', collected => !collected.size ? message.author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined);
+            apiCollect.on('end', collected => {!collected.size ? message.author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined });
         }; 
         
     }
 
 }
 
-async function checkAPIKey(client: Client, message: Message, key: string) {
+async function checkAPIKey(client: Client, message: Message, key: string): Promise<void> {
     const reply = await message.reply('Checking your API key...').catch(() => undefined);
 
     try {
@@ -100,7 +100,7 @@ async function checkAPIKey(client: Client, message: Message, key: string) {
 
     }
     catch(err) {
-        return reply?.edit(`Could not link your account due to the following error:\n`+err).catch(console.error);
+        reply?.edit(`Could not link your account due to the following error:\n`+err).catch(console.error);
     }
 }
 

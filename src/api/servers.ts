@@ -38,8 +38,9 @@ async function getServer(guild: Guild): Promise<BotServer> {
 }
 
 async function addServer(guild: Guild): Promise<boolean> {
+    const owner = await guild.fetchOwner();
     return new Promise((resolve, reject) => {
-        query('INSERT INTO servers (id, server_owner) VALUES ($1, $2)', [guild.id, guild.owner?.id], 
+        query('INSERT INTO servers (id, server_owner) VALUES ($1, $2)', [guild.id, owner?.id], 
         (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             console.log(new Date().toLocaleString() + " - Added server to database: "+guild.name);

@@ -10,7 +10,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[]) {
     if (!message.guild) return;
-    if (!message.member?.hasPermission('BAN_MEMBERS')) return;
+    if (!message.member?.permissions.has('BAN_MEMBERS')) return;
     if (!args.length) return message.channel.send('Please specify how many messages to delete (Max: 100).').catch(() => undefined);
     let count: number = parseInt(args[0]);
     if (count === NaN) return;
@@ -20,7 +20,7 @@ async function run(client: Client, message: Message, args: string[]) {
         await (message.channel as TextChannel).bulkDelete(count);
         message.channel.send(`Deleted ${count} messages`).catch(() => undefined);
     }
-    catch(err) {
+    catch(err: any) {
         return message.channel.send(`Error deleting messages: ${err.message}`).catch(() => undefined);
     }
 }

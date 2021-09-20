@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, EmbedFieldData, MessageEmbed } from "discord.js";
+import { Client, Message, GuildChannel, DMChannel, TextChannel, EmbedFieldData, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp } from "../types/util";
 import { NexusUser, NexusLinkedMod } from "../types/users";
@@ -17,7 +17,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = (replyChannel as TextChannel);
     const prefix = rc === message.channel ? '' : `${message.author.toString()} - `
     const discordId: string = message.author.id;
@@ -32,7 +32,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     // Send feedback to the user
     const embed: MessageEmbed = startUpEmbed(client, message, userData)
-    const reply: Message|undefined = await rc.send(embed).catch(() => undefined);
+    const reply: Message|undefined = await rc.send({ embeds: [embed] }).catch(() => undefined);
 
     // Break down the query into URLs and strings
     const fullQuery: string[] = args.join(' ').split(',').map(q => q.trim());
@@ -70,7 +70,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     await updateAllRoles(client, userData, message.author, false);
 
-    return reply?.edit(embed).catch(() => undefined);
+    return reply?.edit({ embeds: [embed] }).catch(() => undefined);
 }
 
 const startUpEmbed = (client: Client, message: Message, user: NexusUser): MessageEmbed => {

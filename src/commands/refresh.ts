@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed } from "discord.js";
+import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, updateUser, updateAllRoles, getModsbyUser, updateMod, modUniqueDLTotal, deleteMod } from "../api/bot-db";
@@ -20,7 +20,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
         // Get reply channel
-        const replyChannel: (GuildChannel | DMChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+        const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
         const rc: TextChannel = (replyChannel as TextChannel);
         const prefix = rc === message.channel ? '' : `${message.author.toString()} - `
         const discordId: string = message.author.id;
@@ -34,14 +34,14 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         .setThumbnail(userData.avatar_url || message.author.avatar || '')
         .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
 
-        const replyMsg = await rc.send(result).catch(() => undefined);
+        const replyMsg = await rc.send({ embeds: [result] }).catch(() => undefined);
         
         // Spam protection
         const nextUpdate = new Date( userData.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
         if (nextUpdate > new Date()) {
             result.setTitle('Update cancelled')
             .setDescription(`Your must wait at least ${cooldown/1000/60} minute(s) before refreshing your account.`);
-            return replyMsg?.edit({ embed: result }).catch(() => undefined);
+            return replyMsg?.edit({ embeds: [result] }).catch(() => undefined);
         }
 
         let newData: any = {};
@@ -73,7 +73,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
             result.addField('User Info', `Error updating user data:\n${err}`);
         }
 
-        await replyMsg?.edit({ embed: result }).catch(() => undefined);
+        await replyMsg?.edit({ embeds: [result] }).catch(() => undefined);
 
         // Update download counts for mods
         try {
@@ -122,7 +122,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         await updateAllRoles(client, userData, message.author);
 
         result.setTitle('Update Complete');
-        await replyMsg?.edit({ embed: result }).catch(() => undefined);
+        await replyMsg?.edit({ embeds: [result] }).catch(() => undefined);
 }
 
 export { run, help };
