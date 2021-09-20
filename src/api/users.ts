@@ -33,6 +33,15 @@ async function getUserByNexusModsName(username: string): Promise<NexusUser> {
     });
 }
 
+async function getUserByNexusModsId(id: number): Promise<NexusUser> {
+    return new Promise( (resolve, reject) => {
+        query('SELECT * FROM users WHERE id = $1', [id], (error: Error, result?: QueryResult) => {
+            if (error) return reject(error);
+            resolve(result?.rows[0]);
+        })
+    });
+}
+
 async function createUser(user: NexusUser): Promise<boolean> {
     return new Promise(
         (resolve, reject) => {
@@ -48,7 +57,7 @@ async function createUser(user: NexusUser): Promise<boolean> {
             //console.log("User inserted into the database: "+user.nexusName);
             resolve(true);
         })
-        });
+    });
 }
 
 async function deleteUser(discordId: string): Promise<boolean> {
@@ -116,4 +125,4 @@ async function userEmbed(userData: NexusUser, message: Message, client: Client):
 
 const modsort = (lh: NexusLinkedMod, rh: NexusLinkedMod): number => lh.total_downloads > rh.total_downloads ? -1 : 1;
 
-export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed };
+export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId };
