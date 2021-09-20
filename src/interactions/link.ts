@@ -1,7 +1,7 @@
 import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Guild } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/util";
-import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink } from '../api/bot-db';
+import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink, getUserByNexusModsId, deleteUser } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
 
 const discordInteraction: DiscordInteraction = {
@@ -33,7 +33,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         userServers = userData ? await getLinksByUser(userData?.id) : undefined;
     }
-    catch(err: any) {
+    catch(err) {
         console.error('Error checking if user exists in DB when linking', err);
     }
 
@@ -78,6 +78,13 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
         const d_id = interact.user.id;
         if (!d_id) throw new Error('Could not resolve Discord ID');
         const apiData = await validate(key);
+        // Check if there is already a link with another Discord profile, if so, delete it. 
+        const existing: NexusUser|undefined = await getUserByNexusModsId(apiData.user_id);
+        if (!!existing) {
+            console.log(`Link already exists for ${existing.name}, removing it.`);
+            await deleteUser(existing.d_id).catch(() => console.error('Unable to delete existing user account', { d_id, name: existing.name }));
+        }
+        // Create the new user entry. 
         const userData: NexusUser = {
             d_id,
             id: apiData.user_id,
@@ -95,7 +102,7 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
         interact.followUp({ content: `You have now linked the Nexus Mods account "${userData.name}" to your Discord account in ${links.length} Discord Servers.`,  ephemeral: true });
 
     }
-    catch(err: any) {
+    catch(err) {
         interact.followUp({ content: `Could not link your account due to the following error:\n`+err,  ephemeral: true });
     }
 }
