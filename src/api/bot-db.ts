@@ -1,7 +1,7 @@
 //Used for reference: https://blog.logrocket.com/setting-up-a-restful-api-with-node-js-and-postgresql-d96d6fc892d8/
 
 // USER MANAGEMENT FUNCTIONS
-import { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed } from './users';
+import { getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed } from './users';
 
 // USER MOD FUNCTIONS 
 import { getModsbyUser, createMod, deleteMod, updateMod } from './user_mods';
@@ -25,7 +25,7 @@ import { getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksBy
 import { getAllInfos, createInfo, deleteInfo, displayInfo } from './infos';
 
 export {
-    getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, 
+    getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, 
     getModsbyUser, createMod, deleteMod, updateMod, 
     getAllServers, getServer, addServer, updateServer, deleteServer,
     getSavedNews, updateSavedNews,
