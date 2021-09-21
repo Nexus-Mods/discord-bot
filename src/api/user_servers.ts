@@ -91,9 +91,13 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         // Remove all roles if we're unlinking.
         if (bRemove) {
             console.log(`${new Date().toLocaleString()} - Removing roles from ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
-            guildMember.roles.remove(allRoles as RoleResolvable[], 'Nexus Mods Discord unlink')
-                .catch(err => console.log(`${new Date().toLocaleString()} - Could not remove roles from ${userData.name} in ${guild.name}`, err.message));
-            if (nexusLogChannel) (nexusLogChannel as TextChannel).send({ embeds: [linkEmbed(userData, discordUser, true)] }).catch(() => undefined);
+            try {
+                await guildMember.roles.remove(allRoles as RoleResolvable[], 'Nexus Mods Discord unlink');
+                if (nexusLogChannel) (nexusLogChannel as TextChannel).send({ embeds: [linkEmbed(userData, discordUser, true)] }).catch(() => undefined);
+            }
+            catch (err) {
+                console.log(`${new Date().toLocaleString()} - Could not remove roles from ${userData.name} in ${guild.name}`, (err as Error)?.message);
+            }            
             return resolve();
         }
 
