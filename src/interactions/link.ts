@@ -95,10 +95,10 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
             premium: apiData.is_premium
         }
         await createUser(userData);
-        await updateAllRoles(client, userData, interact.member?.user as User, true);
+        await updateAllRoles(client, userData, interact.user, true);
         const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
 
-        console.log(`${new Date().toLocaleString()} - ${userData.name} linked to ${interact.member?.user.toString()}`);
+        console.log(`${new Date().toLocaleString()} - ${userData.name} linked to ${interact.user.toString()}`);
         interact.followUp({ content: `You have now linked the Nexus Mods account "${userData.name}" to your Discord account in ${links.length} Discord Servers.`,  ephemeral: true });
 
     }
