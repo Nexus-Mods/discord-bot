@@ -2,6 +2,7 @@ import { DiscordInteraction } from "../types/util";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed } from '../api/bot-db';
 import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Guild, CommandInteractionOption } from "discord.js";
+import { ClientExt } from "../DiscordBot";
 
 
 const discordInteraction: DiscordInteraction = {
@@ -93,12 +94,13 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         if (!foundUser) interaction.followUp(`No members found for your query.`);
         else {
             // check the linked servers for the found user
-            const foundServers = await getLinksByUser(foundUser.id).catch(() => []);
+            const foundServers: NexusUserServerLink[] = await getLinksByUser(foundUser.id).catch(() => []);
 
             // check if we should return the result. If the found user isn't in the current server, reject the request.
+            const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === foundUser.d_id;
-            const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guildId);
-            if (!isMe || !inGuild) {
+            const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guild?.id);
+            if ((!isAdmin || !isMe) && !inGuild) {
                 interaction.followUp({ embeds: [ notAllowed(client) ] });
             }
             else interaction.followUp({ embeds: [await userEmbed(foundUser, fakeMessage, client)] });
