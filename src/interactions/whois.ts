@@ -100,11 +100,11 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === foundUser.d_id;
             const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if ((!isAdmin || !isMe) && !inGuild) {
+            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, fakeMessage, client)] })
+            else {
                 console.log('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
                 interaction.followUp({ embeds: [ notAllowed(client) ] });
-            }
-            else interaction.followUp({ embeds: [await userEmbed(foundUser, fakeMessage, client)] });
+            };
         }
                         
     }
