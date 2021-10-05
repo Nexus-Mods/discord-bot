@@ -101,6 +101,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             const isMe: boolean = interaction.user.id === foundUser.d_id;
             const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guild?.id);
             if ((!isAdmin || !isMe) && !inGuild) {
+                console.log('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
                 interaction.followUp({ embeds: [ notAllowed(client) ] });
             }
             else interaction.followUp({ embeds: [await userEmbed(foundUser, fakeMessage, client)] });
