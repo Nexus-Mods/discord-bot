@@ -61,21 +61,21 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         const nextUpdate = new Date( userData?.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
         if (!userData) {
-            interaction.reply('You haven\'t linked your account yet. Use the /link command to get started.');
+            interaction.editReply('You haven\'t linked your account yet. Use the /link command to get started.');
             return;
         }
         else if (nextUpdate > new Date()) {
-            interaction.reply({ embeds: [ cancelCard(client, userData, interaction.user) ] });
+            interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] });
             return;
         }
         else {
             card = replyCard(client, userData, interaction.user);
-            interaction.reply({ embeds: [ card ] });
+            interaction.editReply({ embeds: [ card ] });
         }
     }
     catch(err: any) {
         console.error('Error checking if user exists in DB when linking', err);
-        interaction.reply('An error occurred fetching your account details.');
+        interaction.editReply('An error occurred fetching your account details.');
         return;
     }
 
