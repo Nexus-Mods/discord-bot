@@ -61,21 +61,21 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         const nextUpdate = new Date( userData?.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
         if (!userData) {
-            interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
+            interaction.reply('You haven\'t linked your account yet. Use the /link command to get started.');
             return;
         }
         else if (nextUpdate > new Date()) {
-            interaction.followUp({ embeds: [ cancelCard(client, userData, interaction.user) ] });
+            interaction.reply({ embeds: [ cancelCard(client, userData, interaction.user) ] });
             return;
         }
         else {
             card = replyCard(client, userData, interaction.user);
-            interaction.followUp({ embeds: [ card ] });
+            interaction.reply({ embeds: [ card ] });
         }
     }
     catch(err: any) {
         console.error('Error checking if user exists in DB when linking', err);
-        interaction.followUp('An error occurred fetching your account details.');
+        interaction.reply('An error occurred fetching your account details.');
         return;
     }
 
@@ -109,7 +109,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Update the interaction
     card.setTitle('Updating mod stats...');
-    interaction.followUp({ embeds: [card] });
+    interaction.editReply({ embeds: [card] });
 
     // Update download counts for the mods
     try {
@@ -161,7 +161,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Update the interaction
     card.setTitle('Update complete');
-    interaction.followUp({ embeds: [card] });
+    interaction.editReply({ embeds: [card] });
 
 }
 
