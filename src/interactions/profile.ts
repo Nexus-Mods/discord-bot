@@ -27,7 +27,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
 
     // Get sender info.
-    const discordId: Snowflake | undefined = interaction.member?.user.id;
+    const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.defer({ephemeral: !show});
     // Check if they are already linked.
     let userData : NexusUser | undefined;

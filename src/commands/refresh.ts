@@ -40,7 +40,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         const nextUpdate = new Date( userData.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
         if (nextUpdate > new Date()) {
             result.setTitle('Update cancelled')
-            .setDescription(`Your must wait at least ${cooldown/1000/60} minute(s) before refreshing your account.`);
+            .setDescription(`You must wait at least ${cooldown/1000/60} minute(s) before refreshing your account.`);
             return replyMsg?.edit({ embeds: [result] }).catch(() => undefined);
         }
 
@@ -63,6 +63,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
                 }
                 else result.addField('User Info', 'No changes required');
                 await updateUser(discordId, newData);
+                await updateAllRoles(client, userData, message.author, false);
             }
             catch(err) {
                 result.addField('User Info', `Error updating user data:\n${err}`);
