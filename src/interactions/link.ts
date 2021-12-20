@@ -82,7 +82,7 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
         const existing: NexusUser|undefined = await getUserByNexusModsId(apiData.user_id);
         if (!!existing) {
             console.log(`Link already exists for ${existing.name}, removing it.`);
-            await deleteUser(existing.d_id).catch(() => console.error('Unable to delete existing user account', { d_id, name: existing.name }));
+            await deleteUser(existing.d_id).catch(() => console.error('Unable to delete existing user account', { d_id, name: existing?.name }));
         }
         // Create the new user entry. 
         const userData: NexusUser = {
