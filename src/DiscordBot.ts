@@ -82,7 +82,7 @@ export class DiscordBot {
 
             files.forEach(async (file: string) => {
                 if (!file.endsWith('.js')) return;
-                let interact: DiscordInteraction = require(path.join(__dirname, 'commands', file)).discordInteraction;
+                let interact: DiscordInteraction = require(path.join(__dirname, 'interactions', file)).discordInteraction;
                 let interName: string = file.split('.')[0];
 
                 // Add to global commands list.
