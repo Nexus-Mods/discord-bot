@@ -2,6 +2,7 @@ import { Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, ThreadChan
 import { BotServer } from "../types/servers";
 import { ClientExt } from "../DiscordBot";
 import { CommandHelp } from "../types/util";
+import path from 'path';
 
 const help: CommandHelp = {
     name: "help",
@@ -44,7 +45,7 @@ async function run(client: ClientExt, message: Message, args: string[], server: 
     }
     else {
         helpEmbed.addFields(client.commands?.keyArray().reduce((prev, cur) => {
-            const props = require(`${__dirname}\\${cur}.js`);
+            const props = require(path.join(__dirname, `${cur}.js`));
             if (!props.help) return prev;
             const help: CommandHelp = props.help;
             if (!moderator && help.moderatorOnly || !admin && help.adminOnly || !official && help.officialOnly) return prev;

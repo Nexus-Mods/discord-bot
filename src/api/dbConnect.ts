@@ -1,5 +1,6 @@
 import { Pool, PoolConfig, PoolClient, QueryResult } from 'pg';
-const config = require("../config.json");
+import path from 'path';
+const config = require(path.join('..', 'config.json'));
 const poolConfig: PoolConfig = {
     user: process.env.DBUSER,
     password: process.env.DBPASS,

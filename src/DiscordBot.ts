@@ -1,6 +1,7 @@
 import { Client, Collection, ApplicationCommand, Snowflake, ApplicationCommandData, Guild } from 'discord.js';
 import { DiscordInteraction } from './types/util';
 import * as fs from 'fs';
+import path from 'path';
 import { discordInteraction } from './interactions/link';
 
 export class DiscordBot {
@@ -36,17 +37,17 @@ export class DiscordBot {
     private initializeClient(): void {
         if (!this.client) return;
         
-        this.client.config = require(`${__dirname}\\config.json`);
+        this.client.config = require(path.join(__dirname, 'config.json'));
         this.setEventHandler();
         this.setCommands();
     }
 
     private setEventHandler(): void {
-        fs.readdir(`${__dirname}\\events\\`, (err, files: string[]) => {
+        fs.readdir(path.join(__dirname, 'events'), (err, files: string[]) => {
             if (err) return console.error(err);
             files.forEach((file: string) => {
                 if (!file.endsWith('.js')) return;
-                let event = require(`${__dirname}\\events\\${file}`);
+                let event = require(path.join(__dirname, 'events', file));
                 let eventName: string = file.split(".")[0];
                 this.client.on(eventName, event.default.bind(null, this.client));
             });
@@ -55,11 +56,11 @@ export class DiscordBot {
 
     private setCommands(): void {
         if (!this.client.commands) this.client.commands = new Collection();
-        fs.readdir(`${__dirname}/commands/`, (err, files : string[]) => {
+        fs.readdir(path.join(__dirname, 'commands'), (err, files : string[]) => {
             if (err) return console.error(err);
             files.forEach((file: string) => {
                 if (!file.endsWith('.js')) return;
-                let props = require(`${__dirname}/commands/${file}`);
+                let props = require(path.join(__dirname, 'commands', file));
                 let commandName: string = file.split(".")[0];
                 console.log(`Loading command: ${commandName}`);
                 this.client.commands?.set(commandName, props);
@@ -73,7 +74,7 @@ export class DiscordBot {
         if (!this.client.interactions) this.client.interactions = new Collection();
         if (!this.client.application?.owner) await this.client.application?.fetch();
 
-        fs.readdir(`${__dirname}\\interactions\\`, (err, files: string[]) => {
+        fs.readdir(path.join(__dirname, 'interactions'), (err, files: string[]) => {
             if (err) return console.error(err);
 
             let allCommands : ApplicationCommandData[] = []; //Collect all global commands
@@ -81,7 +82,7 @@ export class DiscordBot {
 
             files.forEach(async (file: string) => {
                 if (!file.endsWith('.js')) return;
-                let interact: DiscordInteraction = require(`${__dirname}\\interactions\\${file}`).discordInteraction;
+                let interact: DiscordInteraction = require(path.join(__dirname, 'commands', file)).discordInteraction;
                 let interName: string = file.split('.')[0];
 
                 // Add to global commands list.
