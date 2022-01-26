@@ -1,8 +1,7 @@
-import { Client, Collection, ApplicationCommand, Snowflake, ApplicationCommandData, Guild } from 'discord.js';
+import { Client, Collection, Snowflake, ApplicationCommandData, Guild } from 'discord.js';
 import { DiscordInteraction } from './types/util';
 import * as fs from 'fs';
 import path from 'path';
-import { discordInteraction } from './interactions/link';
 
 export class DiscordBot {
     private static instance: DiscordBot;
