@@ -23,7 +23,9 @@ async function run(client: Client, message: Message, args: string[], serverData:
     const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const discordId: string = message.author.id;
 
-    let userData: NexusUser | undefined;
+    return message.reply('This command is no longer in use. Please use the /link slash command (no prefix).');
+
+    let userData: NexusUser;
     let userServers: NexusUserServerLink[] | undefined;
 
     try {
@@ -48,7 +50,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
             .catch(() => undefined);
     }
 
-    let apiCollect : MessageCollector;
+    let apiCollect : MessageCollector | undefined;
     // If the user hasn't started this process in a DM
     if (message.channel.type !== 'DM') {
         (replyChannel as TextChannel).send(`${replyChannel === message.channel ? message.author.tag : message.author.toString()}, I've sent you a Direct Message about verifying your account. Your API key should never be posted publicly.`).catch(() => undefined);
@@ -59,9 +61,9 @@ async function run(client: Client, message: Message, args: string[], serverData:
                 return (replyChannel as TextChannel).send(`${message.author.toString()} - Looks like you might have DMs disabled for this server. You\'ll need to enable them to link your account.`).catch(() => undefined);
             });
         if (!msg) return;
-        apiCollect = msg.channel.createMessageCollector({ filter: apiFilter, maxProcessed: 1, time: apiCollectorDuration });
-        apiCollect.on('collect', m => checkAPIKey(client, m, m.cleanContent));
-        apiCollect.on('end', collected => {!collected.size ? author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined});
+        apiCollect = msg?.channel.createMessageCollector({ filter: apiFilter, maxProcessed: 1, time: apiCollectorDuration });
+        apiCollect?.on('collect', m => checkAPIKey(client, m, m.cleanContent));
+        apiCollect?.on('end', collected => {!collected.size ? author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined});
         if (args.length > 0 && message.deletable) message.delete().catch(() => undefined);
     }
     else {
@@ -69,8 +71,8 @@ async function run(client: Client, message: Message, args: string[], serverData:
         const dm = await message.author.send({ embeds: [sendKeyEmbed(client, message)]}).catch(err => undefined);
         if (dm) {
             apiCollect = message.channel.createMessageCollector({ filter: apiFilter, maxProcessed: 1, time: apiCollectorDuration });
-            apiCollect.on('collect', m => checkAPIKey(client, m, m.cleanContent));
-            apiCollect.on('end', collected => {!collected.size ? message.author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined });
+            apiCollect?.on('collect', m => checkAPIKey(client, m, m.cleanContent));
+            apiCollect?.on('end', collected => {!collected.size ? message.author.send("You did not send an API key in time, please try again with `!nexus link`").catch(console.error) : undefined });
         }; 
         
     }

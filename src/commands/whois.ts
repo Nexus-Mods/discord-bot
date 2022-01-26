@@ -18,6 +18,9 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const discordId: string = message.author.id;
     const prefix: string = replyChannel === message.channel ? message.author.username : message.author.toString();
 
+    return message.reply('This command is no longer in use. Please use the /whois slash command (no prefix).');
+
+
     // Get info about the user making the request.
     const userData: NexusUser|undefined = await getUserByDiscordId(discordId).catch(() => undefined);
 
@@ -36,7 +39,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     }
 
     // Get all the user accounts to make searching easier.
-    const allUsers: NexusUser[]|undefined = await getAllUsers().catch(() => undefined);
+    const allUsers: NexusUser[] = await getAllUsers().catch(() => []);
     if (!allUsers) return (replyChannel as TextChannel).send(`${prefix}, member search failed for your query "${query}". Please try again later.`).catch(() => undefined);
 
 
@@ -52,16 +55,16 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     if (!foundDiscord || !foundNexus) return (replyChannel as TextChannel).send(`${prefix}, no members found for your search "${query}".`).catch(err => undefined);
 
     // Get server data for the Nexus Mods account we found.
-    const foundServers: NexusUserServerLink[] = await getLinksByUser(foundNexus.id).catch(() => []);
+    const foundServers: NexusUserServerLink[] = await getLinksByUser(foundNexus?.id || 0).catch(() => []);
 
     // Check if we should display the result, return if the user isn't in the current server.
-    const isMe: boolean = userData.d_id === message.author.id;
+    const isMe: boolean = userData?.d_id === message.author.id;
     const inGuild: boolean = !!foundServers.find(link => link.server_id === message.guild?.id);
     if (!isMe || !inGuild) return (replyChannel as TextChannel).send({content: replyChannel === message.channel ? '' : message.author.toString(), embeds: [notAllowed(client, message)] }).catch(() => undefined);
 
     // Send the profile card.
-    const embed: MessageEmbed|void = await userEmbed(foundNexus, message, client).catch(console.error);
-    if (embed) return (replyChannel as TextChannel).send({ content: replyChannel !== message.channel ? prefix: '', embeds: [embed] }).catch(() => undefined);
+    // const embed: MessageEmbed = await userEmbed(foundNexus, message, client).catch(() => notAllowed(client, message));
+    // if (embed) return (replyChannel as TextChannel).send({ content: replyChannel !== message.channel ? prefix: '', embeds: [embed] }).catch(() => undefined);
 
 }
 

@@ -17,7 +17,8 @@ async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
     });
 }
 
-async function addServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild): Promise<void> {
+async function addServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild | null): Promise<void> {
+    if (!server) return;
     return new Promise((resolve, reject) => {
         query('INSERT INTO user_servers (user_id, server_id) VALUES ($1, $2)', [user.id, server.id], async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
