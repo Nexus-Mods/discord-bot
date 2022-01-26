@@ -114,13 +114,13 @@ const successEmbed = (message: Message, feed: GameFeed, game: IGameInfo|undefine
     .setTitle(`Mods for ${feed.title} will be posted in this channel`)
     .setColor(0xda8e35)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game?.id}.jpg`)
-    .setFooter(`Feed ID: #${id} - Created by: ${message.author.tag}`)
+    .setFooter({text: `Feed ID: #${id} - Created by: ${message.author.tag}` })
     .setTimestamp(new Date());
 }
 
 const confirmEmbed = (client: Client, message: Message, game: IGameInfo, user: NexusUser, nsfw: boolean): MessageEmbed => {
     return new MessageEmbed()
-    .setAuthor(message.author.tag, message.author.avatarURL() || '')
+    .setAuthor({ name: message.author.tag, iconURL: message.author.avatarURL() || '' })
     .setColor(0xda8e35)
     .setTitle(`Create game feed in ${(message.channel as TextChannel).name}?`)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`)
@@ -130,7 +130,7 @@ const confirmEmbed = (client: Client, message: Message, game: IGameInfo, user: N
         `The API key for ${user.name} will be used.`
     )
     .addField('Options', 'React with ✅ to confirm or ❌ to cancel.')
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, client.user?.avatarURL() || '')
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
 }
 
 const tutorialEmbed = async (client: Client, message: Message): Promise<MessageEmbed> => {
@@ -147,7 +147,7 @@ const tutorialEmbed = async (client: Client, message: Message): Promise<MessageE
     .addField('Editing or cancelling feeds', 'To edit an existing feed, added edit followed by a hash and the number reference of your feed e.g. !nexus gamefeed edit #1.')
     .addField(`Feeds in ${message.guild?.name || 'this server'}`, feedFields.length ? feedFields.join('\n'): '*none*')
     .setColor(0xda8e35)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, client.user?.avatarURL() || '')
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
 
 }
 
@@ -155,7 +155,7 @@ async function manageFeed(client: Client, message: Message, feed: GameFeed): Pro
     const embed = new MessageEmbed()
     .setTitle(`Editing GameFeed #${feed._id}`)
     .setColor(0xd8e35)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
     .setTimestamp(feed.created)
     .setDescription(
         `Game: ${feed.title}\n`+

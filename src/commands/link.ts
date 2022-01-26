@@ -1,4 +1,4 @@
-import { Client, Message, MessageEmbed, TextChannel, GuildChannel, DMChannel, MessageCollector, User, ThreadChannel } from "discord.js";
+import { Client, Message, MessageEmbed, TextChannel, PartialDMChannel, GuildChannel, DMChannel, MessageCollector, User, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
@@ -20,7 +20,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], serverData: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const discordId: string = message.author.id;
 
     let userData: NexusUser | undefined;
@@ -112,7 +112,7 @@ const sendKeyEmbed = (client: Client, message: Message): MessageEmbed => {
     .setDescription(`Please send your API key in this channel within the next ${apiCollectorDuration/1000/60} minute(s) or use the command \`!nexus link apikeyhere\`.`
     +`\nYou can get your API key by visiting your [Nexus Mods account settings](https://www.nexusmods.com/users/myaccount?tab=api+access).`)
     .setImage('https://i.imgur.com/Cb4NPv9.gif')
-    .setFooter(`Nexus Mods API Link - ${message.author.tag}: ${message.cleanContent} ${message.channel}`, client.user?.avatarURL() || '');
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
 
     return embed;
 }

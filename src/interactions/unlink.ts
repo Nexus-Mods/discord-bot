@@ -23,7 +23,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
     const discordId: Snowflake | undefined = interaction.member?.user.id;
-    await interaction.defer({ephemeral: true});
+    await interaction.deferReply({ephemeral: true});
     const global: boolean = interaction.options.get('global')?.value as boolean || false;
     // Check if they are already linked.
     let userData : NexusUser | undefined;

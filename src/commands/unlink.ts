@@ -1,4 +1,4 @@
-import { Client, Message, TextChannel, GuildChannel, DMChannel, ThreadChannel } from 'discord.js';
+import { Client, Message, TextChannel, GuildChannel, PartialDMChannel, DMChannel, ThreadChannel } from 'discord.js';
 import { BotServer } from '../types/servers';
 import { getUserByDiscordId, deleteUser, getLinksByUser, deleteAllServerLinksByUser, deleteServerLink } from '../api/bot-db';
 import { NexusUser, NexusUserServerLink } from '../types/users';
@@ -13,7 +13,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], serverData: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const replyPrefix: string = replyChannel === message.channel ? `${message.author.toString()} - `: ''
     const discordId: string = message.author.id;
 

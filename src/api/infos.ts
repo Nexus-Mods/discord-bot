@@ -93,7 +93,7 @@ function displayInfo(client: Client, message: Message, info: InfoResult): Postab
     }
 
     const infoEmbed = new MessageEmbed()
-    .setFooter(`Info added by ${info.author || '???'} - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
+    .setFooter({text:`Info added by ${info.author || '???'} - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
     .setTimestamp(info.timestamp || new Date())
     .setColor(0xda8e35);
     if (info.title) infoEmbed.setTitle(info.title);

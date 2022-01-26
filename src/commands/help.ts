@@ -1,4 +1,4 @@
-import { Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
+import { Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { ClientExt } from "../DiscordBot";
 import { CommandHelp } from "../types/util";
@@ -13,7 +13,7 @@ const help: CommandHelp = {
 }
 
 async function run(client: ClientExt, message: Message, args: string[], server: BotServer) {
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc = (replyChannel as TextChannel);
 
     // Check permissions
@@ -29,10 +29,10 @@ async function run(client: ClientExt, message: Message, args: string[], server: 
 
     const helpEmbed: MessageEmbed = new MessageEmbed()
     .setTitle('Nexus Mods Discord Bot Help')
-    .setAuthor(client.user?.username || '', client.user?.avatarURL() || '')
+    .setAuthor({name: client.user?.username || '', iconURL: client.user?.avatarURL() || '' })
     .setColor(0xda8e35)
     .setDescription(`All commands for this bot can be accessed with one of the following prefixes: ${client.config.prefix.join(', ')}.`)
-    .setFooter(`Nexus Mods bot - ${message.author.tag}: ${message.cleanContent}`, client.user?.avatarURL() || '');
+    .setFooter({text:`Nexus Mods bot - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || ''});
     if (query) {
         const props = require(`${__dirname}\\${query}.js`);
         const help: CommandHelp = props.help;
@@ -44,7 +44,8 @@ async function run(client: ClientExt, message: Message, args: string[], server: 
             : message.author.send({ embeds: [helpEmbed] }).catch(() => rc.send(message.author+' - Please enable DMs so I can send you the help text.').catch(() => undefined));
     }
     else {
-        helpEmbed.addFields(client.commands?.keyArray().reduce((prev, cur) => {
+        const commandKeys: any[] = client.commands?.map((value, key) => key) || [];
+        helpEmbed.addFields(commandKeys.reduce((prev: any[], cur: string) => {
             const props = require(path.join(__dirname, `${cur}.js`));
             if (!props.help) return prev;
             const help: CommandHelp = props.help;

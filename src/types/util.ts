@@ -1,5 +1,6 @@
 import { IModInfo } from "@nexusmods/nexus-api";
 import { GuildMember, MessageEmbed, EmbedFieldData, Snowflake, ApplicationCommandData, CommandInteraction, Client } from "discord.js";
+import { SlashCommandBuilder } from '@discordjs/builders';
 
 export interface InfoResult {
     name: string;
@@ -68,6 +69,7 @@ export interface PostableInfo {
 }
 
 export interface DiscordInteraction {
+    data?: SlashCommandBuilder | any;
     command: ApplicationCommandData
     action: (client: Client, interact: CommandInteraction) => Promise<void>;
     public: boolean;

@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData, Emoji, MessageReaction, User, ThreadChannel, ReactionCollector } from "discord.js";
+import { Client, Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData, Emoji, MessageReaction, User, ThreadChannel, ReactionCollector } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp, NexusSearchResult, NexusSearchModResult } from "../types/util";
 import { NexusUser } from "../types/users";
@@ -17,7 +17,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = (replyChannel as TextChannel);
     const prefix = rc === message.channel ? '' : `${message.author.toString()}`
     const discordId: string = message.author.id;
@@ -128,13 +128,13 @@ const startUpEmbed = (client: Client, message: Message, query: string): MessageE
     .setThumbnail(client.user?.avatarURL() || '')
     .setDescription(`Search query: ${query}`)
     .setColor(0xda8e35)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: !nm mods`, client.user?.avatarURL() || '');
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
 }
 
 const singleModEmbed = (client: Client, message: Message, res: NexusSearchModResult, mod: IModInfo|undefined, game?: IGameInfo): MessageEmbed => {
     const embed = new MessageEmbed()
     .setColor(0xda8e35)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: !nm mods`, client.user?.avatarURL() || '')
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
     .setThumbnail(game? `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`: client.user?.avatarURL() || '')
     
     if (mod) {
@@ -143,12 +143,12 @@ const singleModEmbed = (client: Client, message: Message, res: NexusSearchModRes
         .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${game.categories.find(c => c.category_id === mod.category_id)?.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/\<br \/\>/g, '\n')}`)
         .setTimestamp(new Date(mod.updated_time))
         .setImage(mod.picture_url || '')
-        .setAuthor(mod.user.name, '', `https://nexusmods.com/users/${mod.user.member_id}`)
+        .setAuthor({name: mod.user?.name || '', iconURL: `https://nexusmods.com/users/${mod.user.member_id}` })
     }
     else {
         embed.setTitle(res.name)
         .setURL(`https://nexusmods.com/${res.url}`)
-        .setAuthor(res.username, '', `https://nexusmods.com/users/${res.user_id}`)
+        .setAuthor({name: res.username || '', iconURL: `https://nexusmods.com/users/${res.user_id}`})
         .setImage(`https://staticdelivery.nexusmods.com${res.image}`)
         .setDescription(game ? `for [${game?.name}](https://nexusmods.com/${game.domain_name})` : '')
         .addField('Get better results', 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.')

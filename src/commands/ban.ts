@@ -91,25 +91,25 @@ const channelEmbed = (member: GuildMember, fullMsg: Message|undefined): MessageE
 const youAreBanned = (client: Client, guild: Guild, reason: string): MessageEmbed => {
     return new MessageEmbed()
     .setColor(16711680)
-    .setAuthor("Nexus Mods Moderation Team", client.user?.avatarURL() || '')
+    .setAuthor({ name:"Nexus Mods Moderation Team", iconURL: client.user?.avatarURL() || '' })
     .setThumbnail(guild.iconURL() || '')
     .setTitle(`You have been banned from the ${guild.name} Discord server!`)
     .setDescription(`**Reason:** \n${reason}`)
     .addField("Terms of Service", "You can review our [Terms of Service](https://help.nexusmods.com/category/10-policies-and-guidelines) here.")
     .addField("Can I appeal a ban?","We allow all banned users a single appeal. This will be reviewed by our staff who will decide if you can rejoin the server. \n [More Information](https://help.nexusmods.com/article/33-what-can-i-do-if-my-account-has-been-banned) ")
-    .setFooter("No action has been taken against your Nexus Mods account at this time.", guild.iconURL() || '')
+    .setFooter({ text: "No action has been taken against your Nexus Mods account at this time.", iconURL: guild.iconURL() || '' })
 }
 
 const logEmbed = (moderator: GuildMember, banUser: GuildMember, reason: string, posts: number, evidence: string[], nexus: NexusUser|undefined): MessageEmbed => {
     const embed = new MessageEmbed()
     .setColor(16711680)
-    .setAuthor(moderator.user.username, moderator.user.avatarURL() || '')
+    .setAuthor({ name: moderator.user.username, iconURL: moderator.user.avatarURL() || '' })
     .setThumbnail(banUser.user.avatarURL() || '')
     .setTitle(`${banUser.user.tag} banned`)
     .setDescription(`${banUser.user.toString()} has been banned from this server by ${moderator.user.tag}`)
     .addField('Reason', reason)
     .setTimestamp(new Date())
-    .setFooter('Nexus Mods Moderation Team', moderator.guild.iconURL() || '')
+    .setFooter({ text: 'Nexus Mods Moderation Team', iconURL: moderator.guild.iconURL() || '' })
 
     if (posts > 0) embed.addField('Posts deleted', `Posts from this user from the last ${posts} day(s) has been deleted`)
     if (evidence.length) {

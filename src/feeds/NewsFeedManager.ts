@@ -113,7 +113,7 @@ function buildEmbed(client: ClientExt, news: NewsArticle): MessageEmbed {
     .setURL(news.link)
     .setImage(news.enclosure?.url)
     .setDescription(`${news["nexusmods:plain_description"].substr(0, 250)}...`)
-    .setFooter(`${news.categories.toString()} - ${news.author}`,client.user?.avatarURL() || undefined)
+    .setFooter({text: `${news.categories.toString()} - ${news.author}`, iconURL: client.user?.avatarURL() || undefined })
     .setTimestamp(news.pubDate)
     .setColor(0xda8e35);
     return embed;

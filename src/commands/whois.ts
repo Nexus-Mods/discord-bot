@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, User, MessageEmbed, Snowflake, ThreadChannel } from "discord.js";
+import { Client, Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, User, MessageEmbed, Snowflake, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getUserByDiscordId, userEmbed, getAllUsers } from "../api/users";
@@ -14,7 +14,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel| DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const discordId: string = message.author.id;
     const prefix: string = replyChannel === message.channel ? message.author.username : message.author.toString();
 
@@ -86,7 +86,7 @@ const notAllowed = (client: Client, message: Message): MessageEmbed => {
     .setTitle('⛔  Profile Unavailable')
     .setColor('#ff0000')
     .setDescription('The user you are looking for is not a member of this server.')
-    .setFooter(`Nexus Mods API Link - ${message.author.tag}: ${message.cleanContent}`, client.user?.avatarURL() || '');
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
 }
 
 const botUser = (client: Client): NexusUser => {

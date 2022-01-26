@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
+import { Client, Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, updateUser, updateAllRoles, getModsbyUser, updateMod, modUniqueDLTotal, deleteMod } from "../api/bot-db";
@@ -20,7 +20,7 @@ const help = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
         // Get reply channel
-        const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+        const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
         const rc: TextChannel = (replyChannel as TextChannel);
         const prefix = rc === message.channel ? '' : `${message.author.toString()} - `
         const discordId: string = message.author.id;
@@ -32,7 +32,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         .setTitle('Updating user data...')
         .setColor(0xda8e35)
         .setThumbnail(userData.avatar_url || message.author.avatar || '')
-        .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
+        .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
 
         const replyMsg = await rc.send({ embeds: [result] }).catch(() => undefined);
         
