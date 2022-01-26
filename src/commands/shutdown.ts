@@ -13,6 +13,7 @@ async function run(client: ClientExt, message: Message) {
     shutdownMsg.react('❌');
 
     collect.on('collect', async r => {
+        console.log('Collected reaction', r);
         if (r.emoji.name === '❌') return message.reply('Shutdown aborted.');
         await message.reply('Shutdown confirmed.');
         console.log(`${new Date().toLocaleString()} - Shutdown confirmed by ${message.author.tag}`);

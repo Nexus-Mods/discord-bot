@@ -6,6 +6,7 @@ import { GameFeed } from "../types/feeds";
 import { games } from "../api/nexus-discord";
 import { NexusUser } from "../types/users";
 import { IGameInfo } from "@nexusmods/nexus-api";
+import { logMessage } from '../api/util';
 
 const toggles = ["✅", "❌", "🆕", "⏫", "🔞", "🕹","📬","📭", "↕️"];
 
@@ -58,8 +59,10 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         return newFeedMsg?.edit(`Error in game lookup: ${err.message || err}`).catch(() => undefined);
     }
 
+    logMessage('Creating new game feed', { author: message.author, guild: message.guild?.name, game: gameForFeed.name });
+
     const confirm = confirmEmbed(client, message, gameForFeed, userData, nsfw);
-    newFeedMsg?.edit({ content: '', embeds: [confirm] }).catch(() => undefined);
+    newFeedMsg?.edit({ content: null, embeds: [confirm] }).catch(() => undefined);
     const filter = (reaction: MessageReaction, user: User) => (!!reaction.emoji.name && ['✅', '❌'].includes(reaction.emoji.name) && user.id === message.author.id);
     const collector: ReactionCollector | undefined = newFeedMsg?.createReactionCollector({ filter, max: 1, time: 15000 });
     newFeedMsg?.react('✅');
@@ -97,7 +100,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
         }
         catch(err: any) {
             console.log(err);
-            return newFeedMsg?.edit({ content: `Error creating gamefeed: ${err.message || err}`, embeds: null }).catch(() => undefined);
+            return newFeedMsg?.edit({ content: `Error creating gamefeed: ${err.message || err}`, embeds: [] }).catch(() => undefined);
         }
 
     });
