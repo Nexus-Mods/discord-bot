@@ -22,96 +22,96 @@ async function run(client: Client, message: Message, args: string[], server: Bot
 
     message.reply('This command has been retired. Please use the `/gamefeed/` slash command instead.');
     return;
-    // Block usage in DMs.
-    if (!message.guild) message.reply('This feature is not available in DMs.').catch(() => undefined);
+    // // Block usage in DMs.
+    // if (!message.guild) message.reply('This feature is not available in DMs.').catch(() => undefined);
 
-    // Tutorial of no args have been sent. 
-    if (!args.length) return message.reply({embeds: [await tutorialEmbed(client, message)]}).catch(() => undefined);
+    // // Tutorial of no args have been sent. 
+    // if (!args.length) return message.reply({embeds: [await tutorialEmbed(client, message)]}).catch(() => undefined);
 
-    // Catch command to edit the existing feed.
-    if (args[0].toLowerCase() === 'edit' && args[1].startsWith('#')) {
-        const feedId: number = parseInt(args[1].substr(1));
-        // If the feed id isn't a number.
-        if (feedId === NaN) return message.reply(`Invalid feed ID: ${args[1]}`).catch(() => undefined);
-        const feed: GameFeed|undefined = await getGameFeed(feedId).catch(() => undefined);
-        if (!feed) return message.reply(`Could not find a feed with ID: ${feedId}`).catch(() => undefined);
-        const owner: GuildMember | undefined = message.guild?.members.resolve(feed.owner) || undefined;
-        if (message.member !== owner && !message.member?.permissions.has('MANAGE_CHANNELS')) return message.reply("You do not have permission to edit this feed.").catch(() => undefined); 
-        if (feed.guild !== message.guild?.id) return message.reply(`Feed #${feedId} can only be managed from the server it was created in.`).catch(() => undefined);
-        return manageFeed(client, message, feed).catch((err) => message.reply(`Something went wrong managing your feed: ${err.message}`).catch(() => undefined));
-    }
+    // // Catch command to edit the existing feed.
+    // if (args[0].toLowerCase() === 'edit' && args[1].startsWith('#')) {
+    //     const feedId: number = parseInt(args[1].substr(1));
+    //     // If the feed id isn't a number.
+    //     if (feedId === NaN) return message.reply(`Invalid feed ID: ${args[1]}`).catch(() => undefined);
+    //     const feed: GameFeed|undefined = await getGameFeed(feedId).catch(() => undefined);
+    //     if (!feed) return message.reply(`Could not find a feed with ID: ${feedId}`).catch(() => undefined);
+    //     const owner: GuildMember | undefined = message.guild?.members.resolve(feed.owner) || undefined;
+    //     if (message.member !== owner && !message.member?.permissions.has('MANAGE_CHANNELS')) return message.reply("You do not have permission to edit this feed.").catch(() => undefined); 
+    //     if (feed.guild !== message.guild?.id) return message.reply(`Feed #${feedId} can only be managed from the server it was created in.`).catch(() => undefined);
+    //     return manageFeed(client, message, feed).catch((err) => message.reply(`Something went wrong managing your feed: ${err.message}`).catch(() => undefined));
+    // }
 
-    // Prevent non-moderators from setting up the feed.
-    if (!message.member?.permissions.has('MANAGE_CHANNELS')) return message.reply('Gamefeeds can only be created or managed by server moderators with the "Manage Channels" permission.').catch(() => undefined);
+    // // Prevent non-moderators from setting up the feed.
+    // if (!message.member?.permissions.has('MANAGE_CHANNELS')) return message.reply('Gamefeeds can only be created or managed by server moderators with the "Manage Channels" permission.').catch(() => undefined);
 
-    // Get user data
-    const userData: NexusUser|undefined = await getUserByDiscordId(message.author.id).catch(() => undefined);
-    if (!userData) return message.reply("Please link your Nexus Mods account to your Discord account before using this feature. See `!nexus link` help on linking your account.").catch(() => undefined);
+    // // Get user data
+    // const userData: NexusUser|undefined = await getUserByDiscordId(message.author.id).catch(() => undefined);
+    // if (!userData) return message.reply("Please link your Nexus Mods account to your Discord account before using this feature. See `!nexus link` help on linking your account.").catch(() => undefined);
 
-    // Start setting up a new game feed.
-    const newFeedMsg: Message|undefined = await message.reply('Checking for matching games...').catch(() => undefined);
-    const nsfw = (message.channel as TextChannel).nsfw;
-    const query = args.join('').toLowerCase();
-    let gameForFeed: IGameInfo|undefined;
-    try {
-        const allGames: IGameInfo[] = await games(userData);
-        gameForFeed = allGames.find(g => g.name.toLowerCase() === query || g.domain_name.toLowerCase() === query );
-        if (!gameForFeed) throw new Error(`No matching game for ${query}`);
-    }
-    catch(err) {
-        return newFeedMsg?.edit(`Error in game lookup: ${err.message || err}`).catch(() => undefined);
-    }
+    // // Start setting up a new game feed.
+    // const newFeedMsg: Message|undefined = await message.reply('Checking for matching games...').catch(() => undefined);
+    // const nsfw = (message.channel as TextChannel).nsfw;
+    // const query = args.join('').toLowerCase();
+    // let gameForFeed: IGameInfo|undefined;
+    // try {
+    //     const allGames: IGameInfo[] = await games(userData);
+    //     gameForFeed = allGames.find(g => g.name.toLowerCase() === query || g.domain_name.toLowerCase() === query );
+    //     if (!gameForFeed) throw new Error(`No matching game for ${query}`);
+    // }
+    // catch(err) {
+    //     return newFeedMsg?.edit(`Error in game lookup: ${err.message || err}`).catch(() => undefined);
+    // }
 
-    logMessage('Creating new game feed', { author: message.author, guild: message.guild?.name, game: gameForFeed.name });
+    // logMessage('Creating new game feed', { author: message.author, guild: message.guild?.name, game: gameForFeed.name });
 
-    const confirm = confirmEmbed(client, message, gameForFeed, userData, nsfw);
-    newFeedMsg?.edit({ content: null, embeds: [confirm] }).catch(() => undefined);
-    const filter = (reaction: MessageReaction, user: User) => (!!reaction.emoji.name && ['✅', '❌'].includes(reaction.emoji.name) && user.id === message.author.id);
-    const collector: ReactionCollector | undefined = newFeedMsg?.createReactionCollector({ filter, max: 1, time: 15000 });
-    newFeedMsg?.react('✅');
-    newFeedMsg?.react('❌');
+    // const confirm = confirmEmbed(client, message, gameForFeed, userData, nsfw);
+    // newFeedMsg?.edit({ content: null, embeds: [confirm] }).catch(() => undefined);
+    // const filter = (reaction: MessageReaction, user: User) => (!!reaction.emoji.name && ['✅', '❌'].includes(reaction.emoji.name) && user.id === message.author.id);
+    // const collector: ReactionCollector | undefined = newFeedMsg?.createReactionCollector({ filter, max: 1, time: 15000 });
+    // newFeedMsg?.react('✅');
+    // newFeedMsg?.react('❌');
 
-    collector?.on('collect', async r => {
-        // Cancel
-        if (r.emoji.name === '❌') return newFeedMsg?.edit({ content: 'Game feed setup cancelled.', embeds: [] }).catch(() => undefined);
-        // Create
-        let gameHook: Webhook|undefined;
-        const webHooks: Collection<string, Webhook>|undefined = await message.guild?.fetchWebhooks().catch(() => undefined);
-        const existing: Webhook|undefined = webHooks?.find(wh => wh.channelId === message.channel.id && wh.name === 'Nexus Mods Game Feed');
-        if (!existing) gameHook = await (message.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'} ).catch(() => undefined);
-        else gameHook = existing;
+    // collector?.on('collect', async r => {
+    //     // Cancel
+    //     if (r.emoji.name === '❌') return newFeedMsg?.edit({ content: 'Game feed setup cancelled.', embeds: [] }).catch(() => undefined);
+    //     // Create
+    //     let gameHook: Webhook|undefined;
+    //     const webHooks: Collection<string, Webhook>|undefined = await message.guild?.fetchWebhooks().catch(() => undefined);
+    //     const existing: Webhook|undefined = webHooks?.find(wh => wh.channelId === message.channel.id && wh.name === 'Nexus Mods Game Feed');
+    //     if (!existing) gameHook = await (message.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'} ).catch(() => undefined);
+    //     else gameHook = existing;
 
-        const newFeed: any = {
-            channel: message.channel.id,
-            guild: message.guild?.id || '',
-            owner: message.author.id,
-            domain: gameForFeed?.domain_name || '',
-            title: gameForFeed?.name || '',
-            nsfw,
-            sfw: true,
-            show_new: true,
-            show_updates: true,
-            webhook_id: gameHook?.id,
-            webhook_token: gameHook?.token || undefined
-        }
+    //     const newFeed: any = {
+    //         channel: message.channel.id,
+    //         guild: message.guild?.id || '',
+    //         owner: message.author.id,
+    //         domain: gameForFeed?.domain_name || '',
+    //         title: gameForFeed?.name || '',
+    //         nsfw,
+    //         sfw: true,
+    //         show_new: true,
+    //         show_updates: true,
+    //         webhook_id: gameHook?.id,
+    //         webhook_token: gameHook?.token || undefined
+    //     }
 
-        try {
-            const id = await createGameFeed(newFeed);
-            console.log(new Date().toLocaleString() + ` - Game feed created for ${gameForFeed?.name} in ${(message.channel as TextChannel).name} at ${message.guild?.name} by ${message.author.tag} successfully. Reference #${id}`);
-            await newFeedMsg?.edit({ content: null, embeds: [successEmbed(message, newFeed, gameForFeed, id)] }).catch(() => undefined);
-            return newFeedMsg?.pin().catch(undefined);
-        }
-        catch(err: any) {
-            console.log(err);
-            return newFeedMsg?.edit({ content: `Error creating gamefeed: ${err.message || err}`, embeds: [] }).catch(() => undefined);
-        }
+    //     try {
+    //         const id = await createGameFeed(newFeed);
+    //         console.log(new Date().toLocaleString() + ` - Game feed created for ${gameForFeed?.name} in ${(message.channel as TextChannel).name} at ${message.guild?.name} by ${message.author.tag} successfully. Reference #${id}`);
+    //         await newFeedMsg?.edit({ content: null, embeds: [successEmbed(message, newFeed, gameForFeed, id)] }).catch(() => undefined);
+    //         return newFeedMsg?.pin().catch(undefined);
+    //     }
+    //     catch(err: any) {
+    //         console.log(err);
+    //         return newFeedMsg?.edit({ content: `Error creating gamefeed: ${err.message || err}`, embeds: [] }).catch(() => undefined);
+    //     }
 
-    });
+    // });
 
-    collector?.on('end', rc => {
-        newFeedMsg?.reactions.removeAll().catch(() => undefined);
-        if (!rc.size) newFeedMsg?.edit({ content: 'Game feed setup cancelled.', embeds: null }).catch(() => undefined);
-    });
+    // collector?.on('end', rc => {
+    //     newFeedMsg?.reactions.removeAll().catch(() => undefined);
+    //     if (!rc.size) newFeedMsg?.edit({ content: 'Game feed setup cancelled.', embeds: null }).catch(() => undefined);
+    // });
 
 }
 

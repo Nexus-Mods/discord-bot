@@ -18,6 +18,11 @@ const discordInteraction: DiscordInteraction = {
         description: 'Game Feeds post new or updated mods every 10 minutes.',
         options: [
             {
+                name: 'about',
+                type: 'SUB_COMMAND',
+                description: 'Learn more about this feature.'
+            },
+            {
                 name: 'create',
                 type: 'SUB_COMMAND',
                 description: 'Create a Game Feed in this channel.',
@@ -78,11 +83,27 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     const interactionSubCommand = interaction.options.getSubcommand();
 
     switch (interactionSubCommand) {
+        case 'about': return aboutGameFeeds(client, interaction, userData);
         case 'create': return createFeed(client, interaction, userData);
         case 'list' : return listFeeds(client, interaction, userData);
         case 'manage': return manageFeed(client, interaction, userData);
         default: await interaction.editReply('Unknown SubCommand!');
     }
+}
+
+async function aboutGameFeeds(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<void> {
+    const aboutEmbed = new MessageEmbed()
+    .setTitle('Game Feeds')
+    .setDescription("Using this feature you can create a feed in this channel which will periodically report new and updated mods posted for the specfied game."+
+    "\n\nTo set up the feed add the name or domain of the game to the `/gamefeed create` command e.g. \"Stardew Valley\" or \"stardewvalley\"."+
+    "\n\nBy default adult content will only be included if the channel is marked NSFW in Discord."+
+    "\n\n*The feed will use the API key linked to your account and can consume approximately 144 - 1500 requests per day depending on your settings and the number of mods posted.*")
+    .addField('Editing or Cancelling Game Feeds', 'To edit an existing feed, use `/gamefeed manage id:` followed by the number reference of your feed e.g. /gamefeed manage 117.')
+    .addField('Listing Active Game Feeds', 'To view a list of feeds in the current channel, use `/gamefeed list`.')
+    .setColor(0xda8e35)
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+
+    interaction.editReply({ content: null, embeds: [aboutEmbed] });
 }
 
 async function createFeed(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<void> {

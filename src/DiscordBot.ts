@@ -44,7 +44,7 @@ export class DiscordBot {
 
     private setEventHandler(): void {
         fs.readdir(path.join(__dirname, 'events'), (err, files: string[]) => {
-            if (err) return console.error(err);
+            if (err) return logMessage('Error reading events directory during startup.', err, true);
             files.forEach((file: string) => {
                 if (!file.endsWith('.js')) return;
                 let event = require(path.join(__dirname, 'events', file));
@@ -57,12 +57,12 @@ export class DiscordBot {
     private setCommands(): void {
         if (!this.client.commands) this.client.commands = new Collection();
         fs.readdir(path.join(__dirname, 'commands'), (err, files : string[]) => {
-            if (err) return console.error(err);
+            if (err) return logMessage('Error reading commands directory during startup.', err, true);
             files.forEach((file: string) => {
                 if (!file.endsWith('.js')) return;
                 let props = require(path.join(__dirname, 'commands', file));
                 let commandName: string = file.split(".")[0];
-                console.log(`Loading command: ${commandName}`);
+                logMessage(`Loading command: ${commandName}`);
                 this.client.commands?.set(commandName, props);
             })
         });
@@ -114,19 +114,19 @@ export class DiscordBot {
             const guild: Guild | undefined = this.client.guilds.cache.get(guildId as Snowflake);
 
             if (!guild) {
-                console.warn('Unable to set up slash commands for invalid guild', guildId);
+                logMessage('Unable to set up slash commands for invalid guild', {guildId}, true);
                 continue;
             }
 
             if (!guildCommandList.length) {
-                console.log(`No non-global commands for ${guild?.name}, skipping.`);
-                guild.commands.set([]).catch(err => console.warn(`Unable to reset guild command list for ${guild.name}`, err));
+                logMessage(`No non-global commands for ${guild?.name}, skipping.`);
+                guild.commands.set([]).catch(err => logMessage(`Unable to reset guild command list for ${guild.name}`, err, true));
                 continue;
             };
             
             guild.commands.set(guildCommandList)
-                .then(() => console.log(`Set guild slash commands for ${guild.name}`, guildCommandList.map(c => c.name)))
-                .catch(err => console.error(`Failed to set up guild slash commands for ${guild?.name}`, err))
+                .then(() => logMessage(`Set guild slash commands for ${guild.name}`, guildCommandList.map(c => c.name)))
+                .catch(err => logMessage(`Failed to set up guild slash commands for ${guild?.name}`, err, true));
         }
 
         return;
