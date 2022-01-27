@@ -3,17 +3,8 @@ import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/util";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink, getUserByNexusModsId, deleteUser } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
-import { SlashCommandBuilder } from '@discordjs/builders';
 
 const discordInteraction: DiscordInteraction = {
-    data: new SlashCommandBuilder()
-        .setName('link')
-        .setDescription('Link your Nexus Mods account to Discord.')
-        .addStringOption(option => 
-            option.setName('apikey')
-            .setDescription('Provide your API key for your Nexus Mods account')
-            .setRequired(false)
-        ),
     command: {
         name: 'link',
         description: 'Link your Nexus Mods account to Discord.',

@@ -1,8 +1,7 @@
 import { 
     CommandInteraction, Snowflake, MessageEmbed, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
-    MessageActionRow, MessageButton, InteractionCollector, EmbedFieldData,
-    GuildMember
+    MessageActionRow, MessageButton, InteractionCollector, EmbedFieldData
 } from "discord.js";
 import { NexusUser } from "../types/users";
 import { DiscordInteraction } from "../types/util";

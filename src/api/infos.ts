@@ -81,7 +81,7 @@ async function editInfo(infoName: string, newData: any): Promise<void> {
     //return new Promise(())
 }
 
-function displayInfo(client: Client, message: Message, info: InfoResult): PostableInfo {
+function displayInfo(client: Client, info: InfoResult): PostableInfo {
     let result: PostableInfo = { content: info.message || '' };
     
     if (!info.approved) return { content: `Info for ${info.title || info.name} is pending moderator approval.` };
@@ -93,7 +93,7 @@ function displayInfo(client: Client, message: Message, info: InfoResult): Postab
     }
 
     const infoEmbed = new MessageEmbed()
-    .setFooter({text:`Info added by ${info.author || '???'} - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
+    .setFooter({text:`Info added by ${info.author || '???'}`, iconURL: client.user?.avatarURL() || '' })
     .setTimestamp(info.timestamp || new Date())
     .setColor(0xda8e35);
     if (info.title) infoEmbed.setTitle(info.title);
