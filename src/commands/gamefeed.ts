@@ -19,6 +19,9 @@ const help: CommandHelp = {
 }
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
+
+    message.reply('This command has been retired. Please use the `/gamefeed/` slash command instead.');
+    return;
     // Block usage in DMs.
     if (!message.guild) message.reply('This feature is not available in DMs.').catch(() => undefined);
 

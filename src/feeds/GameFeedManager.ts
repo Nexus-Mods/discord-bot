@@ -261,7 +261,7 @@ function createModEmbed(client: Client,
     .setImage(!compact? mod.picture_url || '' : '')
     .setThumbnail(compact ? mod.picture_url || '' : gameThumb)
     if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
-        let versionChanges = changeLog[mod.version].join("\n");
+        let versionChanges = changeLog[mod.version].join("\n").replace('<br />', '');
         if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
         post.addField(`Changelog (v${mod.version})`, versionChanges);
     }
