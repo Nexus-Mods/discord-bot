@@ -62,7 +62,7 @@ export class DiscordBot {
                 if (!file.endsWith('.js')) return;
                 let props = require(path.join(__dirname, 'commands', file));
                 let commandName: string = file.split(".")[0];
-                logMessage(`Loading command: ${commandName}`);
+                // logMessage(`Loading command: ${commandName}`);
                 this.client.commands?.set(commandName, props);
             })
         });
