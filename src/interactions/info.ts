@@ -96,7 +96,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     } 
     catch(err) {
         logMessage('Failed to show list of infos', { err }, true);
-        interaction.editReply({ content: 'Something went wrong. Please try again later.' })
+        interaction.editReply({ content: 'Something went wrong. Please try again later.' });
     }
 
 }

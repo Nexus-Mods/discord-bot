@@ -17,7 +17,6 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@discordjs/builders": "^0.12.0",
     "@discordjs/rest": "^0.3.0",
     "@nexusmods/nexus-api": "github:Nexus-Mods/node-nexus-api",
     "@types/bluebird": "^3.5.32",

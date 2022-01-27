@@ -1,0 +1,37 @@
+import { CommandInteraction, MessageActionRow, MessageSelectMenu, Client, MessageSelectOptionData, MessageEmbed, Message, InteractionCollector, MessageButton } from "discord.js";
+import { DiscordInteraction, InfoResult, PostableInfo } from "../types/util";
+import { getAllInfos, displayInfo } from '../api/bot-db';
+import { logMessage } from "../api/util";
+
+const discordInteraction: DiscordInteraction = {
+    command: {
+        name: 'news',
+        description: 'Refresh the news feed manually.',
+        options: [{
+            name: 'domain',
+            type: 'STRING',
+            description: 'Domain to check, for game-specific news.',
+            required: false,
+        }],
+        defaultPermission: false
+    },
+    public: false,
+    guilds: [
+        '581095546291355649'
+    ],
+    permissions: [
+        // Admins in the Nexus Mods server.
+        {
+            id: '215464099524378625',
+            type: 'ROLE',
+            permission: true
+        }
+    ],
+    action
+}
+
+async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+
+}
+
+export { discordInteraction };

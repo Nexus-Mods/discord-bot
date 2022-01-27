@@ -102,6 +102,8 @@ export class DiscordBot {
             .then(() => logMessage(`Set global slash commands`, allCommands.map(c => c.name)))
             .catch(err => logMessage('Failed to set global slash command list', {err}, true));
 
+        this.client.application?.commands.fetch().then((c) => logMessage('Fetched commands', c));
+
         
         // Set guild specific commands
         const guildToSet = Object.keys(guildCommands);

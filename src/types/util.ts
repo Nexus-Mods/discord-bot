@@ -1,6 +1,5 @@
 import { IModInfo } from "@nexusmods/nexus-api";
 import { GuildMember, MessageEmbed, EmbedFieldData, Snowflake, ApplicationCommandData, CommandInteraction, Client } from "discord.js";
-import { SlashCommandBuilder } from '@discordjs/builders';
 
 export interface InfoResult {
     name: string;
@@ -68,10 +67,17 @@ export interface PostableInfo {
     embed?: MessageEmbed;
 }
 
+interface PermissionsExt {
+    guild?: Snowflake;
+    id: Snowflake;
+    type: 'USER' | 'ROLE';
+    permission: boolean;
+}
+
 export interface DiscordInteraction {
-    data?: SlashCommandBuilder | any;
-    command: ApplicationCommandData
+    command: ApplicationCommandData;
     action: (client: Client, interact: CommandInteraction) => Promise<void>;
     public: boolean;
     guilds?: Snowflake[];
+    permissions?: PermissionsExt[];
 }
