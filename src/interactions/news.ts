@@ -13,25 +13,25 @@ const discordInteraction: DiscordInteraction = {
             description: 'Domain to check, for game-specific news.',
             required: false,
         }],
-        defaultPermission: false
+        // defaultPermission: false
     },
-    public: true,
+    public: false,
     guilds: [
         '581095546291355649'
     ],
     permissions: [
-        // Admins in the Nexus Mods server.
-        {
-            id: '215464099524378625',
-            type: 'ROLE',
-            permission: true
-        },
-        // Pickysaurus
-        {
-            id: '296052251234009089',
-            type: 'USER',
-            permission: true
-        }
+        // // Admins in the Nexus Mods server.
+        // {
+        //     id: '215464099524378625',
+        //     type: 'ROLE',
+        //     permission: true
+        // },
+        // // Pickysaurus
+        // {
+        //     id: '296052251234009089',
+        //     type: 'USER',
+        //     permission: true
+        // }
     ],
     action
 }

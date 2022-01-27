@@ -61,9 +61,7 @@ const discordInteraction: DiscordInteraction = {
         ]
     },
     public: true,
-    guilds: [
-        '581095546291355649'
-    ],
+    guilds: [],
     action
 }
 
@@ -156,8 +154,8 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
             else gameHook = existing;
 
             const newFeed: Partial<GameFeed> = {
-                channel: interaction.channel?.id || '',
-                guild: interaction.guild?.id || '',
+                channel: interaction.channel?.id,
+                guild: interaction.guild?.id,
                 owner: interaction.user.id,
                 domain: game?.domain_name || '',
                 title: game?.name || '',
