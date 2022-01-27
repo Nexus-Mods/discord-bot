@@ -17,7 +17,8 @@ async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
     });
 }
 
-async function addServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild): Promise<void> {
+async function addServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild | null): Promise<void> {
+    if (!server) return;
     return new Promise((resolve, reject) => {
         query('INSERT INTO user_servers (user_id, server_id) VALUES ($1, $2)', [user.id, server.id], async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
@@ -164,11 +165,11 @@ const modUniqueDLTotal = (allMods: NexusLinkedMod[]) => {
 
 const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): MessageEmbed => {
     const embed = new MessageEmbed()
-    .setAuthor(`Account ${remove ? 'Unlinked' : 'Linked'}`, user.avatar_url)
+    .setAuthor({ name: `Account ${remove ? 'Unlinked' : 'Linked'}`, iconURL: user.avatar_url})
     .setDescription(`${discord.toString()} ${remove ? 'unlinked from' : 'linked to'} [${user.name}](https://nexusmods.com/users/${user.id}).`)
     .setTimestamp(new Date())
     .setColor(0xda8e35)
-    .setFooter('🔗 Nexus Mods API link');
+    .setFooter({ text: '🔗 Nexus Mods API link' });
 
     return embed;
 }

@@ -30,7 +30,7 @@ const replyCard = (client: Client, nexus: NexusUser, discord: User): MessageEmbe
     .setTitle('Updating user data...')
     .setColor(0xda8e35)
     .setThumbnail(nexus.avatar_url || discord.avatarURL() || '' )
-    .setFooter(`Nexus Mods API link - ${discord.tag}`,client.user?.avatarURL() || '')
+    .setFooter({text: `Nexus Mods API link - ${discord.tag}`, iconURL: client.user?.avatarURL() || '' })
     return result;
 }
 
@@ -51,7 +51,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.defer({ephemeral: true});
+    await interaction.deferReply({ephemeral: true});
     // Check if they are already linked.
     let userData : NexusUser | undefined;
 

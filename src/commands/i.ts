@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
+import { Client, Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp, InfoCache, PostableInfo, InfoResult } from "../types/util";
 import { getAllInfos, displayInfo } from "../api/bot-db";
@@ -16,9 +16,9 @@ let cachedInfo: InfoCache;
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = (replyChannel as TextChannel);
-    const prefix = rc === message.channel ? '' : `${message.author.toString()}`
+    const prefix = rc === message.channel ? null : `${message.author.toString()}`
 
     // if (!cachedInfo || cachedInfo.expiry < new Date()) {
     //     const data = await getAllInfos().catch(() => []);
@@ -36,7 +36,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const query: string = args[0].toLowerCase();
     const result: InfoResult|undefined = data.find(i => i.name.toLowerCase() === query);
     if (!result) return rc.send({ content: prefix, embeds: [notFound(client, message, query)] }).catch(() => undefined);
-    const postable: PostableInfo = displayInfo(client, message, result);
+    const postable: PostableInfo = displayInfo(client, result);
     message.channel.send({ content: postable.content || undefined, embeds: postable.embed ? [postable.embed] : undefined }).catch((err) => console.log(err));
     message.delete().catch(() => undefined);
 }
@@ -46,8 +46,8 @@ const helpEmbed = (client: Client, message: Message, data: InfoResult[]): Messag
     .setColor(0xda8e35)
     .setTitle('Info Command Help')
     .setDescription('This command will return an embed or message based on a preset help topic.\nUse `!nm i {topic}` to invoke this command.')
-    .addField('Available Topics (case insensitive)', data.map(i => `${i.title} [${i.name}]`).join("\n").substr(0, 1024))
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, client.user?.avatarURL() || '');
+    .addField('Available Topics (case insensitive)', data.map(i => `${i.title} [${i.name}]`).join("\n").substring(0, 1024) || 'None') 
+    .setFooter({text:`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL:client.user?.avatarURL() || ''});
 }
 
 const notFound = (client: Client, message: Message, query: string): MessageEmbed => {
@@ -55,7 +55,7 @@ const notFound = (client: Client, message: Message, query: string): MessageEmbed
     .setColor(0xda8e35)
     .setTitle('Info Not Found')
     .setDescription(`There are no stored infos matching your query "${query}".`)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, client.user?.avatarURL() || '');
+    .setFooter({text:`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL:client.user?.avatarURL() || ''});
 }
 
 export { run, help };

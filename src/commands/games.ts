@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData, ThreadChannel } from "discord.js";
+import { Client, Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, MessageEmbed, EmbedFieldData, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { CommandHelp } from "../types/util";
 import { NexusUser } from "../types/users";
@@ -18,7 +18,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = replyChannel as TextChannel;
     const discordId: string = message.author.id;
 
@@ -69,7 +69,7 @@ const noResults = (client: Client, gameList: IGameInfo[], searchTerm: string): M
     .setDescription(`I checked all ${gameList.length.toLocaleString()} games for "${searchTerm}" but couldn't find anything. Please check your spelling or try expanding any acronyms (SSE -> Skyrim Special Edition)`)
     .setThumbnail(client.user?.avatarURL() || '')
     .setColor(0xda8e35)
-    .setFooter("Nexus Mods API link",client.user?.avatarURL() || '')
+    .setFooter({ text: "Nexus Mods API link", iconURL: client.user?.avatarURL() || '' })
     .addField(`Looking to upload a mod for "${searchTerm}"?`, `If you've made a mod for ${searchTerm} we'd love it if you shared it on Nexus Mods!\n[You can find out more about adding a mod for a new game here.](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`)
 }
 
@@ -83,7 +83,7 @@ const oneResult = (client: Client, message: Message, gameInfo: IGameInfo): Messa
     .addField("Mods",Number(gameInfo.mods).toLocaleString(),true)
     .addField("Downloads",Number(gameInfo.downloads).toLocaleString(),true)
     .addField("Endorsements",Number((gameInfo as any).file_endorsements || 0).toLocaleString(),true)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
     if (!gameInfo.approved_date || gameInfo.approved_date < 1) {
         game.addField("Unapproved Game",`${gameInfo.name} is pending approval by Nexus Mods staff. Once a mod has been uploaded and reviewed the game will be approved.\n[How can I add a new game to Nexus Mods?](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`)
         .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_empty.png`);
@@ -100,7 +100,7 @@ const multiResult = (client: Client, message: Message, results: IGameInfo[], que
     .setDescription(`Showing ${results.length < 5 ? results.length : 5} results for "${query}". [See all${results.length > 5 ? " "+results.length : "" }...](https://www.nexusmods.com/games)`)
     .setThumbnail(client.user?.avatarURL() || '')
     .setColor(0xda8e35)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`,client.user?.avatarURL() || '')
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || '' })
     .addFields(displayable.map((game: IGameInfo): EmbedFieldData => {
         return {
             name: game.name,

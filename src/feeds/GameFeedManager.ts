@@ -113,7 +113,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     const guild: Guild|null = client.guilds.resolve(feed.guild);
     const channel: TextChannel|null = guild ? (guild.channels.resolve(feed.channel) as TextChannel) : null;
     let webHook: WebhookClient | undefined = undefined;
-    if (feed.webhook_id && feed.webhook_token) webHook = new WebhookClient(feed.webhook_id, feed.webhook_token);
+    if (feed.webhook_id && feed.webhook_token) webHook = new WebhookClient({id: feed.webhook_id, token: feed.webhook_token});
     const botMember: GuildMember|null = guild ? guild.me : null;
     const botPerms: Readonly<Permissions>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
 
@@ -253,7 +253,7 @@ function createModEmbed(client: Client,
     const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.user.member_id}`;
 
     let post = new MessageEmbed()
-    .setAuthor(`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, client.user?.avatarURL() || '')
+    .setAuthor({name:`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, iconURL: client.user?.avatarURL() || '' })
     .setTitle(mod.name || 'Name not found')
     .setColor(newMod ? 0xda8e35 : 0x57a5cc)
     .setURL(`https://www.nexusmods.com/${mod.domain_name}/mods/${mod.mod_id}`)
@@ -261,7 +261,7 @@ function createModEmbed(client: Client,
     .setImage(!compact? mod.picture_url || '' : '')
     .setThumbnail(compact ? mod.picture_url || '' : gameThumb)
     if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
-        let versionChanges = changeLog[mod.version].join("\n");
+        let versionChanges = changeLog[mod.version].join("\n").replace('<br />', '');
         if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
         post.addField(`Changelog (v${mod.version})`, versionChanges);
     }
@@ -270,7 +270,7 @@ function createModEmbed(client: Client,
     if (mod.authorDiscord) post.addField('Discord', mod.authorDiscord.toString(), true)
     if (!compact) post.addField('Category', category, true)
     post.setTimestamp(new Date(mod.updated_time))
-    .setFooter(`${game.name}  •  ${category}  • v${mod.version} `, client?.user?.avatarURL() || '');
+    .setFooter({ text: `${game.name}  •  ${category}  • v${mod.version} `, iconURL: client?.user?.avatarURL() || '' });
 
     return post;
 

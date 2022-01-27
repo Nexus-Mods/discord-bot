@@ -39,20 +39,20 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
     // Private?
-    const showValue : (CommandInteractionOption | undefined) = interaction.options.get('private');
+    const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
 
     // User Ping?
-    const userValue : (CommandInteractionOption | undefined) = interaction.options.get('discord');
+    const userValue : (CommandInteractionOption | null) = interaction.options.get('discord');
     const user: (User | undefined) = userValue?.user;
 
     // Nexus search?
-    const nexusValue : (CommandInteractionOption | undefined) = interaction.options.get('nexus');
+    const nexusValue : (CommandInteractionOption | null) = interaction.options.get('nexus');
     const nexus: (string | undefined) = nexusValue?.value?.toString();
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.defer({ephemeral: show});
+    await interaction.deferReply({ephemeral: show});
     // Check if they are already linked.
     let userData : NexusUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
@@ -140,7 +140,7 @@ const notAllowed = (client: Client): MessageEmbed => {
     .setTitle('⛔  Profile Unavailable')
     .setColor('#ff0000')
     .setDescription('The user you are looking for is not a member of this server.')
-    .setFooter(`Nexus Mods API Link`, client.user?.avatarURL() || '');
+    .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
 }
 
 export { discordInteraction };

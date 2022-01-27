@@ -2,11 +2,11 @@ import { Message, MessageEmbed } from 'discord.js';
 
 function errorReply(e: Error, message: Message): MessageEmbed {
     const errEmbed = new MessageEmbed()
-    .setAuthor('Error', 'https://i.imgur.com/GkXTERx.png')
+    .setAuthor({ name: 'Error', iconURL: 'https://i.imgur.com/GkXTERx.png'})
     .setColor('#ff0000')
     .setDescription(getText(e))
     .setTimestamp(new Date())
-    .setFooter(`${message.author.tag}: ${message.cleanContent}`);
+    .setFooter({ text: `${message.author.tag}: ${message.cleanContent}` });
 
     return errEmbed;
 }

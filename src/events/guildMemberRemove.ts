@@ -1,6 +1,6 @@
 import { Guild, GuildMember, User } from 'discord.js';
 import { ClientExt } from '../DiscordBot';
-import { getUserByDiscordId, getLinksByUser, deleteAllServerLinksByUser, deleteUser, deleteServerLink } from '../api/bot-db';
+import { getUserByDiscordId, deleteServerLink } from '../api/bot-db';
 
 
 async function main(client: ClientExt, member: GuildMember) {

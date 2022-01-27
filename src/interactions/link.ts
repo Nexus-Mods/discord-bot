@@ -24,7 +24,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.defer({ephemeral: true});
+    await interaction.deferReply({ephemeral: true});
     // Check if they are already linked.
     let userData : NexusUser | undefined;
     let userServers: NexusUserServerLink[] | undefined;
@@ -66,7 +66,7 @@ const sendKeyEmbed = (client: Client, interaction: CommandInteraction ): Message
     .setDescription(`Please send your API key using the command \`/link apikeyhere\`.`
     +`\nYou can get your API key by visiting your [Nexus Mods account settings](https://www.nexusmods.com/users/myaccount?tab=api+access).`)
     .setImage('https://i.imgur.com/Cb4NPv9.gif')
-    .setFooter(`Nexus Mods API Link - ${interaction.member?.user.username}`, client.user?.avatarURL() || '');
+    .setFooter({ text: `Nexus Mods API Link - ${interaction.member?.user.username}`, iconURL: client.user?.avatarURL() || '' });
 
     return embed;
 }

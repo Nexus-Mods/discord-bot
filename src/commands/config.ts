@@ -115,7 +115,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     const owner: GuildMember = await guild.fetchOwner();
 
     const embed = new MessageEmbed()
-    .setAuthor(guild.name, guild.iconURL() || '')
+    .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })
     .setTitle(`Server Configuration - ${guild.name}`)
     .setDescription('Configure any of these options for your server by typing the following command: \n`!NM config <setting> <newvalue>`')
     .setColor(0xda8e35)
@@ -136,7 +136,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
         'Search', 
         `Showing ${server.game_filter ? `mods from ${gameName || server.game_filter}` : 'all games' }. - set using \`filter <game name/domain>\``
     )
-    .setFooter(`Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, client.user?.avatarURL() || '');
+    .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: client.user?.avatarURL() || '' });
 
     if (newsChannel || logChannel) embed.addField('Depreciated Channels', `News: ${newsChannel?.toString() || 'n/a'}, Log: ${logChannel?.toString() || 'n/a'}`);
     if (server.official) embed.addField('Official Nexus Mods Server', 'This server is an official Nexus Mods server, all bot functions are enabled.');

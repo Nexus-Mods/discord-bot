@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, TextChannel, DMChannel, MessageEmbed, EmbedFieldData, ThreadChannel } from "discord.js";
+import { Client, Message, GuildChannel, TextChannel, PartialDMChannel, DMChannel, MessageEmbed, EmbedFieldData, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { NexusUser, NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from "../api/bot-db";
@@ -19,7 +19,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
     // Get reply channel
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel | PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
     const rc: TextChannel = (replyChannel as TextChannel);
     const prefix = rc === message.channel ? '' : `${message.author.toString()} - `
     const discordId: string = message.author.id;
@@ -184,7 +184,7 @@ const startUpEmbed = (client: Client, message: Message, user: NexusUser): Messag
     .setTitle('Preparing to add mods...')
     .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
     .setColor(0xda8e35)
-    .setFooter(`Nexus Mods API link - ${message.author.tag}: !nm addmod`, client.user?.avatarURL() || '');
+    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: !nm addmod`, iconURL: client.user?.avatarURL() || ''});
 }
 
 export { run, help };

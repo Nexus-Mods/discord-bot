@@ -1,4 +1,4 @@
-import { Client, Message, GuildChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
+import { Client, Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
 import { getUserByDiscordId, userEmbed } from "../api/users";
 import { NexusUser } from "../types/users";
@@ -14,8 +14,11 @@ const help = {
     adminOnly: false  
 }
 async function run(client: Client, message: Message, args: string[], serverData: BotServer) {
-    const replyChannel: (GuildChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
+    const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const discordId: string = message.author.id;
+
+    return message.reply('This command is no longer in use. Please use the /profile slash command (no prefix).');
+
 
     try {
         const userData: NexusUser = await getUserByDiscordId(discordId);

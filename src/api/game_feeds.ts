@@ -32,7 +32,7 @@ function getGameFeedsForServer(serverId: string): Promise<GameFeed[]> {
     });
 }
 
-function createGameFeed (newFeed: GameFeed): Promise<number> {
+function createGameFeed (newFeed: Partial<GameFeed>): Promise<number> {
     return new Promise(
         (resolve, reject) => {
         query('INSERT INTO game_feeds (channel, guild, owner, domain, title, nsfw, sfw, show_new, show_updates, webhook_id, webhook_token, last_timestamp, created) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',

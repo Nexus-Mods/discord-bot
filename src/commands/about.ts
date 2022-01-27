@@ -31,7 +31,7 @@ async function run(client: Client, message: Message) {
         `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
         `Game Feeds: ${allFeeds.length.toLocaleString()}`
     )
-    .setFooter(`Uptime: ${upTime}`, client.user?.avatarURL() || '')
+    .setFooter({ text: `Uptime: ${upTime}`, iconURL: client.user?.avatarURL() || '' })
     .setTimestamp(new Date());
 
     return message.channel.send({ embeds: [info] });
