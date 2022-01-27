@@ -1,6 +1,7 @@
-import { CommandInteraction, MessageActionRow, MessageSelectMenu, Client, MessageSelectOptionData, MessageEmbed, Message, InteractionCollector } from "discord.js";
+import { CommandInteraction, MessageActionRow, MessageSelectMenu, Client, MessageSelectOptionData, MessageEmbed, Message, InteractionCollector, MessageButton } from "discord.js";
 import { DiscordInteraction, InfoResult, PostableInfo } from "../types/util";
 import { getAllInfos, displayInfo } from '../api/bot-db';
+import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: {
@@ -35,6 +36,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         else content = `No results found for ${message}`;
     }
 
+    try {
     const options: MessageSelectOptionData[] = data.map(d => ({
         label: d.title || d.name,
         description: d.description || d.message,
@@ -42,13 +44,23 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     }));
     
     // No message pre-selected!
-    const choices: MessageActionRow = new MessageActionRow()
-    .addComponents(
-        new MessageSelectMenu()
-        .setCustomId('info-select')
-        .setPlaceholder('Select a topic to display...')
-        .addOptions(options)
-    );
+    const choices: MessageActionRow[] | undefined = 
+        data.length ? [
+            new MessageActionRow()
+            .addComponents(
+                new MessageSelectMenu()
+                .setCustomId('info-select')
+                .setPlaceholder('Select a topic to display...')
+                .addOptions(options)
+            ),
+            new MessageActionRow()
+            .addComponents(
+                new MessageButton()
+                .setCustomId('cancel')
+                .setLabel('Cancel')
+                .setStyle('SECONDARY')
+            )
+        ] : undefined;
 
     const searchEmbed: MessageEmbed = new MessageEmbed()
     .setColor(0xda8e35)
@@ -56,30 +68,42 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     .setDescription('This command will return an embed or message based on a preset help topic. Select the desired topic below.')
     .setFooter({text:`Nexus Mods API link`, iconURL:client.user?.avatarURL() || ''});
 
-    await interaction.editReply({ content, embeds: [searchEmbed], components: [choices] });
+
+    await interaction.editReply({ content, embeds: [searchEmbed], components: choices });
 
     // Set up the collector
     const replyMsg = await interaction.fetchReply();
-    const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ componentType: 'SELECT_MENU' });
+    const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ time: 60000 });
 
-    collector.on('collect', s => {
+    collector.on('collect', async s => {
+        if (s.isButton() && s.customId === 'cancel') {
+            collector.stop('Selection complete');
+            await interaction.editReply({ content: 'Selection cancelled.', embeds: [], components: [] });
+            return;
+        }
+
+        await s.deferUpdate();
         const selected = data.find(d => d.name === s.values[0]);
         if (!!selected) {
             collector.stop('Selection complete');
+            await interaction.editReply({ content: 'Info posted!', embeds: [], components: [] });
             return displaySelected(client, selected, s)
         };
     });
 
     collector.on('end', sc => {
     });
-
-
+    } 
+    catch(err) {
+        logMessage('Failed to show list of infos', { err }, true);
+        interaction.editReply({ content: 'Something went wrong. Please try again later.' })
+    }
 
 }
 
 async function displaySelected(client: Client, selected: InfoResult, interaction: CommandInteraction) {
     const postable: PostableInfo = displayInfo(client, selected);
-    await interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : undefined, ephemeral: false });
+    await interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : [], ephemeral: false });
 }
 
 export { discordInteraction };

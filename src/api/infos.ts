@@ -84,7 +84,7 @@ async function editInfo(infoName: string, newData: any): Promise<void> {
 function displayInfo(client: Client, info: InfoResult): PostableInfo {
     let result: PostableInfo = { content: info.message || '' };
     
-    if (!info.approved) return { content: `Info for ${info.title || info.name} is pending moderator approval.` };
+    if (!info.approved) return { content: `Info for "${info.title || info.name}" is pending moderator approval.` };
     
 
     if (!info.description && !info.url && !info.fields && !info.image && !info.thumbnail && !info.url) {
