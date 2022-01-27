@@ -15,7 +15,7 @@ const discordInteraction: DiscordInteraction = {
         }],
         defaultPermission: false
     },
-    public: false,
+    public: true,
     guilds: [
         '581095546291355649'
     ],
@@ -25,12 +25,19 @@ const discordInteraction: DiscordInteraction = {
             id: '215464099524378625',
             type: 'ROLE',
             permission: true
+        },
+        // Pickysaurus
+        {
+            id: '296052251234009089',
+            type: 'USER',
+            permission: true
         }
     ],
     action
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+    interaction.reply('Damn son!')
 
 }
 

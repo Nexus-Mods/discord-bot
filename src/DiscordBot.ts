@@ -1,4 +1,4 @@
-import { Client, Collection, Snowflake, ApplicationCommandData, Guild } from 'discord.js';
+import { Client, Collection, Snowflake, ApplicationCommandData, ApplicationCommand, Guild, ApplicationCommandPermissionData } from 'discord.js';
 import { DiscordInteraction } from './types/util';
 import * as fs from 'fs';
 import path from 'path';
@@ -24,8 +24,9 @@ export class DiscordBot {
     connect(): void {
         this.client
             .login(process.env.D_TOKEN)
-            .then(() => {
+            .then(async () => {
                 logMessage('Connected to Discord');
+                await this.client.application?.fetch();
                 this.setSlashCommands();
             })
             .catch(err => {
@@ -38,6 +39,7 @@ export class DiscordBot {
         if (!this.client) return;
         
         this.client.config = require(path.join(__dirname, 'config.json'));
+        this.client.application?.fetch();
         this.setEventHandler();
         this.setCommands();
     }
@@ -79,9 +81,11 @@ export class DiscordBot {
         
         let allCommands : ApplicationCommandData[] = []; //Collect all global commands
         let guildCommands : {[guild: string] : ApplicationCommandData[]} = {}; // Collect all guild-specific commands. 
+        let allInteractions : DiscordInteraction[] = [];
         
         interactionFiles.forEach(async (file: string) => {
             let interact: DiscordInteraction = require(path.join(__dirname, 'interactions', file)).discordInteraction;
+            allInteractions.push(interact);
             let interName: string = file.split('.')[0];
             // Add to global commands list.
             if (interact.public) allCommands.push(interact.command);
@@ -99,10 +103,11 @@ export class DiscordBot {
 
         // Set globally
         this.client.application?.commands.set(allCommands)
-            .then(() => logMessage(`Set global slash commands`, allCommands.map(c => c.name)))
+            .then((commands: Collection<any, ApplicationCommand<any>>) => {
+                logMessage(`Set global slash commands`, commands.map(c => c.name));
+                // Permissions could be set here? 
+            })
             .catch(err => logMessage('Failed to set global slash command list', {err}, true));
-
-        this.client.application?.commands.fetch().then((c) => logMessage('Fetched commands', c));
 
         
         // Set guild specific commands
