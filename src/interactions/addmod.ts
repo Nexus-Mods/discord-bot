@@ -1,80 +1,83 @@
-import { Client, Message, GuildChannel, TextChannel, PartialDMChannel, DMChannel, MessageEmbed, EmbedFieldData, ThreadChannel } from "discord.js";
-import { BotServer } from "../types/servers";
+import { CommandInteraction, EmbedFieldData, Client, MessageEmbed } from "discord.js";
+import { DiscordInteraction, ModDownloadInfo, NexusSearchModResult } from "../types/util";
 import { NexusUser, NexusLinkedMod } from "../types/users";
-import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from "../api/bot-db";
-import { CommandHelp, ModDownloadInfo, NexusSearchModResult } from "../types/util";
+import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from '../api/bot-db';
+import { logMessage } from "../api/util";
+import { games, getDownloads, modInfo, quicksearch } from "../api/nexus-discord";
 import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
-import { games, modInfo, getDownloads, quicksearch } from "../api/nexus-discord";
-import { discontinuedEmbed } from '../api/util';
 
 const modUrlExp = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i;
 
-const help: CommandHelp = {
-    name: "addmod",
-    description: "Allows authors to show mods on their profile cards in Discord.\nCan also be used to gain 'Mod Author' status on servers using the bot.",
-    usage: "[mod title or link, comma separated]",
-    moderatorOnly: false,
-    adminOnly: false,
-    officialOnly: false 
+const discordInteraction: DiscordInteraction = {
+    command: {
+        name: 'addmod',
+        description: 'Associate a mod with your Discord account.',
+        options: [{
+            name: 'searchterm',
+            type: 'STRING',
+            description: 'Add links or search terms for mods to add, comma separated.',
+            required: true,
+        }]
+    },
+    public: true,
+    guilds: [
+        '581095546291355649'
+    ],
+    action
 }
 
-async function run(client: Client, message: Message, args: string[], server: BotServer) {
-    // Get reply channel
-    const replyChannel: (GuildChannel | PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = server && server.channel_bot ? message.guild?.channels.resolve(server.channel_bot) : message.channel;
-    const rc: TextChannel = (replyChannel as TextChannel);
-    const prefix = rc === message.channel ? '' : `${message.author.toString()} - `
-    const discordId: string = message.author.id;
+async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+    await interaction.deferReply({ ephemeral: true });
 
-    return message.reply({ embeds: [discontinuedEmbed('/addmod')] }).catch(undefined);
+    // Get existing user data and mods.
+    const discordId: string = interaction.user.id;
+    const user: NexusUser = await getUserByDiscordId(discordId);
+    if (!user) return interaction.editReply({ content: 'You do not have a Nexus Mods account linked to your profile. Use /link to get stared.' });
+    const mods = await getModsbyUser(user.id).catch(() => []);
 
-    // // Get User data
-    // const userData: NexusUser | undefined = await getUserByDiscordId(discordId).catch(() => undefined);
-    // if (!userData) return rc.send(`${prefix}You do not have a Nexus Mods account linked to your Discord profile.`).catch(() => undefined);
-    // let mods: NexusLinkedMod[] = await getModsbyUser(userData.id).catch(() => []);
+    // Get arguments
+    const args: string[] = interaction.options.getString('searchterm')?.split(',').slice(0, 24).map(t => t.trim()) || [];
+    const urlQueries: string[] = args.filter(q => q.trim().match(modUrlExp));
+    const strQueries: string[] = args.filter(q => !!q && !urlQueries.includes(q));
 
-    // // No arguments 
-    // if (!args.length) return rc.send(`${prefix}To link a mod to your Discord account type \`!nexus addmod <mod title/url>\`. You can add several mods at once by using a comma to separate your queries.`).catch(() => undefined);
+    logMessage('Looking up mods', { name: user.name, discord: interaction.user.tag, urlQueries, strQueries });
 
-    // // Get started by sending a working message and processing the query.
-    // let embed: MessageEmbed = startUpEmbed(client, message, userData);
-    // const msg: Message|undefined = await rc.send({ content: message.channel === rc ? undefined : message.author.toString(), embeds: [embed] }).catch(() => undefined);
-    // if (!msg) return console.log(`${new Date().toLocaleString()} - Could not post addmod message, aborting.`, userData.name, message.guild?.name);
+    const searchingEmbed: MessageEmbed = new MessageEmbed()
+    .setTitle(`Checking ${args.length} search terms(s)...`)
+    .setDescription(args.join('\n'))
+    .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
+    .setColor(0xda8e35)
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || ''});
 
-    // let queries: string[] = args.join(' ').split(',').slice(0, 25);
-    // const urlQueries: string[] = queries.filter(q => q.trim().match(modUrlExp));
-    // const strQueries: string[] = queries.filter(q => !!q && !urlQueries.includes(q));
+    await interaction.editReply({ embeds: [searchingEmbed] });
 
-    // console.log(`${new Date().toLocaleString()} - ${queries.length} addmod queries sent by ${userData.name} (${message.author.tag})`, urlQueries, strQueries);
+    try {
+        const gameList: IGameInfo[] = await games(user);
 
-    // embed.setTitle(`Checking for ${queries.length} mod(s)...`);
-    // await msg.edit({ embeds: [embed] }).catch(() => undefined);
+        const urlResults: EmbedFieldData[] = await Promise.all(
+            urlQueries.map((url: string) => urlCheck(url, mods, gameList, user))
+        );
+        const strResults: EmbedFieldData[] = await Promise.all(
+            strQueries.map((query: string) => stringCheck(query, mods, gameList, user))
+        );
 
-    // try {
-    //     const allGames: IGameInfo[] = await games(userData);
+        const allResults: EmbedFieldData[] = urlResults.concat(strResults).filter(r => r !== undefined);
 
-    //     const urlResults: EmbedFieldData[] = await Promise.all(
-    //         urlQueries.map((url: string) => urlCheck(url, mods, allGames, userData))
-    //     );
-    //     const strResults: EmbedFieldData[] = await Promise.all(
-    //         strQueries.map((query: string) => stringCheck(query, mods, allGames, userData))
-    //     );
+        searchingEmbed.setTitle('Adding mods complete')
+        .setDescription('')
+        .addFields(allResults);
 
-    //     const allResults: EmbedFieldData[] = urlResults.concat(strResults).filter(r => r !== undefined);
+        await updateAllRoles(client, user, interaction.user, false);
 
-    //     embed.setTitle('Adding mods complete')
-    //     .addFields(allResults);
+        return interaction.editReply({ embeds: [ searchingEmbed ] });
 
-    //     await updateAllRoles(client, userData, message.author, false);
-
-    //     return msg.edit({ embeds : [embed] }).catch(() => undefined);
-
-    // }
-    // catch (err) {
-    //     embed.setColor(0xff000);
-    //     embed.setTitle('An error occurred adding this mod');
-    //     embed.setDescription(`Error details:\n\'\'\'${JSON.stringify(err, null, 2)}\'\'\'\nPlease try again later. If this problem persists please report it to Nexus Mods.`);
-    //     return msg.edit({ embeds : [embed] }).catch(() => undefined);
-    // }
+    }
+    catch(err) {
+        searchingEmbed.setColor(0xff000);
+        searchingEmbed.setTitle('An error occurred adding mods');
+        searchingEmbed.setDescription(`Error details:\n\'\'\'${JSON.stringify(err, null, 2)}\'\'\'\nPlease try again later. If this problem persists please report it to Nexus Mods.`);
+        return interaction.editReply({ embeds : [searchingEmbed] }).catch(() => undefined);
+    }
 
 }
 
@@ -182,12 +185,4 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
 
 }
 
-const startUpEmbed = (client: Client, message: Message, user: NexusUser): MessageEmbed => {
-    return new MessageEmbed()
-    .setTitle('Preparing to add mods...')
-    .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
-    .setColor(0xda8e35)
-    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: !nm addmod`, iconURL: client.user?.avatarURL() || ''});
-}
-
-export { run, help };
+export { discordInteraction };

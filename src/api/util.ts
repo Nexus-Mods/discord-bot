@@ -14,3 +14,10 @@ export const unexpectedErrorEmbed = (err: any, context: any): MessageEmbed => {
     .addField('Error Context', `\'\'\'${JSON.stringify(context, null, 2)}\'\'\'`.substring(0,1010))
     .addField('Reporting the error', 'Please report this on [GitHub](https://github.com/Nexus-Mods/discord-bot/issues/) or the [Nexus Mods server](https://discord.gg/nexusmods).')
 }
+
+export const discontinuedEmbed = (newCommand: string): MessageEmbed => {
+    return new MessageEmbed()
+    .setTitle('Command discontinued')
+    .setColor('GREY')
+    .setDescription(`This command has been retired, please use the slash command **${newCommand}** instead. [Help](https://discord.gg/nexusmods)`)
+}
