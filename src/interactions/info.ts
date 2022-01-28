@@ -25,7 +25,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     const message: string | null = interaction.options.getString('code');
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
 
     const data: InfoResult[] = await getAllInfos().catch(() => []);
     let content: string | null = null;
@@ -71,10 +71,9 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     .setFooter({text:`Nexus Mods API link`, iconURL:client.user?.avatarURL() || ''});
 
 
-    await interaction.editReply({ content, embeds: [searchEmbed], components: choices });
+    const replyMsg = await interaction.followUp({ content, embeds: [searchEmbed], components: choices, ephemeral: true, fetchReply: true });
 
     // Set up the collector
-    const replyMsg = await interaction.fetchReply();
     const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ time: 60000 });
 
     collector.on('collect', async s => {

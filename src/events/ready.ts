@@ -5,16 +5,16 @@ import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
 import { ModFeedManager } from '../feeds/ModFeedManager';
 import { NewsFeedManager } from '../feeds/NewsFeedManager';
+import { logMessage } from '../api/util';
 
 // Prepare the online status embed for quick reuse.
 const onlineEmbed = new MessageEmbed()
-    .setTitle('Nexus Mods Discord Bot is online.')
+    .setTitle(`Nexus Mods Discord Bot v${process.env.npm_package_version} is online.`)
     .setColor(0x009933);
 
 let firstStartUp: boolean = false;
 
 async function main (client: ClientExt) {
-    const timeNow = (): string => new Date().toLocaleString();
     client.user?.setActivity(`the channels for ${client.config?.prefix[0]}`, {type: 'WATCHING', url: "https://discord.gg/nexusmods"});
     if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
 
@@ -26,10 +26,10 @@ async function main (client: ClientExt) {
     const newsFeed: NewsFeedManager = NewsFeedManager.getInstance(client);
 
     // Publish online message to servers. (Cache server listing?)
-    if (client.config.testing) return console.log(`${timeNow()} - Testing mode - did not send online message`);
+    if (client.config.testing) return logMessage('Testing mode - did not send online message');
     const allServers: BotServer[] = await getAllServers()
         .catch((err) => {
-            console.warn(`${timeNow()} - Error getting all servers when publishing online message.`, err);
+            logMessage('Error getting all servers when publishing online message.', err, true);
             return [];
         });
     for (let server of allServers) {
@@ -38,7 +38,7 @@ async function main (client: ClientExt) {
             // We don't want to delete anything by mistake when testing. 
             if (!client.config.testing) {
                 await deleteServer(server.id);
-                console.log(`${timeNow()} - Deleting non-existant server: ${server.id}`);
+                logMessage(`Deleting non-existant server: ${server.id}`);
             };
             continue;
         }
@@ -47,15 +47,15 @@ async function main (client: ClientExt) {
             if (!channelId) continue;
             const postChannel: GuildChannel | ThreadChannel | null = guild.channels.resolve(channelId);
             if (!postChannel) {
-                console.log(`${timeNow()} - Could not get Nexus Log channel for ${guild}`);
+                logMessage(`Could not get Nexus Log channel for ${guild}`);
                 continue;
             };            
             onlineEmbed.setTimestamp(new Date());
-            (postChannel as TextChannel).send({embeds: [onlineEmbed]}).catch((err) =>console.log(`${timeNow()} - Error posting online notice to log channel in ${guild.name}`, err))
+            (postChannel as TextChannel).send({embeds: [onlineEmbed]}).catch((err) => logMessage(`Error posting online notice to log channel in ${guild.name}`, err, true))
         }
     }
 
-    console.log(`${timeNow()} - Ready to serve in ${client.channels.cache.size} channels on ${client.guilds.cache.size} servers.`);
+    logMessage(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
 
 }
 
