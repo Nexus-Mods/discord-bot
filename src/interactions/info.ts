@@ -39,7 +39,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     try {
     const options: MessageSelectOptionData[] = data.map(d => ({
         label: d.title || d.name,
-        description: d.description || d.message,
+        description: (d.description || d.message)?.substring(0, 90)+'...',
         value: d.name
     }));
     
