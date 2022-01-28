@@ -20,18 +20,19 @@ const discordInteraction: DiscordInteraction = {
         '581095546291355649'
     ],
     permissions: [
-        // // Admins in the Nexus Mods server.
-        // {
-        //     id: '215464099524378625',
-        //     type: 'ROLE',
-        //     permission: true
-        // },
-        // // Pickysaurus
-        // {
-        //     id: '296052251234009089',
-        //     type: 'USER',
-        //     permission: true
-        // }
+        // Admins in the Nexus Mods server.
+        {
+            guild: '215154001799413770',
+            id: '215464099524378625',
+            type: 'ROLE',
+            permission: true
+        },
+        // Pickysaurus
+        {
+            id: '296052251234009089',
+            type: 'USER',
+            permission: true
+        }
     ],
     action
 }

@@ -3,6 +3,7 @@ import { BotServer } from "../types/servers";
 import { getUserByDiscordId, userEmbed } from "../api/users";
 import { NexusUser } from "../types/users";
 import errorReply from "../api/errorHandler";
+import { discontinuedEmbed } from '../api/util';
 
 const redundantMessage: string = 'This command is being retired. Please use the `/profile` slash command in future.';
 
@@ -17,7 +18,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
     const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const discordId: string = message.author.id;
 
-    return message.reply('This command is no longer in use. Please use the /profile slash command (no prefix).');
+    return message.reply({ embeds: [ discontinuedEmbed('/profile') ] });
 
 
     try {

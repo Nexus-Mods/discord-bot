@@ -3,6 +3,7 @@ import { BotServer } from "../types/servers";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getUserByDiscordId, userEmbed, getAllUsers } from "../api/users";
 import { getLinksByUser } from "../api/bot-db";
+import { discontinuedEmbed } from '../api/util';
 
 const help = {
     name: 'whois',
@@ -18,7 +19,7 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     const discordId: string = message.author.id;
     const prefix: string = replyChannel === message.channel ? message.author.username : message.author.toString();
 
-    return message.reply('This command is no longer in use. Please use the /whois slash command (no prefix).');
+    return message.reply({ embeds: [discontinuedEmbed('/whois')] });
 
 
     // Get info about the user making the request.

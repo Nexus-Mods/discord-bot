@@ -2,6 +2,7 @@ import { Client, Message, TextChannel, GuildChannel, PartialDMChannel, DMChannel
 import { BotServer } from '../types/servers';
 import { getUserByDiscordId, deleteUser, getLinksByUser, deleteAllServerLinksByUser, deleteServerLink } from '../api/bot-db';
 import { NexusUser, NexusUserServerLink } from '../types/users';
+import { discontinuedEmbed } from '../api/util';
 
 const help = {
     name: 'unlink',
@@ -17,7 +18,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
     const replyPrefix: string = replyChannel === message.channel ? `${message.author.toString()} - `: ''
     const discordId: string = message.author.id;
 
-    return message.reply('This command is no longer in use. Please use the /link slash command (no prefix).');
+    return message.reply({ embeds: [discontinuedEmbed('/unlink')] });
 
 
     // const userData: NexusUser | undefined = await getUserByDiscordId(discordId).catch(() => undefined);

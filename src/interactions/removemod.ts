@@ -76,6 +76,10 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         }
 
         try {
+            if (!removals.length) {
+                i.editReply({ content: 'No mods removed.', embeds: [] });
+                return;
+            }
             await removeMods(removals);
             await updateAllRoles(client, user, interaction.user, false);
             i.editReply({ embeds: [completedEmbed(client, user, removals)] });

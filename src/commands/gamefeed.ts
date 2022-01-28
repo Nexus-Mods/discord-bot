@@ -6,7 +6,7 @@ import { GameFeed } from "../types/feeds";
 import { games } from "../api/nexus-discord";
 import { NexusUser } from "../types/users";
 import { IGameInfo } from "@nexusmods/nexus-api";
-import { logMessage } from '../api/util';
+import { discontinuedEmbed } from '../api/util';
 
 const toggles = ["✅", "❌", "🆕", "⏫", "🔞", "🕹","📬","📭", "↕️"];
 
@@ -20,7 +20,7 @@ const help: CommandHelp = {
 
 async function run(client: Client, message: Message, args: string[], server: BotServer) {
 
-    message.reply('This command has been retired. Please use the `/gamefeed/` slash command instead.');
+    message.reply({ embeds: [discontinuedEmbed('/gamefeed')] });
     return;
     // // Block usage in DMs.
     // if (!message.guild) message.reply('This feature is not available in DMs.').catch(() => undefined);

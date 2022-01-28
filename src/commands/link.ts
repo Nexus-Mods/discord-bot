@@ -4,6 +4,7 @@ import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServ
 import { validate } from '../api/nexus-discord';
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import errorReply from "../api/errorHandler";
+import { discontinuedEmbed } from '../api/util';
 
 // Message filter to detect API keys
 const apiFilter = (m: Message) => m.content.length > 50 && !m.content.includes(' ');
@@ -23,7 +24,7 @@ async function run(client: Client, message: Message, args: string[], serverData:
     const replyChannel: (GuildChannel| PartialDMChannel | DMChannel | ThreadChannel | undefined | null) = serverData && serverData.channel_bot ? message.guild?.channels.resolve(serverData.channel_bot) : message.channel;
     const discordId: string = message.author.id;
 
-    return message.reply('This command is no longer in use. Please use the /link slash command (no prefix).');
+    return message.reply({ embeds: [discontinuedEmbed('/link')] });
 
     let userData: NexusUser;
     let userServers: NexusUserServerLink[] | undefined;
