@@ -9,7 +9,7 @@ const discordInteraction: DiscordInteraction = {
         name: 'removemod',
         description: 'Associate a mod with your Discord account.',
     },
-    public: false,
+    public: true,
     guilds: [
         '581095546291355649'
     ],
