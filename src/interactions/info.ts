@@ -21,7 +21,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+async function action(client: Client, interaction: CommandInteraction): Promise<any> {
 
     const message: string | null = interaction.options.getString('code');
 
@@ -29,6 +29,8 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     const data: InfoResult[] = await getAllInfos().catch(() => []);
     let content: string | null = null;
+
+    if (!data.length) return interaction.editReply('No infos available.');
 
     if (!!message) {
         const selected: InfoResult|undefined = data.find(i => i.name.toLowerCase() === message.toLowerCase());
@@ -102,6 +104,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 }
 
 async function displaySelected(client: Client, selected: InfoResult, interaction: CommandInteraction) {
+    logMessage('interaction state', { ephemeral:interaction.ephemeral });
     const postable: PostableInfo = displayInfo(client, selected);
     await interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : [], ephemeral: false });
 }
