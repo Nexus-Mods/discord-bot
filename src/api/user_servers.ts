@@ -6,6 +6,7 @@ import { getAllServers, getServer } from './bot-db';
 import { Client, User, Guild, GuildMember, Role, GuildChannel, MessageEmbed, TextChannel, ThreadChannel, Snowflake, RoleResolvable } from 'discord.js';
 import { getModsbyUser } from './user_mods';
 import { NexusSearchResult } from '../types/util';
+import { logMessage } from './util';
 
 async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
     return new Promise((resolve, reject) => {
@@ -55,6 +56,7 @@ async function deleteAllServerLinksByUser(client: Client, user: NexusUser, disco
 }
 
 async function updateRoles(client: Client, userData: NexusUser, discordUser: User, guild: Guild, bRemove: boolean = false): Promise<void> {
+    logMessage('Updating roles', { user: discordUser.tag, nexus: userData.name, guild: guild.name });
     return new Promise(async (resolve, reject) => {
         const guildMember: GuildMember|undefined = await guild.members.fetch(discordUser.id).catch(() => undefined);
         const allUserMods: NexusLinkedMod[] = await getModsbyUser(userData.id);
@@ -91,7 +93,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         // Remove all roles if we're unlinking.
         if (bRemove) {
-            console.log(`${new Date().toLocaleString()} - Removing roles from ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
+            logMessage(`Removing roles from ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
             try {
                 await guildMember.roles.remove(allRoles as RoleResolvable[], 'Nexus Mods Discord unlink');
                 if (nexusLogChannel) (nexusLogChannel as TextChannel).send({ embeds: [linkEmbed(userData, discordUser, true)] }).catch(() => undefined);
@@ -112,19 +114,19 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         // Mod Author role
         const modUniqueTotal: number = modUniqueDLTotal(allUserMods);
         // Log the details if the user isn't recognised yet. 
-        if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) console.log(`${new Date().toLocaleString()} - ${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
+        if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) logMessage(`${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
         // Apply the MA role if the criteria has been met.
         if (modAuthorRole && modUniqueTotal >= modAuthorDownloads && !guildMember.roles.cache.has(modAuthorRole.id)) {
             rolesToAdd.push(modAuthorRole.id);
-            console.log(`${new Date().toLocaleString()} - ${userData.name} as now a recognised mod author in ${guild.name}`);
+            logMessage(`${userData.name} as now a recognised mod author in ${guild.name}`);
             guildMember.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`).catch(() => undefined);
         }
         else if (modAuthorRole && guildMember.roles.cache.has(modAuthorRole.id) && modUniqueTotal < modAuthorDownloads) guildMember.roles.remove(modAuthorRole);
 
         if (rolesToAdd.length) {
-            console.log(`${new Date().toLocaleString()} - Adding ${rolesToAdd.length} roles to ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
+            logMessage(`Adding ${rolesToAdd.length} roles to ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
             guildMember.roles.add(rolesToAdd, 'Nexus Mods Discord link')
-            .catch(err => console.log(`${new Date().toLocaleString()} - Could not add roles to ${userData.name} in ${guild.name}`, err));
+            .catch(err => logMessage(`Could not add roles to ${userData.name} in ${guild.name}`, err, true));
         }
 
         const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
