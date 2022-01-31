@@ -8,7 +8,7 @@ import {
 import { CommandInteraction, Snowflake, MessageEmbed, Client, User } from "discord.js";
 import { IModInfo, IValidateKeyResponse } from "@nexusmods/nexus-api";
 import { getDownloads, modInfo, validate } from "../api/nexus-discord";
-
+import { logMessage } from '../api/util';
 
 const cooldown: number = (1*60*1000);
 
@@ -48,6 +48,7 @@ const cancelCard = (client: Client, nexus: NexusUser, discord: User) => {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+    logMessage('Refresh interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
@@ -73,8 +74,8 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             interaction.editReply({ embeds: [ card ] });
         }
     }
-    catch(err: any) {
-        console.error('Error checking if user exists in DB when linking', err);
+    catch(err) {
+        logMessage('Error checking if user exists in DB when linking', err, true);
         interaction.editReply('An error occurred fetching your account details.');
         return;
     }

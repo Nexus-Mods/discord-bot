@@ -3,6 +3,7 @@ import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/util";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink, getUserByNexusModsId, deleteUser } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
+import { logMessage } from '../api/util';
 
 const discordInteraction: DiscordInteraction = {
     command: {
@@ -23,6 +24,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+    logMessage('Link interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel, apikey: !!interaction.options.getString('apikey') });
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: true});
     // Check if they are already linked.

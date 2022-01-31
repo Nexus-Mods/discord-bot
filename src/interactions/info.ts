@@ -22,6 +22,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+    logMessage('Info interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel, message: interaction.options.getString('code') });
 
     const message: string | null = interaction.options.getString('code');
 
@@ -103,7 +104,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 }
 
 async function displaySelected(client: Client, selected: InfoResult, interaction: CommandInteraction) {
-    logMessage('interaction state', { ephemeral:interaction.ephemeral });
+    logMessage('Posting interaction', { selected: selected.name, ephemeral:interaction.ephemeral });
     const postable: PostableInfo = displayInfo(client, selected);
     await interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : [], ephemeral: false });
 }

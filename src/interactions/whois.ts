@@ -3,6 +3,7 @@ import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed } from '../api/bot-db';
 import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Guild, CommandInteractionOption } from "discord.js";
 import { ClientExt } from "../DiscordBot";
+import { logMessage } from "../api/util";
 
 
 const discordInteraction: DiscordInteraction = {
@@ -38,6 +39,8 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+    logMessage('Whois interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
+
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
@@ -108,7 +111,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         }
                         
     }
-    catch (err: any) {
+    catch (err) {
         interaction.followUp({ content: 'Error looking up users.', ephemeral: true});
         console.error('Error looking up users from slash command', err);
         return;

@@ -2,6 +2,7 @@ import { CommandInteraction, Snowflake, Client, Guild } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/util";
 import { getUserByDiscordId, getLinksByUser, deleteAllServerLinksByUser, deleteUser, deleteServerLink } from '../api/bot-db';
+import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: {
@@ -22,6 +23,8 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+    logMessage('Unlink interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
+
     const discordId: Snowflake | undefined = interaction.member?.user.id;
     await interaction.deferReply({ephemeral: true});
     const global: boolean = interaction.options.get('global')?.value as boolean || false;

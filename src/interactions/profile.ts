@@ -2,6 +2,7 @@ import { DiscordInteraction } from "../types/util";
 import { NexusUser } from "../types/users";
 import { getUserByDiscordId, userEmbed } from '../api/bot-db';
 import { CommandInteraction, Snowflake, MessageEmbed, Client, CommandInteractionOption } from "discord.js";
+import { logMessage } from '../api/util';
 
 const discordInteraction: DiscordInteraction = {
     command: {
@@ -26,6 +27,8 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     const showValue : (CommandInteractionOption | null) = interaction.options.get('public');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
 
+    logMessage('Profile interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel, show: showValue });
+
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: !show});
@@ -48,8 +51,8 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             interaction.followUp({ embeds: [card] });
         }
     }
-    catch(err: any) {
-        console.error('Error checking if user exists in DB when linking', err);
+    catch(err) {
+        logMessage('Error checking if user exists in DB when linking', err, true);
         interaction.followUp('An error occurred fetching your account details.');
     }
 

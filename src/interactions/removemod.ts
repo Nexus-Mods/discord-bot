@@ -17,13 +17,15 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+    logMessage('Remove mod interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
+
     await interaction.deferReply({ ephemeral: true });
 
     // Get existing user data and mods.
     const discordId: string = interaction.user.id;
     const user: NexusUser = await getUserByDiscordId(discordId);
     if (!user) return interaction.editReply({ content: 'You do not have a Nexus Mods account linked to your profile. Use /link to get stared.' });
-    const mods = await getModsbyUser(user.id).catch(() => []);
+    const mods: NexusLinkedMod[] = await getModsbyUser(user.id).catch(() => []);
 
     // If the user has no mods, we can exit here! 
     if (!mods.length) return interaction.editReply({ content: 'You do not have any mods linked to your profile.' });
@@ -84,7 +86,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             await updateAllRoles(client, user, interaction.user, false);
             i.editReply({ embeds: [completedEmbed(client, user, removals)] });
         }
-        catch(err: any) {
+        catch(err) {
             logMessage('Error removing mods', { removals, err }, true);
             i.editReply({ content: `There was an error trying to remove those mods: ${err.message || err}` });
         }

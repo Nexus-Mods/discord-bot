@@ -27,6 +27,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+    logMessage('AddMod interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
     await interaction.deferReply({ ephemeral: true });
 
     // Get existing user data and mods.
@@ -138,7 +139,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         await createMod(newMod);
         return { name: modName, value: `- [${newMod.name}](${url}) added.` };
     }
-    catch(err: any) {
+    catch(err) {
         return { name: modName || link, value: err.message };
     }
 
@@ -179,7 +180,7 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
 
         return { name: query, value: messages.join('\n').substr(0, 1024) };
     }
-    catch(err: any) {
+    catch(err) {
         return { name: query, value: err.message };
     }
 

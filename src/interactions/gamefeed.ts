@@ -66,6 +66,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+    logMessage('Gamefeed interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel, subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({ ephemeral: true });
 
@@ -103,7 +104,7 @@ async function aboutGameFeeds(client: Client, interaction: CommandInteraction, u
     interaction.editReply({ content: null, embeds: [aboutEmbed] });
 }
 
-async function createFeed(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<void> {
+async function createFeed(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<any> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     const query: string = interaction.options.getString('game') || '';
@@ -149,12 +150,16 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
             const existing: Webhook|undefined = webHooks.find(wh => wh.channelId === interaction.channel?.id && wh.name === 'Nexus Mods Game Feed' && !!wh.token);
             if (!existing) {
                 gameHook = await (interaction.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'} )
-                .catch((err) => logMessage('Error creating webhook', {err}, true))
+                .catch((err) => logMessage('Error creating webhook', {user: interaction.user, guild: interaction.guild, channel: interaction.channel, err}, true));
+                if (!gameHook) {
+                    await interaction.editReply('Failed to create Webhook for game feed.');
+                    return;
+                }
             }
             else gameHook = existing;
 
             const newFeed: Partial<GameFeed> = {
-                channel: interaction.channel?.id,
+                channel: (interaction.channel as any)?.id,
                 guild: interaction.guild?.id,
                 owner: interaction.user.id,
                 domain: game?.domain_name || '',
@@ -171,7 +176,7 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
                 logMessage('Creating new game feed', { game: game.name, guild: interaction.guild?.name });
                 const id = await createGameFeed(newFeed);
                 await interaction.editReply({ content: 'Game Feed created successfully', components: [], embeds: [] });
-                logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).name, owner: interaction.user.tag });
+                logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).toString(), owner: interaction.user.tag });
                 const infoMsg = await interaction?.followUp({ content: null, embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch(() => undefined);
                 await (infoMsg as Message)?.pin().catch(undefined);
                 return;
@@ -389,7 +394,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
                     }
                     await interaction.editReply({ content: 'Game Feed updated.', embeds: [embed({...feed, ...newData})], components: [] });
                 }
-                catch(err: any) {
+                catch(err) {
                     logMessage(`Failed to update Game Feed #${feed._id}`, {err}, true);
                     rejectMessage('Unable to update Game Feed:\n'+(err.message || err), interaction)
                 }
@@ -400,7 +405,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
                     logMessage(`Game feed #${feed._id} for ${feed.title} in ${interaction.guild?.name} deleted by ${ic.first()?.user?.tag}`);
                     await interaction.editReply({ content: 'Game Feed deleted.', embeds: [], components: [] });
                 }
-                catch(err: any) {
+                catch(err) {
                     logMessage(`Failed to delete Game Feed #${feed._id}`, {err}, true);
                     rejectMessage('Unable to delete Game Feed:\n'+(err.message || err), interaction)
                 }
@@ -414,7 +419,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
 
 
     }
-    catch(err: any) {
+    catch(err) {
         logMessage('Game Feed management error', err, true);
         rejectMessage('Something went wrong when trying to manage the Game Feed.\n'+(err.message || err), interaction);
     }
@@ -423,7 +428,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
 const confirmEmbed = (client: Client, interaction: Interaction, game: IGameInfo, user: NexusUser, nsfw: boolean): MessageEmbed => {
     return new MessageEmbed()
     .setColor(0xda8e35)
-    .setTitle(`Create game feed in #${(interaction.channel as TextChannel).name}?`)
+    .setTitle(`Create game feed in #${(interaction.channel as TextChannel).toString()}?`)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`)
     .setDescription(
         `New and updated mods for ${game.name} will be posted in ${interaction.channel?.toString()} periodically.\n`+
