@@ -56,7 +56,7 @@ async function deleteAllServerLinksByUser(client: Client, user: NexusUser, disco
 }
 
 async function updateRoles(client: Client, userData: NexusUser, discordUser: User, guild: Guild, bRemove: boolean = false): Promise<void> {
-    logMessage('Updating roles', { user: discordUser.tag, nexus: userData.name, guild: guild.name });
+    // logMessage('Updating roles', { user: discordUser.tag, nexus: userData.name, guild: guild.name });
     return new Promise(async (resolve, reject) => {
         const guildMember: GuildMember|undefined = await guild.members.fetch(discordUser.id).catch(() => undefined);
         const allUserMods: NexusLinkedMod[] = await getModsbyUser(userData.id);
@@ -140,6 +140,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 }
 
 async function updateAllRoles(client: Client, userData: NexusUser, discordUser: User, addAll: boolean = false): Promise<void> {
+    logMessage('Updating roles', { user: discordUser.tag, nexus: userData.name });
     return new Promise(async (resolve, reject) => {
         const servers: BotServer[] = await getAllServers();
         const links: NexusUserServerLink[] = await getLinksByUser(userData.id);

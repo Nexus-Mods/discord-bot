@@ -68,7 +68,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
         const allResults: (EmbedFieldData | SearchError)[] = urlResults.concat(strResults).filter(r => r !== undefined);
         const addedMods: EmbedFieldData[] = allResults.filter(r => (r as EmbedFieldData) && !(r as SearchError).error);
-        logMessage('Added mods', { user: interaction.user.tag, mods: allResults.length });
+        logMessage('Added mods', { user: interaction.user.tag, mods: addedMods.length });
 
         searchingEmbed.setTitle('Adding mods complete')
         .setDescription('')
