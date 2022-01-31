@@ -146,7 +146,8 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             });
 
             // Recheck roles, if we have changed something.
-            if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false) : logMessage('User data has not changed, no role update needed'. {  });
+            if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false)
+            else logMessage('User data has not changed, no role update needed', { user: interaction.user.tag });
 
             const displayable: string = updatedMods.reduce((prev, cur: any) => {
                 const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name}/mods/${cur?.mod_id})\n`;
