@@ -26,6 +26,10 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
+interface SearchError extends EmbedFieldData {
+    error: boolean;
+}
+
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
     logMessage('AddMod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
     await interaction.deferReply({ ephemeral: true });
@@ -55,22 +59,25 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     try {
         const gameList: IGameInfo[] = await games(user);
 
-        const urlResults: EmbedFieldData[] = await Promise.all(
+        const urlResults: (EmbedFieldData[] | SearchError[]) = await Promise.all(
             urlQueries.map((url: string) => urlCheck(url, mods, gameList, user))
         );
-        const strResults: EmbedFieldData[] = await Promise.all(
+        const strResults: (EmbedFieldData[] | SearchError[]) = await Promise.all(
             strQueries.map((query: string) => stringCheck(query, mods, gameList, user))
         );
 
-        const allResults: EmbedFieldData[] = urlResults.concat(strResults).filter(r => r !== undefined);
+        const allResults: (EmbedFieldData | SearchError)[] = urlResults.concat(strResults).filter(r => r !== undefined);
+        const addedMods: EmbedFieldData[] = allResults.filter(r => (r as EmbedFieldData) && !(r as SearchError).error);
+        logMessage('Added mods', { user: interaction.user.tag, mods: allResults.length });
 
         searchingEmbed.setTitle('Adding mods complete')
         .setDescription('')
-        .addFields(allResults);
+        .addFields(allResults.slice(0, 24));
 
-        await updateAllRoles(client, user, interaction.user, false);
+        await interaction.editReply({ embeds: [ searchingEmbed ] });
+        if (addedMods.length) await updateAllRoles(client, user, interaction.user, false);
 
-        return interaction.editReply({ embeds: [ searchingEmbed ] });
+        return;
 
     }
     catch(err) {
@@ -82,7 +89,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
 }
 
-async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<EmbedFieldData> {
+async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<EmbedFieldData | SearchError> {
     let modName: string|undefined = undefined;
 
     try {
@@ -140,12 +147,12 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         return { name: modName, value: `- [${newMod.name}](${url}) added.` };
     }
     catch(err) {
-        return { name: modName || link, value: err.message };
+        return { name: modName || link, value: err.message, error: true };
     }
 
 }
 
-async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<EmbedFieldData> {
+async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<EmbedFieldData | SearchError> {
 
     try {
         const search: NexusSearchModResult[] = (await quicksearch(query, true).catch(() => { return { results: [] } } )).results;
@@ -181,7 +188,7 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
         return { name: query, value: messages.join('\n').substr(0, 1024) };
     }
     catch(err) {
-        return { name: query, value: err.message };
+        return { name: query, value: err.message, error: true };
     }
 
 }
