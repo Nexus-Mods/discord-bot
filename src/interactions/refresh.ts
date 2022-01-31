@@ -48,7 +48,7 @@ const cancelCard = (client: Client, nexus: NexusUser, discord: User) => {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
-    logMessage('Refresh interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
+    logMessage('Refresh interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;

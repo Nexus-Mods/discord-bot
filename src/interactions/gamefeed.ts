@@ -66,7 +66,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
-    logMessage('Gamefeed interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel, subCommand: interaction.options.getSubcommand() });
+    logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({ ephemeral: true });
 
@@ -150,7 +150,7 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
             const existing: Webhook|undefined = webHooks.find(wh => wh.channelId === interaction.channel?.id && wh.name === 'Nexus Mods Game Feed' && !!wh.token);
             if (!existing) {
                 gameHook = await (interaction.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'} )
-                .catch((err) => logMessage('Error creating webhook', {user: interaction.user, guild: interaction.guild, channel: interaction.channel, err}, true));
+                .catch((err) => logMessage('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err}, true));
                 if (!gameHook) {
                     await interaction.editReply('Failed to create Webhook for game feed.');
                     return;

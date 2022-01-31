@@ -27,7 +27,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    logMessage('AddMod interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
+    logMessage('AddMod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
     await interaction.deferReply({ ephemeral: true });
 
     // Get existing user data and mods.

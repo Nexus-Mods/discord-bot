@@ -39,7 +39,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
-    logMessage('Whois interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
+    logMessage('Whois interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('private');

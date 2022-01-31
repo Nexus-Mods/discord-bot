@@ -44,7 +44,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    logMessage('Search interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel });
+    logMessage('Search interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
     const modQuery: string | null = interaction.options.getString('mod-title');
     const gameQuery : string | null = interaction.options.getString('game-title');

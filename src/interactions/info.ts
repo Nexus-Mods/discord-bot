@@ -22,7 +22,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    logMessage('Info interaction triggered', { user: interaction.user, guild: interaction.guild, channel: interaction.channel, message: interaction.options.getString('code') });
+    logMessage('Info interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), message: interaction.options.getString('code') });
 
     const message: string | null = interaction.options.getString('code');
 
