@@ -82,6 +82,8 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     let newData: Partial<NexusUser> = {};
     newData.lastupdate = new Date();
+    // Master check if we need to update roles
+    let updateRoles: boolean = false; 
 
     // Update membership status.
     try {
@@ -97,7 +99,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             const updatedFields: string[] = getFieldNames(Object.keys(newData));
             card.addField('User Info', `Updated:\n ${updatedFields.join('\n')}`);
             await updateUser(discordId, newData);
-            await updateAllRoles(client, userData, interaction.user, false);
+            updateRoles = true;
         }
         else {
             card.addField('User Info', `No changes required`);
@@ -135,12 +137,16 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
                 if (dls.unique_downloads > mod.unique_downloads) newInfo.unique_downloads = dls.unique_downloads;
                 if (dls.total_downloads > mod.total_downloads) newInfo.total_downloads = dls.total_downloads;
                 if (Object.keys(newInfo).length) {
+                    updateRoles = true;
                     await updateMod(mod, newInfo);
                     mod = { ...info, ...newInfo } as any;
                     updatedMods.push(mod);
                 }
                 return mod;
             });
+
+            // Recheck roles, if we have changed something.
+            if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false);
 
             const displayable: string = updatedMods.reduce((prev, cur: any) => {
                 const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name}/mods/${cur?.mod_id})\n`;
