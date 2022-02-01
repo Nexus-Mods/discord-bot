@@ -1,7 +1,8 @@
 import { Client } from "discord.js";
+import { logMessage } from "../api/util";
 
 async function main(client: Client) {
-    console.log(`${new Date().toLocaleString()} - Reconnecting to Discord...`);
+    logMessage('Reconnecting to Discord...');
 }
 
 export default main; 
