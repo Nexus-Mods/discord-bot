@@ -47,8 +47,8 @@ const cancelCard = (client: Client, nexus: NexusUser, discord: User) => {
     })
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<void> {
-    logMessage('Refresh interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
+async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+    logMessage('Refresh interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
@@ -66,17 +66,17 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             return;
         }
         else if (nextUpdate > new Date()) {
-            interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] });
+            interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
             return;
         }
         else {
             card = replyCard(client, userData, interaction.user);
-            interaction.editReply({ embeds: [ card ] });
+            interaction.editReply({ embeds: [ card ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
         }
     }
     catch(err) {
         logMessage('Error checking if user exists in DB when linking', err, true);
-        interaction.editReply('An error occurred fetching your account details.');
+        interaction.editReply('An error occurred fetching your account details.').catch((err) => logMessage('Error updating interaction reply', { err }, true));;
         return;
     }
 
@@ -112,7 +112,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Update the interaction
     card.setTitle('Updating mod stats...');
-    interaction.editReply({ embeds: [card] });
+    interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
 
     // Update download counts for the mods
     try {
@@ -169,7 +169,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Update the interaction
     card.setTitle('Update complete');
-    interaction.editReply({ embeds: [card] });
+    return interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));
 
 }
 
