@@ -1,7 +1,7 @@
 import { CommandInteraction } from 'discord.js';
 import { ClientExt } from '../DiscordBot';
 import { DiscordInteraction } from '../types/util';
-import { unexpectedErrorEmbed } from '../api/util';
+import { unexpectedErrorEmbed, logMessage } from '../api/util';
 
 async function main(client: ClientExt, interaction: CommandInteraction) {
     if (!interaction.isCommand()) return;
@@ -20,9 +20,11 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
                 channelName: interaction.channel?.toString(),
                 requestedBy: interaction.user.tag,
                 botVersion: process.version,
-                interaction: interaction.commandName
+                interaction: interaction.commandName,
+                error: err.message || err
             }
-            return interaction.reply({ embeds: [unexpectedErrorEmbed(err, context)] });
+            return interaction.reply({ embeds: [unexpectedErrorEmbed(err, context)] })
+            .catch((replyError) => logMessage('Error replying to failed interaction', {replyError, ...context}, true));
         }
     } 
 }
