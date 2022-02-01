@@ -1,7 +1,9 @@
 import { 
     CommandInteraction, Snowflake, MessageEmbed, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
-    MessageActionRow, MessageButton, InteractionCollector, EmbedFieldData
+    MessageActionRow, MessageButton, InteractionCollector, EmbedFieldData, 
+    Permissions,
+    GuildChannel
 } from "discord.js";
 import { NexusUser } from "../types/users";
 import { DiscordInteraction } from "../types/util";
@@ -66,7 +68,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
-    logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), subCommand: interaction.options.getSubcommand() });
+    logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({ ephemeral: true });
 
@@ -117,6 +119,12 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
         // Game not found!
         if (!game) throw new Error(`No matching games for ${query}`);
 
+        // Bot permissions - we need to be able to manage webhooks.
+        const perms = interaction.guild?.me?.permissions?.toArray();
+        if (!perms || (!perms.includes('MANAGE_WEBHOOKS') && !perms?.includes('ADMINISTRATOR'))) {
+            throw new Error('Missing permission: MANAGE_WEBHOOKS');
+        }
+
         // Confirm with the user.
         const confirm: MessageEmbed = confirmEmbed(client, interaction, game, user, nsfw);
         const buttons: MessageActionRow = new MessageActionRow()
@@ -147,16 +155,17 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
             // Create
             let gameHook: Webhook | void;
             const webHooks: Collection<Snowflake, Webhook> = await (interaction.channel as TextChannel)?.fetchWebhooks().catch(() => new Collection()) || new Collection();
-            const existing: Webhook|undefined = webHooks.find(wh => wh.channelId === interaction.channel?.id && wh.name === 'Nexus Mods Game Feed' && !!wh.token);
-            if (!existing) {
-                gameHook = await (interaction.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'} )
-                .catch((err) => logMessage('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err}, true));
-                if (!gameHook) {
-                    await interaction.editReply('Failed to create Webhook for game feed.');
-                    return;
+            gameHook = webHooks.find(wh => wh.channelId === (interaction.channel as any)?.id && wh.name === 'Nexus Mods Game Feed' && !!wh.token);
+            if (!gameHook) {
+                // There isn't already a webhook for this channel, so we need to create one. 
+                try {
+                    gameHook = await (interaction.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'})
+                }
+                catch(err) {
+                    logMessage('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err}, true);
+                    throw new Error(`Failed to create Webhook for game feed. Please make sure the bot has the correct permissions.\n Error: ${err.message || err}`);
                 }
             }
-            else gameHook = existing;
 
             const newFeed: Partial<GameFeed> = {
                 channel: (interaction.channel as any)?.id,
@@ -168,7 +177,7 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
                 sfw: true,
                 show_new: true,
                 show_updates: true,
-                webhook_id: gameHook?.id,
+                webhook_id: (gameHook as any)?.id,
                 webhook_token: gameHook?.token || undefined
             }
 
@@ -177,8 +186,8 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
                 const id = await createGameFeed(newFeed);
                 await interaction.editReply({ content: 'Game Feed created successfully', components: [], embeds: [] });
                 logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).toString(), owner: interaction.user.tag });
-                const infoMsg = await interaction?.followUp({ content: null, embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch(() => undefined);
-                await (infoMsg as Message)?.pin().catch(undefined);
+                const infoMsg = await interaction?.followUp({ content: null, embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch((err) => logMessage('Followup error', err, true));
+                if (perms.includes('MANAGE_MESSAGES')) await (infoMsg as Message)?.pin().catch((err) => logMessage('Pinning post error', err, true));
                 return;
             }
             catch(err) {
@@ -187,11 +196,11 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
         });
 
         collector?.on('end', async rc => {
-            if (!rc.size) interaction.editReply({ content: 'Game feed setup cancelled.', embeds: [] }).catch(() => undefined);
+            if (!rc.size) interaction.editReply({ content: 'Game feed setup cancelled.', embeds: [], components: [] }).catch(() => undefined);
         });
     }
     catch(err) {
-        logMessage('Error creating game feed', {err}, true);
+        if (!err.message.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
         rejectMessage((err as any).message || err, interaction);
     }
 }
