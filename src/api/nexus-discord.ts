@@ -1,10 +1,13 @@
 //Commands for interacting with the Nexus Mods API. 
 import requestPromise from 'request-promise-native'; //For making API requests
+import { request, gql } from 'graphql-request'; // For interacting with API v2.
 import { NexusUser } from '../types/users';
 import { IGameListEntry, IValidateKeyResponse, IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api'
 import { ModDownloadInfo, NexusSearchResult } from '../types/util';
+import { logMessage } from './util';
 
 const nexusAPI: string = 'https://api.nexusmods.com/'; //for all regular API functions
+const nexusGraphAPI: string = nexusAPI+'/v2/graphql'
 const nexusSearchAPI: string ='https://search.nexusmods.com/mods'; //for quicksearching mods
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
 const requestHeader = {
@@ -55,15 +58,41 @@ async function gameInfo(user: NexusUser, domainQuery: string): Promise<IGameList
     }
 }
 
-async function validate(apiKey: string): Promise<IValidateKeyResponse> {
+interface IValidateResponse extends IValidateKeyResponse {
+    is_ModAuthor: boolean;
+}
+
+async function validate(apiKey: string): Promise<IValidateResponse> {
     requestHeader.apikey = apiKey;
     
     try {
         const validate: IValidateKeyResponse = JSON.parse(await requestPromise({ url: `${nexusAPI}v1/users/validate.json`, headers: requestHeader }));
-        return validate;
+        const is_ModAuthor: boolean = await getModAuthor(validate.user_id);
+        return {is_ModAuthor, ...validate};
     }
     catch(err) {
         return Promise.reject(`${err.name} : ${err.message}`);
+    }
+}
+
+async function getModAuthor(id: number): Promise<boolean> {
+    const query = gql`
+    query getModAuthorStatus($id: Int!) {
+        user(id: $id) {
+            name
+            recognizedAuthor
+        }
+    }`;
+
+    const variables = { id  }
+    
+    try {
+        const data = await request(nexusGraphAPI, query, variables);
+        return data.user.recognizedAuthor;
+    }
+    catch(err) {
+        logMessage('GraphQL request for mod author status failed', err, true);
+        return false;
     }
 }
 

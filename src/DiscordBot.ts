@@ -110,7 +110,7 @@ export class DiscordBot {
         // Set globally
         this.client.application?.commands.set(allCommands)
             .then((commands: Collection<any, ApplicationCommand<any>>) => {
-                logMessage(`Set global slash commands`, commands.map(c => c.name));
+                logMessage(`Set global slash commands: `, commands.map(c => c.name).join(', '));
                 // Permissions could be set here? 
             })
             .catch(err => logMessage('Failed to set global slash command list', {err}, true));
@@ -138,7 +138,7 @@ export class DiscordBot {
             };
             
             guild.commands.set(guildCommandList)
-                .then(() => logMessage(`Set guild slash commands for ${guild.name}`, guildCommandList.map(c => c.name)))
+                .then(() => logMessage(`Set guild slash commands for ${guild.name}:`, guildCommandList.map(c => c.name).join(', ')))
                 .catch(err => logMessage(`Failed to set up guild slash commands for ${guild?.name}`, err, true));
         }
 
