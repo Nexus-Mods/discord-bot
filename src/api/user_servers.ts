@@ -149,7 +149,7 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
             const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
             const guildMember: GuildMember|undefined = guild ? await guild.members.fetch(discordUser.id).catch(() => undefined) : undefined;
             if (!guildMember) continue;
-            const existingLink: boolean = !!links.find(l => l.server_id);
+            const existingLink: boolean = !!links.find(l => l.server_id == server.id);
             if (guild) {
                 if (addAll || existingLink) {
                     if (!existingLink) await addServerLink(client, userData, discordUser, guild).catch(console.error);
