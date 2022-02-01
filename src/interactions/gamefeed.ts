@@ -437,7 +437,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
 const confirmEmbed = (client: Client, interaction: Interaction, game: IGameInfo, user: NexusUser, nsfw: boolean): MessageEmbed => {
     return new MessageEmbed()
     .setColor(0xda8e35)
-    .setTitle(`Create game feed in #${(interaction.channel as TextChannel).toString()}?`)
+    .setTitle(`Create game feed in #${(interaction.channel as any).name}?`)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`)
     .setDescription(
         `New and updated mods for ${game.name} will be posted in ${interaction.channel?.toString()} periodically.\n`+

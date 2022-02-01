@@ -45,29 +45,35 @@ export class DiscordBot {
     }
 
     private setEventHandler(): void {
-        fs.readdir(path.join(__dirname, 'events'), (err, files: string[]) => {
-            if (err) return logMessage('Error reading events directory during startup.', err, true);
-            files.forEach((file: string) => {
-                if (!file.endsWith('.js')) return;
-                let event = require(path.join(__dirname, 'events', file));
-                let eventName: string = file.split(".")[0];
+        try {
+            const events: string[] = fs.readdirSync(path.join(__dirname, 'events'));
+            events.filter(e => e.endsWith('.js')).forEach((file) => {
+                const event = require(path.join(__dirname, 'events', file));
+                const eventName: string = file.split(".")[0];
                 this.client.on(eventName, event.default.bind(null, this.client));
             });
-        });
+            logMessage('Registered to receive events:', events.map(e => path.basename(e, '.js')).join(', '));
+        }
+        catch(err) {
+            return logMessage('Error reading events directory during startup.', err, true);
+        }
     }
 
     private setCommands(): void {
         if (!this.client.commands) this.client.commands = new Collection();
-        fs.readdir(path.join(__dirname, 'commands'), (err, files : string[]) => {
-            if (err) return logMessage('Error reading commands directory during startup.', err, true);
-            files.forEach((file: string) => {
-                if (!file.endsWith('.js')) return;
-                let props = require(path.join(__dirname, 'commands', file));
-                let commandName: string = file.split(".")[0];
-                // logMessage(`Loading command: ${commandName}`);
+
+        try {
+            const commands: string[] = fs.readdirSync(path.join(__dirname, 'commands'));
+            commands.filter(f => f.endsWith('.js')).forEach((file: string) => {
+                const props = require(path.join(__dirname, 'commands', file));
+                const commandName: string = file.split(".")[0];
                 this.client.commands?.set(commandName, props);
-            })
-        });
+            });
+            logMessage('Registered text commands', this.client.commands.size);
+        }
+        catch (err) {
+            return logMessage('Error reading commands directory during startup.', err, true);
+        }
 
     }
 

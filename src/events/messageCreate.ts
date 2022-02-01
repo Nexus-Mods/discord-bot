@@ -2,6 +2,21 @@ import { Message } from 'discord.js';
 import { ClientExt } from '../DiscordBot';
 import { BotServer } from '../types/servers';
 import { getServer } from '../api/bot-db';
+import { discontinuedEmbed } from '../api/util';
+
+const retiredCommands: { [key: string]: string } = {
+    addmod: '/addmod',
+    gamefeed: '/gamefeed',
+    i: '/info',
+    link: '/link',
+    refresh: '/refresh',
+    removemod: '/removemod',
+    mods: '/search',
+    games: '/search',
+    unlink: '/unlink',
+    whois: '/whois',
+    whoami: '/profile'
+}
 
 
 async function main (client: ClientExt, message: Message) {
@@ -19,7 +34,11 @@ async function main (client: ClientExt, message: Message) {
 
     // Split out args and command name.
     const args : string[] = message.content.slice(prefix.length).trim().split(/ +/g);
-    const command: string | undefined = args.shift()?.toLowerCase();
+    const command: string = args.shift()?.toLowerCase() || '';
+
+    // Check for retired commands
+    if (!!retiredCommands[command]) message.reply({ embeds: [discontinuedEmbed(retiredCommands[command])] }).catch(() => undefined);
+
     const cmd = client.commands?.get(command);
     
     // No command found.
