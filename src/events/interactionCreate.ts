@@ -10,22 +10,23 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
     const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
     if (!interact) return console.error('Invalid interaction requested', interaction);
     else {
-        try {
-            return interact.action(client, interaction);
-        }
-        catch(err) {
+        interact.action(client, interaction).catch((err) => {
             const context = {
                 serverId: interaction.guildId,
                 serverName: interaction.guild?.name,
                 channelName: interaction.channel?.toString(),
                 requestedBy: interaction.user.tag,
-                botVersion: process.version,
+                botVersion: process.env.npm_package_version,
                 interaction: interaction.commandName,
                 error: err.message || err
             }
-            return interaction.reply({ embeds: [unexpectedErrorEmbed(err, context)] })
-            .catch((replyError) => logMessage('Error replying to failed interaction', {replyError, ...context}, true));
-        }
+            const repFunc = interaction.replied ? interaction.reply : interaction.editReply;
+            return repFunc({ embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null })
+            .catch((replyError) => {
+                logMessage('Error replying to failed interaction', {replyError, ...context}, true);
+                process.exit(1);
+            });
+        });
     } 
 }
 

@@ -5,6 +5,7 @@ import { getServer } from '../api/bot-db';
 import { discontinuedEmbed } from '../api/util';
 
 const retiredCommands: { [key: string]: string } = {
+    about: '/about',
     addmod: '/addmod',
     gamefeed: '/gamefeed',
     i: '/info',

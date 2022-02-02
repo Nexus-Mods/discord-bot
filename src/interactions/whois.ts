@@ -39,8 +39,6 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
-    logMessage('Whois interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
-
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
@@ -52,6 +50,14 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     // Nexus search?
     const nexusValue : (CommandInteractionOption | null) = interaction.options.get('nexus');
     const nexus: (string | undefined) = nexusValue?.value?.toString();
+
+    logMessage('Whois interaction triggered', 
+    { 
+        user: interaction.user.tag, 
+        guild: interaction.guild?.name, 
+        channel: (interaction.channel as any)?.name,
+        query: nexus || user
+    });
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
