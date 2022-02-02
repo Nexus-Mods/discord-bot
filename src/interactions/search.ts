@@ -93,7 +93,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     if (!searchType) return interaction.reply('Invalid search parameters');
 
-    await interaction.deferReply({ ephemeral });
+    await interaction.deferReply({ ephemeral }).catch(err => { throw err });;
 
     const user: NexusUser = await getUserByDiscordId(interaction.user.id);
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;

@@ -26,7 +26,7 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
     logMessage('Link interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), apikey: !!interaction.options.getString('apikey') });
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({ephemeral: true});
+    await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     // Check if they are already linked.
     let userData : NexusUser | undefined;
     let userServers: NexusUserServerLink[] | undefined;

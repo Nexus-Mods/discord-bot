@@ -3,6 +3,7 @@ import { logMessage } from '../api/util';
 
 async function main (client: Client, error: Error) {
     logMessage('The bot has encountered an unexpected error', error , true);
+    process.exit();
 }
 
 export default main;

@@ -70,7 +70,7 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
     logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
 
     if (!interaction.memberPermissions?.toArray().includes('MANAGE_CHANNELS')) {
         // User is not a moderator. 

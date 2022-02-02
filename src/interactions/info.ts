@@ -26,7 +26,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     const message: string | null = interaction.options.getString('code');
 
-    await interaction.deferReply({ ephemeral: !!message });
+    await interaction.deferReply({ ephemeral: !!message }).catch(err => { throw err });;
 
     const data: InfoResult[] = await getAllInfos().catch(() => []);
     let content: string | null = null;
