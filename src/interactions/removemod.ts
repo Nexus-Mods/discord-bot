@@ -17,7 +17,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    logMessage('Remove mod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
+    logMessage('Remove mod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
 

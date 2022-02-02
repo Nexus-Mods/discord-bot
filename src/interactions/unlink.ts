@@ -23,7 +23,7 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<void> {
-    logMessage('Unlink interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
+    logMessage('Unlink interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     const discordId: Snowflake | undefined = interaction.member?.user.id;
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;

@@ -27,7 +27,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     const showValue : (CommandInteractionOption | null) = interaction.options.get('public');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
 
-    logMessage('Profile interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), show: showValue });
+    logMessage('Profile interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, show: showValue });
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;

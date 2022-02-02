@@ -145,10 +145,6 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
                 return mod;
             });
 
-            // Recheck roles, if we have changed something.
-            if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false)
-            else logMessage('User data has not changed, no role update needed', { user: interaction.user.tag });
-
             const displayable: string = updatedMods.reduce((prev, cur: any) => {
                 const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name}/mods/${cur?.mod_id})\n`;
                 if (newStr.length > 1024) return prev;
@@ -164,12 +160,15 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     }
     catch(err) {
-        card.addField('Mods', `Error checking mod downloads:\n${err}`)
+        card.addField('Mods', `Error checking mod downloads:\n${err}`);
     }
 
     // Update the interaction
     card.setTitle('Update complete');
-    return interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));
+    await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));
+    // Recheck roles, if we have changed something.
+    if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false);
+    else logMessage('User data has not changed, no role update needed', { user: interaction.user.tag });
 
 }
 
