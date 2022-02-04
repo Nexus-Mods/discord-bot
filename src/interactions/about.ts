@@ -25,10 +25,8 @@ const discordInteraction: DiscordInteraction = {
 const requiredPermissions = [
     'Read Messages/View Channels',
     'Send Messages',
-    'Manage Messages',
     'Embed Links',
     'Manage Webhooks',
-    'Use Slash Commands',
     'Manage Roles (Optional)',
 ];
 
