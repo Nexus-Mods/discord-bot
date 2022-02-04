@@ -7,7 +7,7 @@ import { logMessage } from '../api/util';
 const discordInteraction: DiscordInteraction = {
     command: {
         name: 'removemod',
-        description: 'Associate a mod with your Discord account.',
+        description: 'Remove a mod associated with your Discord account.',
     },
     public: true,
     guilds: [

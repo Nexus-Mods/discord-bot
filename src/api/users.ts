@@ -86,7 +86,7 @@ async function updateUser(discordId: string, newUser: any): Promise<boolean> {
     });
 }
 
-async function userEmbed(userData: NexusUser, message: Message, client: Client): Promise<MessageEmbed> {
+async function userEmbed(userData: NexusUser, client: Client): Promise<MessageEmbed> {
     const discordUser: User = await client.users.fetch(userData.d_id);
     if (!discordUser) return Promise.reject('Unknown User');
     const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
@@ -102,7 +102,7 @@ async function userEmbed(userData: NexusUser, message: Message, client: Client):
     .setColor(0xda8e35)
     .setThumbnail(userData.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
     .setTimestamp(userData.lastupdate)
-    .setFooter({ text: `Nexus Mods API link - ${message.author.tag}: ${message.cleanContent}`, iconURL: client.user?.avatarURL() || ''});
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || ''});
     if (mods && mods.length) {
         let modData = mods.sort(modsort).map( mod => `[${mod.name}](https://nexusmods.com/${mod.path}) - ${mod.game}`);
         if (modData.length > 5) modData = modData.slice(0,4); //Only show a maximum of 5.

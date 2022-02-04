@@ -47,7 +47,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         if (!userData) interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
         else {
-            const card: MessageEmbed = await userEmbed(userData, fakeMessage, client);
+            const card: MessageEmbed = await userEmbed(userData, client);
             interaction.followUp({ embeds: [card] });
         }
     }

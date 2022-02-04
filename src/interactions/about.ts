@@ -22,18 +22,31 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-const requiredPermissions = [
-    'Read Messages/View Channels',
-    'Send Messages',
-    'Embed Links',
-    'Manage Webhooks',
-    'Manage Roles (Optional)',
+const minPermissions: { name: string, code: string }[] = [
+    {
+        name: 'Read Messages/View Channels',
+        code: 'VIEW_CHANNEL',
+    },
+    {
+        name: 'Send Messages',
+        code: 'SEND_MESSAGES'
+    },
+    {
+        name: 'Manage Webhooks (Optional)',
+        code: 'MANAGE_WEBHOOKS'
+    },
+    {
+        name: 'Manage Roles (Optional)',
+        code: 'MANAGE_ROLES'
+    }
 ];
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    logMessage('About interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
     
-    const ephemeral: boolean = interaction.options.getBoolean('private') || true;
+    const option: boolean | null = interaction.options.getBoolean('private');
+    const ephemeral: boolean = option !== null ? option : true;
+
+    logMessage('About interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, ephemeral });
 
     await interaction.deferReply({ ephemeral }).catch((err) => { throw err });
     
@@ -41,13 +54,17 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     const allUsers: NexusUser[] = await getAllUsers();
     const allFeeds: GameFeed[] = await getAllGameFeeds();
 
+    const botPermsissons: string[] = interaction.guild?.me?.permissions.toArray() || [];
+
+    const permissionsList: string = buildPermsList(botPermsissons, minPermissions);
+
     const info: MessageEmbed = new MessageEmbed()
     .setTitle(`Nexus Mods Discord Bot v${process.env.npm_package_version}`)
     .setColor(0xda8e35)
     .setThumbnail(client.user?.avatarURL() || '')
     .setDescription(`Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`)
     // .addField('Support', 'If you have feedback or questions about this bot, check out the [documentation](https://modding.wiki/nexusmods/discord-bot) or head over to the [Nexus Mods Discord Server](https://discord.gg/nexusmods).')
-    .addField('Required Permissions', requiredPermissions.join('\n'), true)
+    .addField('Minimum Permissions', permissionsList, true)
     .addField('Stats', 
         `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+
         `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
@@ -72,15 +89,22 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             label: 'Source (GitHub)',
             style: 'LINK',
             url: 'https://github.com/Nexus-Mods/discord-bot'
-        }),
-        new MessageButton({
-            label: 'Add to server',
-            style: 'LINK',
-            url: 'https://discord.com/api/oauth2/authorize?client_id=458591118209187851&permissions=295010593792&scope=bot%20applications.commands'
         })
     );
 
     return interaction.editReply({ embeds: [info], components: [buttons] }).catch(err => { throw err });
+}
+
+function buildPermsList(current: string[], required: { name: string, code: string }[]): string {
+    const list = required.reduce((prev, cur) => {
+        if (current.includes(cur.code) || current.includes('ADMINISTRATOR')) {
+            prev = prev + `✅ ${cur.name}\n`;
+        }
+        else prev = prev + `❌ ${cur.name}\n`;
+        return prev;
+    }, '');
+
+    return list;
 }
 
 function calcUptime(seconds: number): string {

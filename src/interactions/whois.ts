@@ -44,12 +44,10 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
 
     // User Ping?
-    const userValue : (CommandInteractionOption | null) = interaction.options.get('discord');
-    const user: (User | undefined) = userValue?.user;
+    const user : (User | null) = interaction.options.getUser('discord');
 
     // Nexus search?
-    const nexusValue : (CommandInteractionOption | null) = interaction.options.get('nexus');
-    const nexus: (string | undefined) = nexusValue?.value?.toString();
+    const nexus : (string | null) = interaction.options.getString('nexus');
 
     logMessage('Whois interaction triggered', 
     { 
@@ -65,14 +63,6 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     // Check if they are already linked.
     let userData : NexusUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
-    // Currently, userEmbed requires a message, but there isn't one so we fake it until we make it. 
-    const fakeMessage: any = {
-        cleanContent: `/me`,
-        author: {
-            tag: interaction.user.tag
-        }
-    }
-
     if (!userData) {
         interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', ephemeral: true});
         return;
@@ -85,7 +75,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // If the bot has been pinged. 
     if (user && user === client.user) {
-        interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), fakeMessage, client)] })
+        interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), client)] })
             .catch(err => console.warn('Failed to send bot info for whois slash command', err));
         return;
     }
@@ -109,7 +99,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === foundUser.d_id;
             const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, fakeMessage, client)] })
+            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client)] })
             else {
                 console.log('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
                 interaction.followUp({ embeds: [ notAllowed(client) ] });

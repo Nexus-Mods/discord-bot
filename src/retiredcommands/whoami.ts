@@ -21,16 +21,16 @@ async function run(client: Client, message: Message, args: string[], serverData:
     return message.reply({ embeds: [ discontinuedEmbed('/profile') ] });
 
 
-    try {
-        const userData: NexusUser = await getUserByDiscordId(discordId);
-        if (!userData) return (replyChannel as TextChannel).send('You have\'t linked your account yet. See `!nm link` for more information.').catch(() => undefined);
-        const card: MessageEmbed = await userEmbed(userData, message, client);
-        return (replyChannel as TextChannel).send({ content: replyChannel !== message.channel ? message.author.toString() + redundantMessage : redundantMessage, embeds: [card] })
-            .catch((err) => (replyChannel as TextChannel).send(`Error: ${err.message}`));
-    }
-    catch(err: any) {
-        return (replyChannel as TextChannel).send({ embeds: [errorReply(err, message)] }).catch(() => undefined);
-    }
+    // try {
+    //     const userData: NexusUser = await getUserByDiscordId(discordId);
+    //     if (!userData) return (replyChannel as TextChannel).send('You have\'t linked your account yet. See `!nm link` for more information.').catch(() => undefined);
+    //     const card: MessageEmbed = await userEmbed(userData, message, client);
+    //     return (replyChannel as TextChannel).send({ content: replyChannel !== message.channel ? message.author.toString() + redundantMessage : redundantMessage, embeds: [card] })
+    //         .catch((err) => (replyChannel as TextChannel).send(`Error: ${err.message}`));
+    // }
+    // catch(err: any) {
+    //     return (replyChannel as TextChannel).send({ embeds: [errorReply(err, message)] }).catch(() => undefined);
+    // }
 
 }
 

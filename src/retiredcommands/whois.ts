@@ -22,46 +22,46 @@ async function run(client: Client, message: Message, args: string[], server: Bot
     return message.reply({ embeds: [discontinuedEmbed('/whois')] });
 
 
-    // Get info about the user making the request.
-    const userData: NexusUser|undefined = await getUserByDiscordId(discordId).catch(() => undefined);
+    // // Get info about the user making the request.
+    // const userData: NexusUser|undefined = await getUserByDiscordId(discordId).catch(() => undefined);
 
-    // User isn't linked.
-    if (!userData) return (replyChannel as TextChannel).send(`${prefix}, please link your Nexus Mods account to use this feature. See \`!nm link\` for more.`).catch(() => undefined);
+    // // User isn't linked.
+    // if (!userData) return (replyChannel as TextChannel).send(`${prefix}, please link your Nexus Mods account to use this feature. See \`!nm link\` for more.`).catch(() => undefined);
 
-    // No search query.
-    if (!args.length) return (replyChannel as TextChannel).send(`${prefix}, to search for a user please follow the command with a Nexus Mods username, Discord username/tag or Discord ID.`).catch(() => undefined);
+    // // No search query.
+    // if (!args.length) return (replyChannel as TextChannel).send(`${prefix}, to search for a user please follow the command with a Nexus Mods username, Discord username/tag or Discord ID.`).catch(() => undefined);
 
-    // Join the query into a single string (in case it's a username with a space.)
-    const query = args.join(' ').toLowerCase();
+    // // Join the query into a single string (in case it's a username with a space.)
+    // const query = args.join(' ').toLowerCase();
 
-    // If the bot is pinged.
-    if (message.mentions.users.first() === client.user || query === client.user?.username || query === client.user?.tag) {
-        return (replyChannel as TextChannel).send({content: 'That\'s me!',  embeds: [await userEmbed(botUser(client), message, client)] }).catch(() => undefined);
-    }
+    // // If the bot is pinged.
+    // if (message.mentions.users.first() === client.user || query === client.user?.username || query === client.user?.tag) {
+    //     return (replyChannel as TextChannel).send({content: 'That\'s me!',  embeds: [await userEmbed(botUser(client), message, client)] }).catch(() => undefined);
+    // }
 
-    // Get all the user accounts to make searching easier.
-    const allUsers: NexusUser[] = await getAllUsers().catch(() => []);
-    if (!allUsers) return (replyChannel as TextChannel).send(`${prefix}, member search failed for your query "${query}". Please try again later.`).catch(() => undefined);
+    // // Get all the user accounts to make searching easier.
+    // const allUsers: NexusUser[] = await getAllUsers().catch(() => []);
+    // if (!allUsers) return (replyChannel as TextChannel).send(`${prefix}, member search failed for your query "${query}". Please try again later.`).catch(() => undefined);
 
 
-    let foundNexus: NexusUser|undefined = findNexusUser(allUsers, query);
-    let foundDiscord: User|undefined = findDiscordUser(client, query, message, foundNexus);
+    // let foundNexus: NexusUser|undefined = findNexusUser(allUsers, query);
+    // let foundDiscord: User|undefined = findDiscordUser(client, query, message, foundNexus);
 
-    // If we found the Discord user but not the Nexus Mods user, try again.
-    if (foundDiscord && !foundNexus) foundNexus = findNexusUser(allUsers, query, foundDiscord);
+    // // If we found the Discord user but not the Nexus Mods user, try again.
+    // if (foundDiscord && !foundNexus) foundNexus = findNexusUser(allUsers, query, foundDiscord);
 
-    console.log(`${new Date().toLocaleString()} - Lookup result: ${foundNexus?.name || '???'} (Nexus) + ${foundDiscord?.tag} (Discord).`);
+    // console.log(`${new Date().toLocaleString()} - Lookup result: ${foundNexus?.name || '???'} (Nexus) + ${foundDiscord?.tag} (Discord).`);
 
-    // If we couldn't find one of the accounts, there is no match. 
-    if (!foundDiscord || !foundNexus) return (replyChannel as TextChannel).send(`${prefix}, no members found for your search "${query}".`).catch(err => undefined);
+    // // If we couldn't find one of the accounts, there is no match. 
+    // if (!foundDiscord || !foundNexus) return (replyChannel as TextChannel).send(`${prefix}, no members found for your search "${query}".`).catch(err => undefined);
 
-    // Get server data for the Nexus Mods account we found.
-    const foundServers: NexusUserServerLink[] = await getLinksByUser(foundNexus?.id || 0).catch(() => []);
+    // // Get server data for the Nexus Mods account we found.
+    // const foundServers: NexusUserServerLink[] = await getLinksByUser(foundNexus?.id || 0).catch(() => []);
 
-    // Check if we should display the result, return if the user isn't in the current server.
-    const isMe: boolean = userData?.d_id === message.author.id;
-    const inGuild: boolean = !!foundServers.find(link => link.server_id === message.guild?.id);
-    if (!isMe || !inGuild) return (replyChannel as TextChannel).send({content: replyChannel === message.channel ? '' : message.author.toString(), embeds: [notAllowed(client, message)] }).catch(() => undefined);
+    // // Check if we should display the result, return if the user isn't in the current server.
+    // const isMe: boolean = userData?.d_id === message.author.id;
+    // const inGuild: boolean = !!foundServers.find(link => link.server_id === message.guild?.id);
+    // if (!isMe || !inGuild) return (replyChannel as TextChannel).send({content: replyChannel === message.channel ? '' : message.author.toString(), embeds: [notAllowed(client, message)] }).catch(() => undefined);
 
     // Send the profile card.
     // const embed: MessageEmbed = await userEmbed(foundNexus, message, client).catch(() => notAllowed(client, message));
