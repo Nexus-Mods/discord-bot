@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, Guild, MessageEmbed, Role, ThreadChannel, GuildChannel, GuildMember } from "discord.js";
+import { CommandInteraction, Channel, Client, Guild, MessageEmbed, Role, ThreadChannel, GuildChannel, GuildMember } from "discord.js";
 import { DiscordInteraction, } from "../types/util";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { NexusUser } from "../types/users";
@@ -7,6 +7,13 @@ import { ClientExt } from "../types/util";
 import { logMessage } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { games } from "../api/nexus-discord";
+
+interface BotServerChange {
+    name: string;
+    cur: Channel | Role | IGameInfo | string;
+    new: Channel | Role | IGameInfo | string;
+    data: Partial<BotServer>;
+}
 
 const discordInteraction: DiscordInteraction = {
     command: {
@@ -153,11 +160,20 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
         }
         // Update 
         else if (subComGroup === 'update') {
+            let newData: Partial<BotServerChange> = {};
+
+            switch (subCom) {
+                case 'channel': 
+                break;
+                case 'role':
+                break;
+                case 'filter':
+                break;
+                default: throw new Error('Unrecognised SubCommand: '+subCom);
+            }
 
         }
         else throw new Error('Unrecognised command');
-
-
     }
     catch(err) {
         throw err;        
