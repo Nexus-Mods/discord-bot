@@ -1,5 +1,5 @@
 import { Guild, GuildMember, User } from 'discord.js';
-import { ClientExt } from '../DiscordBot';
+import { ClientExt } from "../types/util";
 import { getUserByDiscordId, deleteServerLink } from '../api/bot-db';
 import { logMessage } from '../api/util';
 

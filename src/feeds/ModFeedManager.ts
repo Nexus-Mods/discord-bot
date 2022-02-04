@@ -1,6 +1,6 @@
 import { ModFeed } from '../types/feeds';
 import { getAllModFeeds, getModFeed, createModFeed, deleteModFeed } from '../api/bot-db';
-import { ClientExt } from '../DiscordBot';
+import { ClientExt } from "../types/util";
 
 const pollTime = (1000*60*60); //1 hour
 

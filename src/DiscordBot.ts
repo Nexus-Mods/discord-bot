@@ -3,6 +3,7 @@ import { DiscordInteraction } from './types/util';
 import * as fs from 'fs';
 import path from 'path';
 import { logMessage } from './api/util';
+import { ClientExt } from "./types/util";
 
 export class DiscordBot {
     private static instance: DiscordBot;
@@ -144,10 +145,4 @@ export class DiscordBot {
 
         return;
     }
-}
-
-export interface ClientExt extends Client {
-    config?: any;
-    commands?: Collection<any, any>;
-    interactions?: Collection<any, any>;
 }

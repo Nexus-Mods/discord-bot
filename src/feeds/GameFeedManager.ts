@@ -1,6 +1,6 @@
 import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
-import { ClientExt } from '../DiscordBot';
+import { ClientExt } from "../types/util";
 import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, MessageEmbed, Client } from 'discord.js';
 import { NexusUser } from '../types/users';

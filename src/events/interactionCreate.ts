@@ -1,5 +1,5 @@
 import { CommandInteraction } from 'discord.js';
-import { ClientExt } from '../DiscordBot';
+import { ClientExt } from "../types/util";
 import { DiscordInteraction } from '../types/util';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
 

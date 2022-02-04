@@ -1,5 +1,5 @@
 import { IModInfo } from "@nexusmods/nexus-api";
-import { GuildMember, MessageEmbed, EmbedFieldData, Snowflake, ApplicationCommandData, CommandInteraction, Client } from "discord.js";
+import { Collection, GuildMember, MessageEmbed, EmbedFieldData, Snowflake, ApplicationCommandData, CommandInteraction, Client } from "discord.js";
 
 export interface InfoResult {
     name: string;
@@ -80,4 +80,10 @@ export interface DiscordInteraction {
     public: boolean;
     guilds?: Snowflake[];
     permissions?: PermissionsExt[];
+}
+
+export interface ClientExt extends Client {
+    config?: any;
+    commands?: Collection<any, any>;
+    interactions?: Collection<any, any>;
 }

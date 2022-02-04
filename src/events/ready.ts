@@ -1,4 +1,4 @@
-import { ClientExt } from '../DiscordBot';
+import { ClientExt } from '../types/util';
 import { GameFeedManager } from '../feeds/GameFeedManager';
 import { MessageEmbed, Guild, GuildChannel, TextChannel, Snowflake, ThreadChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';

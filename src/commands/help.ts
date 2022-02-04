@@ -1,6 +1,6 @@
 import { Message, GuildChannel, PartialDMChannel, DMChannel, TextChannel, MessageEmbed, ThreadChannel } from "discord.js";
 import { BotServer } from "../types/servers";
-import { ClientExt } from "../DiscordBot";
+import { ClientExt } from "../types/util";
 import { CommandHelp } from "../types/util";
 import path from 'path';
 

@@ -1,6 +1,6 @@
 import { NewsArticle } from '../types/feeds';
 import { updateSavedNews, getSavedNews, getAllServers } from '../api/bot-db';
-import { ClientExt } from '../DiscordBot';
+import { ClientExt } from "../types/util";
 import Parser = require('rss-parser');
 import { Message, MessageEmbed, Guild, GuildChannel, TextChannel, Snowflake, ThreadChannel } from 'discord.js';
 import { BotServer } from '../types/servers';

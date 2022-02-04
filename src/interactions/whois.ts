@@ -2,7 +2,7 @@ import { DiscordInteraction } from "../types/util";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed } from '../api/bot-db';
 import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Guild, CommandInteractionOption } from "discord.js";
-import { ClientExt } from "../DiscordBot";
+import { ClientExt } from "../types/util";
 import { logMessage } from "../api/util";
 
 

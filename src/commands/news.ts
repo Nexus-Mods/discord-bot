@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import { ClientExt } from "../DiscordBot";
+import { ClientExt } from "../types/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 
 async function run(client: ClientExt, message: Message, args: string[]) {

@@ -1,5 +1,5 @@
 import { Message } from 'discord.js';
-import { ClientExt } from '../DiscordBot';
+import { ClientExt } from "../types/util";
 import { BotServer } from '../types/servers';
 import { getServer } from '../api/bot-db';
 import { discontinuedEmbed } from '../api/util';
