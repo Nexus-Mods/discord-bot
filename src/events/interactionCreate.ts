@@ -17,7 +17,7 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
                 channelName: interaction.channel?.toString(),
                 requestedBy: interaction.user.tag,
                 botVersion: process.env.npm_package_version,
-                interaction: interaction.commandName,
+                interaction: interaction.toString(),
                 error: err.message || err
             }
             const repFunc = interaction.replied ? interaction.reply : interaction.editReply;

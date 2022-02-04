@@ -141,6 +141,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
     // Get user and guild data
     try {
         const server: BotServer = await getServer(guild)
+        .catch((err) => { throw new Error('Could not retrieve server details'+err.message) }); 
         const user: NexusUser|undefined = await getUserByDiscordId(discordId);
         const gameList: IGameInfo[] = user ? await games(user) : [];
         const filterGame: IGameInfo|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
@@ -150,11 +151,16 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
             const view: MessageEmbed = await serverEmbed(client, guild, server, filterGame?.name);
             return interaction.editReply({ embeds: [view] });
         }
+        // Update 
+        else if (subComGroup === 'update') {
+
+        }
+        else throw new Error('Unrecognised command');
 
 
     }
     catch(err) {
-        throw err
+        throw err;        
     }
     
     return interaction.editReply({ content: `\`\`\`${interaction.toString()}\`\`\`` });
