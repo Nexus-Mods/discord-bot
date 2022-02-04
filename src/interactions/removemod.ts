@@ -88,7 +88,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         }
         catch(err) {
             logMessage('Error removing mods', { removals, err }, true);
-            i.editReply({ content: `There was an error trying to remove those mods: ${err.message || err}` });
+            i.editReply({ content: `There was an error trying to remove those mods: ${(err as Error).message || err}` });
         }
     });
 }

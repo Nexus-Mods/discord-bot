@@ -147,7 +147,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         return { name: modName, value: `- [${newMod.name}](${url}) added.` };
     }
     catch(err) {
-        return { name: modName || link, value: err.message, error: true };
+        return { name: modName || link, value: (err as Error).message, error: true };
     }
 
 }
@@ -188,7 +188,7 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
         return { name: query, value: messages.join('\n').substr(0, 1024) };
     }
     catch(err) {
-        return { name: query, value: err.message, error: true };
+        return { name: query, value: (err as Error).message, error: true };
     }
 
 }

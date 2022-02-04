@@ -1,9 +1,7 @@
 import { 
     CommandInteraction, Snowflake, MessageEmbed, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
-    MessageActionRow, MessageButton, InteractionCollector, EmbedFieldData, 
-    Permissions,
-    GuildChannel
+    MessageActionRow, MessageButton, InteractionCollector, EmbedFieldData
 } from "discord.js";
 import { NexusUser } from "../types/users";
 import { DiscordInteraction } from "../types/util";
@@ -163,7 +161,7 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
                 }
                 catch(err) {
                     logMessage('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err}, true);
-                    throw new Error(`Failed to create Webhook for game feed. Please make sure the bot has the correct permissions.\n Error: ${err.message || err}`);
+                    throw new Error(`Failed to create Webhook for game feed. Please make sure the bot has the correct permissions.\n Error: ${(err as Error).message || err}`);
                 }
             }
 
@@ -200,7 +198,7 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
         });
     }
     catch(err) {
-        if (!err.message.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
+        if (!(err as Error).message.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
         rejectMessage((err as any).message || err, interaction);
     }
 }
@@ -405,7 +403,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
                 }
                 catch(err) {
                     logMessage(`Failed to update Game Feed #${feed._id}`, {err}, true);
-                    rejectMessage('Unable to update Game Feed:\n'+(err.message || err), interaction)
+                    rejectMessage('Unable to update Game Feed:\n'+((err as Error).message || err), interaction)
                 }
             }
             else if (ic.find(i => i.customId === 'delete')) {
@@ -416,7 +414,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
                 }
                 catch(err) {
                     logMessage(`Failed to delete Game Feed #${feed._id}`, {err}, true);
-                    rejectMessage('Unable to delete Game Feed:\n'+(err.message || err), interaction)
+                    rejectMessage('Unable to delete Game Feed:\n'+((err as Error).message || err), interaction)
                 }
             }
             else if (ic.find(i => i.customId === 'cancel')) await interaction.editReply({ content: 'Editing cancelled.', embeds: [embed(feed)], components: [] });
@@ -430,7 +428,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
     }
     catch(err) {
         logMessage('Game Feed management error', err, true);
-        rejectMessage('Something went wrong when trying to manage the Game Feed.\n'+(err.message || err), interaction);
+        rejectMessage('Something went wrong when trying to manage the Game Feed.\n'+((err as Error).message || err), interaction);
     }
 }
 
