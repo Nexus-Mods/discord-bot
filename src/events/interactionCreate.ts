@@ -21,15 +21,16 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
                 error: err.message || err
             }
             const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
-            try {
-                (interaction.replied || interaction.deferred) 
-                ? interaction.editReply(reply) 
-                : interaction.reply(reply);
-            }
-            catch(replyError) {
+            
+            (interaction.replied || interaction.deferred) 
+            ? interaction.editReply(reply).catch(replyError => {
+                logMessage('Error editing reply for failed interaction', {replyError, ...context}, true);
+                process.exit(1);
+            })
+            : interaction.reply(reply).catch(replyError => {
                 logMessage('Error replying to failed interaction', {replyError, ...context}, true);
                 process.exit(1);
-            }
+            });
         });
     } 
 }

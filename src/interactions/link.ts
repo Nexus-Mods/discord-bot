@@ -43,18 +43,18 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         if (interaction.guildId && !userServers?.find(link => link.server_id === interaction.guildId)) {
             const guild = client.guilds.cache.get(interaction.guildId)
             await addServerLink(client, userData, interaction.user, guild as Guild).catch(() => undefined);
-            interaction.followUp({ content:`Your Discord account has been linked to ${userData.name} in this server.`,  ephemeral: true });
+            await interaction.followUp({ content:`Your Discord account has been linked to ${userData.name} in this server.`,  ephemeral: true });
             return;
         }
         else {
-            interaction.followUp({content: `Your Discord account is already linked to ${userData.name} in this server.`, ephemeral: true });
+            await interaction.followUp({content: `Your Discord account is already linked to ${userData.name} in this server.`, ephemeral: true });
             return;
         }
     }
 
     const apikey = interaction.options.get('apikey');
     // Check if the user submitted their API key.
-    if (!apikey) interaction.followUp({ embeds: [sendKeyEmbed(client, interaction)], ephemeral: true });
+    if (!apikey) await interaction.followUp({ embeds: [sendKeyEmbed(client, interaction)], ephemeral: true });
     else {
         await checkAPIKey(client, interaction, apikey.value as string);
     }
@@ -101,11 +101,11 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
         const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
 
         logMessage(`${userData.name} linked to ${interact.user.tag}`);
-        interact.followUp({ content: `You have now linked the Nexus Mods account "${userData.name}" to your Discord account in ${links.length} Discord Servers.`,  ephemeral: true });
+        await interact.followUp({ content: `You have now linked the Nexus Mods account "${userData.name}" to your Discord account in ${links.length} Discord Servers.`,  ephemeral: true });
 
     }
     catch(err) {
-        interact.followUp({ content: `Could not link your account due to the following error:\n`+err,  ephemeral: true });
+        await interact.followUp({ content: `Could not link your account due to the following error:\n`+err,  ephemeral: true });
     }
 }
 

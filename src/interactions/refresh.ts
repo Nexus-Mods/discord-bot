@@ -62,21 +62,21 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         const nextUpdate = new Date( userData?.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
         if (!userData) {
-            interaction.editReply('You haven\'t linked your account yet. Use the /link command to get started.');
+            await interaction.editReply('You haven\'t linked your account yet. Use the /link command to get started.');
             return;
         }
         else if (nextUpdate > new Date()) {
-            interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+            await interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
             return;
         }
         else {
             card = replyCard(client, userData, interaction.user);
-            interaction.editReply({ embeds: [ card ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+            await interaction.editReply({ embeds: [ card ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
         }
     }
     catch(err) {
         logMessage('Error checking if user exists in DB when linking', err, true);
-        interaction.editReply('An error occurred fetching your account details.').catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+        await interaction.editReply('An error occurred fetching your account details.').catch((err) => logMessage('Error updating interaction reply', { err }, true));;
         return;
     }
 
@@ -112,7 +112,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Update the interaction
     card.setTitle('Updating mod stats...');
-    interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+    await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
 
     // Update download counts for the mods
     try {
