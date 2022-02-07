@@ -7,6 +7,7 @@ import { discontinuedEmbed } from '../api/util';
 const retiredCommands: { [key: string]: string } = {
     about: '/about',
     addmod: '/addmod',
+    config: '/settings',
     gamefeed: '/gamefeed',
     i: '/info',
     link: '/link',
