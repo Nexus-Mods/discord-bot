@@ -1,4 +1,4 @@
-import { CommandInteraction } from 'discord.js';
+import { CommandInteraction, TextChannel } from 'discord.js';
 import { ClientExt } from "../types/util";
 import { DiscordInteraction } from '../types/util';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
@@ -14,18 +14,22 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
             const context = {
                 serverId: interaction.guildId,
                 serverName: interaction.guild?.name,
-                channelName: interaction.channel?.toString(),
+                channelName: (interaction.channel as TextChannel)?.name,
                 requestedBy: interaction.user.tag,
                 botVersion: process.env.npm_package_version,
                 interaction: interaction.toString(),
                 error: err.message || err
             }
-            const repFunc = interaction.replied ? interaction.reply : interaction.editReply;
-            return repFunc({ embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null })
-            .catch((replyError) => {
+            const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
+            try {
+                (interaction.replied || interaction.deferred) 
+                ? interaction.editReply(reply) 
+                : interaction.reply(reply);
+            }
+            catch(replyError) {
                 logMessage('Error replying to failed interaction', {replyError, ...context}, true);
                 process.exit(1);
-            });
+            }
         });
     } 
 }

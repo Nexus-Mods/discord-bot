@@ -1,4 +1,4 @@
-import { CommandInteraction, Channel, Client, Guild, MessageEmbed, Role, ThreadChannel, GuildChannel, GuildMember } from "discord.js";
+import { CommandInteraction, Client, Guild, MessageEmbed, Role, ThreadChannel, GuildChannel, GuildMember } from "discord.js";
 import { DiscordInteraction, } from "../types/util";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { NexusUser } from "../types/users";
@@ -7,11 +7,12 @@ import { ClientExt } from "../types/util";
 import { logMessage } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { games } from "../api/nexus-discord";
+import { APIRole } from "discord-api-types";
 
 interface BotServerChange {
     name: string;
-    cur: Channel | Role | IGameInfo | string;
-    new: Channel | Role | IGameInfo | string;
+    cur: any | Role | IGameInfo | string | undefined;
+    new: any | Role | IGameInfo | string | undefined;
     data: Partial<BotServer>;
 }
 
@@ -55,20 +56,20 @@ const discordInteraction: DiscordInteraction = {
                                 required: true,
                                 choices: [
                                     {
-                                        name: 'author',
-                                        value: 'Mod Author'
+                                        value: 'author',
+                                        name: 'Mod Author'
                                     },
                                     {
-                                        name: 'linked',
-                                        value: 'Linked to Nexus Mods'
+                                        value: 'linked',
+                                        name: 'Linked to Nexus Mods'
                                     },
                                     {
-                                        name: 'premium',
-                                        value: 'Nexus Mods Premium'
+                                        value: 'premium',
+                                        name: 'Nexus Mods Premium'
                                     },
                                     {
-                                        name: 'supporter',
-                                        value: 'Nexus Mods Supporter'
+                                        value: 'supporter',
+                                        name: 'Nexus Mods Supporter'
                                     }
                                 ]
                             },
@@ -91,12 +92,12 @@ const discordInteraction: DiscordInteraction = {
                                 required: true,
                                 choices: [
                                     {
-                                        name: 'replychannel',
-                                        value: 'Text-Command Reply Channel'
+                                        value: 'replychannel',
+                                        name: 'Text-Command Reply Channel'
                                     },
                                     {
-                                        name: 'logchannel',
-                                        value: 'Activity Log'
+                                        value: 'logchannel',
+                                        name: 'Activity Log'
                                     }
                                 ]
                             },
@@ -112,7 +113,7 @@ const discordInteraction: DiscordInteraction = {
             },
         ]
     },
-    public: false,
+    public: true,
     guilds: [
         '581095546291355649'
     ],
@@ -163,23 +164,125 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
             let newData: Partial<BotServerChange> = {};
 
             switch (subCom) {
-                case 'channel': 
+                case 'channel': {
+                    const channelType: string = interaction.options.getString('type', true);
+                    const newChannel = interaction.options.getChannel('newchannel');
+
+                    switch(channelType) {
+                        case 'replychannel': {
+                            newData = {
+                                cur: server.channel_bot,
+                                name: 'Reply Channel',
+                                new: newChannel,
+                                data: { channel_bot: newChannel?.id }
+                            };
+                        
+                        }
+                        break;
+                        case 'logchannel': {
+                            newData = {
+                                cur: server.channel_nexus,
+                                name: 'Log Channel',
+                                new: newChannel,
+                                data: { channel_nexus: newChannel?.id }
+                            };
+                        }
+                        break;
+                    }
+                }
                 break;
-                case 'role':
+                case 'role': {
+                    const roleType: string = interaction.options.getString('type', true);
+                    const newRole: Role | APIRole | null = interaction.options.getRole('newrole');
+                    switch(roleType) {
+                        case 'author': {
+                            newData = {
+                                cur: server.role_author,
+                                name: 'Mod Author Role',
+                                new: newRole,
+                                data: { role_author: newRole?.id }
+                            };
+                        
+                        }
+                        break;
+                        case 'premium': {
+                            newData = {
+                                cur: server.role_premium,
+                                name: 'Log Channel',
+                                new: newRole,
+                                data: { role_premium: newRole?.id }
+                            };
+                        }
+                        break;
+                        case 'supporter': {
+                            newData = {
+                                cur: server.role_supporter,
+                                name: 'Log Channel',
+                                new: newRole,
+                                data: { role_supporter: newRole?.id }
+                            };
+                        }
+                        break;
+                        case 'linked': {
+                            newData = {
+                                cur: server.role_linked,
+                                name: 'Log Channel',
+                                new: newRole,
+                                data: { role_linked: newRole?.id }
+                            };
+                        }
+                        break;
+                    }
+
+                }
                 break;
-                case 'filter':
+                case 'filter': {
+                    const gameQuery: string | null = interaction.options.getString('game');
+                    let foundGame : IGameInfo | undefined;
+                    if (!!gameQuery) {
+                        foundGame = resolveFilter(gameList, gameQuery);
+                        if (!foundGame) throw new Error(`Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
+                    }
+                    newData = {
+                        name: 'Mod Search Filter',
+                        cur: resolveFilter(gameList, server.game_filter?.toString()),
+                        new: foundGame,
+                        data: { game_filter: foundGame?.id }
+                    }
+                }
                 break;
                 default: throw new Error('Unrecognised SubCommand: '+subCom);
             }
 
+            try {
+                await updateServer(server.id, newData.data);
+                return interaction.editReply({ embeds: [updateEmbed(newData as BotServerChange)] })
+            }
+            catch (err) {
+                throw new Error('Error updating server data: '+(err as Error).message)
+            }
         }
         else throw new Error('Unrecognised command');
     }
     catch(err) {
         throw err;        
     }
-    
-    return interaction.editReply({ content: `\`\`\`${interaction.toString()}\`\`\`` });
+}
+
+const updateEmbed = (data: BotServerChange): MessageEmbed => { 
+    const curVal = (data.cur as IGameInfo) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
+    const newVal = (data.new as IGameInfo) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
+    return new MessageEmbed()
+    .setTitle('Configuration updated')
+    .setColor(0xda8e35)
+    .setDescription(`${data.name} updated from ${curVal} to ${newVal}`);
+}
+
+function resolveFilter(games: IGameInfo[], term: string|null|undefined): IGameInfo|undefined {
+    logMessage('Resolve game', { term, total: games.length });
+    if (!term || !games.length) return;
+    const game = games.find(g => g.name.toLowerCase() === term.toLowerCase() || g.domain_name.toLowerCase() === term.toLowerCase() || g.id === parseInt(term));
+    return game;
 }
 
 const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameName?: string): Promise<MessageEmbed> => {
@@ -196,24 +299,24 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     const embed = new MessageEmbed()
     .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })
     .setTitle(`Server Configuration - ${guild.name}`)
-    .setDescription('Configure any of these options for your server by typing the following command: \n`!NM config <setting> <newvalue>`')
+    .setDescription('Configure any of these options for your server by using the /settings command`')
     .setColor(0xda8e35)
     .addField(
         'Role Settings', 
         'Set roles for linked accounts, mod authors and Nexus Mods memberships.\n\n'+
-        `**Connected Accounts:** ${linkedRole?.toString() || '*Not set*'} - set using \`linked <@role>\`\n`+
-        `**Mod Authors:** ${authorRole?.toString() || '*Not set*'} - set using \`author <@role>\`\n`+
-        `**Supporter/Premium:** ${supporterRole?.toString() || '*Not set*'}/${premiumRole?.toString() || '*Not set*'} - set using \`premium <@role>\` or \`supporter <@role>\``
+        `**Connected Accounts:** ${linkedRole?.toString() || '*Not set*'}\n`+
+        `**Mod Authors:** ${authorRole?.toString() || '*Not set*'}\n`+
+        `**Supporter/Premium:** ${supporterRole?.toString() || '*Not set*'}/${premiumRole?.toString() || '*Not set*'}`
     )
     .addField(
         'Channel Settings',
         'Set a bot channel to limit bot replies to one place or set a channel for bot logging messages.\n\n'+
-        `**Reply Channel:** ${botChannel?.toString() || '*<any>*'} - set using \`replyonly <#channel>\`\n`+
-        `**Log Channel:** ${nexusChannel?.toString() || '*Not set*'} - set using \`log <#channel>\``
+        `**Reply Channel:** ${botChannel?.toString() || '*<any>*'}\n`+
+        `**Log Channel:** ${nexusChannel?.toString() || '*Not set*'}`
     )
     .addField(
         'Search', 
-        `Showing ${server.game_filter ? `mods from ${gameName || server.game_filter}` : 'all games' }. - set using \`filter <game name/domain>\``
+        `Showing ${server.game_filter ? `mods from ${gameName || server.game_filter}` : 'all games' }.`
     )
     .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: client.user?.avatarURL() || '' });
 

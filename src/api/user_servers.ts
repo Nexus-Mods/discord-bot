@@ -69,8 +69,11 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         // Check we can actually assign roles.
         const botMember = client.user ? await guild.members.fetch(client.user.id): undefined;
-        if (!botMember || !botMember.permissions.has('MANAGE_ROLES')) {
-            console.log(`${new Date().toLocaleString()} - Permissions in ${guild.name} do not allow role assignment.`);
+        if (!botMember || (!botMember.permissions.has('MANAGE_ROLES') && !botMember.permissions.has('ADMINISTRATOR'))) {            
+            if (guildData.role_premium || guildData.role_linked || guildData.role_supporter || guildData.role_author) {
+                // Only write a log message if I am expected to have these permissions. 
+                logMessage(`Permissions in ${guild.name} do not allow role assignment.`);
+            }
             return resolve();
         }
 
