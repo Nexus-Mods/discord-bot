@@ -54,7 +54,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         user: interaction.user.tag, 
         guild: interaction.guild?.name, 
         channel: (interaction.channel as any)?.name,
-        query: nexus || user
+        query: nexus || user?.tag
     });
 
     // Get sender info.

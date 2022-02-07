@@ -36,7 +36,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userServers = userData ? await getLinksByUser(userData?.id) : undefined;
     }
     catch(err) {
-        console.error('Error checking if user exists in DB when linking', err);
+        logMessage('Error checking if user exists in DB when linking', err, true);
     }
 
     if (userData) {        
@@ -83,7 +83,7 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
         // Check if there is already a link with another Discord profile, if so, delete it. 
         const existing: NexusUser|undefined = await getUserByNexusModsId(apiData.user_id);
         if (!!existing) {
-            console.log(`Link already exists for ${existing.name}, removing it.`);
+            logMessage(`Link already exists for ${existing.name}, removing it.`);
             await deleteUser(existing.d_id).catch(() => console.error('Unable to delete existing user account', { d_id, name: existing?.name }));
         }
         // Create the new user entry. 
@@ -100,7 +100,7 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
         await updateAllRoles(client, userData, interact.user, true);
         const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
 
-        console.log(`${new Date().toLocaleString()} - ${userData.name} linked to ${interact.user.toString()}`);
+        logMessage(`${userData.name} linked to ${interact.user.tag}`);
         interact.followUp({ content: `You have now linked the Nexus Mods account "${userData.name}" to your Discord account in ${links.length} Discord Servers.`,  ephemeral: true });
 
     }

@@ -107,7 +107,31 @@ const discordInteraction: DiscordInteraction = {
                                 description: 'Channel to use. To unset, leave this blank.'
                             }
                         ]
-                    }                    
+                    },
+                    {
+                        name: 'value',
+                        type: 'SUB_COMMAND',
+                        description: 'Update a setting value',
+                        options: [
+                            {
+                                name: 'key',
+                                type: 'STRING',
+                                description: 'The key to update',
+                                choices: [
+                                    {
+                                        value: 'authordownloads',
+                                        name: 'Minimum Unique Downloads to be considered a Mod Author'
+                                    }
+                                ],
+                                required: true
+                            },
+                            {
+                                name: 'newvalue',
+                                type: 'INTEGER',
+                                description: 'The numerical value to set',
+                            }
+                        ]
+                    }                  
 
                 ]
             },
@@ -251,6 +275,19 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
                     }
                 }
                 break;
+                case 'value': {
+                    const valueToEdit: string = interaction.options.getString('key', true);
+                    const newInt: number|null = interaction.options.getInteger('newvalue');
+                    // Only one value for now, so no harm in hard-coding this.
+                    if (valueToEdit !== 'authordownloads') throw new Error('Unknown value key: '+valueToEdit);
+                    newData = {
+                        name: 'Minimum Unique Downloads for Mod Author role',
+                        cur: parseInt(server.author_min_downloads).toLocaleString(),
+                        new: newInt?.toLocaleString() || (1000).toLocaleString(),
+                        data: { author_min_downloads: newInt?.toString() || '1000' }
+                    }
+                }
+                break;
                 default: throw new Error('Unrecognised SubCommand: '+subCom);
             }
 
@@ -272,10 +309,11 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
 const updateEmbed = (data: BotServerChange): MessageEmbed => { 
     const curVal = (data.cur as IGameInfo) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
     const newVal = (data.new as IGameInfo) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
+    console.log({curVal, newVal, data});
     return new MessageEmbed()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)
-    .setDescription(`${data.name} updated from ${curVal} to ${newVal}`);
+    .setDescription(`${data.name} updated from ${curVal || data.cur} to ${newVal || data.new}`);
 }
 
 function resolveFilter(games: IGameInfo[], term: string|null|undefined): IGameInfo|undefined {
@@ -295,6 +333,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     const logChannel: ThreadChannel | GuildChannel|null = server.channel_log ? guild.channels.resolve(server.channel_log) : null;
     const newsChannel: ThreadChannel|GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
     const owner: GuildMember = await guild.fetchOwner();
+    const minDownloads: Number = parseInt(server.author_min_downloads) || 1000;
 
     const embed = new MessageEmbed()
     .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })
@@ -305,7 +344,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
         'Role Settings', 
         'Set roles for linked accounts, mod authors and Nexus Mods memberships.\n\n'+
         `**Connected Accounts:** ${linkedRole?.toString() || '*Not set*'}\n`+
-        `**Mod Authors:** ${authorRole?.toString() || '*Not set*'}\n`+
+        `**Mod Authors:** ${authorRole?.toString() || '*Not set*'} (Users with ${minDownloads.toLocaleString()}+ unique downloads)\n`+
         `**Supporter/Premium:** ${supporterRole?.toString() || '*Not set*'}/${premiumRole?.toString() || '*Not set*'}`
     )
     .addField(
