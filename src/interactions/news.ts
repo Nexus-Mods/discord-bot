@@ -3,6 +3,7 @@ import { DiscordInteraction, InfoResult, PostableInfo, ClientExt } from "../type
 import { getAllInfos, displayInfo } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
+import { SavedNewsData } from "../types/feeds";
 
 const discordInteraction: DiscordInteraction = {
     command: {
@@ -52,12 +53,19 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
     const newsInst: NewsFeedManager = NewsFeedManager.getInstance(client);
 
     try {
-        const latest = await newsInst.forceUpdate(domain);
-        await interaction.editReply({ content: 'Update successful', embeds: latest ? [latest] : []});
+        const latest = await newsInst.forceUpdate(domain?.toLowerCase());
+        let embed: MessageEmbed;
+        if (!(latest as MessageEmbed)) {
+            embed = new MessageEmbed()
+            .setTitle(latest?.title || 'Unknown')
+            .setTimestamp((latest as SavedNewsData)?.date);
+        }
+        else embed = latest as MessageEmbed;
+        await interaction.editReply({ content: 'Update successful', embeds: [embed]});
     }
     catch(err) {
         logMessage('Failed to update news', err, true);
-        return interaction.editReply('Failed to update news.')
+        return interaction.editReply('Failed to update news:'+err.message);
     }
 }
 

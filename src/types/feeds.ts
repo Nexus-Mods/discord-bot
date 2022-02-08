@@ -48,3 +48,8 @@ export interface NewsArticle {
     }
     'nexusmods:plain_description': string;
 }
+
+export interface SavedNewsData {
+    title: string;
+    date: Date;
+}
