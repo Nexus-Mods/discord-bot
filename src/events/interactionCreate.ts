@@ -29,6 +29,7 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
             }
             const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
             
+            logMessage('Interaction action errored out', { interact: interaction, ...context });
             
             (interaction.replied || interaction.deferred) 
             ? interaction.editReply(reply).catch(replyError => {
