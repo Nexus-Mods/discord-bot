@@ -29,20 +29,16 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
             }
             const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
             
-            interaction.followUp(reply).catch(replyError => {
-                logMessage('Error following up for failed interaction', { replyError, ...context, inter: interaction}, true);
+            
+            (interaction.replied || interaction.deferred) 
+            ? interaction.editReply(reply).catch(replyError => {
+                logMessage('Error editing reply for failed interaction', {replyError, ...context, interact: interaction}, true);
                 process.exit(1);
             })
-            
-            // (interaction.replied || interaction.deferred) 
-            // ? interaction.editReply(reply).catch(replyError => {
-            //     logMessage('Error editing reply for failed interaction', {replyError, ...context}, true);
-            //     process.exit(1);
-            // })
-            // : interaction.reply(reply).catch(replyError => {
-            //     logMessage('Error replying to failed interaction', {replyError, ...context}, true);
-            //     process.exit(1);
-            // });
+            : interaction.reply(reply).catch(replyError => {
+                logMessage('Error replying to failed interaction', {replyError, ...context, interact: interaction}, true);
+                process.exit(1);
+            });
         });
     } 
 }
