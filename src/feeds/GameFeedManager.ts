@@ -6,6 +6,7 @@ import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, Mess
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modInfo, modChangelogs } from '../api/nexus-discord';
 import { IModInfoExt } from '../types/util';
+import { logMessage } from '../api/util';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
@@ -35,10 +36,10 @@ export class GameFeedManager {
         this.updateTimer = setInterval(this.updateFeeds, pollTime);
         this.getFeeds()
             .then(() => {
-                console.log(`${tn()} - Initialised with ${this.GameFeeds.length} game feeds, checking every ${pollTime/1000/60} minutes`);
-                this.updateFeeds().catch((err) => console.warn(`${tn()} - Error updating game feeds`, err));
+                logMessage(`Initialised with ${this.GameFeeds.length} game feeds, checking every ${pollTime/1000/60} minutes`);
+                this.updateFeeds().catch((err) => logMessage(`Error updating game feeds`, err, true));
             })
-            .catch((err) => console.error('Error in GameFeedManager contructor', err));
+            .catch((err) => logMessage('Error in GameFeedManager contructor', err, true));
     }
 
     private async getFeeds(): Promise<GameFeed[]> {
@@ -87,22 +88,21 @@ export class GameFeedManager {
         const manager: GameFeedManager = GameFeedManager.instance;
         await manager.getFeeds();
         const client: ClientExt = manager.client;
-        console.log(`${tn()} - Checking for updates in ${manager.GameFeeds.length} game feeds`);
+        if (!manager.GameFeeds.length) return logMessage('No game feeds, update check skipped');
+        logMessage(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
 
         // TODO! - Do the update for each feed.
         Promise.all(manager.GameFeeds
                 .map((feed: GameFeed) => checkForGameUpdates(client, feed)
-                    .catch((err: Error) => console.warn(`${tn()} - Error checking game feed`, feed._id, err)))
+                    .catch((err: Error) => logMessage(`Error checking game feed ${feed._id}`, err, true)))
         )
         .then(() => { 
-            console.log(`${tn()} - Finished checking game feeds.`);
+            logMessage('Finished checking game feeds.');
             allGames = undefined; 
         });
 
     }
 }
-
-const tn = () => new Date().toLocaleString();
 
 async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<void> {
 
@@ -147,7 +147,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     try {
         await validate(userData.apikey);
     }
-    catch(err: any) {
+    catch(err) {
         if (err.includes('401')) {
             if (client.config.testing) return;
             await deleteGameFeed(feed._id);
@@ -222,7 +222,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             return;
         };
 
-        console.log(`${tn()} - Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
+        logMessage(`Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
 
         if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).catch(() => {
             if (feed.message) channel?.send(feed.message).catch(() => undefined);

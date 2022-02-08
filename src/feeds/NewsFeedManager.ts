@@ -2,8 +2,9 @@ import { NewsArticle } from '../types/feeds';
 import { updateSavedNews, getSavedNews, getAllServers } from '../api/bot-db';
 import { ClientExt } from "../types/util";
 import Parser = require('rss-parser');
-import { Message, MessageEmbed, Guild, GuildChannel, TextChannel, Snowflake, ThreadChannel } from 'discord.js';
+import { MessageEmbed, Guild, GuildChannel, TextChannel, Snowflake, ThreadChannel, Message } from 'discord.js';
 import { BotServer } from '../types/servers';
+import { logMessage } from '../api/util';
 const parser = new Parser({
     customFields: {
         item:['nexusmods:plain_description'],
@@ -45,7 +46,7 @@ export class NewsFeedManager {
         return await getSavedNews();
     }
 
-    private async checkNews(domain?: string): Promise<void> {
+    private async checkNews(domain?: string|null): Promise<MessageEmbed|undefined> {
         const dom: string = domain ? `${domain}/` : '';
         const url = `https://www.nexusmods.com/${dom}rss/news`;
 
@@ -54,7 +55,10 @@ export class NewsFeedManager {
             const latest: NewsArticle = allNews.items[0];
             const stored: {title: string, date: Date} | undefined = NewsFeedManager.instance.LatestNews;
 
-            if (stored && (stored.title === latest.title || stored.date === latest.date)) return console.log(`${new Date().toLocaleString()} - No news updates since last check.`);
+            if (stored && (stored.title === latest.title || stored.date === latest.date)) {
+                logMessage('No news updates since last check.');
+                return;
+            };
 
             const post: MessageEmbed = buildEmbed(NewsFeedManager.instance.client, latest);
             let allServers = await getAllServers()
@@ -67,7 +71,7 @@ export class NewsFeedManager {
             allServers = allServers.filter(server => server.channel_news !== undefined);
 
 
-            console.log(`${new Date().toLocaleString()} - Publishing news post ${latest.title} to ${allServers.length} servers.`);
+            logMessage(`Publishing news post ${latest.title} to ${allServers.length} servers.`);
             for (const server of allServers) {
                 const guildId: Snowflake | undefined = (server as BotServer).id;
                 const channelId: Snowflake | undefined = server.channel_news;
@@ -75,13 +79,15 @@ export class NewsFeedManager {
                 if (!guild) continue;
                 const channel: GuildChannel | ThreadChannel | null = channelId ? guild.channels.resolve(channelId) : null;
                 if (!channel) continue;
-                (channel as TextChannel).send({ embeds: [post] }).catch((err) => console.log(`${new Date().toLocaleString()} - Failed to post news in ${guild}.`, err));
+                (channel as any).send({ embeds: [post] }).catch((err: any) => logMessage(`Failed to post news in ${guild?.name}.`, err, true));
             }
 
             if (!domain) {
                 await updateSavedNews(latest).catch((err) => console.error('Could not updated saved news', err.message))
                 NewsFeedManager.instance.LatestNews = { title: latest.title, date: latest.pubDate };
             };
+
+            return post;
         }
         catch(err) {
             console.log(`${new Date().toLocaleString()} - Error checking news`, (err as Error) ? (err as Error).message : err);
@@ -92,18 +98,11 @@ export class NewsFeedManager {
 
     }
 
-    async forceUpdate(message: Message, domain?: string): Promise<void> {
+    async forceUpdate(domain?: string|null): Promise<MessageEmbed|undefined> {
         clearInterval(NewsFeedManager.instance.updateTimer);
         NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
-        console.log(`${new Date().toLocaleString()} - Forced news feed update check`, domain || 'all');
-        return NewsFeedManager.instance.checkNews(domain)
-            .then(() => { 
-                message.edit('News updated successfully');
-            })
-            .catch((err: Error) => { 
-                message.edit('Error updating news: '+err.message);
-                return;
-            });
+        logMessage('Forced news feed update check', domain || 'all');
+        return NewsFeedManager.instance.checkNews(domain);
     }
 }
 
