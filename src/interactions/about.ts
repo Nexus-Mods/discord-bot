@@ -46,7 +46,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     const option: boolean | null = interaction.options.getBoolean('private');
     const ephemeral: boolean = option !== null ? option : true;
 
-    logMessage('About interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, ephemeral });
+    // logMessage('About interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, ephemeral });
 
     await interaction.deferReply({ ephemeral }).catch((err) => { throw err });
     

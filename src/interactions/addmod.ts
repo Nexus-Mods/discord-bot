@@ -31,7 +31,7 @@ interface SearchError extends EmbedFieldData {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    logMessage('AddMod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
+    // logMessage('AddMod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
 
     // Get existing user data and mods.

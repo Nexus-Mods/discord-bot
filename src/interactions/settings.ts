@@ -145,13 +145,13 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: ClientExt, interaction: CommandInteraction): Promise<any> {
-    logMessage('Settings interaction triggered', 
-    { 
-        user: interaction.user.tag, 
-        guild: interaction.guild?.name, 
-        interaction: interaction.toString(),
-        channel: (interaction.channel as any)?.name
-    });
+    // logMessage('Settings interaction triggered', 
+    // { 
+    //     user: interaction.user.tag, 
+    //     guild: interaction.guild?.name, 
+    //     interaction: interaction.toString(),
+    //     channel: (interaction.channel as any)?.name
+    // });
 
     await interaction.deferReply({ ephemeral: true });
 

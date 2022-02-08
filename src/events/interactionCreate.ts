@@ -8,12 +8,19 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
     // console.log(interaction);
 
     const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
-    if (!interact) return console.error('Invalid interaction requested', interaction);
+    if (!interact) return logMessage('Invalid interaction requested', interaction, true);
     else {
+        logMessage('Slash command', 
+        { 
+            command: interaction.toString(), 
+            requestedBy: interaction.user.tag, 
+            server: `${interaction.guild?.name} (${interaction.guildId})`,
+            channelName: (interaction.channel as any)?.name,
+        }
+        );
         interact.action(client, interaction).catch((err) => {
             const context = {
-                serverId: interaction.guildId,
-                serverName: interaction.guild?.name,
+                server: `${interaction.guild?.name} (${interaction.guildId})`,
                 channelName: (interaction.channel as any)?.name,
                 requestedBy: interaction.user.tag,
                 botVersion: process.env.npm_package_version,

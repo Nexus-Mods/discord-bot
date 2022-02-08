@@ -37,7 +37,7 @@ const actions: MessageActionRow = new MessageActionRow()
 );
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    logMessage('Help interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, });
+    // logMessage('Help interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, });
     return interaction.reply({ embeds: [helpEmbed], components: [actions] });
 }
 

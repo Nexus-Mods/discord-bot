@@ -49,13 +49,13 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     // Nexus search?
     const nexus : (string | null) = interaction.options.getString('nexus');
 
-    logMessage('Whois interaction triggered', 
-    { 
-        user: interaction.user.tag, 
-        guild: interaction.guild?.name, 
-        channel: (interaction.channel as any)?.name,
-        query: nexus || user?.tag
-    });
+    // logMessage('Whois interaction triggered', 
+    // { 
+    //     user: interaction.user.tag, 
+    //     guild: interaction.guild?.name, 
+    //     channel: (interaction.channel as any)?.name,
+    //     query: nexus || user?.tag
+    // });
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
