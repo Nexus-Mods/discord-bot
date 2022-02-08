@@ -40,7 +40,7 @@ async function main (client: ClientExt, message: Message) {
     const command: string = args.shift()?.toLowerCase() || '';
 
     // Check for retired commands
-    if (!!retiredCommands[command]) message.reply({ embeds: [discontinuedEmbed(retiredCommands[command])] }).catch(() => undefined);
+    if (!!retiredCommands[command]) return message.reply({ embeds: [discontinuedEmbed(retiredCommands[command])] }).catch(() => undefined);
 
     const cmd = client.commands?.get(command);
     
