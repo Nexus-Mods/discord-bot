@@ -1,4 +1,4 @@
-import { CommandInteraction, TextChannel } from 'discord.js';
+import { CommandInteraction } from 'discord.js';
 import { ClientExt } from "../types/util";
 import { DiscordInteraction } from '../types/util';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
@@ -14,7 +14,7 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
             const context = {
                 serverId: interaction.guildId,
                 serverName: interaction.guild?.name,
-                channelName: (interaction.channel as TextChannel)?.name,
+                channelName: (interaction.channel as any)?.name,
                 requestedBy: interaction.user.tag,
                 botVersion: process.env.npm_package_version,
                 interaction: interaction.toString(),
