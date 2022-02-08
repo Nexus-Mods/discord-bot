@@ -52,6 +52,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
+    logMessage('Deferring reply');
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     // Check if they are already linked.
     let userData : NexusUser | undefined;
@@ -62,20 +63,24 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         const nextUpdate = new Date( userData?.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
         if (!userData) {
+            logMessage('Editing reply, no user data');
             await interaction.editReply('You haven\'t linked your account yet. Use the /link command to get started.');
             return;
         }
         else if (nextUpdate > new Date()) {
+            logMessage('Editing reply, too soon.');
             await interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
             return;
         }
         else {
             card = replyCard(client, userData, interaction.user);
+            logMessage('Editing reply, first reply');
             await interaction.editReply({ embeds: [ card ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
         }
     }
     catch(err) {
         logMessage('Error checking if user exists in DB when linking', err, true);
+        logMessage('Editing reply, error');
         await interaction.editReply('An error occurred fetching your account details.').catch((err) => logMessage('Error updating interaction reply', { err }, true));;
         return;
     }
@@ -111,6 +116,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     }
 
     // Update the interaction
+    logMessage('Editing reply, updating mod stats');
     card.setTitle('Updating mod stats...');
     await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
 
@@ -165,6 +171,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     // Update the interaction
     card.setTitle('Update complete');
+    logMessage('Editing reply, update complete');
     await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));
     // Recheck roles, if we have changed something.
     if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false);
