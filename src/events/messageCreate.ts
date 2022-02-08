@@ -9,6 +9,7 @@ const retiredCommands: { [key: string]: string } = {
     addmod: '/addmod',
     config: '/settings',
     gamefeed: '/gamefeed',
+    help: '/help',
     i: '/info',
     link: '/link',
     refresh: '/refresh',

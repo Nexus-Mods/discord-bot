@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, Guild, MessageEmbed, Role, ThreadChannel, GuildChannel, GuildMember } from "discord.js";
+import { CommandInteraction, Client, Guild, MessageEmbed, Role, ThreadChannel, GuildChannel, GuildMember, TextChannel } from "discord.js";
 import { DiscordInteraction, } from "../types/util";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { NexusUser } from "../types/users";
@@ -198,7 +198,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
                                 cur: server.channel_bot,
                                 name: 'Reply Channel',
                                 new: newChannel,
-                                data: { channel_bot: newChannel?.id }
+                                data: { channel_bot: (newChannel as any)?.id }
                             };
                         
                         }
@@ -208,7 +208,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
                                 cur: server.channel_nexus,
                                 name: 'Log Channel',
                                 new: newChannel,
-                                data: { channel_nexus: newChannel?.id }
+                                data: { channel_nexus: (newChannel as any)?.id }
                             };
                         }
                         break;
@@ -265,7 +265,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
                     let foundGame : IGameInfo | undefined;
                     if (!!gameQuery) {
                         foundGame = resolveFilter(gameList, gameQuery);
-                        if (!foundGame) throw new Error(`Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
+                        if (!foundGame) throw new Error(`Invalid Game: Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
                     }
                     newData = {
                         name: 'Mod Search Filter',
@@ -302,6 +302,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
         else throw new Error('Unrecognised command');
     }
     catch(err) {
+        if (err.message.startsWith('Invalid Game')) interaction.editReply({ embeds: [], content: err.message }).catch(() => undefined);
         throw err;        
     }
 }
