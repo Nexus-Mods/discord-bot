@@ -28,8 +28,11 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
                 error: err.message || err
             }
             const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
-            
-            logMessage('Interaction action errored out', { interact: interaction, ...context });
+
+            if (err.message === 'Unknown Interaction') {
+                return logMessage('Unknown interaction error', { err, inter: interaction, ...context });
+            }
+            else logMessage('Interaction action errored out', { interact: interaction, ...context });
             
             (interaction.replied || interaction.deferred) 
             ? interaction.editReply(reply).catch(replyError => {
