@@ -107,7 +107,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 }
 
 async function displaySelected(client: Client, selected: InfoResult, interaction: CommandInteraction): Promise<any> {
-    logMessage('Posting interaction', { selected: selected.name, ephemeral:interaction.ephemeral });
+    logMessage('Posting interaction', { selected: selected.name });
     const postable: PostableInfo = displayInfo(client, selected);
     return interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : [] });
 }
