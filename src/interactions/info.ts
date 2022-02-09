@@ -22,11 +22,9 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    // logMessage('Info interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, message: interaction.options.getString('code') });
-
+    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
+    
     const message: string | null = interaction.options.getString('code');
-
-    await interaction.deferReply({ ephemeral: !!message }).catch(err => { throw err });;
 
     const data: InfoResult[] = await getAllInfos().catch(() => []);
     let content: string | null = null;
@@ -35,14 +33,19 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
     if (!!message) {
         const selected: InfoResult|undefined = data.find(i => i.name.toLowerCase() === message.toLowerCase());
-        if (!!selected) return displaySelected(client, selected, interaction);
+        if (!!selected) {
+            await interaction.editReply({ content: 'Info posted!', embeds: [], components: [] });
+            return displaySelected(client, selected, interaction)
+        }
         else content = `No results found for ${message}`;
     }
+
+    if (!interaction.guild) return interaction.editReply('Unrecognised or invalid code.');
 
     try {
     const options: MessageSelectOptionData[] = data.map(d => ({
         label: d.title || d.name,
-        description: (d.description || d.message)?.substring(0, 50)+'...',
+        description: `Short code: ${d.name}`,
         value: d.name
     }));
     
@@ -72,7 +75,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     .setFooter({text:`Nexus Mods API link`, iconURL:client.user?.avatarURL() || ''});
 
 
-    const replyMsg = await interaction.followUp({ content, embeds: [searchEmbed], components: choices, ephemeral: true, fetchReply: true });
+    const replyMsg = await interaction.editReply({ content, embeds: [searchEmbed], components: choices, });
 
     // Set up the collector
     const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ time: 60000 });
@@ -89,7 +92,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
         if (!!selected) {
             collector.stop('Selection complete');
             await interaction.editReply({ content: 'Info posted!', embeds: [], components: [] });
-            return displaySelected(client, selected, s)
+            return displaySelected(client, selected, interaction)
         };
     });
 
@@ -106,7 +109,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 async function displaySelected(client: Client, selected: InfoResult, interaction: CommandInteraction): Promise<any> {
     logMessage('Posting interaction', { selected: selected.name, ephemeral:interaction.ephemeral });
     const postable: PostableInfo = displayInfo(client, selected);
-    return interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : [], ephemeral: false });
+    return interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : [] });
 }
 
 export { discordInteraction };
