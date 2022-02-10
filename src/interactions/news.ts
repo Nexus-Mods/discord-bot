@@ -45,7 +45,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
     // logMessage('News interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     // Ignore anyone who isn't an owner.
-    if (!client.config.ownerID?.includes(interaction.user.id)) return interaction.reply('Only bot owners can use this command');
+    if (!client.config.ownerID?.includes(interaction.user.id)) return interaction.reply('Only bot owners can use this command.');
 
     await interaction.deferReply({ ephemeral: true });
 

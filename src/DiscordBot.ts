@@ -91,19 +91,21 @@ export class DiscordBot {
         let allInteractions : DiscordInteraction[] = [];
         
         interactionFiles.forEach(async (file: string) => {
-            let interact: DiscordInteraction = require(path.join(__dirname, 'interactions', file)).discordInteraction;
-            allInteractions.push(interact);
-            let interName: string = file.split('.')[0];
-            // Add to global commands list.
-            if (interact.public) allCommands.push(interact.command);
-            // Add as guild specific command
-            if (!!interact.guilds) {
-                for (const guild in interact.guilds) {
-                    if (!guildCommands[interact.guilds[guild]]) guildCommands[interact.guilds[guild]] = [];
-                    guildCommands[interact.guilds[guild]].push(interact.command);
+            let interact: DiscordInteraction = require(path.join(__dirname, 'interactions', file))?.discordInteraction;
+            if (!!interact) {
+                allInteractions.push(interact);
+                let interName: string = file.split('.')[0];
+                // Add to global commands list.
+                if (interact.public) allCommands.push(interact.command);
+                // Add as guild specific command
+                if (!!interact.guilds) {
+                    for (const guild in interact.guilds) {
+                        if (!guildCommands[interact.guilds[guild]]) guildCommands[interact.guilds[guild]] = [];
+                        guildCommands[interact.guilds[guild]].push(interact.command);
+                    }
                 }
+                this.client.interactions?.set(interName, interact);
             }
-            this.client.interactions?.set(interName, interact);
         });
 
         // We've collected our commands, now we need to set them.

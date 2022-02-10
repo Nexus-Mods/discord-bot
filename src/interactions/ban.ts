@@ -1,8 +1,5 @@
-import { CommandInteraction, Client, MessageEmbed, MessageActionRow, MessageButton, User } from "discord.js";
+import { CommandInteraction, Client, User } from "discord.js";
 import { DiscordInteraction, } from "../types/util";
-import { getAllUsers, getAllGameFeeds } from '../api/bot-db';
-import { NexusUser } from "../types/users";
-import { GameFeed } from "../types/feeds";
 import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
@@ -64,4 +61,4 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
 
 }
 
-export { discordInteraction };
+// export { discordInteraction };
