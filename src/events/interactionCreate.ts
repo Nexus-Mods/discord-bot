@@ -1,18 +1,18 @@
-import { CommandInteraction } from 'discord.js';
+import { Interaction, MessageContextMenuInteraction, CommandInteraction, UserContextMenuInteraction } from 'discord.js';
 import { ClientExt } from "../types/util";
-import { DiscordInteraction } from '../types/util';
+import { DiscordInteraction, DiscordInteractionType } from '../types/util';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
 
-async function main(client: ClientExt, interaction: CommandInteraction) {
-    if (!interaction.isCommand()) return;
-    // console.log(interaction);
+async function main(client: ClientExt, i: Interaction) {
+    const interaction = resolveCommandType(i);
+    if (!interaction) return logMessage('Unknown command type', i), true;
 
     const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
-    if (!interact) return logMessage('Invalid interaction requested', interaction, true);
+    if (!interact) return logMessage('Invalid interaction requested', {name: interaction.commandName, i: client.interactions, commands: await interaction.guild?.commands.fetch()}, true);
     else {
-        logMessage('Slash command', 
+        logMessage('Interaction Triggered', 
         { 
-            command: interaction.toString(), 
+            command: !i.isCommand() ? interaction.commandName : interaction.toString(),
             requestedBy: interaction.user.tag, 
             server: `${interaction.guild?.name} (${interaction.guildId})`,
             channelName: (interaction.channel as any)?.name,
@@ -24,7 +24,7 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
                 channelName: (interaction.channel as any)?.name,
                 requestedBy: interaction.user.tag,
                 botVersion: process.env.npm_package_version,
-                interaction: interaction.toString(),
+                interaction: !i.isCommand() ? interaction.commandName : interaction.toString(),
                 error: err.message || err
             }
             const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
@@ -46,6 +46,14 @@ async function main(client: ClientExt, interaction: CommandInteraction) {
         });
     } 
 }
+
+function resolveCommandType(interaction: Interaction): DiscordInteractionType|undefined {
+    if (interaction.isCommand()) return (interaction as CommandInteraction);
+    else if (interaction.isUserContextMenu()) return (interaction as UserContextMenuInteraction);
+    else if (interaction.isMessageContextMenu()) return (interaction as MessageContextMenuInteraction);
+} 
+
+
 
 
 export default main;

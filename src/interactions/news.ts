@@ -1,6 +1,5 @@
-import { CommandInteraction, MessageActionRow, MessageSelectMenu, Client, MessageSelectOptionData, MessageEmbed, Message, InteractionCollector, MessageButton } from "discord.js";
-import { DiscordInteraction, InfoResult, PostableInfo, ClientExt } from "../types/util";
-import { getAllInfos, displayInfo } from '../api/bot-db';
+import { CommandInteraction, MessageEmbed, Interaction } from "discord.js";
+import { DiscordInteraction, ClientExt } from "../types/util";
 import { logMessage } from "../api/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 import { SavedNewsData } from "../types/feeds";
@@ -41,7 +40,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, interaction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // logMessage('News interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     // Ignore anyone who isn't an owner.

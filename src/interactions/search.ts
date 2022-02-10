@@ -1,4 +1,4 @@
-import { CommandInteraction, MessageActionRow, Client, MessageEmbed, Message, MessageButton, TextChannel, EmbedFieldData, ButtonInteraction } from "discord.js";
+import { CommandInteraction, MessageActionRow, Client, MessageEmbed, Message, MessageButton, TextChannel, EmbedFieldData, ButtonInteraction, Interaction } from "discord.js";
 import { DiscordInteraction, NexusSearchResult, NexusSearchModResult } from "../types/util";
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
@@ -82,7 +82,8 @@ interface IModFieldResult {
     game: IGameInfo|undefined;
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // logMessage('Search interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
     const modQuery: string | null = interaction.options.getString('mod-title');

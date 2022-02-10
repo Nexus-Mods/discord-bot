@@ -5,7 +5,7 @@ import {
     getUserByDiscordId, updateUser, getModsbyUser, deleteMod, updateMod, 
     modUniqueDLTotal, updateAllRoles 
 } from '../api/bot-db';
-import { CommandInteraction, Snowflake, MessageEmbed, Client, User } from "discord.js";
+import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Interaction } from "discord.js";
 import { IModInfo, IValidateKeyResponse } from "@nexusmods/nexus-api";
 import { getDownloads, modInfo, validate } from "../api/nexus-discord";
 import { logMessage } from '../api/util';
@@ -47,7 +47,8 @@ const cancelCard = (client: Client, nexus: NexusUser, discord: User) => {
     })
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // logMessage('Refresh interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     // Get sender info.

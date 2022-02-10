@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, User } from "discord.js";
+import { CommandInteraction, Client, User, Interaction } from "discord.js";
 import { DiscordInteraction, } from "../types/util";
 import { logMessage } from "../api/util";
 
@@ -43,7 +43,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     
     const userToBan: User | null = interaction.options.getUser('user');
     const reason: string | null = interaction.options.getString('reason');

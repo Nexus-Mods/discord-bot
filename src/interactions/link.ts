@@ -1,4 +1,4 @@
-import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Guild } from "discord.js";
+import { CommandInteraction, Snowflake, MessageEmbed, Client, Interaction, Guild } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/util";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink, getUserByNexusModsId, deleteUser } from '../api/bot-db';
@@ -23,7 +23,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // logMessage('Link interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, apikey: !!interaction.options.getString('apikey') });
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;

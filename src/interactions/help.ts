@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, MessageEmbed, MessageActionRow, MessageButton } from "discord.js";
+import { CommandInteraction, Client, MessageEmbed, MessageActionRow, MessageButton, Interaction } from "discord.js";
 import { DiscordInteraction, } from "../types/util";
 import { logMessage } from "../api/util";
 
@@ -36,7 +36,8 @@ const actions: MessageActionRow = new MessageActionRow()
     }),
 );
 
-async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // logMessage('Help interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, });
     return interaction.reply({ embeds: [helpEmbed], components: [actions] });
 }

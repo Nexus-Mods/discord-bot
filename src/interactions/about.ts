@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, MessageEmbed, MessageActionRow, MessageButton } from "discord.js";
+import { CommandInteraction, Client, MessageEmbed, MessageActionRow, MessageButton, Interaction } from "discord.js";
 import { DiscordInteraction, } from "../types/util";
 import { getAllUsers, getAllGameFeeds } from '../api/bot-db';
 import { NexusUser } from "../types/users";
@@ -41,8 +41,9 @@ const minPermissions: { name: string, code: string }[] = [
     }
 ];
 
-async function action(client: Client, interaction: CommandInteraction): Promise<any> {
-    
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
+
     const option: boolean | null = interaction.options.getBoolean('private');
     const ephemeral: boolean = option !== null ? option : true;
 

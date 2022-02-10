@@ -1,4 +1,4 @@
-import { CommandInteraction, MessageActionRow, MessageSelectMenu, Client, MessageSelectOptionData, MessageEmbed, Message, InteractionCollector, MessageButton } from "discord.js";
+import { CommandInteraction, MessageActionRow, MessageSelectMenu, Client, MessageSelectOptionData, MessageEmbed, Message, InteractionCollector, MessageButton, Interaction } from "discord.js";
 import { DiscordInteraction, InfoResult, PostableInfo } from "../types/util";
 import { getAllInfos, displayInfo } from '../api/bot-db';
 import { logMessage } from "../api/util";
@@ -21,7 +21,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
     
     const message: string | null = interaction.options.getString('code');

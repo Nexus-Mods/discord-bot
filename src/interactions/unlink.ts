@@ -1,4 +1,4 @@
-import { CommandInteraction, Snowflake, Client, Guild } from "discord.js";
+import { CommandInteraction, Snowflake, Client, Guild, Interaction } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/util";
 import { getUserByDiscordId, getLinksByUser, deleteAllServerLinksByUser, deleteUser, deleteServerLink } from '../api/bot-db';
@@ -22,7 +22,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // logMessage('Unlink interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     const discordId: Snowflake | undefined = interaction.member?.user.id;

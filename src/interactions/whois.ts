@@ -1,7 +1,7 @@
 import { DiscordInteraction } from "../types/util";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed } from '../api/bot-db';
-import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Guild, CommandInteractionOption } from "discord.js";
+import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Interaction, CommandInteractionOption } from "discord.js";
 import { ClientExt } from "../types/util";
 import { logMessage } from "../api/util";
 
@@ -38,7 +38,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
@@ -101,7 +102,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
             const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guild?.id);
             if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client)] })
             else {
-                console.log('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
+                logMessage('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
                 interaction.followUp({ embeds: [ notAllowed(client) ] });
             };
         }
@@ -109,7 +110,7 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     }
     catch (err) {
         interaction.followUp({ content: 'Error looking up users.', ephemeral: true});
-        console.error('Error looking up users from slash command', err);
+        logMessage('Error looking up users from slash command', err, true);
         return;
     }
 

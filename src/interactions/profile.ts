@@ -1,7 +1,7 @@
 import { DiscordInteraction } from "../types/util";
 import { NexusUser } from "../types/users";
 import { getUserByDiscordId, userEmbed } from '../api/bot-db';
-import { CommandInteraction, Snowflake, MessageEmbed, Client, CommandInteractionOption } from "discord.js";
+import { CommandInteraction, Snowflake, MessageEmbed, Client, CommandInteractionOption, Interaction } from "discord.js";
 import { logMessage } from '../api/util';
 
 const discordInteraction: DiscordInteraction = {
@@ -22,7 +22,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: CommandInteraction): Promise<void> {
+async function action(client: Client, baseinteraction: Interaction): Promise<any> {
+    const interaction = (baseinteraction as CommandInteraction);
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('public');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
@@ -34,14 +35,6 @@ async function action(client: Client, interaction: CommandInteraction): Promise<
     await interaction.deferReply({ephemeral: !show}).catch(err => { throw err });;
     // Check if they are already linked.
     let userData : NexusUser | undefined;
-
-    // Currently, userEmbed requires a message, but there isn't one so we fake it until we make it. 
-    const fakeMessage: any = {
-        cleanContent: `/me`,
-        author: {
-            tag: interaction.user.tag
-        }
-    }
 
     try {
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;

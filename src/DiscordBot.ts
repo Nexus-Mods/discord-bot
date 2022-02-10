@@ -73,6 +73,7 @@ export class DiscordBot {
             logMessage('Registered text commands', this.client.commands.size);
         }
         catch (err) {
+            if (err.code === 'ENOENT') return;
             return logMessage('Error reading commands directory during startup.', err, true);
         }
 
@@ -86,7 +87,7 @@ export class DiscordBot {
         const interactionFiles: string[] = fs.readdirSync(path.join(__dirname, 'interactions'))
             .filter(i => i.toLowerCase().endsWith('.js'));
         
-        let allCommands : ApplicationCommandData[] = []; //Collect all global commands
+        let globalCommands : ApplicationCommandData[] = []; //Collect all global commands
         let guildCommands : {[guild: string] : ApplicationCommandData[]} = {}; // Collect all guild-specific commands. 
         let allInteractions : DiscordInteraction[] = [];
         
@@ -94,9 +95,9 @@ export class DiscordBot {
             let interact: DiscordInteraction = require(path.join(__dirname, 'interactions', file))?.discordInteraction;
             if (!!interact) {
                 allInteractions.push(interact);
-                let interName: string = file.split('.')[0];
+                // let interName: string = file.split('.')[0];
                 // Add to global commands list.
-                if (interact.public) allCommands.push(interact.command);
+                if (interact.public) globalCommands.push(interact.command);
                 // Add as guild specific command
                 if (!!interact.guilds) {
                     for (const guild in interact.guilds) {
@@ -104,14 +105,14 @@ export class DiscordBot {
                         guildCommands[interact.guilds[guild]].push(interact.command);
                     }
                 }
-                this.client.interactions?.set(interName, interact);
+                this.client.interactions?.set(interact.command.name, interact);
             }
         });
 
         // We've collected our commands, now we need to set them.
 
         // Set globally
-        this.client.application?.commands.set(allCommands)
+        this.client.application?.commands.set(globalCommands)
             .then((commands: Collection<any, ApplicationCommand<any>>) => {
                 logMessage(`Set global slash commands: `, commands.map(c => c.name).join(', '));
                 // Permissions could be set here? 
@@ -125,7 +126,7 @@ export class DiscordBot {
         for(const guildId of guildToSet) {
             const guildCommandList: ApplicationCommandData[] = guildCommands[guildId]
             // UNCOMMENT WHEN READY, FILER DUPLICATE PUBLIC COMMANDS (for testing we want them to duplicate due to the delay in updating commands in Discord).
-                .filter(c => !allCommands.find(gc => gc.name === c.name));
+                .filter(c => !globalCommands.find(gc => gc.name === c.name));
 
             const guild: Guild | undefined = this.client.guilds.cache.get(guildId as Snowflake);
 
@@ -136,7 +137,7 @@ export class DiscordBot {
 
             if (!guildCommandList.length) {
                 logMessage(`No non-global commands for ${guild?.name}, skipping.`);
-                guild.commands.set([]).catch(err => logMessage(`Unable to reset guild command list for ${guild.name}`, err, true));
+                await guild.commands.set([]).catch(err => logMessage(`Unable to reset guild command list for ${guild.name}`, err, true));
                 continue;
             };
             
