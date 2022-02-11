@@ -3,9 +3,8 @@ import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { BotServer } from '../types/servers';
 import { getAllServers, getServer } from './bot-db';
-import { Client, User, Guild, GuildMember, Role, GuildChannel, MessageEmbed, TextChannel, ThreadChannel, Snowflake, RoleResolvable } from 'discord.js';
+import { Client, User, Guild, GuildMember, Role, GuildChannel, MessageEmbed, ThreadChannel, PermissionString, RoleResolvable } from 'discord.js';
 import { getModsbyUser } from './user_mods';
-import { NexusSearchResult } from '../types/util';
 import { logMessage } from './util';
 
 async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
@@ -69,7 +68,8 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         // Check we can actually assign roles.
         const botMember = client.user ? await guild.members.fetch(client.user.id): undefined;
-        if (!botMember || (!botMember.permissions.has('MANAGE_ROLES') && !botMember.permissions.has('ADMINISTRATOR'))) {            
+        const botPermissions: PermissionString[] = botMember?.permissions.toArray() || [];
+        if (!botPermissions.includes('MANAGE_ROLES') && !botPermissions.includes('ADMINISTRATOR')) {            
             if (guildData.role_premium || guildData.role_linked || guildData.role_supporter || guildData.role_author) {
                 // Only write a log message if I am expected to have these permissions. 
                 logMessage(`Permissions in ${guild.name} do not allow role assignment.`);
@@ -84,7 +84,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         const supporterRole: (Role | null) = guildData.role_supporter ? await guild.roles.fetch(guildData.role_supporter) : null;
         const linkedRole: (Role | null) = guildData.role_linked ? await guild.roles.fetch(guildData.role_linked) : null;
         const modAuthorRole: (Role | null) = guildData.role_author ? await guild.roles.fetch(guildData.role_author) : null;
-        const modAuthorDownloads: number = guildData.author_min_downloads ? parseInt(guildData.author_min_downloads) : 1000;
+        const modAuthorDownloads: number = guildData.author_min_downloads ? parseInt(guildData.author_min_downloads) : -1;
 
         // Collect all the ids for removal. 
         const allRoles: (RoleResolvable|undefined)[] = [
@@ -99,10 +99,10 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
             logMessage(`Removing roles from ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
             try {
                 await guildMember.roles.remove(allRoles as RoleResolvable[], 'Nexus Mods Discord unlink');
-                if (nexusLogChannel) (nexusLogChannel as TextChannel).send({ embeds: [linkEmbed(userData, discordUser, true)] }).catch(() => undefined);
+                if (nexusLogChannel) (nexusLogChannel as any).send({ embeds: [linkEmbed(userData, discordUser, true)] }).catch(() => undefined);
             }
             catch (err) {
-                console.log(`${new Date().toLocaleString()} - Could not remove roles from ${userData.name} in ${guild.name}`, (err as Error)?.message);
+                logMessage(`Could not remove roles from ${userData.name} in ${guild.name}`, (err as Error)?.message, true);
             }            
             return resolve();
         }
@@ -119,10 +119,13 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         // Log the details if the user isn't recognised yet. 
         if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) logMessage(`${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
         // Apply the MA role if the criteria has been met.
-        if (modAuthorRole && modUniqueTotal >= modAuthorDownloads && !guildMember.roles.cache.has(modAuthorRole.id)) {
-            rolesToAdd.push(modAuthorRole.id);
-            logMessage(`${userData.name} as now a recognised mod author in ${guild.name}`);
-            guildMember.send(`Congratulations! You are now a recognised mod author in ${guild.name}!`).catch(() => undefined);
+        if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) {
+            if ((modUniqueTotal !== -1 && modUniqueTotal >= modAuthorDownloads) || userData.modauthor) {
+                rolesToAdd.push(modAuthorRole.id);
+                logMessage(`${userData.name} as now a recognised mod author in ${guild.name}`);
+                (guildMember as any).send(`Congratulations! You are now a recognised mod author in ${guild.name}!`).catch(() => undefined);     
+            }
+            else logMessage(`${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
         }
         else if (modAuthorRole && guildMember.roles.cache.has(modAuthorRole.id) && modUniqueTotal < modAuthorDownloads) guildMember.roles.remove(modAuthorRole);
 
@@ -134,7 +137,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
         const existingLink: NexusUserServerLink|undefined = links.find(l => l.server_id === guild.id);
-        if (nexusLogChannel && !existingLink) (nexusLogChannel as TextChannel).send({ embeds: [linkEmbed(userData, discordUser)] }).catch(() => undefined);
+        if (nexusLogChannel && !existingLink) (nexusLogChannel as any).send({ embeds: [linkEmbed(userData, discordUser)] }).catch(() => undefined);
         
         return resolve();
 
