@@ -79,16 +79,12 @@ async function tipJSON(client: Client, interaction: CommandInteraction, infos: I
     const tipToShow: InfoResult|undefined = infos.find(i => i.name === code.toLowerCase());
     if (!tipToShow) return interaction.editReply('Unknown tip code.');
     const postable: PostableInfo = displayInfo(client, tipToShow);
-    const testButtons: MessageActionRow = new MessageActionRow().addComponents(
-        new MessageButton({
-            label: 'Test',
-            style: 'LINK',
-            url: 'https://google.com'
-        })
-    );
-    postable.components = [testButtons];
-    const output = {...postable, embeds: postable.embeds?.map(m => m.toJSON()) , components: postable.components?.map(c => c.toJSON())};
-    return interaction.editReply({ content: `\`\`\`json\n${JSON.stringify(output, null, 2)}\`\`\``, embeds: output.embeds, components: output.components as any });
+    const output = {...postable, embeds: postable.embeds?.map(m => m.toJSON()) };
+    const jsonContent = JSON.stringify(output, null, 2);
+    if (jsonContent.length > 2000) {
+        return interaction.editReply({ files: [ { name: `code.json`, file: jsonContent } ] })
+    }
+    else return interaction.editReply({ content: `\`\`\`json\n${JSON.stringify(output, null, 2)}\`\`\``, embeds: output.embeds, });
 }
 
 async function createTip(client: Client, interaction: CommandInteraction, infos: InfoResult[]) {
