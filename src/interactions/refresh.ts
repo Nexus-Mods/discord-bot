@@ -184,13 +184,13 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 function getFieldNames(keys: string[]): string[] {
     return keys.map(k => {
         switch(k) {
-            case 'id': return 'User ID';
-            case 'name': return 'Username';
-            case 'avatar_url': return 'Profile Image';
-            case 'supporter': return 'Supporter Membership';
-            case 'premium': return 'Premium Membership';
-            case 'modauthor': return 'Mod Author status';
-            case 'lastupdate': return 'Last updated time';
+            case 'id': return '- User ID';
+            case 'name': return '- Username';
+            case 'avatar_url': return '- Profile Image';
+            case 'supporter': return '- Supporter Membership';
+            case 'premium': return '- Premium Membership';
+            case 'modauthor': return '- Mod Author status';
+            case 'lastupdate': return '- Last updated time';
             default: return k;
 
         }
