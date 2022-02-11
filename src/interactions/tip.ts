@@ -73,6 +73,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     .setColor(0xda8e35)
     .setTitle('Select an Info Message to display')
     .setDescription('This command will return an embed or message based on a preset help topic. Select the desired topic below.')
+    .addField('Suggest Tips', 'You can suggest your own tips to be shown with this command [here](https://forms.gle/jXzqwr5caRiSPZRf7).')
     .setFooter({text:`Nexus Mods API link`, iconURL:client.user?.avatarURL() || ''});
 
 
