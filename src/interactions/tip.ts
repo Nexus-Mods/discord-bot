@@ -5,7 +5,7 @@ import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: {
-        name: 'info',
+        name: 'tip',
         description: 'Return a quick info message on a number of topics.',
         options: [{
             name: 'code',

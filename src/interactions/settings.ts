@@ -335,7 +335,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     const logChannel: ThreadChannel | GuildChannel|null = server.channel_log ? guild.channels.resolve(server.channel_log) : null;
     const newsChannel: ThreadChannel|GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
     const owner: GuildMember = await guild.fetchOwner();
-    const minDownloads: Number = parseInt(server.author_min_downloads) || 1000;
+    const minDownloads: Number = server.author_min_downloads ? parseInt(server.author_min_downloads) : 1000;
 
     const embed = new MessageEmbed()
     .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })

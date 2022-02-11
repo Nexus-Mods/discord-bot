@@ -11,7 +11,7 @@ export interface BotServer {
     role_premium?: Snowflake;
     role_supporter?: Snowflake;
     role_linked?: Snowflake;
-    author_min_downloads: string;
+    author_min_downloads?: string;
     game_filter?: number;
     server_owner: Snowflake;
 }
