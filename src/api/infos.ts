@@ -82,7 +82,7 @@ async function editInfo(infoName: string, newData: any): Promise<void> {
 }
 
 function displayInfo(client: Client, info: InfoResult): PostableInfo {
-    let result: PostableInfo = { content: info.message || '' };
+    let result: PostableInfo = { content: info.message || '', embeds: [] };
     
     if (!info.approved) return { content: `Info for "${info.title || info.name}" is pending moderator approval.` };
     
@@ -102,7 +102,7 @@ function displayInfo(client: Client, info: InfoResult): PostableInfo {
     if (info.thumbnail) infoEmbed.setThumbnail(info.thumbnail);
     if (info.image) infoEmbed.setImage(info.image);
     if (info.fields) info.fields.map(field => infoEmbed.addField(field.name, field.value, field.inline));
-    result.embed = infoEmbed;
+    result.embeds?.push(infoEmbed);
     return result;
 }
 

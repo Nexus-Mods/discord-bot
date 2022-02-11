@@ -1,7 +1,7 @@
 import { IModInfo } from "@nexusmods/nexus-api";
 import { 
     Collection, GuildMember, MessageEmbed, EmbedFieldData, Snowflake, ApplicationCommandData, 
-    CommandInteraction, Client, UserContextMenuInteraction, MessageContextMenuInteraction
+    CommandInteraction, Client, UserContextMenuInteraction, MessageContextMenuInteraction, MessageActionRow
 } from "discord.js";
 
 export interface InfoResult {
@@ -67,7 +67,8 @@ export interface InfoCache {
 
 export interface PostableInfo {
     content?: string;
-    embed?: MessageEmbed;
+    embeds?: MessageEmbed[];
+    components?: MessageActionRow[]; 
 }
 
 interface PermissionsExt {

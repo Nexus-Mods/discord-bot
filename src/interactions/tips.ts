@@ -111,7 +111,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 async function displaySelected(client: Client, selected: InfoResult, interaction: CommandInteraction): Promise<any> {
     logMessage('Posting interaction', { selected: selected.name });
     const postable: PostableInfo = displayInfo(client, selected);
-    return interaction.followUp({ content: postable.content || null, embeds: postable.embed ? [ postable.embed ] : [] });
+    return interaction.followUp(postable);
 }
 
 export { discordInteraction };
