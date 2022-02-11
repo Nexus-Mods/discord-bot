@@ -77,6 +77,14 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
             return resolve();
         }
 
+        // Check the user we're trying to update doesn't outrank use
+        const botHighestRole: number = botMember?.roles.highest.position || 0;
+        const memberHighestRole: number = guildMember.roles.highest.position;
+        if (memberHighestRole > botHighestRole) {
+            logMessage('Cannot assign roles to a higher ranked user', { guild: guild.name, member: discordUser.tag,botHighestRole, memberHighestRole });
+            return resolve();
+        };
+
         let rolesToAdd: RoleResolvable[] = [];
         
         // Get the roles

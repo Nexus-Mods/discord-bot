@@ -45,7 +45,7 @@ async function getUserByNexusModsId(id: number): Promise<NexusUser> {
 async function createUser(user: NexusUser): Promise<boolean> {
     return new Promise(
         (resolve, reject) => {
-        query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
         [user.d_id, user.id, user.name, user.avatar_url, user.apikey, user.supporter, user.premium, user.modauthor||false, new Date()], 
         (error: Error, result?: QueryResult) => {
             if (error) {
