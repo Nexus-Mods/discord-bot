@@ -95,6 +95,7 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
             avatar_url: apiData.profile_url,
             apikey: key,
             supporter: (!apiData.is_premium && apiData.is_supporter),
+            modauthor: apiData.is_ModAuthor,
             premium: apiData.is_premium
         }
         await createUser(userData);

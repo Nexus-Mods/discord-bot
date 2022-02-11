@@ -6,8 +6,8 @@ import {
     modUniqueDLTotal, updateAllRoles 
 } from '../api/bot-db';
 import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Interaction } from "discord.js";
-import { IModInfo, IValidateKeyResponse } from "@nexusmods/nexus-api";
-import { getDownloads, modInfo, validate } from "../api/nexus-discord";
+import { IModInfo } from "@nexusmods/nexus-api";
+import { getDownloads, modInfo, validate, IValidateResponse } from "../api/nexus-discord";
 import { logMessage } from '../api/util';
 
 const cooldown: number = (1*60*1000);
@@ -94,11 +94,12 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     // Update membership status.
     try {
         // Check the API key
-        const apiData: IValidateKeyResponse = await validate(userData.apikey);
+        const apiData: IValidateResponse = await validate(userData.apikey);
         if (userData.id !== apiData.user_id) newData.id = apiData.user_id;
         if (userData.name !== apiData.name) newData.name = apiData.name;
         if (userData.avatar_url !== apiData.profile_url) newData.avatar_url = apiData.profile_url;
         if ((!apiData.is_premium && apiData.is_supporter) !== userData.supporter) newData.supporter = !userData.supporter;
+        if ( apiData.is_ModAuthor !== userData.modauthor) newData.modauthor = apiData.is_ModAuthor;
         if (userData.premium !== apiData.is_premium) newData.premium = apiData.is_premium;
         
         if (Object.keys(newData).length > 1) {
@@ -188,6 +189,8 @@ function getFieldNames(keys: string[]): string[] {
             case 'avatar_url': return 'Profile Image';
             case 'supporter': return 'Supporter Membership';
             case 'premium': return 'Premium Membership';
+            case 'modauthor': return 'Mod Author status';
+            case 'lastupdate': return 'Last updated time';
             default: return k;
 
         }

@@ -58,7 +58,7 @@ async function gameInfo(user: NexusUser, domainQuery: string): Promise<IGameList
     }
 }
 
-interface IValidateResponse extends IValidateKeyResponse {
+export interface IValidateResponse extends IValidateKeyResponse {
     is_ModAuthor: boolean;
 }
 
