@@ -1,4 +1,4 @@
-import { CommandInteraction, MessageActionRow, Client, MessageButton, Interaction } from "discord.js";
+import { CommandInteraction, MessageActionRow, Client, MessageButton, Interaction, MessageEmbed } from "discord.js";
 import { DiscordInteraction, InfoResult, PostableInfo } from "../types/util";
 import { getAllInfos, displayInfo } from '../api/bot-db';
 import { logMessage } from "../api/util";
@@ -14,11 +14,17 @@ const discordInteraction: DiscordInteraction = {
                 description: 'Add a new tip by pasting in JSON data',
                 options: [
                     {
+                        name: 'code',
+                        type: 'STRING',
+                        description: 'The short code to load this tip.',
+                        required: true,
+                    },
+                    {
                         name: 'json',
                         type: 'STRING',
-                        description: 'The JSON data to use.',
+                        description: 'The JSON data to use, must be a single line.',
                         required: true,                        
-                    }
+                    }                    
                 ]
             },
             {
@@ -27,11 +33,17 @@ const discordInteraction: DiscordInteraction = {
                 description: 'Update an existing tip with new JSON',
                 options: [
                     {
+                        name: 'code',
+                        type: 'STRING',
+                        description: 'The short code of the tip to update.',
+                        required: true,
+                    },
+                    {
                         name: 'json',
                         type: 'STRING',
-                        description: 'The JSON data to use.',
+                        description: 'The JSON data to use, must be a single line.',
                         required: true,                        
-                    }
+                    }   
                 ]
             },
             {
@@ -88,7 +100,18 @@ async function tipJSON(client: Client, interaction: CommandInteraction, infos: I
 }
 
 async function createTip(client: Client, interaction: CommandInteraction, infos: InfoResult[]) {
-    return interaction.editReply('Work in progress!');
+    const userJson: string = interaction.options.getString('json', true);
+    const name: string = interaction.options.getString('code', true);
+
+    try {
+        const messageContent = JSON.parse(userJson);
+        const content = messageContent.content.length ? messageContent.content : null;
+        const embeds = messageContent.embed ? [new MessageEmbed(messageContent.embed)] : [];
+        return interaction.editReply({ content, embeds });
+    }
+    catch(err) {
+        return interaction.editReply(`Error parsing JSON: ${err.message}`);
+    }
 }
 
 async function updateTip(client: Client, interaction: CommandInteraction, infos: InfoResult[]) {
