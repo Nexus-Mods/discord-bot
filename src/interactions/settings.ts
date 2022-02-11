@@ -283,9 +283,9 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
                     if (valueToEdit !== 'authordownloads') throw new Error('Unknown value key: '+valueToEdit);
                     newData = {
                         name: 'Minimum Unique Downloads for Mod Author role',
-                        cur: parseInt(server.author_min_downloads).toLocaleString(),
+                        cur: server.author_min_downloads ? parseInt(server.author_min_downloads).toLocaleString() : 'none',
                         new: newInt?.toLocaleString() || (1000).toLocaleString(),
-                        data: { author_min_downloads: newInt?.toString() || '1000' }
+                        data: { author_min_downloads: newInt?.toString() }
                     }
                 }
                 break;

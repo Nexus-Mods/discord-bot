@@ -84,7 +84,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         const supporterRole: (Role | null) = guildData.role_supporter ? await guild.roles.fetch(guildData.role_supporter) : null;
         const linkedRole: (Role | null) = guildData.role_linked ? await guild.roles.fetch(guildData.role_linked) : null;
         const modAuthorRole: (Role | null) = guildData.role_author ? await guild.roles.fetch(guildData.role_author) : null;
-        const modAuthorDownloads: number = parseInt(guildData.author_min_downloads) || 1000;
+        const modAuthorDownloads: number = guildData.author_min_downloads ? parseInt(guildData.author_min_downloads) : 1000;
 
         // Collect all the ids for removal. 
         const allRoles: (RoleResolvable|undefined)[] = [
