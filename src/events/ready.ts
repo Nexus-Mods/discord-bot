@@ -15,7 +15,7 @@ const onlineEmbed = new MessageEmbed()
 let firstStartUp: boolean = false;
 
 async function main (client: ClientExt) {
-    client.user?.setActivity(`the channels for ${client.config?.prefix[0]}`, {type: 'WATCHING', url: "https://discord.gg/nexusmods"});
+    client.user?.setActivity({name: 'for slash commands', type: 'WATCHING', url: "https://discord.gg/nexusmods"});
     if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
 
     if (firstStartUp) return;
