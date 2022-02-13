@@ -120,8 +120,12 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
 
         // Bot permissions - we need to be able to manage webhooks.
         const perms = interaction.guild?.me?.permissions?.toArray();
+        const channelPerms = interaction.channel ? interaction.guild?.me?.permissionsIn(interaction.channel as TextChannel).toArray() : [];
         if (!perms || (!perms.includes('MANAGE_WEBHOOKS') && !perms.includes('ADMINISTRATOR'))) {
             throw new Error('Missing permission: MANAGE_WEBHOOKS');
+        }
+        if (!channelPerms || (!channelPerms.includes('MANAGE_WEBHOOKS') && !channelPerms.includes('ADMINISTRATOR'))) {
+            throw new Error('Missing channel permission: MANAGE_WEBHOOKS');
         }
 
         // Confirm with the user.
