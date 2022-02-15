@@ -98,7 +98,8 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
         };
     });
 
-    collector.on('end', sc => {
+    collector.on('end', async () => {
+        await interaction.editReply({ components: [] }).catch((err) => logMessage('Error ending collector', err, true));
     });
     } 
     catch(err) {
