@@ -79,7 +79,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 
     switch(subCommand) {
         case 'tojson': return tipJSON(client, interaction, infos);
-        case 'create': return createTip(client, interaction, infos);
+        case 'create': return createTip(interaction);
         case 'update': return updateTip(client, interaction, infos);
         default: return interaction.editReply('Error!');
     }
@@ -99,7 +99,7 @@ async function tipJSON(client: Client, interaction: CommandInteraction, infos: I
     else return interaction.editReply({ content: `\`\`\`json\n${JSON.stringify(output, null, 2)}\`\`\``, embeds: output.embeds, });
 }
 
-async function createTip(client: Client, interaction: CommandInteraction, infos: InfoResult[]) {
+async function createTip(interaction: CommandInteraction) {
     const userJson: string = interaction.options.getString('json', true);
     const name: string = interaction.options.getString('code', true);
 
@@ -121,7 +121,7 @@ async function createTip(client: Client, interaction: CommandInteraction, infos:
 
     try {
         const messageContent = JSON.parse(userJson);
-        const content = messageContent && messageContent.content.length ? messageContent.content : null;
+        const content = messageContent.content && messageContent.content.length ? messageContent.content : null;
         const embeds = messageContent.embed ? [new MessageEmbed(messageContent.embed)] : [];
         const message: Message = await interaction.fetchReply() as Message;
         await interaction.editReply({ content, embeds, components });
@@ -133,7 +133,7 @@ async function createTip(client: Client, interaction: CommandInteraction, infos:
                     await i.deferUpdate();
                     const infoToStore = covertToInfoResult(name, content, messageContent.embed);
                     await createInfo(infoToStore);
-                    await interaction.editReply({ content: 'Info created' });
+                    await interaction.editReply({ content: `Info created: ${name}` });
                 }
                 catch(err) {
                     await interaction.editReply({ content: 'Failed to insert new tip: '+(err as Error).message })
