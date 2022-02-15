@@ -65,7 +65,7 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
     }
     catch(err) {
         logMessage('Failed to update news', err, true);
-        return interaction.editReply('Failed to update news:'+err.message);
+        return interaction.editReply('Failed to update news:'+(err as Error).message);
     }
 }
 

@@ -73,7 +73,7 @@ export class DiscordBot {
             logMessage('Registered text commands', this.client.commands.size);
         }
         catch (err) {
-            if (err.code === 'ENOENT') return;
+            if ((err as any).code === 'ENOENT') return;
             return logMessage('Error reading commands directory during startup.', err, true);
         }
 
@@ -87,8 +87,8 @@ export class DiscordBot {
         const interactionFiles: string[] = fs.readdirSync(path.join(__dirname, 'interactions'))
             .filter(i => i.toLowerCase().endsWith('.js'));
         
-        let globalCommands : ApplicationCommandData[] = []; //Collect all global commands
-        let guildCommands : {[guild: string] : ApplicationCommandData[]} = {}; // Collect all guild-specific commands. 
+        let globalCommandsToSet : ApplicationCommandData[] = []; //Collect all global commands
+        let guildCommandsToSet : {[guild: string] : ApplicationCommandData[]} = {}; // Collect all guild-specific commands. 
         let allInteractions : DiscordInteraction[] = [];
         
         interactionFiles.forEach(async (file: string) => {
@@ -97,12 +97,12 @@ export class DiscordBot {
                 allInteractions.push(interact);
                 // let interName: string = file.split('.')[0];
                 // Add to global commands list.
-                if (interact.public) globalCommands.push(interact.command);
+                if (interact.public) globalCommandsToSet.push(interact.command);
                 // Add as guild specific command
                 if (!!interact.guilds) {
                     for (const guild in interact.guilds) {
-                        if (!guildCommands[interact.guilds[guild]]) guildCommands[interact.guilds[guild]] = [];
-                        guildCommands[interact.guilds[guild]].push(interact.command);
+                        if (!guildCommandsToSet[interact.guilds[guild]]) guildCommandsToSet[interact.guilds[guild]] = [];
+                        guildCommandsToSet[interact.guilds[guild]].push(interact.command);
                     }
                 }
                 this.client.interactions?.set(interact.command.name, interact);
@@ -112,21 +112,50 @@ export class DiscordBot {
         // We've collected our commands, now we need to set them.
 
         // Set globally
-        this.client.application?.commands.set(globalCommands)
-            .then((commands: Collection<any, ApplicationCommand<any>>) => {
-                logMessage(`Set global slash commands: `, commands.map(c => c.name).join(', '));
-                // Permissions could be set here? 
-            })
-            .catch(err => logMessage('Failed to set global slash command list', {err}, true));
+        try {
+            const globalCommands: Collection<any, ApplicationCommand<any>>|undefined = await this.client.application?.commands.set(globalCommandsToSet);
+            logMessage(`Set global slash commands: `, globalCommands?.map(c => c.name).join(', '));
+            if (!globalCommands) throw new Error('No global commands set!');
+            // const currentGuilds = (await this.client.guilds.fetch())
+            // const permissionsToSet: {id: string, guildId: string, permissions: ApplicationCommandPermissionData[]}[] = globalCommands.reduce(
+            //     (result: {id: string, guildId: string, permissions: ApplicationCommandPermissionData[]}[], command) => {
+            //         const id = command.id;
+            //         const interactionData = allInteractions.find(i => i.command.name === command.name);
+            //         const permissions = interactionData?.permissions?.filter(p => !p.guild);
+            //         if (permissions && permissions.length) {
+            //             const cleanedPerms: ApplicationCommandPermissionData[] = permissions.map(p => ({ id:p.id, type: p.type, permission: p.permission }))
+            //             const perGuildPerms = currentGuilds.map((g, guildId) => ({ id, guildId, permissions: cleanedPerms }));
+
+            //             result = [...result, ...perGuildPerms];
+            //         };
+            //         return result;
+            //     },
+            //     []
+            // );
+            // logMessage('Global permissions to set', permissionsToSet);
+            // await Promise.all(permissionsToSet.map(async pset => {
+            //     const command = globalCommands.get(pset.id);
+            //     try {
+            //         await command?.permissions.add({ permissions: pset.permissions, guildId: pset.guildId });
+            //         logMessage('Set global permissions for command', command?.name);
+            //     }
+            //     catch(err) {
+            //         logMessage('Could not set permissions for command', { command: command?.name, err });
+            //     }
+            // }))
+        }
+        catch(err) {
+            logMessage('Failed to set global slash command list', {err}, true);
+        }
 
         
         // Set guild specific commands
-        const guildToSet = Object.keys(guildCommands);
+        const guildToSet = Object.keys(guildCommandsToSet);
 
         for(const guildId of guildToSet) {
-            const guildCommandList: ApplicationCommandData[] = guildCommands[guildId]
+            const guildCommandList: ApplicationCommandData[] = guildCommandsToSet[guildId]
             // UNCOMMENT WHEN READY, FILER DUPLICATE PUBLIC COMMANDS (for testing we want them to duplicate due to the delay in updating commands in Discord).
-                .filter(c => !globalCommands.find(gc => gc.name === c.name));
+                .filter(c => !globalCommandsToSet.find(gc => gc.name === c.name));
 
             const guild: Guild | undefined = this.client.guilds.cache.get(guildId as Snowflake);
 
@@ -140,10 +169,15 @@ export class DiscordBot {
                 await guild.commands.set([]).catch(err => logMessage(`Unable to reset guild command list for ${guild.name}`, err, true));
                 continue;
             };
-            
-            guild.commands.set(guildCommandList)
-                .then(() => logMessage(`Set guild slash commands for ${guild.name}:`, guildCommandList.map(c => c.name).join(', ')))
-                .catch(err => logMessage(`Failed to set up guild slash commands for ${guild?.name}`, err, true));
+
+            try {
+                await guild.commands.set(guildCommandList);
+                logMessage(`Set guild slash commands for ${guild.name}:`, guildCommandList.map(c => c.name).join(', '));
+
+            }
+            catch(err) {
+                logMessage(`Failed to set up guild slash commands for ${guild?.name}`, err, true)
+            }
         }
 
         return;
