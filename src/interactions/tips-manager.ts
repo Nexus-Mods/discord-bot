@@ -149,7 +149,7 @@ async function createTip(interaction: CommandInteraction) {
 }
 
 function covertToInfoResult(name: string, message: string|null, embed: any): InfoResult {
-    const author: string = (embed?.footer?.text as string).substring(embed.footer.text.indexOf('by ') + 3) || 'Nexus Mods';
+    const author: string = (embed?.footer?.text as string)?.substring(embed.footer.text.indexOf('by ') + 3) || 'Nexus Mods';
 
     const checkValue = (input: string|undefined|null) => !!input ? input : undefined;
 
