@@ -1,6 +1,6 @@
-import { CommandInteraction, MessageActionRow, Client, MessageButton, Interaction, MessageEmbed } from "discord.js";
+import { CommandInteraction, MessageActionRow, Client, MessageButton, Interaction, MessageEmbed, Message, ButtonInteraction, EmbedFieldData } from "discord.js";
 import { DiscordInteraction, InfoResult, PostableInfo } from "../types/util";
-import { getAllInfos, displayInfo } from '../api/bot-db';
+import { getAllInfos, displayInfo, createInfo } from '../api/bot-db';
 import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
@@ -103,14 +103,67 @@ async function createTip(client: Client, interaction: CommandInteraction, infos:
     const userJson: string = interaction.options.getString('json', true);
     const name: string = interaction.options.getString('code', true);
 
+    const components: MessageActionRow[] = [
+        new MessageActionRow()
+        .addComponents(
+            new MessageButton({
+                label: `Add ${name}`,
+                style: 'PRIMARY',
+                customId: 'confirm'
+            }),
+            new MessageButton({
+                label: 'Cancel',
+                style: 'SECONDARY',
+                customId: 'cancel'
+            })
+        )
+    ];
+
     try {
         const messageContent = JSON.parse(userJson);
-        const content = messageContent.content.length ? messageContent.content : null;
+        const content = messageContent && messageContent.content.length ? messageContent.content : null;
         const embeds = messageContent.embed ? [new MessageEmbed(messageContent.embed)] : [];
-        return interaction.editReply({ content, embeds });
+        const message: Message = await interaction.fetchReply() as Message;
+        await interaction.editReply({ content, embeds, components });
+        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 30000 });
+        collector.on('collect', async (i: ButtonInteraction) => {
+            collector.stop(); 
+            if (i.customId === 'confirm') {
+                try {
+                    await i.deferUpdate();
+                    const infoToStore = covertToInfoResult(name, content, messageContent.embed);
+                    await createInfo(infoToStore);
+                    await interaction.editReply({ content: 'Info created' });
+                }
+                catch(err) {
+                    await interaction.editReply({ content: 'Failed to insert new tip: '+(err as Error).message })
+                }
+            };
+        })
+        collector.on('end', () => { interaction.editReply({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
+
     }
     catch(err) {
-        return interaction.editReply(`Error parsing JSON: ${err.message}`);
+        return interaction.editReply(`Error parsing JSON: ${(err as Error).message}`);
+    }
+}
+
+function covertToInfoResult(name: string, message: string|null, embed: any): InfoResult {
+    const author: string = (embed?.footer?.text as string).substring(embed.footer.text.indexOf('by ') + 3) || 'Nexus Mods';
+
+    const checkValue = (input: string|undefined|null) => !!input ? input : undefined;
+
+    return {
+        name,
+        message: checkValue(message),
+        title: checkValue(embed?.title),
+        description: checkValue(embed?.description),
+        url: checkValue(embed?.url),
+        thumbnail: checkValue(embed?.thumbnail?.url),
+        image: checkValue(embed?.image),
+        fields: embed?.fields,
+        approved: true,
+        author
     }
 }
 

@@ -25,8 +25,8 @@ async function getAllInfos(): Promise<InfoResult[]> {
 
 async function createInfo(infoData: InfoResult): Promise<InfoResult> {
     return new Promise((resolve, reject) => {
-        query('INSERT INTO infos (name, message, title, description, url, timestamp, thumbnail, image, author) VALUES ($1 , $2, $3, $4, $5, $6, $7, $8, $9)', 
-        [infoData.name, infoData.message, infoData.title, infoData.description, infoData.url, infoData.timestamp, infoData.thumbnail, infoData.image, infoData.author], 
+        query('INSERT INTO infos (name, message, title, description, url, thumbnail, image, author, approved) VALUES ($1 , $2, $3, $4, $5, $6, $7, $8, $9)', 
+        [infoData.name, infoData.message, infoData.title, infoData.description, infoData.url, infoData.thumbnail, infoData.image, infoData.author, infoData.approved || false], 
         (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             infoData.approved = false;
@@ -40,8 +40,8 @@ async function createInfo(infoData: InfoResult): Promise<InfoResult> {
 
 async function addField(infoId: string, field: EmbedFieldData, priority: number) {
     return new Promise((resolve, reject) => {
-        query('INSERT INTO infos_fields (info_id, name, value, inline, priority) VALUES ($1, $2, $3, $4)', 
-            [infoId, field.name, field.value, field.inline], 
+        query('INSERT INTO infos_fields (info_id, name, value, inline, priority) VALUES ($1, $2, $3, $4, $5)', 
+            [infoId, field.name, field.value, field.inline || false, priority], 
             (error: Error, result?: QueryResult) => {
                 if (error) return reject(error);
                 return resolve(field);
@@ -51,20 +51,8 @@ async function addField(infoId: string, field: EmbedFieldData, priority: number)
 }
 
 async function addFieldsBatch(infoId: string, fields: EmbedFieldData[]) {
-    // Map the fields for bulk insert.
-    const queryValues = fields.map(
-        (field: EmbedFieldData, index: number) => 
-            `(${infoId},${field.name}, ${field.value}, ${field.inline || false}, ${index})`
-    );
-    // Insert into the DB.
-    return new Promise((resolve, reject) => {
-        query(`INSERT INTO infos_fields (info_id, name, value, inline, priority) VALUES ${queryValues.join("\n")}`, [], 
-            (error: Error, results?: QueryResult) => {
-                if (error) return reject(error);
-                resolve(fields);      
-            }
-        );
-    });
+    // Replaced function with one that works more logically.
+    return Promise.all(fields.map((field: EmbedFieldData, index: number) => addField(infoId, field, index)));
 }
 
 async function deleteInfo(infoName: string): Promise<boolean> {
@@ -82,7 +70,7 @@ async function editInfo(infoName: string, newData: any): Promise<void> {
 }
 
 function displayInfo(client: Client, info: InfoResult): PostableInfo {
-    let result: PostableInfo = { content: info.message || '', embeds: [] };
+    let result: PostableInfo = { content: info.message, embeds: [] };
     
     if (!info.approved) return { content: `Info for "${info.title || info.name}" is pending moderator approval.` };
     
