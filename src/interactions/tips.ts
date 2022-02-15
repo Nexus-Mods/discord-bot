@@ -44,7 +44,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     if (!interaction.guild) return interaction.editReply('Unrecognised or invalid code.');
 
     try {
-    const options: MessageSelectOptionData[] = data.map(d => ({
+    const options: MessageSelectOptionData[] = data.sort((a,b) => (a.title || a.name).localeCompare(b.title || b.name)).map(d => ({
         label: d.title || d.name,
         description: `Short code: ${d.name}`,
         value: d.name

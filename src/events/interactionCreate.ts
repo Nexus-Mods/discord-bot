@@ -5,7 +5,7 @@ import { unexpectedErrorEmbed, logMessage } from '../api/util';
 
 async function main(client: ClientExt, i: Interaction) {
     const interaction = resolveCommandType(i);
-    if (!interaction) return logMessage('Unknown command type', i), true;
+    if (!interaction) return; // Probably a button interaction or something? 
 
     const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
     if (!interact) return logMessage('Invalid interaction requested', {name: interaction.commandName, i: client.interactions, commands: await interaction.guild?.commands.fetch()}, true);
