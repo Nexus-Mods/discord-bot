@@ -7,7 +7,7 @@ import { ModDownloadInfo, NexusSearchResult } from '../types/util';
 import { logMessage } from './util';
 
 const nexusAPI: string = 'https://api.nexusmods.com/'; //for all regular API functions
-const nexusGraphAPI: string = nexusAPI+'/v2/graphql'
+const nexusGraphAPI: string = nexusAPI+'/v2/graphql';
 const nexusSearchAPI: string ='https://search.nexusmods.com/mods'; //for quicksearching mods
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
 const requestHeader = {
@@ -88,7 +88,7 @@ async function getModAuthor(id: number): Promise<boolean> {
     
     try {
         const data = await request(nexusGraphAPI, query, variables);
-        return data.user.recognizedAuthor;
+        return data?.user?.recognizedAuthor;
     }
     catch(err) {
         logMessage('GraphQL request for mod author status failed', err, true);
