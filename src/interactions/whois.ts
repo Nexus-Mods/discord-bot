@@ -76,7 +76,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 
     // If the bot has been pinged. 
     if (user && user === client.user) {
-        interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), client)] })
+        interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), client)], ephemeral: show })
             .catch(err => console.warn('Failed to send bot info for whois slash command', err));
         return;
     }
@@ -91,7 +91,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
             foundUser = allUsers.find(u => u.name.toLowerCase() === nexus.toLowerCase());
         }
 
-        if (!foundUser) interaction.followUp(`No members found for your query.`);
+        if (!foundUser) interaction.followUp({content: 'No members found for your query.', ephemeral: true});
         else {
             // check the linked servers for the found user
             const foundServers: NexusUserServerLink[] = await getLinksByUser(foundUser.id).catch(() => []);
@@ -100,10 +100,10 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
             const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === foundUser.d_id;
             const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client)] })
+            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client)], ephemeral: show });
             else {
                 logMessage('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
-                interaction.followUp({ embeds: [ notAllowed(client) ] });
+                interaction.followUp({ embeds: [ notAllowed(client) ], ephemeral: true });
             };
         }
                         
