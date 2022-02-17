@@ -1,17 +1,20 @@
 import { gql, GraphQLClient, ClientError } from 'graphql-request';
+import requestPromise from 'request-promise-native'; //For making API requests
 import { verify } from 'jsonwebtoken';
 import { IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
 import { logMessage } from './util';
+import { games } from './nexus-discord';
 
 const domain = 'https://api.nexusmods.com/v2/graphql';
+const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
 const graphOptions = {};
 
 type NexusModsAuthTypes = 'JWT' | 'APIKEY';
 
 class NexusModsGQLClient {
-    public GQLClient : GraphQLClient|undefined;
-    private NexusModsUser: NexusUser|undefined;
+    public GQLClient : GraphQLClient;
+    private NexusModsUser: NexusUser;
     private headers: any;
     private authType: NexusModsAuthTypes = 'JWT';
     
@@ -48,7 +51,35 @@ class NexusModsGQLClient {
 
     public async allGames(): Promise<IGameInfo[]> {
         // Static file: https://data.nexusmods.com/file/nexus-data/games.json
-        return [];
+        // Unapproved games from the static file can't be filtered due to no approval date!
+        // Graph lacks most of the game fields
+        
+        // From static file
+        // const raw = await requestPromise(staticGamesList)
+        // const staticGames = JSON.parse(raw);
+        
+        // const query = gql
+        // `query Games {
+        //     games {
+        //         id
+        //         name
+        //         domainName
+        //     } 
+        // }`
+
+        try {
+            // GQL version
+            // const res = await this.GQLClient?.request(query, {}, this.headers);
+            // logMessage('Game query result', res.games?.length);
+            // return res.games;
+
+            const incUnapproved = await games(this.NexusModsUser, true);
+            return incUnapproved;
+
+        }
+        catch(err) {
+            return [];
+        }
     }
 
     public async gameInfo(identifier: string | number): Promise<IGameInfo|undefined> {
@@ -59,7 +90,8 @@ class NexusModsGQLClient {
         return [];
     }
 
-    public async modInfo(): Promise<IModInfo|undefined> {
+    public async modInfo(query: { game_domain: string, mod_id: number }|{ game_domain: string, mod_id: number }[]): Promise<IModInfo|IModInfo[]|undefined> {
+        if (!Array.isArray(query)) query = [query];
         return undefined;
     }
 

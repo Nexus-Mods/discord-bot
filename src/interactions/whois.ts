@@ -42,7 +42,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     const interaction = (baseinteraction as CommandInteraction);
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
-    const show: boolean = !!showValue ? (showValue.value as boolean) : false;
+    const show: boolean = !!showValue ? (showValue.value as boolean) : true;
 
     // User Ping?
     const user : (User | null) = interaction.options.getUser('discord');

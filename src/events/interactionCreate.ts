@@ -29,7 +29,7 @@ async function main(client: ClientExt, i: Interaction) {
             }
             const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
 
-            if (err.message === 'Unknown interaction') {
+            if (context.error === 'Unknown interaction') {
                 return logMessage('Unknown interaction error', { err, inter: interaction, ...context });
             }
             else logMessage('Interaction action errored out', { interact: interaction, ...context });

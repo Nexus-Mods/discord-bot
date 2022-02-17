@@ -1,19 +1,19 @@
-import { CommandInteraction, MessageEmbed, Interaction } from "discord.js";
+import { CommandInteraction, Interaction } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/util";
 import { logMessage } from "../api/util";
-import { getUserByDiscordId, userEmbed } from '../api/bot-db';
+import { getUserByDiscordId } from '../api/bot-db';
 import { NexusModsGQLClient } from "../api/NexusModsGQLClient";
 
 const discordInteraction: DiscordInteraction = {
     command: {
         name: 'test',
         description: 'Testing GQL.',
-        options: [{
-            name: 'usertofind',
-            type: 'STRING',
-            description: 'Username search.',
-            required: true,
-        }],
+        // options: [{
+        //     name: 'usertofind',
+        //     type: 'STRING',
+        //     description: 'Username search.',
+        //     required: true,
+        // }],
         // defaultPermission: false
     },
     public: false,
@@ -46,10 +46,11 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
     const discordId = interaction.user.id;
     const user = await getUserByDiscordId(discordId);
     const GQL = await NexusModsGQLClient.create(user);
-    const searchTerm = interaction.options.getString('usertofind', true);
+    // const searchTerm = interaction.options.getString('usertofind', true);
     try {
-        const result = await GQL.findUser(searchTerm);
-        return interaction.editReply(`\`\`\`json\n${JSON.stringify(result, null, 2)}\`\`\``);
+        // const result = await GQL.findUser(searchTerm);
+        const result = await GQL.allGames();
+        return interaction.editReply(`\`\`\`json\n${JSON.stringify(result[0], null, 2)}\n\`\`\``);
     }
     catch(err) {
         return interaction.editReply({ content: 'Error! '+err });
