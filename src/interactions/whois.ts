@@ -50,14 +50,6 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     // Nexus search?
     const nexus : (string | null) = interaction.options.getString('nexus');
 
-    // logMessage('Whois interaction triggered', 
-    // { 
-    //     user: interaction.user.tag, 
-    //     guild: interaction.guild?.name, 
-    //     channel: (interaction.channel as any)?.name,
-    //     query: nexus || user?.tag
-    // });
-
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: show}).catch(err => { throw err });;
