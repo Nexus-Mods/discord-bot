@@ -4,13 +4,14 @@ import { verify } from 'jsonwebtoken';
 import { IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
 import { logMessage } from './util';
-import { games } from './nexus-discord';
+import { games, updatedMods as modUpdates, updatedMods } from './nexus-discord';
 
 const domain = 'https://api.nexusmods.com/v2/graphql';
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
 const graphOptions = {};
 
 type NexusModsAuthTypes = 'JWT' | 'APIKEY';
+type UpdatedModsPeriod = '1d' | '1w' | '1m';
 
 class NexusModsGQLClient {
     public GQLClient : GraphQLClient;
@@ -20,12 +21,12 @@ class NexusModsGQLClient {
     
     constructor(user: NexusUser) {
         this.GQLClient = new GraphQLClient(domain, graphOptions);
-        this.GQLClient.setHeaders(this.headers);
         this.NexusModsUser = user;
         this.authType = user.jwt ? 'JWT' : 'APIKEY';
         this.headers = this.authType === 'JWT'  
         ? { apikey: user.apikey }
         : {  };
+        this.GQLClient.setHeaders(this.headers);
     }
 
     static async create(user: NexusUser): Promise<NexusModsGQLClient> {
@@ -44,6 +45,10 @@ class NexusModsGQLClient {
         // Check the JWT Token is valid, so we can make requests.
     }
 
+    private async refreshToken(): Promise<void> {
+        // If the token has expired, request a new one. 
+    }
+
     public async me(): Promise<NexusUser|undefined> {
         await this.verifyToken();
         return this.NexusModsUser;
@@ -52,9 +57,7 @@ class NexusModsGQLClient {
     public async allGames(): Promise<IGameInfo[]> {
         // Static file: https://data.nexusmods.com/file/nexus-data/games.json
         // Unapproved games from the static file can't be filtered due to no approval date!
-        // Graph lacks most of the game fields
         
-        // From static file
         // const raw = await requestPromise(staticGamesList)
         // const staticGames = JSON.parse(raw);
         
@@ -68,7 +71,7 @@ class NexusModsGQLClient {
         // }`
 
         try {
-            // GQL version
+            // GQL version lacks a lot of the fields from the other methods
             // const res = await this.GQLClient?.request(query, {}, this.headers);
             // logMessage('Game query result', res.games?.length);
             // return res.games;
@@ -86,13 +89,53 @@ class NexusModsGQLClient {
         return undefined;
     }
 
-    public async updatedMods(gameDomain: string, period: string): Promise<IUpdateEntry[]> {
-        return [];
+    public async updatedMods(gameDomain: string, period: UpdatedModsPeriod = '1d'): Promise<IUpdateEntry[]> {
+        // Not currently possible via GraphQL
+        return updatedMods(this.NexusModsUser, gameDomain, period);
     }
 
-    public async modInfo(query: { game_domain: string, mod_id: number }|{ game_domain: string, mod_id: number }[]): Promise<IModInfo|IModInfo[]|undefined> {
-        if (!Array.isArray(query)) query = [query];
-        return undefined;
+    public async modInfo(ids: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<IModInfo[]> {
+        // GraphQL is missing the updated times from the v1 API. 
+        if (!Array.isArray(ids)) ids = [ids];
+        const query = gql
+        `query Mods($ids: [CompositeDomainWithIdInput!]!) {
+            legacyModsByDomain(ids: $ids) {
+              nodes {
+                uid
+                modId
+                name
+                summary
+                status
+                author
+                uploader {
+                  name
+                  avatar
+                  memberId
+                }
+                pictureUrl
+                modCategory {
+                  name
+                }
+                adult
+                version
+                game {
+                  domainName
+                  name
+                }
+              }
+            }
+        }`
+
+        logMessage('Vars', ids);
+
+        try {
+            const res = await this.GQLClient.request(query, { ids });
+            return res.legacyModsByDomain?.nodes || [];
+        }
+        catch(err) {
+            logMessage('Mod Lookup Error!', err);
+            throw new Error('Could not find some or all of the mods.')
+        }
     }
 
     public async modFiles(): Promise<IModFiles> {
@@ -148,8 +191,6 @@ class NexusModsGQLClient {
     `
     }
 
-    /**
-     * FindUser     */
     public async findUser(nameOrId: string|number): Promise<any> {
         let query = '';
         let variables = {};

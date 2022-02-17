@@ -46,10 +46,11 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
     const discordId = interaction.user.id;
     const user = await getUserByDiscordId(discordId);
     const GQL = await NexusModsGQLClient.create(user);
+    const ids = { gameDomain: 'site', modId: 1 }
     // const searchTerm = interaction.options.getString('usertofind', true);
     try {
         // const result = await GQL.findUser(searchTerm);
-        const result = await GQL.allGames();
+        const result = await GQL.modInfo(ids);
         return interaction.editReply(`\`\`\`json\n${JSON.stringify(result[0], null, 2)}\n\`\`\``);
     }
     catch(err) {
