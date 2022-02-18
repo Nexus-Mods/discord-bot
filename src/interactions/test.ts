@@ -50,7 +50,7 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
     // const searchTerm = interaction.options.getString('usertofind', true);
     try {
         // const result = await GQL.findUser(searchTerm);
-        const result = await GQL.modInfo(ids);
+        const result = await GQL.myCollections();
         return interaction.editReply(`\`\`\`json\n${JSON.stringify(result[0], null, 2)}\n\`\`\``);
     }
     catch(err) {

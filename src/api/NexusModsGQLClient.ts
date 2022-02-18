@@ -4,11 +4,13 @@ import { verify } from 'jsonwebtoken';
 import { IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
 import { logMessage } from './util';
-import { games, updatedMods as modUpdates, updatedMods } from './nexus-discord';
+import { games, modChangelogs, modFiles as files, updatedMods as modUpdates, updatedMods } from './nexus-discord';
 
 const domain = 'https://api.nexusmods.com/v2/graphql';
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
 const graphOptions = {};
+let cache: { [id: string]: { expiry: number, data: any } } = {};
+const cachePeriod: number = (5*60*1000); // 5mins
 
 type NexusModsAuthTypes = 'JWT' | 'APIKEY';
 type UpdatedModsPeriod = '1d' | '1w' | '1m';
@@ -55,6 +57,9 @@ class NexusModsGQLClient {
     }
 
     public async allGames(): Promise<IGameInfo[]> {
+        if (cache.allGames && cache.allGames.expiry > new Date().getTime()) {
+            return cache.allGames.data;
+        }
         // Static file: https://data.nexusmods.com/file/nexus-data/games.json
         // Unapproved games from the static file can't be filtered due to no approval date!
         
@@ -77,6 +82,7 @@ class NexusModsGQLClient {
             // return res.games;
 
             const incUnapproved = await games(this.NexusModsUser, true);
+            cache.allGames = { data: incUnapproved, expiry: new Date().getTime() + cachePeriod }
             return incUnapproved;
 
         }
@@ -86,7 +92,14 @@ class NexusModsGQLClient {
     }
 
     public async gameInfo(identifier: string | number): Promise<IGameInfo|undefined> {
-        return undefined;
+        const gamesList = await this.allGames();
+        const game = gamesList.find(g => 
+            g.id === identifier || 
+            g.name.toLowerCase() === (identifier as string).toLowerCase() || 
+            g.domain_name.toLowerCase() === (identifier as string).toLowerCase()
+        );
+
+        return game;
     }
 
     public async updatedMods(gameDomain: string, period: UpdatedModsPeriod = '1d'): Promise<IUpdateEntry[]> {
@@ -138,20 +151,21 @@ class NexusModsGQLClient {
         }
     }
 
-    public async modFiles(): Promise<IModFiles> {
-        return { file_updates: [], files: [] };
+    public async modFiles(domain: string, modId: number): Promise<IModFiles> {
+        // Not currently possible via GraphQL
+        return files(this.NexusModsUser, domain, modId);
     }
 
-    public async modChangelogs(): Promise<IChangelogs> {
-        return {};
+    public async modChangelogs(domain: string, modId: number): Promise<IChangelogs> {
+        // Not currently possible via GraphQL
+        return modChangelogs(this.NexusModsUser, domain, modId);
     }
 
     public async myCollections(): Promise<any> {
+        if (this.authType === 'APIKEY') throw new Error('Cannot retrieve collections with an API key. JWT only.');
         const query = gql`
-        query MyCollections($count: Int, $offset: Int) {
+        query MyCollections {
             myCollections(
-              count: $count, 
-              offset: $offset,
               viewAdultContent: true,
               viewUnderModeration: true,
               viewUnlisted: true
@@ -188,7 +202,16 @@ class NexusModsGQLClient {
               }
             }
           }
-    `
+        `
+        const variables = {};
+
+        try {
+            const res = await this.GQLClient.request(query, variables, this.headers);
+            return res.data?.myCollections;
+        }
+        catch(err) {
+            throw err;
+        }
     }
 
     public async findUser(nameOrId: string|number): Promise<any> {
