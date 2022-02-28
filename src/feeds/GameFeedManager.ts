@@ -179,11 +179,26 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         let modEmbeds: MessageEmbed[] = [];
         let lastUpdate: Date = feed.last_timestamp;
 
+        let rateLimited: boolean = false;
+
         // Interate through the mods and build embeds.
         for (const mod of filteredMods) {
+            // If we've been rate limited, there's no point in continuing here:
+            if (rateLimited) break;
             // Stop if we have 10 embeds.
             if (modEmbeds.length >= 10) break;
-            const modData: IModInfoExt|undefined = await modInfo(userData, feed.domain, mod.mod_id).catch((e) => {console.error(e); return undefined});
+            const modData: IModInfoExt|undefined = await modInfo(userData, feed.domain, mod.mod_id)
+                .catch((e) => {
+                    
+                    if (e.indexOf('Nexus Mods API responded with 429') !== -1) {
+                        rateLimited = true;
+                        logMessage('User has exceeded rate limit, cannot check for modInfo.', { name: userData.name, id: feed._id, guild: guild?.name });
+                    }
+                    else {
+                        logMessage('Error fetching modInfo', e, true);
+                    }
+                    return undefined;
+                });
 
             // Stop if we failed to get the mod data.
             if (!modData) continue;
