@@ -3,6 +3,11 @@ import { ClientExt } from "../types/util";
 import { DiscordInteraction, DiscordInteractionType } from '../types/util';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
 
+const ignoreErrors: string[] = [ 
+    'Unknown interaction', 
+    'The user aborted a request.' 
+];
+
 async function main(client: ClientExt, i: Interaction) {
     const interaction = resolveCommandType(i);
     if (!interaction) return; // Probably a button interaction or something? 
@@ -29,19 +34,19 @@ async function main(client: ClientExt, i: Interaction) {
             }
             const reply = { embeds: [unexpectedErrorEmbed(err, context)], components: [], content: null };
 
-            if (context.error === 'Unknown interaction') {
-                return logMessage('Unknown interaction error', { err, inter: interaction, ...context });
+            if (ignoreErrors.includes(context.error)) {
+                return logMessage('Unknown interaction error', { err, inter: interaction, ...context }, true);
             }
-            else logMessage('Interaction action errored out', { interact: interaction, ...context });
+            else logMessage('Interaction action errored out', { interact: interaction, ...context }), true;
             
             (interaction.replied || interaction.deferred) 
             ? interaction.editReply(reply).catch(replyError => {
                 logMessage('Error editing reply for failed interaction', {replyError, ...context, interact: interaction}, true);
-                process.exit(1);
+                if(!ignoreErrors.includes(replyError) || !ignoreErrors.includes(replyError.message)) process.exit(1);
             })
             : interaction.reply(reply).catch(replyError => {
                 logMessage('Error replying to failed interaction', {replyError, ...context, interact: interaction}, true);
-                process.exit(1);
+                if(!ignoreErrors.includes(replyError) || !ignoreErrors.includes(replyError.message)) process.exit(1);
             });
         });
     } 

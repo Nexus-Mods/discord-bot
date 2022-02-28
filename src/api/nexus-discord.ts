@@ -36,7 +36,7 @@ async function games(user: NexusUser, bUnapproved?: boolean): Promise<IGameInfo[
         return cachedGames.games;
     }
     catch(err) {
-        return Promise.reject(`Nexus Mods API responded with ${err.statusCode} while fetching all games. Please try again later.`);
+        return Promise.reject(`Nexus Mods API responded with ${(err as any).statusCode} while fetching all games. Please try again later.`);
     }
 
 }
@@ -53,8 +53,8 @@ async function gameInfo(user: NexusUser, domainQuery: string): Promise<IGameList
         return gameInfo;        
     }
     catch(err) {
-        if (err.statusCode === 404) return Promise.reject(`${err.statusCode} - Game ${domainQuery} not found`);
-        return Promise.reject(`API Error(gameInfo): Nexus Mods API responded with ${err.statusCode}.`)
+        if ((err as any).statusCode === 404) return Promise.reject(`${(err as any).statusCode} - Game ${domainQuery} not found`);
+        return Promise.reject(`API Error(gameInfo): Nexus Mods API responded with ${(err as any).statusCode}.`)
     }
 }
 
@@ -71,7 +71,7 @@ async function validate(apiKey: string): Promise<IValidateResponse> {
         return {is_ModAuthor, ...validate};
     }
     catch(err) {
-        return Promise.reject(`${err.name} : ${err.message}`);
+        return Promise.reject(`${(err as any).name} : ${(err as Error).message}`);
     }
 }
 
@@ -105,8 +105,8 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
         return results;
     }
     catch(err) {
-        if (err.message.toLowerCase().includes('cloudflare')) return Promise.reject(new Error('Cloudflare error: Quicksearch request timed out.'));
-        return Promise.reject(new Error(`Nexus Mods Search API responded with ${err.statusCode} while fetching results. Please try again later.`));
+        if ((err as Error).message.toLowerCase().includes('cloudflare')) return Promise.reject(new Error('Cloudflare error: Quicksearch request timed out.'));
+        return Promise.reject(new Error(`Nexus Mods Search API responded with ${(err as any).statusCode} while fetching results. Please try again later.`));
     }
 }
 
@@ -121,7 +121,7 @@ async function updatedMods(user: NexusUser, gameDomain: string, period: string =
         return JSON.parse(updatedMods);
     }
     catch(err) {
-        return Promise.reject(`API Error(updateMods): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error(updateMods): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
     }
 }
 
@@ -136,7 +136,7 @@ async function modInfo(user: NexusUser, gameDomain: string, modId: number): Prom
         return JSON.parse(modInfo);
     }
     catch(err) {
-        return Promise.reject(`API Error(modInfo): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error(modInfo): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
     }
 }
 
@@ -151,7 +151,7 @@ async function modFiles(user: NexusUser, gameDomain: string, modId: number): Pro
         return JSON.parse(modFiles);
     }
     catch(err) {
-        return Promise.reject(`API Error (modFiles): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error (modFiles): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
     }
 
 }
@@ -167,7 +167,7 @@ async function modChangelogs(user: NexusUser, gameDomain: string, modId: number)
         return JSON.parse(modChangelogs);
     }
     catch(err) {
-        return Promise.reject(`API Error(modChangelogs): Nexus Mods API responded with ${err.statusCode}. ${err.message}`);
+        return Promise.reject(`API Error(modChangelogs): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
     }
 
 }
