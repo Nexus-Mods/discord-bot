@@ -108,10 +108,10 @@ export class NewsFeedManager {
 
 function buildEmbed(client: ClientExt, news: NewsArticle): MessageEmbed {
     const embed = new MessageEmbed()
-    .setTitle(news.title)
+    .setTitle(decodeURI(news.title))
     .setURL(news.link)
     .setImage(news.enclosure?.url)
-    .setDescription(`${news["nexusmods:plain_description"].substr(0, 250)}...`)
+    .setDescription(`${decodeURI(news["nexusmods:plain_description"].substr(0, 250))}...`)
     .setFooter({text: `${news.categories.toString()} - ${news.author}`, iconURL: client.user?.avatarURL() || undefined })
     .setTimestamp(news.pubDate)
     .setColor(0xda8e35);
