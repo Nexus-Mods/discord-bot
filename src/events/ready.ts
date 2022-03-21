@@ -51,7 +51,8 @@ async function main (client: ClientExt) {
                 continue;
             };            
             onlineEmbed.setTimestamp(new Date());
-            (postChannel as TextChannel).send({embeds: [onlineEmbed]}).catch((err) => logMessage(`Error posting online notice to log channel in ${guild.name}`, err.message, true))
+            (postChannel as TextChannel).send({embeds: [onlineEmbed]})
+                .catch((err) => logMessage(`Error posting online notice to log channel in ${guild.name}`, { error: err.message }, true))
         }
     }
 
