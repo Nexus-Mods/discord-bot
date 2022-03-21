@@ -148,17 +148,17 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         await validate(userData.apikey);
     }
     catch(err) {
-        if (err.includes('401')) {
+        if ((err as any).includes('401')) {
             if (client.config.testing) return;
             await deleteGameFeed(feed._id);
             if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild?.name} as your API key is invalid`).catch(() => undefined);
             return Promise.reject('User API ket invalid.');
         }
-        else return Promise.reject(`An error occurred when validing game key for ${userData.name}: ${err.message || err}`);
+        else return Promise.reject(`An error occurred when validing game key for ${userData.name}: ${(err as Error).message || err}`);
     }
 
     // Get all the games if we need them.
-    if (!allGames) allGames = await games(userData, false);
+    if (!allGames) allGames = await games(userData, true);
 
     // Get the data for the game we're checking.
     const game: IGameInfo|undefined = allGames.find(g => g.domain_name === feed.domain);
@@ -250,7 +250,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
-        if (err.indexOf('Nexus Mods API responded with 429.') !== -1) {
+        if ((err as any).indexOf('Nexus Mods API responded with 429.') !== -1) {
             logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
             return;
         }
