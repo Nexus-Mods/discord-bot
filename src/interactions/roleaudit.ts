@@ -59,4 +59,4 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 
 }
 
-export { discordInteraction };
+// export { discordInteraction };
