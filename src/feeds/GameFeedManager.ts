@@ -253,7 +253,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
-        if ((err as string).indexOf('Nexus Mods API responded with 429.') !== -1) {
+        if ((err as string) && (err as string).indexOf('Nexus Mods API responded with 429.') !== -1) {
             logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
             return;
         }
