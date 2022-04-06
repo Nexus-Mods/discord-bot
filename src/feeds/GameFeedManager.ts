@@ -272,7 +272,7 @@ function createModEmbed(client: Client,
                         changeLog: IChangelogs|undefined, 
                         compact: boolean): MessageEmbed {
     const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
-    const category: string = game.categories.find(c => c.category_id === mod.category_id)?.name || 'Unknown';
+    const category: string = game.categories?.find(c => c.category_id === mod.category_id)?.name || 'Unknown';
     const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.user.member_id}`;
 
     let post = new MessageEmbed()
