@@ -8,7 +8,7 @@ import { ClientExt } from "./types/util";
 export class DiscordBot {
     private static instance: DiscordBot;
 
-    private client: ClientExt = new Client({ intents: ['GUILDS', 'DIRECT_MESSAGES', 'GUILD_MESSAGES', 'GUILD_WEBHOOKS', 'GUILD_MESSAGE_REACTIONS', 'GUILD_INTEGRATIONS']});
+    private client: ClientExt = new Client({ intents: ['GUILDS', 'DIRECT_MESSAGES', 'GUILD_MESSAGES', 'GUILD_MEMBERS', 'GUILD_WEBHOOKS', 'GUILD_MESSAGE_REACTIONS', 'GUILD_INTEGRATIONS']});
 
     private constructor() {
         this.initializeClient();
