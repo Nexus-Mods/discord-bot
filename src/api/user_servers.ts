@@ -17,6 +17,15 @@ async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
     });
 }
 
+async function getLinksByServer(guildId: string): Promise<NexusUserServerLink[]> {
+    return new Promise((resolve, reject) => {
+        query('SELECT * FROM user_servers WHERE server_id = $1', [guildId], (error: Error, result?: QueryResult) => {
+            if (error) return reject(error);
+            resolve(result?.rows || []);
+        });
+    });
+}
+
 async function addServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild | null): Promise<void> {
     if (!server) return;
     return new Promise((resolve, reject) => {
@@ -28,12 +37,12 @@ async function addServerLink(client: Client, user: NexusUser, discordUser: User,
     });
 }
 
-async function deleteServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild): Promise<void> {
+async function deleteServerLink(client: Client, user: NexusUser, discordUser: User | undefined, server: Guild): Promise<void> {
     return new Promise( (resolve, reject) => {
         query('DELETE FROM user_servers WHERE user_id = $1 AND server_id = $2', [user.id, server.id], 
         async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            await updateRoles(client, user, discordUser, server, true);
+            if (!!discordUser) await updateRoles(client, user, discordUser, server, true);
             resolve();
         });
     });
@@ -191,4 +200,4 @@ const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): MessageEmb
     return embed;
 }
 
-export { getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal };
+export { getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal };

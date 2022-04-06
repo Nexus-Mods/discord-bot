@@ -19,7 +19,7 @@ import { getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, up
 import { getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed } from './mod_feeds';
 
 // USER SERVER LINK MANAGEMENT
-import { getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal } from './user_servers';
+import { getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal } from './user_servers';
 
 // INFO MANAGEMENT 
 import { getAllInfos, createInfo, deleteInfo, displayInfo } from './infos';
@@ -31,6 +31,6 @@ export {
     getSavedNews, updateSavedNews,
     getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed,
     getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed,
-    getLinksByUser, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal,
+    getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal,
     getAllInfos, createInfo, deleteInfo, displayInfo
 };
