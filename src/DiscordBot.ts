@@ -1,14 +1,19 @@
-import { Client, Collection, Snowflake, ApplicationCommandData, ApplicationCommand, Guild, ApplicationCommandPermissionData } from 'discord.js';
+import { Client, Collection, Snowflake, ApplicationCommandData, ApplicationCommand, Guild, ApplicationCommandPermissionData, IntentsString } from 'discord.js';
 import { DiscordInteraction } from './types/util';
 import * as fs from 'fs';
 import path from 'path';
 import { logMessage } from './api/util';
 import { ClientExt } from "./types/util";
 
+const intents: IntentsString[] = [
+    'GUILDS', 'DIRECT_MESSAGES', 'GUILD_MESSAGES', 'GUILD_MEMBERS', 
+    'GUILD_WEBHOOKS', 'GUILD_MESSAGE_REACTIONS', 'GUILD_INTEGRATIONS'
+];
+
 export class DiscordBot {
     private static instance: DiscordBot;
 
-    private client: ClientExt = new Client({ intents: ['GUILDS', 'DIRECT_MESSAGES', 'GUILD_MESSAGES', 'GUILD_MEMBERS', 'GUILD_WEBHOOKS', 'GUILD_MESSAGE_REACTIONS', 'GUILD_INTEGRATIONS']});
+    private client: ClientExt = new Client({ intents });
 
     private constructor() {
         this.initializeClient();

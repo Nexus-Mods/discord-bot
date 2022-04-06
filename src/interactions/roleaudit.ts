@@ -38,20 +38,19 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
         logMessage('Linked members for guild', { linkedMembers: linkedMembers.length, guild: guild.name });
         const guildMembers = await guild.members.fetch({ force: true, time: 60000 });
         logMessage('Got guild members', guildMembers.size);
-        // Stop here to see if this actually works on the live bot!
-        return;
-        // for (const member of linkedMembers) {
-        //     const discordUser: User | undefined = guildMembers.get(member.d_id)?.user;
-        //     if (!discordUser) {
-        //         logMessage('Could not resolve guild member for ', member.name);
-        //         await deleteServerLink(client, member, undefined, guild);
-        //         continue;
-        //     }
-        //     logMessage('Auditing roles', { nexus: member.name, discord: discordUser.tag, guild: guild.name });
-        //     await updateRoles(client, member, discordUser, guild);
-        // }
-        // logMessage('Auditing complete');
-        // return interaction.editReply(`Successfully audited roles on ${linkedMembers.length} users.`);
+
+        for (const member of linkedMembers) {
+            const discordUser: User | undefined = guildMembers.get(member.d_id)?.user;
+            if (!discordUser) {
+                logMessage('Could not resolve guild member for ', member.name);
+                await deleteServerLink(client, member, undefined, guild);
+                continue;
+            }
+            logMessage('Auditing roles', { nexus: member.name, discord: discordUser.tag, guild: guild.name });
+            await updateRoles(client, member, discordUser, guild);
+        }
+        logMessage('Auditing complete');
+        return interaction.editReply(`Successfully audited roles on ${linkedMembers.length} users.`);
     }
     catch(err) {
         logMessage('Error auditing roles', err, true);
