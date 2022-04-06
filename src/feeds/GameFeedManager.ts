@@ -12,7 +12,7 @@ const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
 
 // Temporary storage for game data during the feed update.
-let allGames: IGameInfo[] | undefined = undefined;
+let allGames: IGameInfo[] = [];
 
 export class GameFeedManager {
     private static instance: GameFeedManager;
@@ -98,7 +98,7 @@ export class GameFeedManager {
         )
         .then(() => { 
             logMessage('Finished checking game feeds.');
-            allGames = undefined; 
+            allGames = []; 
         });
 
     }
@@ -158,7 +158,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     }
 
     // Get all the games if we need them.
-    if (!allGames) allGames = await games(userData, true);
+    if (!allGames.length) allGames = await games(userData, true);
 
     // Get the data for the game we're checking.
     const game: IGameInfo|undefined = allGames.find(g => g.domain_name === feed.domain);
@@ -253,7 +253,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
-        console.log('Error processing game feed', err);
+        console.error('Error processing game feed', err);
         if ((err as string) && (err as string).indexOf('Nexus Mods API responded with 429.') !== -1) {
             logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
             return;
