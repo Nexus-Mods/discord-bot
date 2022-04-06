@@ -193,7 +193,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             const modData: IModInfoExt|undefined = await modInfo(userData, feed.domain, mod.mod_id)
                 .catch((e) => {
                     
-                    if (e.indexOf('Nexus Mods API responded with 429') !== -1) {
+                    if ((e as string).indexOf('Nexus Mods API responded with 429') !== -1) {
                         rateLimited = true;
                         logMessage('User has exceeded rate limit, cannot check for modInfo.', { name: userData.name, id: feed._id, guild: guild?.name });
                     }
@@ -253,6 +253,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
+        console.log('Error processing game feed', err);
         if ((err as string) && (err as string).indexOf('Nexus Mods API responded with 429.') !== -1) {
             logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
             return;
