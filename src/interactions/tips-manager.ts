@@ -90,7 +90,7 @@ async function tipJSON(client: Client, interaction: CommandInteraction, infos: I
 
     const tipToShow: InfoResult|undefined = infos.find(i => i.name === code.toLowerCase());
     if (!tipToShow) return interaction.editReply('Unknown tip code.');
-    const postable: PostableInfo = displayInfo(client, tipToShow);
+    const postable: PostableInfo = displayInfo(client, tipToShow, null);
     const output = {...postable, embeds: postable.embeds?.map(m => m.toJSON()) };
     const jsonContent = JSON.stringify(output, null, 2);
     if (jsonContent.length > 2000) {
