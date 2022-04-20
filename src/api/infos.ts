@@ -1,7 +1,7 @@
 import query from './dbConnect';
 import { PostableInfo, InfoResult } from '../types/util';
 import { QueryResult } from 'pg';
-import { Client, Message, MessageEmbed, EmbedFieldData } from 'discord.js';
+import { Client, Message, MessageEmbed, EmbedFieldData, User } from 'discord.js';
 
 async function getAllInfos(): Promise<InfoResult[]> {
     return new Promise((resolve, reject) => {
@@ -69,8 +69,8 @@ async function editInfo(infoName: string, newData: any): Promise<void> {
     //return new Promise(())
 }
 
-function displayInfo(client: Client, info: InfoResult): PostableInfo {
-    let result: PostableInfo = { content: info.message, embeds: [] };
+function displayInfo(client: Client, info: InfoResult, userToPing: User | null): PostableInfo {
+    let result: PostableInfo = { content: userToPing ? `${userToPing.toString()} - ${info.message}` : info.message, embeds: [] };
     
     if (!info.approved) return { content: `Info for "${info.title || info.name}" is pending moderator approval.` };
     
