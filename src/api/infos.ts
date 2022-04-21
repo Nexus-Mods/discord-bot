@@ -70,7 +70,7 @@ async function editInfo(infoName: string, newData: any): Promise<void> {
 }
 
 function displayInfo(client: Client, info: InfoResult, userToPing: User | null): PostableInfo {
-    let result: PostableInfo = { content: userToPing ? `${userToPing.toString()} - ${info.message}` : info.message, embeds: [] };
+    let result: PostableInfo = { content: userToPing ? `${userToPing.toString()} ${info.message || ''}` : info.message, embeds: [] };
     
     if (!info.approved) return { content: `Info for "${info.title || info.name}" is pending moderator approval.` };
     
