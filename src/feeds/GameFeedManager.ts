@@ -7,6 +7,7 @@ import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modInfo, modChangelogs } from '../api/nexus-discord';
 import { IModInfoExt } from '../types/util';
 import { logMessage } from '../api/util';
+import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
@@ -184,6 +185,16 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
         let rateLimited: boolean = false;
 
+        // Testing GQL for requests instead of doing it one at a time.
+        // THIS WON'T WORK UNTIL GQL RETURNS THE DATES THAT API V1 INCLUDES!
+        // const nexusGQL = new NexusModsGQLClient(userData);
+        // const modsToCheck = filteredMods.map(m => ({ gameDomain: feed.domain, modId: m.mod_id }));
+        // const modMeta = await nexusGQL.modInfo(modsToCheck);
+
+        // console.log('Mods for game feed', modMeta.map(m => m.name));
+
+        // End GQL test
+
         // Interate through the mods and build embeds.
         for (const mod of filteredMods) {
             // If we've been rate limited, there's no point in continuing here:
@@ -191,7 +202,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             // Stop if we have 10 embeds.
             if (modEmbeds.length >= 10) break;
             const modData: IModInfoExt|undefined = await modInfo(userData, feed.domain, mod.mod_id)
-                .catch((e) => {
+                .catch((e: any) => {
                     
                     if ((e as string).indexOf('Nexus Mods API responded with 429') !== -1) {
                         rateLimited = true;

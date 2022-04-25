@@ -107,7 +107,7 @@ class NexusModsGQLClient {
         return updatedMods(this.NexusModsUser, gameDomain, period);
     }
 
-    public async modInfo(ids: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<IModInfo[]> {
+    public async modInfo(ids: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<any[]> {
         // GraphQL is missing the updated times from the v1 API. 
         if (!Array.isArray(ids)) ids = [ids];
         const query = gql
@@ -139,7 +139,7 @@ class NexusModsGQLClient {
             }
         }`
 
-        logMessage('Vars', ids);
+        // logMessage('Vars', ids);
 
         try {
             const res = await this.GQLClient.request(query, { ids });
