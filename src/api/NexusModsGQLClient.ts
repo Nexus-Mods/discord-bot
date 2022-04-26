@@ -1,11 +1,11 @@
 import { gql, GraphQLClient, ClientError } from 'graphql-request';
 import requestPromise from 'request-promise-native'; //For making API requests
 import { verify } from 'jsonwebtoken';
-import { IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
+import { IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
 import * as GQLTypes from '../types/GQLTypes';
 import { logMessage } from './util';
-import { games, modChangelogs, modFiles as files, updatedMods as modUpdates, updatedMods } from './nexus-discord';
+import { games, modChangelogs, modFiles as files, updatedMods } from './nexus-discord';
 
 const domain = 'https://api.nexusmods.com/v2/graphql';
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
