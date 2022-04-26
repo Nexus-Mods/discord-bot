@@ -3,6 +3,7 @@ import requestPromise from 'request-promise-native'; //For making API requests
 import { verify } from 'jsonwebtoken';
 import { IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
+import * as GQLTypes from '../types/GQLTypes';
 import { logMessage } from './util';
 import { games, modChangelogs, modFiles as files, updatedMods as modUpdates, updatedMods } from './nexus-discord';
 
@@ -107,7 +108,7 @@ class NexusModsGQLClient {
         return updatedMods(this.NexusModsUser, gameDomain, period);
     }
 
-    public async modInfo(ids: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<any[]> {
+    public async modInfo(ids: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<Partial<GQLTypes.Mod>[]> {
         // GraphQL is missing the updated times from the v1 API. 
         if (!Array.isArray(ids)) ids = [ids];
         const query = gql
@@ -117,6 +118,8 @@ class NexusModsGQLClient {
                 uid
                 modId
                 name
+                createdAt
+                updatedAt
                 summary
                 status
                 author

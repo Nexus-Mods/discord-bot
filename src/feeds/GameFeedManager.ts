@@ -8,6 +8,7 @@ import { validate, games, updatedMods, modInfo, modChangelogs } from '../api/nex
 import { IModInfoExt } from '../types/util';
 import { logMessage } from '../api/util';
 import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
+import * as GQLTypes from '../types/GQLTypes';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
@@ -185,65 +186,61 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
         let rateLimited: boolean = false;
 
-        // Testing GQL for requests instead of doing it one at a time.
-        // THIS WON'T WORK UNTIL GQL RETURNS THE DATES THAT API V1 INCLUDES!
-        // const nexusGQL = new NexusModsGQLClient(userData);
-        // const modsToCheck = filteredMods.map(m => ({ gameDomain: feed.domain, modId: m.mod_id }));
-        // const modMeta = await nexusGQL.modInfo(modsToCheck);
+        // Using GQL for requests instead of doing it one at a time.
+        const nexusGQL = new NexusModsGQLClient(userData);
+        const modsToCheck = filteredMods.map(m => ({ gameDomain: feed.domain, modId: m.mod_id }));
+        let modMeta: Partial<GQLTypes.FeedMod>[] = await nexusGQL.modInfo(modsToCheck);
 
-        // console.log('Mods for game feed', modMeta.map(m => m.name));
-
-        // End GQL test
+        // Add in the last file update time, as we'll need this and it isn't in GQL yet
+        modMeta = modMeta.map(m => {
+            const newMod = newMods.find(n => n.mod_id === m.modId);
+            if (newMod && newMod.latest_file_update) {
+                m.lastFileUpdate = newMod.latest_file_update;
+            }
+            return m;
+        });
 
         // Interate through the mods and build embeds.
-        for (const mod of filteredMods) {
+        for (const mod of modMeta) {
             // If we've been rate limited, there's no point in continuing here:
             if (rateLimited) break;
             // Stop if we have 10 embeds.
             if (modEmbeds.length >= 10) break;
-            const modData: IModInfoExt|undefined = await modInfo(userData, feed.domain, mod.mod_id)
-                .catch((e: any) => {
-                    
-                    if ((e as string).indexOf('Nexus Mods API responded with 429') !== -1) {
-                        rateLimited = true;
-                        logMessage('User has exceeded rate limit, cannot check for modInfo.', { name: userData.name, id: feed._id, guild: guild?.name });
-                    }
-                    else {
-                        logMessage('Error fetching modInfo', e, true);
-                    }
-                    return undefined;
-                });
-
             // Stop if we failed to get the mod data.
-            if (!modData) continue;
+            if (!mod) continue;
 
-            // Reocord the file update time, we'll need thi later.
-            const updateTime = new Date(mod.latest_file_update * 1000);
+            // Record the file update time, we'll need this later. Was last file update, but GQL doesn't have this!
+            const updateTime = new Date((mod.lastFileUpdate || 0) * 1000);
 
             // Ignore mods that aren't public.
-            if (modData.status !== 'published') continue;
+            if (mod.status !== 'published') continue;
 
             // Skip if adult content is disabled and the mod is adult and vice versa.
-            if (modData.contains_adult_content && !feed.nsfw) continue;
-            if (!modData.contains_adult_content && !feed.sfw) continue;
+            if ((mod.adult && !feed.nsfw) || (!mod.adult && !feed.sfw)) continue;
 
             // If the mod author is in this server, get their Discord handle.
-            const authorData: NexusUser|undefined = await getUserByNexusModsName(modData.uploaded_by).catch(() => undefined);
-            modData.authorDiscord = guild && authorData ? guild.members.resolve(authorData?.d_id) : null;
+            const authorData: NexusUser|undefined = await getUserByNexusModsName(mod.uploader?.name || '').catch(() => undefined);
+            (mod as GQLTypes.FeedMod ).authorDiscord = guild && authorData ? guild.members.resolve(authorData?.d_id) : null;
 
             // Determine if this a new or updated mod and build the embed.
-            if ((modData.updated_timestamp - modData.created_timestamp) < timeNew && feed.show_new) {
-                modEmbeds.push(createModEmbed(client, modData, game, true, undefined, feed.compact));
+            const timeDiff: number = (new Date (mod.updatedAt || 0)?.getTime()) - (new Date (mod.createdAt || 0)?.getTime());
+            if (timeDiff < timeNew && feed.show_new) {
+                const embed: MessageEmbed = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, true, undefined, feed.compact);
+                modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
             else if (feed.show_updates) {
-                const changelog: IChangelogs|undefined = await modChangelogs(userData, feed.domain, mod.mod_id).catch(() => undefined);
-                modEmbeds.push(createModEmbed(client, modData, game, false, changelog, feed.compact));
+                const changelog: IChangelogs|undefined = await modChangelogs(userData, feed.domain, mod.modId || 0).catch(() => undefined);
+                const embed: MessageEmbed = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, false, changelog, feed.compact)
+                modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
+
         }
+
         if (lastUpdate > feed.last_timestamp) await updateGameFeed(feed._id, { last_timestamp: lastUpdate})
             .catch(() => { Promise.reject(`Failed to update timestamp`) });
+        // else logMessage('Did not update feed date', { lastUpdate, feed: feed.last_timestamp });
         
         // Nothing to post?
         if (!modEmbeds.length) { 
@@ -307,6 +304,40 @@ function createModEmbed(client: Client,
     .setFooter({ text: `${game.name}  •  ${category}  • v${mod.version} `, iconURL: client?.user?.avatarURL() || '' });
 
     return post;
+
+}
+
+function createModEmbedGQL(client: Client,
+    mod: GQLTypes.FeedMod, 
+    game: IGameInfo, 
+    newMod: boolean, 
+    changeLog: IChangelogs|undefined, 
+    compact: boolean): MessageEmbed {
+const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
+const category: string = mod.modCategory.name || 'Unknown';
+const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.uploader.memberId}`;
+
+let post = new MessageEmbed()
+.setAuthor({name:`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, iconURL: client.user?.avatarURL() || '' })
+.setTitle(mod.name || 'Name not found')
+.setColor(newMod ? 0xda8e35 : 0x57a5cc)
+.setURL(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`)
+.setDescription(sanitiseBreaks(mod.summary || 'No summary'))
+.setImage(!compact? mod.pictureUrl || '' : '')
+.setThumbnail(compact ? mod.pictureUrl || '' : gameThumb)
+if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
+let versionChanges = changeLog[mod.version].join("\n").replace('<br />', '');
+if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
+post.addField(`Changelog (v${mod.version})`, versionChanges);
+}
+post.addField('Author', mod.author, true)
+.addField('Uploader', `[${mod.uploader?.name}](${uploaderProfile})`, true)
+if (mod.authorDiscord) post.addField('Discord', mod.authorDiscord.toString(), true)
+if (!compact) post.addField('Category', category, true)
+post.setTimestamp(new Date(mod.updatedAt))
+.setFooter({ text: `${game.name}  •  ${category}  • v${mod.version} `, iconURL: client?.user?.avatarURL() || '' });
+
+return post;
 
 }
 
