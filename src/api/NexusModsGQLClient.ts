@@ -151,14 +151,14 @@ class NexusModsGQLClient {
         catch(err) {
             if (err as ClientError) {
                 const error: ClientError = (err as ClientError);
-                console.log('ClientError', error);
+                // console.log('ClientError', error);
                 if (error.message.includes('Cannot return null for non-nullable field Mod.modCategory')) {
                     const gameIds = new Set(ids.map(i => i.gameDomain));
                     const consolidatedIds = [...gameIds].map(game => {
                         const gameMods = ids.filter(m => m.gameDomain === game).map(mod => mod.modId);
                         return `${game}: ${gameMods.join(', ')}`;
                     });
-                    throw new Error('One or more mods are missing the category attribute.\n'+consolidatedIds.join('\n'));
+                    throw new Error('One or more mods are missing the category attribute.'+consolidatedIds.join('\n'));
                 }
                 else throw new Error('GraphQLError '+error);
             }
