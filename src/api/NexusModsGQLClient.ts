@@ -150,7 +150,19 @@ class NexusModsGQLClient {
             if (err as ClientError) {
                 const error: ClientError = (err as ClientError);
                 console.log('ClientError', error);
-                if (error.message.includes('Cannot return null for non-nullable field Mod.modCategory')) throw new Error('One or more mods are missing the category attribute.'+ids)
+                if (error.message.includes('Cannot return null for non-nullable field Mod.modCategory')) {
+                    const consolidatedIds = ids.reduce((prev: { [gameId: string]: number[] }, cur) => {
+                        if (!!prev[cur.gameDomain]) prev[cur.gameDomain] = [];
+                        prev[cur.gameDomain].push(cur.modId);
+                        return prev;
+                    }, {});
+                    const idsString = Object.keys(consolidatedIds).reduce((prev: string, cur: string) => {
+                        const ids: string = consolidatedIds[cur].join(', ');
+                        prev = `${prev}${cur}: ${ids}\n`;
+                        return prev;
+                    }, '');
+                    throw new Error('One or more mods are missing the category attribute.\n'+idsString)
+                }
                 else throw new Error('GraphQLError '+error);
             }
             logMessage('Unkown Mod Lookup Error!', err);
