@@ -142,8 +142,6 @@ class NexusModsGQLClient {
             }
         }`
 
-        // logMessage('Vars', ids);
-
         try {
             const res = await this.GQLClient.request(query, { ids });
             return res.legacyModsByDomain?.nodes || [];

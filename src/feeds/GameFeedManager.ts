@@ -94,14 +94,26 @@ export class GameFeedManager {
         logMessage(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
 
         // TODO! - Do the update for each feed.
-        Promise.all(manager.GameFeeds
-                .map((feed: GameFeed) => checkForGameUpdates(client, feed)
-                    .catch((err: Error) => logMessage(`Error checking game feed ${feed._id}`, err, true)))
-        )
-        .then(() => { 
-            logMessage('Finished checking game feeds.');
-            allGames = []; 
-        });
+        for (const feed of manager.GameFeeds) {
+            try {
+                await checkForGameUpdates(client, feed);
+            }
+            catch(err) {
+                logMessage(`Error checking game feed ${feed._id}`, err, true);
+            }
+        }
+
+        logMessage('Finished checking game feeds.');
+        allGames = [];
+
+        // Promise.all(manager.GameFeeds
+        //         .map((feed: GameFeed) => checkForGameUpdates(client, feed)
+        //             .catch((err: Error) => logMessage(`Error checking game feed ${feed._id}`, err, true)))
+        // )
+        // .then(() => { 
+        //     logMessage('Finished checking game feeds.');
+        //     allGames = []; 
+        // });
 
     }
 }
