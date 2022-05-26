@@ -168,8 +168,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     const game: IGameInfo|undefined = allGames.find(g => g.domain_name === feed.domain);
 
     if (!game) {
-        logMessage(`Unable to retrieve game info for ${feed.title}`, { id: feed._id, guild: guild?.name }, true);
-        return;
+        // logMessage(`Unable to retrieve game info for ${feed.title}`, { id: feed._id, guild: guild?.name }, true);
+        return Promise.reject(`Unable to retrieve game info for ${feed.title}. id: ${feed._id}, guild: ${guild?.name}`);
     };
 
     // Get the updated mods for this game.

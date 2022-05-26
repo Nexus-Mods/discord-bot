@@ -33,10 +33,13 @@ function getGameFeedsForServer(serverId: string): Promise<GameFeed[]> {
 }
 
 function createGameFeed (newFeed: Partial<GameFeed>): Promise<number> {
+    // Get a timestamp that was 2 days ago
+    const startTime: Date = new Date();
+    startTime.setDate(startTime.getDate() - 2);
     return new Promise(
         (resolve, reject) => {
         query('INSERT INTO game_feeds (channel, guild, owner, domain, title, nsfw, sfw, show_new, show_updates, webhook_id, webhook_token, last_timestamp, created) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
-        [newFeed.channel, newFeed.guild, newFeed.owner, newFeed.domain, newFeed.title, newFeed.nsfw, newFeed.sfw, newFeed.show_new, newFeed.show_updates, newFeed.webhook_id, newFeed.webhook_token, new Date(0), new Date()], 
+        [newFeed.channel, newFeed.guild, newFeed.owner, newFeed.domain, newFeed.title, newFeed.nsfw, newFeed.sfw, newFeed.show_new, newFeed.show_updates, newFeed.webhook_id, newFeed.webhook_token, startTime, new Date()], 
         (error: Error, results) => {
             if (error) {
                 //throw error;
