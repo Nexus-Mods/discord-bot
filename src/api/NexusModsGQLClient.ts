@@ -108,9 +108,11 @@ class NexusModsGQLClient {
         return updatedMods(this.NexusModsUser, gameDomain, period);
     }
 
-    public async modInfo(ids: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<Partial<GQLTypes.Mod>[]> {
+    public async modInfo(rawIds: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<Partial<GQLTypes.Mod>[]> {
         // GraphQL is missing the updated times from the v1 API. 
-        if (!Array.isArray(ids)) ids = [ids];
+        let ids: { gameDomain: string, modId: number }[] = [];
+        if (!Array.isArray(rawIds)) ids = [rawIds];
+        else ids = rawIds
         const query = gql
         `query Mods($ids: [CompositeDomainWithIdInput!]!) {
             legacyModsByDomain(ids: $ids) {
@@ -151,17 +153,12 @@ class NexusModsGQLClient {
                 const error: ClientError = (err as ClientError);
                 console.log('ClientError', error);
                 if (error.message.includes('Cannot return null for non-nullable field Mod.modCategory')) {
-                    const consolidatedIds = ids.reduce((prev: { [gameId: string]: number[] }, cur) => {
-                        if (!!prev[cur.gameDomain]) prev[cur.gameDomain] = [cur.modId];
-                        else prev[cur.gameDomain].push(cur.modId);
-                        return prev;
-                    }, {});
-                    const idsString = Object.keys(consolidatedIds).reduce((prev: string, cur: string) => {
-                        const ids: string = consolidatedIds[cur].join(', ');
-                        prev = `${prev}${cur}: ${ids}\n`;
-                        return prev;
-                    }, '');
-                    throw new Error('One or more mods are missing the category attribute.\n'+idsString)
+                    const gameIds = new Set(ids.map(i => i.gameDomain));
+                    const consolidatedIds = [...gameIds].map(game => {
+                        const gameMods = ids.filter(m => m.gameDomain === game);
+                        return `${game}: ${gameMods.join(', ')}`;
+                    });
+                    throw new Error('One or more mods are missing the category attribute.\n'+consolidatedIds.join('\n'));
                 }
                 else throw new Error('GraphQLError '+error);
             }
