@@ -155,7 +155,7 @@ class NexusModsGQLClient {
                 if (error.message.includes('Cannot return null for non-nullable field Mod.modCategory')) {
                     const gameIds = new Set(ids.map(i => i.gameDomain));
                     const consolidatedIds = [...gameIds].map(game => {
-                        const gameMods = ids.filter(m => m.gameDomain === game);
+                        const gameMods = ids.filter(m => m.gameDomain === game).map(mod => mod.modId);
                         return `${game}: ${gameMods.join(', ')}`;
                     });
                     throw new Error('One or more mods are missing the category attribute.\n'+consolidatedIds.join('\n'));
