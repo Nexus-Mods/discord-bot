@@ -147,8 +147,13 @@ class NexusModsGQLClient {
             return res.legacyModsByDomain?.nodes || [];
         }
         catch(err) {
-            logMessage('Mod Lookup Error!', err);
-            throw new Error('Could not find some or all of the mods.')
+            if (err as ClientError) {
+                const error: string = (err as ClientError).message;
+                if (error === 'Cannot return null for non-nullable field Mod.modCategory') throw new Error('One or more mods are missing the category attribute.'+ids)
+                else throw new Error('GraphQLError '+error);
+            }
+            logMessage('Unkown Mod Lookup Error!', err);
+            throw new Error('Could not find some or all of the mods.');
         }
     }
 
