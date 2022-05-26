@@ -178,10 +178,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         // Filter out the mods from before our saved timestamp.
         const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
-        if (!filteredMods.length) {
-            // console.log(`${tn()} - No unchecked updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
-            return;
-        }
+        // No mods to show
+        if (!filteredMods.length) return;
 
         let modEmbeds: MessageEmbed[] = [];
         let lastUpdate: Date = feed.last_timestamp;
@@ -263,13 +261,12 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
-        logMessage('Error processing game feed:'+feed._id, true);
         const error: string = (err as Error)?.message || (err as string);
         if (error.indexOf('Nexus Mods API responded with 429.') !== -1) {
             logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
             return;
         }
-        return Promise.reject(`Error processing game feed ${err}`);
+        return Promise.reject(err);
     }
 
 
