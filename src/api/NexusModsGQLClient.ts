@@ -152,8 +152,8 @@ class NexusModsGQLClient {
                 console.log('ClientError', error);
                 if (error.message.includes('Cannot return null for non-nullable field Mod.modCategory')) {
                     const consolidatedIds = ids.reduce((prev: { [gameId: string]: number[] }, cur) => {
-                        if (!!prev[cur.gameDomain]) prev[cur.gameDomain] = [];
-                        prev[cur.gameDomain].push(cur.modId);
+                        if (!!prev[cur.gameDomain]) prev[cur.gameDomain] = [cur.modId];
+                        else prev[cur.gameDomain].push(cur.modId);
                         return prev;
                     }, {});
                     const idsString = Object.keys(consolidatedIds).reduce((prev: string, cur: string) => {

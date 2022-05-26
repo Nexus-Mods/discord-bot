@@ -53,7 +53,7 @@ async function main (client: ClientExt) {
             onlineEmbed.setTimestamp(new Date());
             (postChannel as TextChannel).send({embeds: [onlineEmbed]})
                 .catch((err) => {
-                    if (err.message !== 'Missing Access') logMessage(
+                    if (['Missing Permissions', 'Missing Access'].includes(err.message)) logMessage(
                         `Error posting online notice to log channel in ${guild.name}`, { error: err.message }, true
                     );
                 })
