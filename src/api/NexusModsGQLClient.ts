@@ -149,6 +149,7 @@ class NexusModsGQLClient {
         catch(err) {
             if (err as ClientError) {
                 const error: string = (err as ClientError).message;
+                console.log('ClientError Message', error);
                 if (error === 'Cannot return null for non-nullable field Mod.modCategory') throw new Error('One or more mods are missing the category attribute.'+ids)
                 else throw new Error('GraphQLError '+error);
             }

@@ -96,10 +96,10 @@ export class GameFeedManager {
         // TODO! - Do the update for each feed.
         for (const feed of manager.GameFeeds) {
             try {
-                await checkForGameUpdates(client, feed).catch(e => logMessage('Caught error in feed', { id: feed._id, e }));
+                await checkForGameUpdates(client, feed);
             }
             catch(err) {
-                logMessage(`Error checking game feed ${feed._id}`, err, true);
+                logMessage(`UpdateFeeds(): Error checking game feed ${feed._id}`, err, true);
             }
         }
 
