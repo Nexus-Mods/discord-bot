@@ -32,7 +32,14 @@ export class NewsFeedManager {
         // Save the client for later
         this.client = client;
         // Set the update interval.
-        this.updateTimer = setInterval(() => this.checkNews(), pollTime);
+        this.updateTimer = setInterval(() => {
+            try {
+                this.checkNews()
+            }
+            catch(err) {
+                logMessage('Failed to check for latest news updates', err, true);
+            }
+        }, pollTime);
         this.getSaved()
             .then((latest) => {
                 console.log(`${new Date().toLocaleString()} - Initialised news feed, checking every 3 hours.`);
