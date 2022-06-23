@@ -188,7 +188,7 @@ async function searchMods(query: string, client: Client, interaction: CommandInt
         }
     }
     catch(err) {
-
+        logMessage('Mod Search failed!', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name}, true);
     }
 
 }
