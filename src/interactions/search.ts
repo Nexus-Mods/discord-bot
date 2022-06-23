@@ -40,6 +40,12 @@ const discordInteraction: DiscordInteraction = {
                         description: 'Search by mod title',
                         required: true,
                     },
+                    {
+                        name: 'game',
+                        type: 'STRING',
+                        description: 'Filter by game using either its name, domain name, or numeric ID',
+                        required: false,
+                    }
                     // {
                     //     name: 'private',
                     //     type: 'BOOLEAN',
@@ -87,7 +93,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     // logMessage('Search interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
     const modQuery: string | null = interaction.options.getString('mod-title');
-    const gameQuery : string | null = interaction.options.getString('game-title');
+    const gameQuery : string | null = interaction.options.getString('game-title') || interaction.options.getString('game');
     const ephemeral: boolean = interaction.options.getBoolean('private') || false
 
     const searchType : string | null = !!modQuery ? 'MOD' : !!gameQuery ? 'GAME': null;
@@ -100,13 +106,13 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;
 
     switch(searchType) {
-        case 'MOD' : return searchMods(modQuery || '', client, interaction, user, server);
+        case 'MOD' : return searchMods(modQuery || '', gameQuery || '', client, interaction, user, server);
         case 'GAME' : return searchGames(gameQuery || '', client, interaction, user, server);
         default: return interaction.editReply('Search error: Neither mods or games were selected.');
     }
 }
 
-async function searchMods(query: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
+async function searchMods(query: string, game: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
     logMessage('Mod search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameInfo[] = user ? await games(user, false).catch(() => []) : [];
@@ -115,7 +121,13 @@ async function searchMods(query: string, client: Client, interaction: CommandInt
 
     // Search for mods
     try {
-        const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, defaultGameFilter);
+        let gameID: number | undefined;
+        if (game !== '') {
+            const lowerCaseGame = game.toLowerCase();
+            gameID = parseInt(game) || allGames.find(g => g.name.toLowerCase() === lowerCaseGame || g.domain_name.toLowerCase() === lowerCaseGame)?.id;
+        } // Nexus IDs are one-based (for both games and categories), so we're good to use 0 === null
+
+        const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, gameID || defaultGameFilter);
         if (!search.results.length) {
             // No results!
             const noResults: MessageEmbed = new MessageEmbed()
@@ -273,6 +285,7 @@ const oneGameResult = (client: Client, gameInfo: IGameInfo): MessageEmbed => {
 const multiGameResult = (client: Client, results: IGameInfo[], query: string): MessageEmbed => {
     const displayable = results.slice(0, 5);
     
+
     return new MessageEmbed()
     .setTitle("Game Search Results")
     .setDescription(`Showing ${results.length < 5 ? results.length : 5} results for "${query}". [See all${results.length > 5 ? " "+results.length : "" }...](https://www.nexusmods.com/games)`)
