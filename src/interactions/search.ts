@@ -7,6 +7,7 @@ import { NexusUser } from "../types/users";
 import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 import { games, quicksearch, modInfo } from "../api/nexus-discord";
 import { BotServer } from "../types/servers";
+import { distance, closestMatch } from "closest-match";
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
@@ -114,6 +115,8 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 
 async function searchMods(query: string, game: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
     logMessage('Mod search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+async function searchMods(query: string, game_input: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
+    logMessage('Mod search', {query, game_input, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameInfo[] = user ? await games(user, false).catch(() => []) : [];
     const defaultGameFilter: number = server?.game_filter || 0;
@@ -121,22 +124,32 @@ async function searchMods(query: string, game: string, client: Client, interacti
 
     // Search for mods
     try {
-        let gameID: number | undefined;
-        if (game !== '') {
-            const lowerCaseGame = game.toLowerCase();
-            gameID = parseInt(game) || allGames.find(g => g.name.toLowerCase() === lowerCaseGame || g.domain_name.toLowerCase() === lowerCaseGame)?.id;
-        } // Nexus IDs are one-based (for both games and categories), so we're good to use 0 === null
+        let gameID = processGameID(game_input, allGames);
 
-        const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, gameID || defaultGameFilter);
+        const noGame = (game_input: string) => {
+            const noMatchingGame: MessageEmbed = new MessageEmbed()
+            .setTitle('Game not found')
+            .setDescription(`The game ID you entered, \`${game_input}\`, did not closely match any registered games.`)
+            .setThumbnail(client.user?.avatarURL() || '')
+            .setColor(0xf5e042);
+
+        if (typeof gameID === 'boolean') {noGame(game_input); return;}
+
+        let game:IGameInfo | undefined = undefined;
+        if (gameID ?? defaultGameFilter !== 0) {
+            game = allGames.find(g => g.id === gameID ?? defaultGameFilter);
+
+
+        const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, game?.id || 0);
         if (!search.results.length) {
             // No results!
             const noResults: MessageEmbed = new MessageEmbed()
             .setTitle('Search complete')
-            .setDescription(`No results for "${query}".\nTry using the [full search](${search.fullSearchURL}) on the website.`)
+            .setDescription(`No results for "${query}"`+ ((typeof game === 'undefined') ? '' : ` in game "${game.name}"`) +
+                         `.\nTry using the [full search](${search.fullSearchURL}) on the website.`)
             .setThumbnail(client.user?.avatarURL() || '')
             .setColor(0xda8e35);
-
-            return interaction.editReply({ content: null, embeds:[noResults] });
+            return interaction.editReply({ content: null, embeds:[noResults]});
         }
         else if (search.results.length === 1) {
             // Single result
@@ -168,7 +181,7 @@ async function searchMods(query: string, game: string, client: Client, interacti
             .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${defaultGameFilter}.jpg`)
             .setDescription(
                 `Showing ${search.total < 5 ? search.total : 5} of ${search.total} results ([See all](${search.fullSearchURL}))\n`+
-                `Query: "${query}" - Time: ${search.took}ms - Adult content: ${search.include_adult}`
+                `Query: "${query}"`+ ((typeof game === 'undefined') ? '' : ` in game "${game.name}"`) +` - Time: ${search.took}ms - Adult content: ${search.include_adult}`
             )
             .addFields(fields.map(createModResultField))
             if (!user) multiResult.addField('Get better results', 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.');
@@ -189,7 +202,7 @@ async function searchMods(query: string, game: string, client: Client, interacti
                     return;
                 }
                 const mod = await modInfo(user, res.game_name, res.mod_id).catch(() => undefined);
-                (reply as Message).edit({ embeds:[singleModEmbed(client, res, mod, found?.game)] });              
+                (reply as Message).edit({ embeds:[singleModEmbed(client, res, mod, found?.game)] });
             });
 
             collector.on('end', ic => {
@@ -200,9 +213,37 @@ async function searchMods(query: string, game: string, client: Client, interacti
         }
     }
     catch(err) {
-        logMessage('Mod Search failed!', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name}, true);
+        logMessage('Mod Search failed!', {query, game_input, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name}, true);
     }
 
+}
+
+function processGameID(game_input: string, allGames: IGameInfo[]): number | boolean | null {
+    if (!game_input || !allGames) return null;
+
+    let gameID: number = parseInt(game_input)
+    if (!isNaN(gameID)) return gameID;
+
+    const validGameNames:string[] = [...allGames.map(g => g.name.toLowerCase()), ...allGames.map(g => g.domain_name.toLowerCase())]
+
+    const closest = closestMatch(game_input.toLowerCase(), validGameNames);
+    if (typeof closest !== 'string') return false; // No valid game name found
+    const closestGame = allGames.find(g => g.name.toLowerCase() === closest || g.domain_name.toLowerCase() === closest) ?? {id: false}; // Our find() shouldn't ever return undefined, but TS doesn't know that.
+
+    const str_distance = distance(closest, game_input.toLowerCase());
+    //logMessage(`[Search Game Finder] String distance: ${str_distance}, closest: ${closest}`);
+    if (str_distance == 0 /* perfect match */) return closestGame.id;
+
+    const distanceBounds = [
+        Math.abs(closest.length - game_input.length), // Distance between input and closest
+        Math.max(closest.length, game_input.length) // Longest of the two strings
+    ];
+    const diff_percent = ((str_distance - distanceBounds[0]) + 1) / (distanceBounds[1] - distanceBounds[0])
+    //logMessage('[Search Game Finder] Distance bounds: '+distanceBounds);
+    //logMessage(`[Search Game Finder] Calculated difference percentage: ${diff_percent}`);
+
+    if (diff_percent > .35) return false // Input is too far from closest
+    return closestGame.id;
 }
 
 async function searchGames(query: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
