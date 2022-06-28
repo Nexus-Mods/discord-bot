@@ -40,12 +40,18 @@ const discordInteraction: DiscordInteraction = {
                         description: 'Search by mod title',
                         required: true,
                     },
-                    // {
-                    //     name: 'private',
-                    //     type: 'BOOLEAN',
-                    //     description: 'Only show the results to me.',
-                    //     required: false
-                    // }
+                    {
+                        name: 'game-title',
+                        type: 'STRING',
+                        description: 'Select a game by title or domain name. e.g. Fallout New Vegas or newvegas',
+                        required: false
+                    },
+                    {
+                        name: 'private',
+                        type: 'BOOLEAN',
+                        description: 'Only show the results to me.',
+                        required: false
+                    }
                 ]
             },
             {
@@ -56,15 +62,15 @@ const discordInteraction: DiscordInteraction = {
                     {
                         name: 'game-title',
                         type: 'STRING',
-                        description: 'Search by game title',
+                        description: 'Select a game by title or domain name. e.g. Fallout New Vegas or newvegas',
                         required: true
                     },
-                    // {
-                    //     name: 'private',
-                    //     type: 'BOOLEAN',
-                    //     description: 'Only show the results to me.',
-                    //     required: false
-                    // }
+                    {
+                        name: 'private',
+                        type: 'BOOLEAN',
+                        description: 'Only show the results to me.',
+                        required: false
+                    }
                 ]
             }
         ]
@@ -86,11 +92,11 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     const interaction = (baseinteraction as CommandInteraction);
     // logMessage('Search interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
-    const modQuery: string | null = interaction.options.getString('mod-title');
-    const gameQuery : string | null = interaction.options.getString('game-title');
+    const searchType: string = interaction.options.getSubcommand(true).toUpperCase();
+    
+    const modQuery: string = interaction.options.getString('mod-title') || '';
+    const gameQuery : string = interaction.options.getString('game-title') || '';
     const ephemeral: boolean = interaction.options.getBoolean('private') || false
-
-    const searchType : string | null = !!modQuery ? 'MOD' : !!gameQuery ? 'GAME': null;
 
     if (!searchType) return interaction.reply('Invalid search parameters');
 
@@ -100,22 +106,37 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;
 
     switch(searchType) {
-        case 'MOD' : return searchMods(modQuery || '', client, interaction, user, server);
-        case 'GAME' : return searchGames(gameQuery || '', client, interaction, user, server);
+        case 'MODS' : return searchMods(modQuery, gameQuery, client, interaction, user, server);
+        case 'GAMES' : return searchGames(gameQuery, client, interaction, user, server);
         default: return interaction.editReply('Search error: Neither mods or games were selected.');
     }
 }
 
-async function searchMods(query: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
-    logMessage('Mod search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+async function searchMods(query: string, gameQuery: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
+    logMessage('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameInfo[] = user ? await games(user, false).catch(() => []) : [];
-    const defaultGameFilter: number = server?.game_filter || 0;
-    const filterGame: IGameInfo|undefined = allGames.find(g => g.id === defaultGameFilter);
+    let gameIdFilter: number = server?.game_filter || 0;
+
+    if (gameQuery !== '' && allGames.length) {
+        // logMessage('Searching for game in mod search', gameQuery);
+        // Override the default server game filter. 
+        const fuse = new Fuse(allGames, options);
+
+        const results: IGameInfo[] = fuse.search(gameQuery).map(r => r.item);
+        if (results.length) {
+            // logMessage('Found game in mod search', results[0].name);
+            const closestMatch = results[0];
+            gameIdFilter = closestMatch.id;
+        }
+    }
+
+
+    const filterGame: IGameInfo|undefined = allGames.find(g => g.id === gameIdFilter);
 
     // Search for mods
     try {
-        const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, defaultGameFilter);
+        const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
         if (!search.results.length) {
             // No results!
             const noResults: MessageEmbed = new MessageEmbed()
@@ -153,10 +174,11 @@ async function searchMods(query: string, client: Client, interaction: CommandInt
             const multiResult = new MessageEmbed()
             .setTitle('Search complete')
             .setColor(0xda8e35)
-            .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${defaultGameFilter}.jpg`)
+            .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameIdFilter}.jpg`)
             .setDescription(
                 `Showing ${search.total < 5 ? search.total : 5} of ${search.total} results ([See all](${search.fullSearchURL}))\n`+
-                `Query: "${query}" - Time: ${search.took}ms - Adult content: ${search.include_adult}`
+                `Query: "${query}" - Time: ${search.took}ms - Adult content: ${search.include_adult}\n`+
+                `${!!filterGame ? `Game: ${filterGame.name}` : null}`
             )
             .addFields(fields.map(createModResultField))
             if (!user) multiResult.addField('Get better results', 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.');
