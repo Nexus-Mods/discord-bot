@@ -7,6 +7,8 @@ import { NexusUser } from "../types/users";
 import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 import { games, quicksearch, modInfo } from "../api/nexus-discord";
 import { BotServer } from "../types/servers";
+import {sendUnexpectedError, resolveCommandType} from '../events/interactionCreate';
+
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
@@ -46,12 +48,12 @@ const discordInteraction: DiscordInteraction = {
                         description: 'Select a game by title or domain name. e.g. Fallout New Vegas or newvegas',
                         required: false
                     },
-                    // {
-                    //     name: 'private',
-                    //     type: 'BOOLEAN',
-                    //     description: 'Only show the results to me.',
-                    //     required: false
-                    // }
+                    {
+                        name: 'private',
+                        type: 'BOOLEAN',
+                        description: 'Should the result only be shown to you?', // Matches the description from /whois
+                        required: false,
+                    }
                 ]
             },
             {
@@ -65,12 +67,12 @@ const discordInteraction: DiscordInteraction = {
                         description: 'Select a game by title or domain name. e.g. Fallout New Vegas or newvegas',
                         required: true
                     },
-                    // {
-                    //     name: 'private',
-                    //     type: 'BOOLEAN',
-                    //     description: 'Only show the results to me.',
-                    //     required: false
-                    // }
+                    {
+                        name: 'private',
+                        type: 'BOOLEAN',
+                        description: 'Should the result only be shown to you?',
+                        required: false,
+                    }
                 ]
             }
         ]
@@ -98,21 +100,22 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     const gameQuery : string = interaction.options.getString('game-title') || '';
     const ephemeral: boolean = interaction.options.getBoolean('private') || false
 
-    if (!searchType) return interaction.reply('Invalid search parameters');
+    if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral:true });
 
-    await interaction.deferReply({ ephemeral }).catch(err => { throw err });;
+
+    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
 
     const user: NexusUser = await getUserByDiscordId(interaction.user.id);
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;
 
     switch(searchType) {
-        case 'MODS' : return searchMods(modQuery, gameQuery, client, interaction, user, server);
-        case 'GAMES' : return searchGames(gameQuery, client, interaction, user, server);
+        case 'MODS' : return searchMods(modQuery, gameQuery, ephemeral, client, interaction, user, server);
+        case 'GAMES' : return searchGames(gameQuery, ephemeral, client, interaction, user, server);
         default: return interaction.editReply('Search error: Neither mods or games were selected.');
     }
 }
 
-async function searchMods(query: string, gameQuery: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
+async function searchMods(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
     logMessage('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameInfo[] = user ? await games(user, false).catch(() => []) : [];
@@ -153,7 +156,7 @@ async function searchMods(query: string, gameQuery: string, client: Client, inte
             const mod: IModInfo|undefined  = user ? await modInfo(user, res.game_name, res.mod_id) : undefined;
             const gameForMod: IGameInfo|undefined = filterGame || allGames.find(g => g.domain_name === res.game_name);
             const singleResult = singleModEmbed(client, res, mod, gameForMod);
-            return interaction.editReply({ content: null, embeds:[singleResult] });
+            postResult(interaction, singleResult, ephemeral);
         }
         else {
             // Multiple results
@@ -195,11 +198,11 @@ async function searchMods(query: string, gameQuery: string, client: Client, inte
                 const found: IModFieldResult|undefined = fields.find(f => f.mod.mod_id.toString() === id);
                 const res = found?.mod;
                 if (!res) {
-                    (reply as Message).edit({ content: 'Search failed!', embeds:[], components: [] });
+                    interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
                     return;
                 }
                 const mod = await modInfo(user, res.game_name, res.mod_id).catch(() => undefined);
-                (reply as Message).edit({ embeds:[singleModEmbed(client, res, mod, found?.game)] });              
+                postResult(interaction, singleModEmbed(client, res, mod, found?.game), ephemeral);
             });
 
             collector.on('end', ic => {
@@ -215,7 +218,7 @@ async function searchMods(query: string, gameQuery: string, client: Client, inte
 
 }
 
-async function searchGames(query: string, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
+async function searchGames(query: string, ephemeral:boolean, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
     logMessage('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.editReply('Please link your account to use this feature. See /link.');
 
@@ -223,11 +226,8 @@ async function searchGames(query: string, client: Client, interaction: CommandIn
     const fuse = new Fuse(allGames, options);
 
     const results: IGameInfo[] = fuse.search(query).map(r => r.item);
+    else return postResult(interaction, multiGameResult(client, results, query), ephemeral);
 
-    if (!results.length) return interaction.editReply({ embeds: [noGameResults(client, allGames, query)] });
-    else if (results.length === 1) return interaction.editReply({ embeds: [oneGameResult(client, results[0])] });
-    else return interaction.editReply({ embeds: [multiGameResult(client, results, query)] });
-    
 }
 
 function createModResultField(item: IModFieldResult): EmbedFieldData {
@@ -242,7 +242,7 @@ const singleModEmbed = (client: Client, res: NexusSearchModResult, mod: IModInfo
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
     .setThumbnail(game? `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`: client.user?.avatarURL() || '')
-    
+
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
         .setURL(`https://nexusmods.com/${mod.domain_name}/mods/${mod.mod_id}`)
@@ -309,5 +309,18 @@ const multiGameResult = (client: Client, results: IGameInfo[], query: string): M
     }));
 }
 
+
+async function postResult(interaction: CommandInteraction, embed: MessageEmbed, ephemeral: boolean) {
+    const replyOrEdit = (interaction.deferred || interaction.replied) ? 'editReply' : 'reply'
+
+    if (ephemeral) return interaction[replyOrEdit]({content: null, embeds: [embed]}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
+
+    interaction[replyOrEdit]({ content: 'Search result posted!', embeds:[], components: []}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
+
+    // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    return interaction.followUp({content: null, embeds: [embed], ephemeral: ephemeral, fetchReply: false}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
+}
 
 export { discordInteraction };

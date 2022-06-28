@@ -302,7 +302,7 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
         }
         else throw new Error('Unrecognised command');
     }
-    catch(err) {
+    catch(err:any) {
         if (err.message.startsWith('Invalid Game')) interaction.editReply({ embeds: [], content: err.message }).catch(() => undefined);
         throw err;        
     }
