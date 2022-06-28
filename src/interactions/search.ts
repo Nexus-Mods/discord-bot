@@ -46,12 +46,12 @@ const discordInteraction: DiscordInteraction = {
                         description: 'Select a game by title or domain name. e.g. Fallout New Vegas or newvegas',
                         required: false
                     },
-                    {
-                        name: 'private',
-                        type: 'BOOLEAN',
-                        description: 'Only show the results to me.',
-                        required: false
-                    }
+                    // {
+                    //     name: 'private',
+                    //     type: 'BOOLEAN',
+                    //     description: 'Only show the results to me.',
+                    //     required: false
+                    // }
                 ]
             },
             {
@@ -65,12 +65,12 @@ const discordInteraction: DiscordInteraction = {
                         description: 'Select a game by title or domain name. e.g. Fallout New Vegas or newvegas',
                         required: true
                     },
-                    {
-                        name: 'private',
-                        type: 'BOOLEAN',
-                        description: 'Only show the results to me.',
-                        required: false
-                    }
+                    // {
+                    //     name: 'private',
+                    //     type: 'BOOLEAN',
+                    //     description: 'Only show the results to me.',
+                    //     required: false
+                    // }
                 ]
             }
         ]
