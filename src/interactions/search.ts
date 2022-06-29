@@ -361,14 +361,17 @@ const multiGameResult = (client: Client, results: IGameInfo[], query: string): M
 async function postResult(interaction: CommandInteraction, embed: MessageEmbed, ephemeral: boolean) {
     const replyOrEdit = (interaction.deferred || interaction.replied) ? 'editReply' : 'reply'
 
-    if (ephemeral) return interaction[replyOrEdit]({content: null, embeds: [embed]}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
+    if (ephemeral) return interaction[replyOrEdit]({content: null, embeds: [embed], ephemeral})
+        .catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
 
-    interaction[replyOrEdit]({ content: 'Search result posted!', embeds:[], components: []}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
+    interaction[replyOrEdit]({ content: 'Search result posted!', embeds:[], components: [], ephemeral})
+        .catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return interaction.followUp({content: null, embeds: [embed], ephemeral, fetchReply: false}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
+    return interaction.followUp({content: null, embeds: [embed], ephemeral, fetchReply: false})
+        .catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
 }
 
 export { discordInteraction };
