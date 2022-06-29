@@ -226,7 +226,7 @@ async function searchGames(query: string, ephemeral:boolean, client: Client, int
     const fuse = new Fuse(allGames, options);
 
     const results: IGameInfo[] = fuse.search(query).map(r => r.item);
-    else return postResult(interaction, multiGameResult(client, results, query), ephemeral);
+    return postResult(interaction, multiGameResult(client, results, query), ephemeral);
 
 }
 
