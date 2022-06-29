@@ -9,8 +9,9 @@ const ignoreErrors: string[] = [
 ];
 
 async function main(client: ClientExt, i: Interaction) {
-    if (!interaction) return; // Probably a button interaction or something? 
-    const interaction: DiscordInteractionType|undefined = resolveCommandType(i);
+    if (!i) return; // Probably a button interaction or something? 
+    const interaction = resolveCommandType(i);
+    if (!interaction) return;
 
     const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
     if (!interact) return logMessage('Invalid interaction requested', {name: interaction.commandName, i: client.interactions, commands: await interaction.guild?.commands.fetch()}, true);
