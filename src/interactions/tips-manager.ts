@@ -94,7 +94,7 @@ async function tipJSON(client: Client, interaction: CommandInteraction, infos: I
     const output = {...postable, embeds: postable.embeds?.map(m => m.toJSON()) };
     const jsonContent = JSON.stringify(output, null, 2);
     if (jsonContent.length > 2000) {
-        return interaction.editReply({ files: [ { name: `code.json`, file: jsonContent } ] })
+        return interaction.editReply({ files: [ { name: `code.json`,  attachment: jsonContent } ] });
     }
     else return interaction.editReply({ content: `\`\`\`json\n${JSON.stringify(output, null, 2)}\`\`\``, embeds: output.embeds, });
 }
