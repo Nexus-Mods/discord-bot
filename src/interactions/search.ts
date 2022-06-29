@@ -6,8 +6,9 @@ import { logMessage } from "../api/util";
 import { NexusUser } from "../types/users";
 import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 import { games, quicksearch, modInfo } from "../api/nexus-discord";
+import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
 import { BotServer } from "../types/servers";
-import {sendUnexpectedError, resolveCommandType} from '../events/interactionCreate';
+import { sendUnexpectedError, resolveCommandType } from '../events/interactionCreate';
 
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
@@ -74,6 +75,25 @@ const discordInteraction: DiscordInteraction = {
                         required: false,
                     }
                 ]
+            },
+            {
+                type: 'SUB_COMMAND',
+                name: 'users',
+                description: 'Search for users on Nexus Mods',
+                options: [
+                    {
+                        name: 'name-or-id',
+                        type: 'STRING',
+                        description: 'Enter the username or user ID of to look up. Exact matches only.',
+                        required: true
+                    },
+                    {
+                        name: 'private',
+                        type: 'BOOLEAN',
+                        description: 'Should the result only be shown to you?',
+                        required: false
+                    }
+                ]
             }
         ]
     },
@@ -98,6 +118,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     
     const modQuery: string = interaction.options.getString('mod-title') || '';
     const gameQuery : string = interaction.options.getString('game-title') || '';
+    const userQuery: string = interaction.options.getString('name-or-id') || '';
     const ephemeral: boolean = interaction.options.getBoolean('private') || false
 
     if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral:true });
@@ -111,7 +132,8 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     switch(searchType) {
         case 'MODS' : return searchMods(modQuery, gameQuery, ephemeral, client, interaction, user, server);
         case 'GAMES' : return searchGames(gameQuery, ephemeral, client, interaction, user, server);
-        default: return interaction.editReply('Search error: Neither mods or games were selected.');
+        case 'USERS' : return searchUsers(userQuery, ephemeral, client, interaction, user, server);
+        default: return interaction.followUp('Search error: Neither mods or games were selected.');
     }
 }
 
@@ -220,14 +242,40 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
 async function searchGames(query: string, ephemeral:boolean, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
     logMessage('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
-    if (!user) return interaction.editReply('Please link your account to use this feature. See /link.');
+    if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
 
     const allGames = await games(user, true).catch(() => []);
     const fuse = new Fuse(allGames, options);
 
     const results: IGameInfo[] = fuse.search(query).map(r => r.item);
-    return postResult(interaction, multiGameResult(client, results, query), ephemeral);
+    if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral);
+    else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral);
+    else return postResult(interaction, multiGameResult(client, results, query), ephemeral);
 
+}
+
+async function searchUsers(query: string, ephemeral: boolean, client: Client, interaction: CommandInteraction, user: NexusUser, server: BotServer|null) {
+    logMessage('User search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+    if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
+
+    const noUserFound = () => new MessageEmbed()
+    .setTitle('No results found')
+    .setDescription(`No users found for ${query}. This feature only supports exact matches so please check your spelling.`)
+    .setColor(0xda8e35)
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+
+    const userResult = (u: { name: string, memberId: number, avatar: string, recognisedAuthor: boolean }) => new MessageEmbed()
+    .setAuthor({ name: u.name, url: `https://nexusmods.com/users/${u.memberId}` })
+    .setDescription(`User ID: ${u.memberId}\n[View ${u.name}'s profile on Nexus Mods](https://nexusmods.com/users/${u.memberId})`)
+    .setThumbnail(u.avatar)
+    .setColor(0xda8e35)
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+
+    const GQL = new NexusModsGQLClient(user);
+    const searchTerm: string | number = isNaN(parseInt(query)) ? query : parseInt(query);
+    const foundUser: { name: string, memberId: number, avatar: string, recognisedAuthor: boolean } = await GQL.findUser(searchTerm);
+    if (!foundUser) return postResult(interaction, noUserFound(), ephemeral);
+    else return postResult(interaction, userResult(foundUser), ephemeral);
 }
 
 function createModResultField(item: IModFieldResult): EmbedFieldData {
@@ -320,7 +368,7 @@ async function postResult(interaction: CommandInteraction, embed: MessageEmbed, 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return interaction.followUp({content: null, embeds: [embed], ephemeral: ephemeral, fetchReply: false}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
+    return interaction.followUp({content: null, embeds: [embed], ephemeral, fetchReply: false}).catch(e => {sendUnexpectedError(resolveCommandType(interaction), interaction, e)});
 }
 
 export { discordInteraction };

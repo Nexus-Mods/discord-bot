@@ -262,7 +262,7 @@ class NexusModsGQLClient {
 
         try {
             const response = await this.GQLClient?.request(query, variables, this.headers);
-            logMessage('GQL Response', response);
+            // logMessage('GQL Response', response);
             return response?.user ?? response?.userByName;
         }
         catch(err) {
