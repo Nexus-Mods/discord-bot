@@ -166,9 +166,6 @@ async function modChangelogs(user: NexusUser, gameDomain: string, modId: number)
 
 }
 
-// let dlCache: { [id: number]: { data: ModDownloadInfo[], expires: Date } } = {};
-// const dlCacheExp: number = (5*60*1000);
-
 class downloadStatsCache {
     private downloadStats: { [gameId: number]: { data: ModDownloadInfo[], expires: Date } };
     private cacheExpiryTime: number;
@@ -188,7 +185,7 @@ class downloadStatsCache {
         // If nothing in the cache
         if (!game) return undefined;
         // Check if it has expired
-        if (!!game && game.expires > new Date()) {
+        if (!!game && game.expires < new Date()) {
             delete this.downloadStats[gameId];
             logMessage('Clearing cached download stats for Game ID:', gameId);
             return undefined;
@@ -207,7 +204,7 @@ class downloadStatsCache {
         Object.entries(this.downloadStats)
         .map(([key, entry]: [string, { data: ModDownloadInfo[], expires: Date }]) => {
             const id: number = parseInt(key);
-            if (entry.expires > new Date()) {
+            if (entry.expires < new Date()) {
                 logMessage('Removing expired cache data for game ', id);
                 delete this.downloadStats[id]
             };
