@@ -200,7 +200,8 @@ class downloadStatsCache {
 
     cleanUp() {
         // Clear out old cache entries
-        logMessage('Clearing up download stats cache', { size: JSON.stringify(this.downloadStats).length });
+        const startSize = JSON.stringify(this.downloadStats).length;
+        // logMessage('Clearing up download stats cache', { size: JSON.stringify(this.downloadStats).length });
         Object.entries(this.downloadStats)
         .map(([key, entry]: [string, { data: ModDownloadInfo[], expires: Date }]) => {
             const id: number = parseInt(key);
@@ -209,7 +210,8 @@ class downloadStatsCache {
                 delete this.downloadStats[id]
             };
         });
-        logMessage('Clean up of download stats cache done', { newSize: JSON.stringify(this.downloadStats).length });
+        const endSize = JSON.stringify(this.downloadStats).length;
+        if (startSize != endSize) logMessage('Clean up of download stats cache done', { newSize: JSON.stringify(this.downloadStats).length });
     }
 }
 
