@@ -16,24 +16,18 @@ const requestHeader = {
     'apikey': '' 
 };
 
-const cachePeriod: number = (5*60*1000);
-
 // Pass the user so we can grab their API key
-
-let cachedGames : { update: number, games: IGameInfo[], unapproved: boolean }; //cache the game list for 5 mins.
 
 async function games(user: NexusUser, bUnapproved?: boolean): Promise<IGameInfo[]>  {
     const apiKey: string = user.apikey;
     if (!apiKey) Promise.reject('API Error 403: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.');
 
     // If we have cached the games recently.
-    const useCache = (bUnapproved === cachedGames?.unapproved || !bUnapproved)
-    if (useCache && cachedGames && cachedGames.update > new Date().getTime()) return Promise.resolve(cachedGames.games);
     requestHeader.apikey = apiKey;
     try {
         const gameList = await requestPromise({url: `${nexusAPI}v1/games`, headers: requestHeader, qs: { include_unapproved: bUnapproved }});
-        cachedGames = { games: JSON.parse(gameList), update: new Date().getTime() + cachePeriod, unapproved: (bUnapproved === true) };
-        return cachedGames.games;
+        const gamesParsed = JSON.parse(gameList);
+        return gamesParsed;
     }
     catch(err) {
         return Promise.reject(`Nexus Mods API responded with ${(err as any).statusCode} while fetching all games. Please try again later.`);
@@ -172,8 +166,57 @@ async function modChangelogs(user: NexusUser, gameDomain: string, modId: number)
 
 }
 
-let dlCache: { [id: number]: { data: ModDownloadInfo[], expires: Date } } = {};
-const dlCacheExp: number = (5*60*1000);
+// let dlCache: { [id: number]: { data: ModDownloadInfo[], expires: Date } } = {};
+// const dlCacheExp: number = (5*60*1000);
+
+class downloadStatsCache {
+    private downloadStats: { [gameId: number]: { data: ModDownloadInfo[], expires: Date } };
+    private cacheExpiryTime: number;
+    
+    constructor() {
+        this.downloadStats = {};
+        this.cacheExpiryTime = (5*60*1000);
+    }
+
+    saveGameStats(id: number, data: ModDownloadInfo[]) {
+        const expires = new Date(new Date().getTime() + this.cacheExpiryTime);
+        this.downloadStats[id] = { data, expires };
+    }
+
+    getStats(gameId: number, modId?: number): ModDownloadInfo[] | ModDownloadInfo | undefined {
+        const game = this.downloadStats[gameId];
+        // If nothing in the cache
+        if (!game) return undefined;
+        // Check if it has expired
+        if (!!game && game.expires > new Date()) {
+            delete this.downloadStats[gameId];
+            logMessage('Clearing cached download stats for Game ID:', gameId);
+            return undefined;
+        }
+        // If there's no game data or mod ID return whatever we found.
+        if (modId == -1) return game.data;
+
+        // Find the mod.
+        const mod = game.data.find(m => m.id === modId);
+        return mod || ({ id: modId, unique_downloads: 0, total_downloads: 0 } as ModDownloadInfo);
+    }
+
+    cleanUp() {
+        // Clear out old cache entries
+        logMessage('Clearing up download stats cache', { size: JSON.stringify(this.downloadStats).length });
+        Object.entries(this.downloadStats)
+        .map(([key, entry]: [string, { data: ModDownloadInfo[], expires: Date }]) => {
+            const id: number = parseInt(key);
+            if (entry.expires > new Date()) {
+                logMessage('Removing expired cache data for game ', id);
+                delete this.downloadStats[id]
+            };
+        });
+        logMessage('Clean up of download stats cache done', { newSize: JSON.stringify(this.downloadStats).length });
+    }
+}
+
+const downloadCache = new downloadStatsCache();
 
 async function getDownloads(user: NexusUser, gameDomain: string, gameId: number = -1, modId: number = -1): Promise<ModDownloadInfo | ModDownloadInfo[]> {
     try {
@@ -182,10 +225,10 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
         if (!game) return Promise.reject(`Unable to resolve game for ${gameId}, ${gameDomain}`);
         gameId = game.id;
         // Check for a cached version of the stats
-        if (dlCache[gameId] && dlCache[gameId].expires > new Date()) {
-            // console.log('Using cached download value for game '+game.name, modId, dlCache[gameId].expires);
-            if (modId == -1) return dlCache[gameId].data;
-            else return dlCache[gameId].data.find(m => m.id === modId) || {id: modId, unique_downloads: 0, total_downloads: 0};
+        const cachedValue = downloadCache.getStats(gameId, modId);
+        if (!!cachedValue) {
+            downloadCache.cleanUp();
+            return cachedValue;
         }
         // Get stats CSV
         const statsCsv = await requestPromise({ url: `${nexusStatsAPI}${gameId}.csv`, encoding: 'utf8' });
@@ -196,7 +239,7 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
                 const values = row.split(',');
                 if (values.length != 4) {
                     // Since 2021-04-28 the CSV now includes page views as the 4th value.
-                    console.log(`Invalid CSV row for ${game.domain_name} (${gameId}): ${row}`);
+                    logMessage(`Invalid CSV row for ${game.domain_name} (${gameId}): ${row}`);
                     return;
                 }
                 return {
@@ -208,18 +251,12 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
         ).filter((info: ModDownloadInfo | undefined) => info !== undefined);
 
         // Save to cache
-        dlCache[gameId] = { data: gameStats, expires: new Date(new Date().getTime() + dlCacheExp) };
-        // console.log('Cached download stats', game.name, dlCache[gameId].expires);
-
-        // Get info for the mod, if we're looking for it.
-        if (modId !== -1) {
-            const modInfo: ModDownloadInfo | undefined = gameStats.find((info: ModDownloadInfo) => info.id === modId);
-            return modInfo || { id: modId, total_downloads: 0, unique_downloads: 0 };
-        }
-        else return gameStats;
+        downloadCache.saveGameStats(gameId, gameStats);
+        downloadCache.cleanUp();
+        return downloadCache.getStats(gameId, modId) || { id: modId, total_downloads: 0, unique_downloads: 0 };
     }
     catch(err) {
-        return Promise.reject(`Could not retrieve download data for ${gameDomain} (${gameId}) ${modId} \n ${err}`)
+        return Promise.reject(`Could not retrieve download data for ${gameDomain} (${gameId}) ${modId} \n ${err}`);
     }
 }
 
