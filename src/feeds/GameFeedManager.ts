@@ -4,7 +4,7 @@ import { ClientExt } from "../types/util";
 import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, MessageEmbed, Client } from 'discord.js';
 import { NexusUser } from '../types/users';
-import { validate, games, updatedMods, modInfo, modChangelogs } from '../api/nexus-discord';
+import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
 import { IModInfoExt } from '../types/util';
 import { logMessage } from '../api/util';
 import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
