@@ -177,6 +177,45 @@ class NexusModsGQLClient {
         return modChangelogs(this.NexusModsUser, domain, modId);
     }
 
+    public async isCurator(): Promise<boolean> {
+        const query = gql`
+        query isCurator(
+            $facets: CollectionsFacet,
+            $filter: CollectionsFilter
+          ) {
+            myCollections(
+              facets: $facets,
+              filter: $filter,
+              viewAdultContent: true,
+            ) {
+              nodesCount
+            }
+          }
+        `;
+        const variables = {
+            facets: {
+                adultContent: [ 'true', 'false' ],
+                collectionStatus: [ 'listed' ]
+            },
+            filter: {
+                op: 'AND',
+                "hasPublishedRevision": [
+                    {
+                        value: 'true'
+                    }
+                ]
+            }
+        };
+
+        try {
+            const res = await this.GQLClient.request(query, variables, this.headers);
+            return res.data?.myCollections;
+        }
+        catch(err) {
+            throw err;
+        }
+    }
+
     public async myCollections(): Promise<any> {
         if (this.authType === 'APIKEY') throw new Error('Cannot retrieve collections with an API key. JWT only.');
         const query = gql`
