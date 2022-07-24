@@ -51,12 +51,14 @@ async function main (client: ClientExt) {
                 continue;
             };            
             onlineEmbed.setTimestamp(new Date());
-            (postChannel as TextChannel).send({embeds: [onlineEmbed]})
-                .catch((err) => {
-                    if (!['Missing Permissions', 'Missing Access'].includes(err.message)) logMessage(
-                        `Error posting online notice to log channel in ${guild.name}`, { error: err.message }, true
-                    );
-                })
+            try {
+                await (postChannel as TextChannel).send({embeds: [onlineEmbed]})
+            }
+            catch(err) {
+                if (!['Missing Permissions', 'Missing Access'].includes((err as Error).message)) {
+                    logMessage(`Error posting online notice to log channel in ${guild.name}`, { error: (err as Error).message }, true);
+                }
+            }
         }
     }
 
