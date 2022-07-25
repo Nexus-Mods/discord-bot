@@ -46,7 +46,7 @@ async function main (client: ClientExt) {
             const channelId: Snowflake | undefined = (server as BotServer).channel_nexus
             if (!channelId) continue;
             const postChannel: GuildChannel | ThreadChannel | null = guild.channels.resolve(channelId);
-            if (!postChannel) {
+            if (!postChannel || !(postChannel as TextChannel).send) {
                 logMessage(`Could not get Nexus Log channel for ${guild}`);
                 continue;
             };            
