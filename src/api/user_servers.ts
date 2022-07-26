@@ -186,7 +186,7 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
 
 const modUniqueDLTotal = (allMods: NexusLinkedMod[]): number => {
     let downloads: number = allMods.reduce((prev, cur) => {
-        if (cur.unique_downloads && !isNaN(cur.unique_downloads)) prev = prev + cur.unique_downloads;
+        if (!!cur.unique_downloads || !isNaN(cur.unique_downloads)) prev = prev + cur.unique_downloads;
         else logMessage('Unique download count could not be added', { mod: cur }, true);
         return prev;
     }, 0);

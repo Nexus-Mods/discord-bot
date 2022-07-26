@@ -106,10 +106,10 @@ export class GameFeedManager {
 
         logMessage('Finished checking game feeds.');
         allGames = [];
-        heapdump.writeSnapshot('heapdump-latest.heapsnapshot', (err, filename) => {
-            if (err) logMessage('Failed to save heapdump', err, true);
-            else logMessage('Saved HeapDump', { filename });
-        });
+        // heapdump.writeSnapshot('heapdump-latest.heapsnapshot', (err, filename) => {
+        //     if (err) logMessage('Failed to save heapdump', err, true);
+        //     else logMessage('Saved HeapDump', { filename });
+        // });
     }
 }
 
