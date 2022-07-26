@@ -185,6 +185,7 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
 }
 
 const modUniqueDLTotal = (allMods: NexusLinkedMod[]): number => {
+    console.trace('UDL total called from...')
     logMessage('Getting UDL total from mods', { count: allMods.length });
     let downloads: number = allMods.reduce((prev, cur) => {
         logMessage('Checking UDLs for mod', { name: cur.name, dls: cur.unique_downloads, prev });
@@ -192,7 +193,7 @@ const modUniqueDLTotal = (allMods: NexusLinkedMod[]): number => {
         else logMessage('Unique download count could not be added', { mod: cur }, true);
         return prev;
     }, 0);
-    return isNaN(downloads) ? downloads : 0;
+    return !isNaN(downloads) ? downloads : 0;
 }
 
 const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): MessageEmbed => {
