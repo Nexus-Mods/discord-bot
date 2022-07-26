@@ -105,20 +105,6 @@ export class GameFeedManager {
 
         logMessage('Finished checking game feeds.');
         allGames = [];
-
-        // Create a heap snapshot
-        try {
-
-            let nodeOomHeapdump = await require("node-oom-heapdump")({
-                heapdumpOnOOM: false,
-                port: 9228
-              });
-            await nodeOomHeapdump.deleteAllHeapSnapshots();
-            await nodeOomHeapdump.createHeapSnapshot('gameFeedHeapDump');
-        }
-        catch(err) {
-            logMessage('Could not create a heap snapshot', {err});
-        }
     }
 }
 
