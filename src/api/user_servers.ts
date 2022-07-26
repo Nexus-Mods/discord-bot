@@ -184,9 +184,10 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
     })
 }
 
-const modUniqueDLTotal = (allMods: NexusLinkedMod[]) => {
-    let downloads = allMods.reduce((prev, cur) => prev = prev + cur.unique_downloads, 0);
-    return downloads;
+const modUniqueDLTotal = (allMods: NexusLinkedMod[]): number => {
+    let downloads = allMods.reduce((prev, cur) => prev = prev + (cur.unique_downloads || 0), 0);
+    if (isNaN(downloads)) logMessage('NaN detected when tallying up download totals', { allMods }, true);
+    return isNaN(downloads) ? downloads : 0;
 }
 
 const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): MessageEmbed => {
