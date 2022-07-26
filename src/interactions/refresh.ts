@@ -161,6 +161,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
             }, `${updatedMods.length} mods updated:\n`);
 
             const udlTotal: number = modUniqueDLTotal(allMods.filter(mod => deletedMods.indexOf(mod) === -1));
+            logMessage('UDL total', udlTotal);
 
             if (updatedMods.length) card.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, displayable);
             else card.addField(`Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, 'No changes required.');
