@@ -9,7 +9,6 @@ import { IModInfoExt } from '../types/util';
 import { logMessage } from '../api/util';
 import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
 import * as GQLTypes from '../types/GQLTypes';
-import heapdump from 'heapdump';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
@@ -106,10 +105,20 @@ export class GameFeedManager {
 
         logMessage('Finished checking game feeds.');
         allGames = [];
-        // heapdump.writeSnapshot('heapdump-latest.heapsnapshot', (err, filename) => {
-        //     if (err) logMessage('Failed to save heapdump', err, true);
-        //     else logMessage('Saved HeapDump', { filename });
-        // });
+
+        // Create a heap snapshot
+        try {
+
+            let nodeOomHeapdump = await require("node-oom-heapdump")({
+                heapdumpOnOOM: false,
+                port: 9228
+              });
+            await nodeOomHeapdump.deleteAllHeapSnapshots();
+            await nodeOomHeapdump.createHeapSnapshot('gameFeedHeapDump');
+        }
+        catch(err) {
+            logMessage('Could not create a heap snapshot', {err});
+        }
     }
 }
 
