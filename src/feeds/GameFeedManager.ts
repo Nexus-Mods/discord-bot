@@ -249,16 +249,25 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         };
 
         logMessage(`Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
-
-        if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).then(() => webHook?.destroy())
-        .catch(() => {
-            if (feed.message) channel?.send(feed.message).catch(() => undefined);
-            modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
-        });
-        else {
+        
+        try {
+            await webHook?.send({ embeds: modEmbeds, content: feed.message });
+            webHook?.destroy();
+        }
+        catch(err) {
             if (feed.message) channel?.send(feed.message).catch(() => undefined);
             modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
         }
+
+        // if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).then(() => webHook?.destroy())
+        // .catch(() => {
+        //     if (feed.message) channel?.send(feed.message).catch(() => undefined);
+        //     modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
+        // });
+        // else {
+        //     if (feed.message) channel?.send(feed.message).catch(() => undefined);
+        //     modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
+        // }
         
     }
     catch(err) {
