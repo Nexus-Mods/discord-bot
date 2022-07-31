@@ -250,7 +250,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
         logMessage(`Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
 
-        if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).catch(() => {
+        if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).then(() => webHook?.destroy())
+        .catch(() => {
             if (feed.message) channel?.send(feed.message).catch(() => undefined);
             modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
         });
@@ -261,6 +262,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
+        if (webHook) webHook.destroy();
         const error: string = (err as Error)?.message || (err as string);
         if (error.indexOf('Nexus Mods API responded with 429.') !== -1) {
             logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
