@@ -252,11 +252,15 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
         try {
             await webHook?.send({ embeds: modEmbeds, content: feed.message });
+            logMessage(`Posted ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
             webHook?.destroy();
+            logMessage(`Webhook for ${feed.title} in ${guild?.name} (#${feed._id}) destroyed.`);
         }
         catch(err) {
+            logMessage(`Error posting via webhook for ${feed.title} in ${guild?.name} (#${feed._id})`, (err as Error)?.message, true);
             if (feed.message) channel?.send(feed.message).catch(() => undefined);
             modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
+            if (webHook) webHook.destroy();
         }
 
         // if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).then(() => webHook?.destroy())
