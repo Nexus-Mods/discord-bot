@@ -247,8 +247,6 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             // console.log(`${tn()} - No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
             return;
         };
-
-        logMessage(`Posting ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
         
         try {
             await webHook?.send({ embeds: modEmbeds, content: feed.message });
