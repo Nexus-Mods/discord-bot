@@ -125,6 +125,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
     // If we can't reach the feed owner. 
     if (!discordUser || !userData) {
+        webHook?.destroy();
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
         if (channel) channel.send(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${userData?.name || '???' }`).catch(() => undefined);
@@ -133,6 +134,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
     // Check for relevant permissions.
     if (botPerms && !botPerms.has('SEND_MESSAGES', true)) {
+        webHook?.destroy();
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
         if (discordUser) discordUser.send(`I'm not able to post ${feed.title} updates to ${channel || 'unknown channel'} in ${guild || 'unknown guild'} anymore as I do not seem to have permission to post there. The feed has been cancelled.`).catch(() => undefined);
@@ -141,6 +143,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
     // Check if the channel or guild is missing.
     if (discordUser && (!guild || !channel)) {
+        webHook?.destroy();
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
         discordUser.send(`I'm not able to post ${feed.title} updates to ${channel || 'missing channel'} in ${guild?.name || 'missing guild'} anymore as the channel or server could not be found. Game feed cancelled.`).catch(() => undefined);
@@ -152,6 +155,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         await validate(userData.apikey);
     }
     catch(err) {
+        webHook?.destroy();
         if ((err as any).includes('401')) {
             if (client.config.testing) return;
             await deleteGameFeed(feed._id);
@@ -273,7 +277,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
     }
     catch(err) {
-        if (webHook) webHook.destroy();
+        webHook?.destroy();
         const error: string = (err as Error)?.message || (err as string);
         if (error.indexOf('Nexus Mods API responded with 429.') !== -1) {
             logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
@@ -285,40 +289,6 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
 }
 
-
-function createModEmbed(client: Client,
-                        mod: IModInfoExt, 
-                        game: IGameInfo, 
-                        newMod: boolean, 
-                        changeLog: IChangelogs|undefined, 
-                        compact: boolean): MessageEmbed {
-    const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
-    const category: string = game.categories?.find(c => c.category_id === mod.category_id)?.name || 'Unknown';
-    const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.user.member_id}`;
-
-    let post = new MessageEmbed()
-    .setAuthor({name:`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, iconURL: client.user?.avatarURL() || '' })
-    .setTitle(mod.name || 'Name not found')
-    .setColor(newMod ? 0xda8e35 : 0x57a5cc)
-    .setURL(`https://www.nexusmods.com/${mod.domain_name}/mods/${mod.mod_id}`)
-    .setDescription(sanitiseBreaks(mod.summary || 'No summary'))
-    .setImage(!compact? mod.picture_url || '' : '')
-    .setThumbnail(compact ? mod.picture_url || '' : gameThumb)
-    if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
-        let versionChanges = changeLog[mod.version].join("\n").replace('<br />', '');
-        if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
-        post.addField(`Changelog (v${mod.version})`, versionChanges);
-    }
-    post.addField('Author', mod.author, true)
-    .addField('Uploader', `[${mod.uploaded_by}](${uploaderProfile})`, true)
-    if (mod.authorDiscord) post.addField('Discord', mod.authorDiscord.toString(), true)
-    if (!compact) post.addField('Category', category, true)
-    post.setTimestamp(new Date(mod.updated_time))
-    .setFooter({ text: `${game.name}  •  ${category}  • v${mod.version} `, iconURL: client?.user?.avatarURL() || '' });
-
-    return post;
-
-}
 
 function createModEmbedGQL(client: Client,
     mod: GQLTypes.FeedMod, 
