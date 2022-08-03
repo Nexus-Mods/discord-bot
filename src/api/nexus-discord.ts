@@ -85,7 +85,7 @@ async function getModAuthor(id: number): Promise<boolean> {
         return data?.user?.recognizedAuthor;
     }
     catch(err) {
-        logMessage('GraphQL request for mod author status failed', err, true);
+        logMessage('GraphQL request for mod author status failed', { error: (err as Error).message, userId: id }, true);
         return false;
     }
 }
