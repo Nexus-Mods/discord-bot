@@ -1,23 +1,37 @@
-import { CommandInteraction, Client, MessageEmbed, MessageActionRow, MessageButton, Interaction } from "discord.js";
-import { DiscordInteraction, } from "../types/util";
+import { 
+    Client, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
+    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder 
+} from "discord.js";
+import { DiscordInteraction, } from "../types/DiscordTypes";
 import { getAllUsers, getAllGameFeeds } from '../api/bot-db';
 import { NexusUser } from "../types/users";
 import { GameFeed } from "../types/feeds";
-import { logMessage } from "../api/util";
+
+const command = new SlashCommandBuilder()
+.setName('about')
+.setDescription('Information about this bot.')
+.addBooleanOption(option => 
+    option.setName('private')
+    .setDescription('Only show to me.')
+    .setRequired(false)
+)
+.setDMPermission(true)
+.setDefaultMemberPermissions(PermissionFlagsBits.SendMessages);
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'about',
-        description: 'Information about this bot.',
-        options: [
-            {
-                name: 'private',
-                type: 'BOOLEAN',
-                description: 'Only show to me.',
-                required: false
-            }
-        ]
-    },
+    // command: {
+    //     name: 'about',
+    //     description: 'Information about this bot.',
+    //     options: [
+    //         {
+    //             name: 'private',
+    //             type: 'BOOLEAN',
+    //             description: 'Only show to me.',
+    //             required: false
+    //         }
+    //     ]
+    // },
+    command,
     public: true,
     action
 }
@@ -41,8 +55,7 @@ const minPermissions: { name: string, code: string }[] = [
     }
 ];
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
 
     const option: boolean | null = interaction.options.getBoolean('private');
     const ephemeral: boolean = option !== null ? option : true;
@@ -55,40 +68,47 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     const allUsers: NexusUser[] = await getAllUsers();
     const allFeeds: GameFeed[] = await getAllGameFeeds();
 
-    const botPermsissons: string[] = interaction.guild?.me?.permissions.toArray() || [];
+    const botPermsissons: string[] = interaction.guild?.members.me?.permissions.toArray() || [];
 
     const permissionsList: string = buildPermsList(botPermsissons, minPermissions);
 
-    const info: MessageEmbed = new MessageEmbed()
+    const info = new EmbedBuilder()
     .setTitle(`Nexus Mods Discord Bot v${process.env.npm_package_version}`)
     .setColor(0xda8e35)
     .setThumbnail(client.user?.avatarURL() || '')
     .setDescription(`Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`)
-    // .addField('Support', 'If you have feedback or questions about this bot, check out the [documentation](https://modding.wiki/nexusmods/discord-bot) or head over to the [Nexus Mods Discord Server](https://discord.gg/nexusmods).')
-    .addField('Minimum Permissions', permissionsList, true)
-    .addField('Stats', 
-        `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+
-        `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
-        `Game Feeds: ${allFeeds.length.toLocaleString()}`
-    , true)
+    .addFields([
+        {
+            name: 'Minimum Permissions',
+            value: permissionsList,
+            inline: true
+        },
+        {
+            name: 'Stats',
+            value: `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+
+            `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
+            `Game Feeds: ${allFeeds.length.toLocaleString()}`,
+            inline: true
+        },
+    ])
     .setFooter({ text: `Uptime: ${upTime}`, iconURL: client.user?.avatarURL() || '' })
     .setTimestamp(new Date());
 
-    const buttons = new MessageActionRow()
+    const buttons = new ActionRowBuilder<MessageActionRowComponentBuilder>()
     .addComponents(
-        new MessageButton({
+        new ButtonBuilder({
             label: 'Docs',
-            style: 'LINK',
+            style: ButtonStyle.Link,
             url: 'https://modding.wiki/nexusmods/discord-bot'
         }),
-        new MessageButton({
+        new ButtonBuilder({
             label: 'Support',
-            style: 'LINK',
+            style: ButtonStyle.Link,
             url: 'https://discord.gg/nexusmods'
         }),
-        new MessageButton({
+        new ButtonBuilder({
             label: 'Source (GitHub)',
-            style: 'LINK',
+            style:  ButtonStyle.Link,
             url: 'https://github.com/Nexus-Mods/discord-bot'
         })
     );

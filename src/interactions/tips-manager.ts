@@ -1,65 +1,50 @@
-import { CommandInteraction, MessageActionRow, Client, MessageButton, Interaction, MessageEmbed, Message, ButtonInteraction, EmbedFieldData } from "discord.js";
-import { DiscordInteraction, InfoResult, PostableInfo } from "../types/util";
+import { CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, Interaction, EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, ButtonStyle, ComponentType, SlashCommandBuilder } from "discord.js";
+import { InfoResult, PostableInfo } from "../types/util";
+import { DiscordInteraction } from '../types/DiscordTypes';
 import { getAllInfos, displayInfo, createInfo } from '../api/bot-db';
 import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'tips-manager',
-        description: 'Manage tips.',
-        options: [
-            {
-                name: 'create',
-                type: 'SUB_COMMAND',
-                description: 'Add a new tip by pasting in JSON data',
-                options: [
-                    {
-                        name: 'code',
-                        type: 'STRING',
-                        description: 'The short code to load this tip.',
-                        required: true,
-                    },
-                    {
-                        name: 'json',
-                        type: 'STRING',
-                        description: 'The JSON data to use, must be a single line.',
-                        required: true,                        
-                    }                    
-                ]
-            },
-            {
-                name: 'update',
-                type: 'SUB_COMMAND',
-                description: 'Update an existing tip with new JSON',
-                options: [
-                    {
-                        name: 'code',
-                        type: 'STRING',
-                        description: 'The short code of the tip to update.',
-                        required: true,
-                    },
-                    {
-                        name: 'json',
-                        type: 'STRING',
-                        description: 'The JSON data to use, must be a single line.',
-                        required: true,                        
-                    }   
-                ]
-            },
-            {
-                name: 'tojson',
-                type: 'SUB_COMMAND',
-                description: 'Show the tip as JSON',
-                options: [
-                    {
-                        name: 'code',
-                        type: 'STRING',
-                        description: 'The tip to load.'
-                    }
-                ]
-            }
-        ]
-    },
+    command: new SlashCommandBuilder()
+    .setName('tips-manager')
+    .setDescription('Manage tips.')
+    .addSubcommand(sc =>
+        sc.setName('create')
+        .setDescription('Add a new tip by pasting in JSON data')
+        .addStringOption(option => 
+            option.setName('code')
+            .setDescription('The short code to load this tip.')    
+            .setRequired(true)
+        )
+        .addStringOption(option => 
+            option.setName('json')
+            .setDescription('The JSON data to use, must be a single line.')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(sc =>
+        sc.setName('update')
+        .setDescription('Update an existing tip with new JSON.')
+        .addStringOption(option => 
+            option.setName('code')
+            .setDescription('The short code to load this tip.')    
+            .setRequired(true)
+        )
+        .addStringOption(option => 
+            option.setName('json')
+            .setDescription('The JSON data to use, must be a single line.')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(sc =>
+        sc.setName('tojson')
+        .setDescription('Show the tip as JSON')
+        .addStringOption(option => 
+            option.setName('code')
+            .setDescription('The short code to load this tip.')    
+            .setRequired(true)
+        )
+    ) as SlashCommandBuilder,
     public: false,
     guilds: [
         '581095546291355649'
@@ -69,8 +54,7 @@ const discordInteraction: DiscordInteraction = {
 
 type SubCommandType = 'tojson' | 'create' | 'update';
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = baseinteraction as CommandInteraction
+async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
     const subCommand: SubCommandType = interaction.options.getSubcommand(true) as SubCommandType;
 
     await interaction.deferReply({ ephemeral: true });
@@ -85,7 +69,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     }
 }
 
-async function tipJSON(client: Client, interaction: CommandInteraction, infos: InfoResult[]) {   
+async function tipJSON(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
     const code: string = interaction.options.getString('code', true);
 
     const tipToShow: InfoResult|undefined = infos.find(i => i.name === code.toLowerCase());
@@ -99,21 +83,21 @@ async function tipJSON(client: Client, interaction: CommandInteraction, infos: I
     else return interaction.editReply({ content: `\`\`\`json\n${JSON.stringify(output, null, 2)}\`\`\``, embeds: output.embeds, });
 }
 
-async function createTip(interaction: CommandInteraction) {
+async function createTip(interaction: ChatInputCommandInteraction) {
     const userJson: string = interaction.options.getString('json', true);
     const name: string = interaction.options.getString('code', true);
 
-    const components: MessageActionRow[] = [
-        new MessageActionRow()
+    const components: ActionRowBuilder<ButtonBuilder>[] = [
+        new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
-            new MessageButton({
+            new ButtonBuilder({
                 label: `Add ${name}`,
-                style: 'PRIMARY',
+                style: ButtonStyle.Primary,
                 customId: 'confirm'
             }),
-            new MessageButton({
+            new ButtonBuilder({
                 label: 'Cancel',
-                style: 'SECONDARY',
+                style: ButtonStyle.Secondary,
                 customId: 'cancel'
             })
         )
@@ -122,10 +106,10 @@ async function createTip(interaction: CommandInteraction) {
     try {
         const messageContent = JSON.parse(userJson);
         const content = messageContent.content && messageContent.content.length ? messageContent.content : null;
-        const embeds = messageContent.embed ? [new MessageEmbed(messageContent.embed)] : [];
+        const embeds = messageContent.embed ? [new EmbedBuilder(messageContent.embed)] : [];
         const message: Message = await interaction.fetchReply() as Message;
         await interaction.editReply({ content, embeds, components });
-        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 30000 });
+        const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
         collector.on('collect', async (i: ButtonInteraction) => {
             collector.stop(); 
             if (i.customId === 'confirm') {

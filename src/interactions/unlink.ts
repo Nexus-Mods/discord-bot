@@ -1,20 +1,19 @@
-import { CommandInteraction, Snowflake, Client, Guild, Interaction } from "discord.js";
+import { CommandInteraction, Snowflake, Client, Guild, Interaction, SlashCommandBuilder } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
-import { DiscordInteraction } from "../types/util";
+import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, getLinksByUser, deleteAllServerLinksByUser, deleteUser, deleteServerLink } from '../api/bot-db';
 import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'unlink',
-        description: 'Delete the link between your Nexus Mods account and Discord.',
-        options: [{
-            name: 'global',
-            type: 'BOOLEAN',
-            description: 'Delete from all servers. (Otherwise just unlink in this server.)',
-            required: true,
-        }]
-    },
+    command: new SlashCommandBuilder()
+    .setName('unlink')
+    .setDescription('Delete the link between your Nexus Mods account and Discord.')
+    .addBooleanOption(option => 
+        option.setName('global')
+        .setDescription('Delete from all servers. (Otherwise just unlink in this server.)')
+        .setRequired(true)
+    )
+    .setDMPermission(true),
     public: true,
     guilds: [
         '581095546291355649'

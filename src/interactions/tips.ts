@@ -1,36 +1,34 @@
 import { 
-    CommandInteraction, MessageActionRow, MessageSelectMenu, Client, MessageSelectOptionData, MessageEmbed, 
-    Message, InteractionCollector, MessageButton, Interaction, User 
+    CommandInteraction, ActionRowBuilder, SelectMenuBuilder, Client, EmbedBuilder, 
+    Message, InteractionCollector, ButtonBuilder, User, SlashCommandBuilder, 
+    ChatInputCommandInteraction, ButtonStyle, SelectMenuOptionBuilder 
 } from "discord.js";
-import { DiscordInteraction, InfoResult, PostableInfo } from "../types/util";
+import { InfoResult, PostableInfo } from "../types/util";
+import { DiscordInteraction } from '../types/DiscordTypes';
 import { getAllInfos, displayInfo } from '../api/bot-db';
 import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'tips',
-        description: 'Return a quick info message on a number of topics.',
-        options: [
-            {
-                name: 'code',
-                type: 'STRING',
-                description: 'Quick code for known message. (Optional)',
-                required: false,
-            },
-            {
-                name: 'user',
-                type: 'USER',
-                description: 'The user to ping in the reply. (Optional)'
-            }
-        ]
-    },
+    command: new SlashCommandBuilder()
+    .setName('tips')
+    .setDescription('Return a quick info message on a number of topics.')
+    .addStringOption(option =>
+        option.setName('code')
+        .setDescription('Quick code for known message. (Optional)')
+        .setRequired(false)    
+    )
+    .addUserOption(option =>
+        option.setName('user')
+        .setDescription('The user to ping in the reply. (Optional)')
+        .setRequired(false)    
+    )
+    .setDMPermission(true),
     public: true,
     guilds: [],
     action
 }
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
     
     const message: string | null = interaction.options.getString('code');
@@ -53,36 +51,37 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     if (!interaction.guild) return interaction.editReply('Unrecognised or invalid code.');
 
     try {
-    const options: MessageSelectOptionData[] = data.sort((a,b) => (a.title || a.name).localeCompare(b.title || b.name)).map(d => ({
-        label: d.title || d.name,
-        description: `Short code: ${d.name}`,
-        value: d.name
-    }));
+    const options: SelectMenuOptionBuilder[] = data.sort((a,b) => (a.title || a.name).localeCompare(b.title || b.name))
+    .map(d =>  new SelectMenuOptionBuilder()
+        .setLabel(d.title || d.name)
+        .setDescription(`Short code: ${d.name}`)
+        .setValue(d.name)
+    );
     
     // No message pre-selected!
-    const choices: MessageActionRow[] | undefined = 
+    const choices: ActionRowBuilder<SelectMenuBuilder | ButtonBuilder>[] | undefined = 
         data.length ? [
-            new MessageActionRow()
+            new ActionRowBuilder<SelectMenuBuilder>()
             .addComponents(
-                new MessageSelectMenu()
+                new SelectMenuBuilder()
                 .setCustomId('info-select')
                 .setPlaceholder('Select a topic to display...')
                 .addOptions(options)
             ),
-            new MessageActionRow()
+            new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
-                new MessageButton()
+                new ButtonBuilder()
                 .setCustomId('cancel')
                 .setLabel('Cancel')
-                .setStyle('SECONDARY')
+                .setStyle(ButtonStyle.Secondary)
             )
         ] : undefined;
 
-    const searchEmbed: MessageEmbed = new MessageEmbed()
+    const searchEmbed: EmbedBuilder = new EmbedBuilder()
     .setColor(0xda8e35)
     .setTitle('Select an Info Message to display')
     .setDescription('This command will return an embed or message based on a preset help topic. Select the desired topic below.')
-    .addField('Suggest Tips', 'You can suggest your own tips to be shown with this command [here](https://forms.gle/jXzqwr5caRiSPZRf7).')
+    .addFields({ name: 'Suggest Tips', value: 'You can suggest your own tips to be shown with this command [here](https://forms.gle/jXzqwr5caRiSPZRf7).'})
     .setFooter({text:`Nexus Mods API link`, iconURL:client.user?.avatarURL() || ''});
 
 

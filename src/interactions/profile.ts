@@ -1,20 +1,19 @@
-import { DiscordInteraction } from "../types/util";
+import { DiscordInteraction } from "../types/DiscordTypes";
 import { NexusUser } from "../types/users";
 import { getUserByDiscordId, userEmbed } from '../api/bot-db';
-import { CommandInteraction, Snowflake, MessageEmbed, Client, CommandInteractionOption, Interaction } from "discord.js";
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, CommandInteractionOption, Interaction, SlashCommandBuilder } from "discord.js";
 import { logMessage } from '../api/util';
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'profile',
-        description: 'Show your profile card.',
-        options: [{
-            name: 'public',
-            type: 'BOOLEAN',
-            description: 'Make your card visible to all users?',
-            required: false,
-        }]
-    },
+    command: new SlashCommandBuilder()
+    .setName('profile')
+    .setDescription('Show your profile card.')
+    .addBooleanOption(option => 
+        option.setName('public')
+        .setDescription('Make your card visible to all users?')
+        .setRequired(false) 
+    )
+    .setDMPermission(true),
     public: true,
     guilds: [
         '581095546291355649'
@@ -40,7 +39,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         if (!userData) interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
         else {
-            const card: MessageEmbed = await userEmbed(userData, client);
+            const card: EmbedBuilder = await userEmbed(userData, client);
             interaction.followUp({ embeds: [card] });
         }
     }

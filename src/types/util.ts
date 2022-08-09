@@ -1,11 +1,8 @@
 import { IModInfo } from "@nexusmods/nexus-api";
 import { 
-    Collection, GuildMember, Embed, APIEmbedField, Snowflake, ApplicationCommandData, 
-    CommandInteraction, Client, UserContextMenuCommandInteraction, MessageContextMenuCommandInteraction, ActionRow, MessageActionRowComponent
+    GuildMember, Embed, APIEmbedField, 
+    ActionRow, MessageActionRowComponent
 } from "discord.js";
-import { GameFeedManager } from "../feeds/GameFeedManager";
-import { ModFeedManager } from "../feeds/ModFeedManager";
-import { NewsFeedManager } from "../feeds/NewsFeedManager";
 
 export interface InfoResult {
     name: string;
@@ -72,33 +69,4 @@ export interface PostableInfo {
     content?: string;
     embeds?: Embed[];
     components?: ActionRow<MessageActionRowComponent>[]; 
-}
-
-interface PermissionsExt {
-    guild?: Snowflake;
-    id: Snowflake;
-    type: 'USER' | 'ROLE';
-    permission: boolean;
-}
-
-export type DiscordInteractionType = 
-| UserContextMenuCommandInteraction 
-| MessageContextMenuCommandInteraction 
-| CommandInteraction;
-
-export interface DiscordInteraction {
-    command: ApplicationCommandData;
-    action: (client: Client, interact: DiscordInteractionType) => Promise<void>;
-    public: boolean;
-    guilds?: Snowflake[];
-    permissions?: PermissionsExt[];
-}
-
-export interface ClientExt extends Client {
-    config?: any;
-    commands?: Collection<any, any>;
-    interactions?: Collection<any, any>;
-    gameFeeds?: GameFeedManager;
-    modFeeds?: ModFeedManager;
-    newsFeed?: NewsFeedManager;
 }
