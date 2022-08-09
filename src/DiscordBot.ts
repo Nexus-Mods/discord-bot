@@ -1,4 +1,4 @@
-import { Client, Collection, ApplicationCommandData, GatewayIntentBits, Routes } from 'discord.js';
+import { Client, Collection, ApplicationCommandData, GatewayIntentBits, Routes, Snowflake } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import * as fs from 'fs';
 import path from 'path';
@@ -18,7 +18,8 @@ const intents: GatewayIntentBits[] = [
 export class DiscordBot {
     private static instance: DiscordBot;
 
-    private token: string = process.env.D_TOKEN as string;
+    private token: Snowflake = process.env.D_TOKEN as Snowflake;
+    private clientId: Snowflake = process.env.CLIENT_ID as Snowflake;
     private client: ClientExt = new Client({ intents });
     private rest: REST = new REST({ version: '10' }).setToken(this.token);
 
@@ -82,12 +83,12 @@ export class DiscordBot {
     }
 
     private async setInteractions(): Promise<void> {
-        logMessage('Settings interaction commands');
+        logMessage('Setting interaction commands');
         if (!this.client.interactions) this.client.interactions = new Collection();
         if (!this.client.application?.owner) await this.client.application?.fetch();
         
         const interactionFiles: string[] = fs.readdirSync(path.join(__dirname, 'interactions'))
-            .filter(i => i.toLowerCase().endsWith('.js'));
+            .filter(i => i.toLowerCase().endsWith('.js'));6
 
         let globalCommandsToSet : ApplicationCommandData[] = []; //Collect all global commands
         let guildCommandsToSet : {[guild: string] : ApplicationCommandData[]} = {}; // Collect all guild-specific commands. 
@@ -96,7 +97,7 @@ export class DiscordBot {
         // TODO! - Get the commands list per-server from the database 
 
         for (const file of interactionFiles) {
-            const interaction: DiscordInteraction = require(path.join(__dirname, 'interactions', file)).default;
+            const interaction: DiscordInteraction = require(path.join(__dirname, 'interactions', file)).discordInteraction;
             if (!interaction) continue;
             // Add all valid interactions to the main array.
             allInteractions.push(interaction);
@@ -109,33 +110,38 @@ export class DiscordBot {
                     guildCommandsToSet[interaction.guilds[guild]].push(interaction.command.toJSON());
                 }
             }
-            logMessage('Setting interaction', interaction);
             this.client.interactions?.set(interaction.command.name, interaction);
         }
 
         // Now we have the commands organised, time to set them up. 
+        logMessage('Setting up interactions', { count: allInteractions.length });
 
         // Set global commands
         try {
-            await this.rest.put(
-                Routes.applicationCommands(this.token),
-                { body: globalCommandsToSet }
-            );
+            if (globalCommandsToSet.length) {
+                await this.rest.put(
+                    Routes.applicationCommands(this.clientId),
+                    { body: globalCommandsToSet }
+                );
+            }
+            else logMessage('No global commands to set', {}, true);
         }
         catch(err) {
-            logMessage('Error setting global interactions', err, true);
+            logMessage('Error setting global interactions', {err, commands: globalCommandsToSet.map(c => c.name)}, true);
+            await this.client.application?.commands.set(globalCommandsToSet).catch(() => logMessage('Failed fallback command setter.'));
         }
 
         // Set guild commands
         for (const guildId of Object.keys(guildCommandsToSet)) {
             try {
                 await this.rest.put(
-                    Routes.applicationGuildCommands(this.token, guildId),
+                    Routes.applicationGuildCommands(this.clientId, guildId),
                     { body: guildCommandsToSet[guildId] }
                 )
             }
             catch(err) {
-                logMessage('Error setting guild interactions', { guildId, err }, true);
+                const guild = await this.client.guilds.fetch(guildId).catch(() => undefined)
+                logMessage('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) }, true);
             }
         }
 
