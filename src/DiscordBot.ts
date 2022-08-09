@@ -1,13 +1,19 @@
-import { Client, Collection, Snowflake, ApplicationCommandData, ApplicationCommand, Guild, ApplicationCommandPermissionData, IntentsString } from 'discord.js';
+import { Client, Collection, Snowflake, ApplicationCommandData, ApplicationCommand, Guild, GatewayIntentBits } from 'discord.js';
 import { DiscordInteraction } from './types/util';
 import * as fs from 'fs';
 import path from 'path';
 import { logMessage } from './api/util';
 import { ClientExt } from "./types/util";
+import { DiscordEventInterface } from './types/DiscordTypes';
 
-const intents: IntentsString[] = [
-    'GUILDS', 'DIRECT_MESSAGES', 'GUILD_MESSAGES', 'GUILD_MEMBERS', 
-    'GUILD_WEBHOOKS', 'GUILD_MESSAGE_REACTIONS', 'GUILD_INTEGRATIONS'
+const intents: GatewayIntentBits[] = [
+    GatewayIntentBits.Guilds, 
+    GatewayIntentBits.DirectMessages, 
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildWebhooks,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildIntegrations
 ];
 
 export class DiscordBot {
@@ -27,61 +33,47 @@ export class DiscordBot {
         return DiscordBot.instance;
     }
 
-    connect(): void {
-        this.client
-            .login(process.env.D_TOKEN)
-            .then(async () => {
-                logMessage('Connected to Discord');
-                await this.client.application?.fetch();
-                this.setSlashCommands();
-            })
-            .catch(err => {
-                logMessage(`Could not connect to Discord. Error: ${err.message}`);
-                process.exit();
-            });
-    }
-
     private initializeClient(): void {
-        if (!this.client) return;
+        if (!this.client) return logMessage('Could not initialise DiscordBot, client is not defined.', {}, true);
         
         this.client.config = require(path.join(__dirname, 'config.json'));
         this.client.application?.fetch();
         this.setEventHandler();
-        this.setCommands();
+    }
+
+    public async connect(): Promise<void> {
+        try {
+            await this.client.login(process.env.D_TOKEN);
+            logMessage('Connected to Discord');
+            await this.client.application?.fetch();
+        }
+        catch(err) {
+            logMessage('Failed to connect to Discord during bot setup', { error: (err as Error).message }, true);
+            return process.exit();
+        }
+
+        try {
+            await this.setSlashCommands();
+        }
+        catch(err) {
+            logMessage('Failed to set interactions', err, true);
+        }
     }
 
     private setEventHandler(): void {
         try {
             const events: string[] = fs.readdirSync(path.join(__dirname, 'events'));
             events.filter(e => e.endsWith('.js')).forEach((file) => {
-                const event = require(path.join(__dirname, 'events', file));
+                const event: DiscordEventInterface = require(path.join(__dirname, 'events', file)).default;
                 const eventName: string = file.split(".")[0];
-                this.client.on(eventName, event.default.bind(null, this.client));
+                if (event.once) this.client.once(eventName, event.execute.bind(null, this.client));
+                else this.client.on(eventName, event.execute.bind(null, this.client));
             });
             logMessage('Registered to receive events:', events.map(e => path.basename(e, '.js')).join(', '));
         }
         catch(err) {
             return logMessage('Error reading events directory during startup.', err, true);
         }
-    }
-
-    private setCommands(): void {
-        if (!this.client.commands) this.client.commands = new Collection();
-
-        try {
-            const commands: string[] = fs.readdirSync(path.join(__dirname, 'commands'));
-            commands.filter(f => f.endsWith('.js')).forEach((file: string) => {
-                const props = require(path.join(__dirname, 'commands', file));
-                const commandName: string = file.split(".")[0];
-                this.client.commands?.set(commandName, props);
-            });
-            logMessage('Registered text commands', this.client.commands.size);
-        }
-        catch (err) {
-            if ((err as any).code === 'ENOENT') return;
-            return logMessage('Error reading commands directory during startup.', err, true);
-        }
-
     }
 
     private async setSlashCommands(): Promise<void> {

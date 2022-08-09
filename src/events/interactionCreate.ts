@@ -1,30 +1,35 @@
-import { Interaction, MessageContextMenuInteraction, CommandInteraction, UserContextMenuInteraction, InteractionReplyOptions } from 'discord.js';
+import { Interaction, MessageContextMenuCommandInteraction, CommandInteraction, UserContextMenuCommandInteraction, InteractionReplyOptions } from 'discord.js';
 import { ClientExt } from "../types/util";
 import { DiscordInteraction, DiscordInteractionType } from '../types/util';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
+import { DiscordEventInterface } from '../types/DiscordTypes';
 
 const ignoreErrors: string[] = [ 
     'Unknown interaction', 
     'The user aborted a request.' 
 ];
 
-async function main(client: ClientExt, i: Interaction) {
-    if (!i) return; // Probably a button interaction or something? 
-    const interaction = resolveCommandType(i);
-    if (!interaction) return;
+const main: DiscordEventInterface = {
+    name: 'interactionCreate',
+    once: false,
+    async execute(client: ClientExt, i: Interaction) {
+        if (!i) return; // Probably a button interaction or something? 
+        const interaction = resolveCommandType(i);
+        if (!interaction) return;
 
-    const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
-    if (!interact) return logMessage('Invalid interaction requested', {name: interaction.commandName, i: client.interactions, commands: await interaction.guild?.commands.fetch()}, true);
-    else {
-        logMessage('Interaction Triggered', 
-        { 
-            command: !i.isCommand() ? interaction.commandName : interaction.toString(),
-            requestedBy: interaction.user.tag, 
-            server: `${interaction.guild?.name} (${interaction.guildId})`,
-            channelName: (interaction.channel as any)?.name,
+        const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
+        if (!interact) return logMessage('Invalid interaction requested', {name: interaction.commandName, i: client.interactions, commands: await interaction.guild?.commands.fetch()}, true);
+        else {
+            logMessage('Interaction Triggered', 
+            { 
+                command: !i.isCommand() ? interaction.commandName : interaction.toString(),
+                requestedBy: interaction.user.tag, 
+                server: `${interaction.guild?.name} (${interaction.guildId})`,
+                channelName: (interaction.channel as any)?.name,
+            }
+            );
+            interact.action(client, interaction).catch(err => {sendUnexpectedError(interaction, i, err)});
         }
-        );
-        interact.action(client, interaction).catch(err => {sendUnexpectedError(interaction, i, err)});
     }
 }
 
@@ -60,8 +65,8 @@ export async function sendUnexpectedError(interaction:DiscordInteractionType|und
 
 export function resolveCommandType(interaction: Interaction): DiscordInteractionType|undefined {
     if (interaction.isCommand()) return (interaction as CommandInteraction);
-    else if (interaction.isUserContextMenu()) return (interaction as UserContextMenuInteraction);
-    else if (interaction.isMessageContextMenu()) return (interaction as MessageContextMenuInteraction);
+    else if (interaction.isUserContextMenuCommand()) return (interaction as UserContextMenuCommandInteraction);
+    else if (interaction.isMessageContextMenuCommand()) return (interaction as MessageContextMenuCommandInteraction);
 } 
 
 
