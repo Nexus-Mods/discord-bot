@@ -43,6 +43,7 @@ export class DiscordBot {
     }
 
     public async connect(): Promise<void> {
+        logMessage('Attempting to log in.')
         try {
             await this.client.login(this.token);
             logMessage('Connected to Discord');
@@ -69,6 +70,7 @@ export class DiscordBot {
             events.filter(e => e.endsWith('.js')).forEach((file) => {
                 const event: DiscordEventInterface = require(path.join(__dirname, 'events', file)).default;
                 const eventName: string = file.split(".")[0];
+                if (!event.execute) return;
                 if (event.once) this.client.once(eventName, event.execute.bind(null, this.client));
                 else this.client.on(eventName, event.execute.bind(null, this.client));
             });
@@ -94,7 +96,7 @@ export class DiscordBot {
         // TODO! - Get the commands list per-server from the database 
 
         for (const file of interactionFiles) {
-            const interaction: DiscordInteraction = require(path.join(__dirname, 'interactions', file));
+            const interaction: DiscordInteraction = require(path.join(__dirname, 'interactions', file)).default;
             if (!interaction) continue;
             // Add all valid interactions to the main array.
             allInteractions.push(interaction);
@@ -107,6 +109,7 @@ export class DiscordBot {
                     guildCommandsToSet[interaction.guilds[guild]].push(interaction.command.toJSON());
                 }
             }
+            logMessage('Setting interaction', interaction);
             this.client.interactions?.set(interaction.command.name, interaction);
         }
 

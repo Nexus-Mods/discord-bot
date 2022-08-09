@@ -1,7 +1,7 @@
-import { Message, MessageEmbed } from 'discord.js';
+import { Message, EmbedBuilder } from 'discord.js';
 
-function errorReply(e: Error, message: Message): MessageEmbed {
-    const errEmbed = new MessageEmbed()
+function errorReply(e: Error, message: Message): EmbedBuilder {
+    const errEmbed = new EmbedBuilder()
     .setAuthor({ name: 'Error', iconURL: 'https://i.imgur.com/GkXTERx.png'})
     .setColor('#ff0000')
     .setDescription(getText(e))

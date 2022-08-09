@@ -1,7 +1,7 @@
 import { IModInfo } from "@nexusmods/nexus-api";
 import { 
-    GuildMember, Embed, APIEmbedField, 
-    ActionRow, MessageActionRowComponent
+    GuildMember, APIEmbedField, 
+    ActionRow, MessageActionRowComponent, EmbedBuilder
 } from "discord.js";
 
 export interface InfoResult {
@@ -67,6 +67,6 @@ export interface InfoCache {
 
 export interface PostableInfo {
     content?: string;
-    embeds?: Embed[];
+    embeds?: EmbedBuilder[];
     components?: ActionRow<MessageActionRowComponent>[]; 
 }

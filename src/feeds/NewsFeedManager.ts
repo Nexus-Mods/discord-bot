@@ -1,8 +1,8 @@
 import { NewsArticle, SavedNewsData } from '../types/feeds';
 import { updateSavedNews, getSavedNews, getAllServers } from '../api/bot-db';
-import { ClientExt } from "../types/util";
+import { ClientExt } from "../types/DiscordTypes";
 import Parser = require('rss-parser');
-import { MessageEmbed, Guild, GuildChannel, Snowflake, ThreadChannel } from 'discord.js';
+import { EmbedBuilder, Guild, GuildChannel, Snowflake, ThreadChannel } from 'discord.js';
 import { BotServer } from '../types/servers';
 import { logMessage } from '../api/util';
 const parser = new Parser({
@@ -53,7 +53,7 @@ export class NewsFeedManager {
         return await getSavedNews();
     }
 
-    private async checkNews(domain?: string|null): Promise<MessageEmbed|SavedNewsData|undefined> {
+    private async checkNews(domain?: string|null): Promise<EmbedBuilder|SavedNewsData|undefined> {
         const dom: string = domain ? `${domain}/` : '';
         const url = `https://www.nexusmods.com/${dom}rss/news`;
 
@@ -67,7 +67,7 @@ export class NewsFeedManager {
                 return stored;
             };
 
-            const post: MessageEmbed = buildEmbed(NewsFeedManager.instance.client, latest);
+            const post: EmbedBuilder = buildEmbed(NewsFeedManager.instance.client, latest);
             let allServers = await getAllServers()
                 .catch((err) => {
                     logMessage('Error getting servers to post news update.', err, true);
@@ -105,7 +105,7 @@ export class NewsFeedManager {
 
     }
 
-    async forceUpdate(domain?: string|null): Promise<MessageEmbed|SavedNewsData|undefined> {
+    async forceUpdate(domain?: string|null): Promise<EmbedBuilder|SavedNewsData|undefined> {
         clearInterval(NewsFeedManager.instance.updateTimer);
         NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
         logMessage('Forced news feed update check', domain || 'all');
@@ -113,14 +113,14 @@ export class NewsFeedManager {
     }
 }
 
-function buildEmbed(client: ClientExt, news: NewsArticle): MessageEmbed {
-    const embed = new MessageEmbed()
+function buildEmbed(client: ClientExt, news: NewsArticle): EmbedBuilder {
+    const embed = new EmbedBuilder()
     .setTitle(decodeURI(news.title))
     .setURL(news.link)
     .setImage(news.enclosure?.url)
     .setDescription(`${decodeURI(news["nexusmods:plain_description"].substr(0, 250))}...`)
     .setFooter({text: `${news.categories.toString()} - ${news.author}`, iconURL: client.user?.avatarURL() || undefined })
-    .setTimestamp(news.pubDate)
+    .setTimestamp(new Date(news.pubDate))
     .setColor(0xda8e35);
     return embed;
 }

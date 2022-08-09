@@ -4,8 +4,9 @@ import { DiscordBot } from './DiscordBot';
 require('dotenv').config();
 
 const bot = DiscordBot.getInstance();
+start();
 
-(async () => {
+async function start() {
     try {
         await bot.connect();
     }
@@ -21,4 +22,4 @@ const bot = DiscordBot.getInstance();
         logMessage('Failed to set up Discord bot interactions', err, true);
         process.exit();
     }
-})
+}

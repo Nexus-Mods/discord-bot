@@ -1,4 +1,3 @@
-import { ClientExt } from '../types/util';
 import { GameFeedManager } from '../feeds/GameFeedManager';
 import { EmbedBuilder, Guild, TextChannel, ActivityType, NonThreadGuildBasedChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
@@ -6,7 +5,7 @@ import { BotServer } from '../types/servers';
 import { ModFeedManager } from '../feeds/ModFeedManager';
 import { NewsFeedManager } from '../feeds/NewsFeedManager';
 import { logMessage } from '../api/util';
-import { DiscordEventInterface } from '../types/DiscordTypes';
+import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
 
 // Prepare the online status embed for quick reuse.
 const onlineEmbed = new EmbedBuilder({

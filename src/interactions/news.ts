@@ -38,7 +38,7 @@ async function action(client: ClientExt, interaction: ChatInputCommandInteractio
         let embed: EmbedBuilder;
         if (!(latest as EmbedBuilder)) {
             embed = new EmbedBuilder()
-            .setTitle(latest?.title || 'Unknown')
+            .setTitle((latest as SavedNewsData)?.title || 'Unknown')
             .setTimestamp((latest as SavedNewsData)?.date);
         }
         else embed = latest as EmbedBuilder;

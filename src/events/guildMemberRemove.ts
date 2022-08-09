@@ -1,8 +1,7 @@
 import { Guild, GuildMember, User } from 'discord.js';
-import { ClientExt } from "../types/util";
 import { getUserByDiscordId, deleteServerLink } from '../api/bot-db';
 import { logMessage } from '../api/util';
-import { DiscordEventInterface } from '../types/DiscordTypes';
+import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
 
 const main: DiscordEventInterface = {
     name: 'guildMemberRemove',

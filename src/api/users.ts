@@ -1,7 +1,7 @@
 import query from '../api/dbConnect';
 import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
-import { Client, MessageEmbed, Message, User, Guild, Snowflake } from 'discord.js';
+import { Client, EmbedBuilder, User, Guild, Snowflake } from 'discord.js';
 import { getModsbyUser, getLinksByUser } from './bot-db';
 
 async function getAllUsers(): Promise<NexusUser[]> {
@@ -86,7 +86,7 @@ async function updateUser(discordId: string, newUser: any): Promise<boolean> {
     });
 }
 
-async function userEmbed(userData: NexusUser, client: Client): Promise<MessageEmbed> {
+async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuilder> {
     const discordUser: User = await client.users.fetch(userData.d_id);
     if (!discordUser) return Promise.reject('Unknown User');
     const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
@@ -95,10 +95,14 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<MessageEm
         let downloads: number = mods.reduce((prev, cur) => prev = prev + cur.total_downloads, 0);
         return downloads;
     }
-    let embed = new MessageEmbed()
+    let embed = new EmbedBuilder()
     .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || ''})
-    .addField("Nexus Mods", `[${userData.name}](https://nexusmods.com/users/${userData.id})\n${userData.premium ? "Premium Member" : userData.supporter ? "Supporter" : "Member"}`, true)
-    .addField("Discord", `${discordUser.toString()}\n${discordUser.tag}`, true)
+    .addFields({ 
+        name:  "Nexus Mods", 
+        value: `[${userData.name}](https://nexusmods.com/users/${userData.id})\n${userData.premium ? "Premium Member" : userData.supporter ? "Supporter" : "Member"}`, 
+        inline: true
+    })
+    .addFields({ name: "Discord", value: `${discordUser.toString()}\n${discordUser.tag}`, inline: true})
     .setColor(0xda8e35)
     .setThumbnail(userData.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
     .setTimestamp(userData.lastupdate)
@@ -106,7 +110,7 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<MessageEm
     if (mods && mods.length) {
         let modData = mods.sort(modsort).map( mod => `[${mod.name}](https://nexusmods.com/${mod.path}) - ${mod.game}`);
         if (modData.length > 5) modData = modData.slice(0,4); //Only show a maximum of 5.
-        embed.addField(`My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, `${modData.join("\n")}\n-----\n[**See all of ${userData.name}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${userData.id}?tab=user+files)`)
+        embed.addFields({ name: `My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, value: `${modData.join("\n")}\n-----\n[**See all of ${userData.name}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${userData.id}?tab=user+files)`})
     }
     // Show guilds.
     let guilds: string[] = servers.map((link: NexusUserServerLink) => {
@@ -118,7 +122,7 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<MessageEm
         guilds = guilds.splice(0,4);
         guilds.push(`and ${total - 5} more...`);
     } 
-    embed.addField(`Account connected in ${servers.length} server(s)`, guilds.join(", ") || "None");
+    embed.addFields({ name: `Account connected in ${servers.length} server(s)`, value: guilds.join(", ") || "None"});
 
     return embed;
 }
