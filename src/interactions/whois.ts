@@ -1,36 +1,30 @@
-import { DiscordInteraction } from "../types/util";
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed } from '../api/bot-db';
-import { CommandInteraction, Snowflake, MessageEmbed, Client, User, Interaction, CommandInteractionOption } from "discord.js";
-import { ClientExt } from "../types/util";
+import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction } from "discord.js";
 import { logMessage } from "../api/util";
 
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'whois',
-        description: 'Find another user\'s profile card by Nexus Mods name or Discord ID.',
-        options: [
-            {
-                name: 'discord',
-                type: 'USER',
-                description: 'Discord account',
-                required: false,
-            },
-            {
-                name: 'nexus',
-                type: 'STRING',
-                description: 'Nexus Mods account',
-                required: false,
-            },
-            {
-                name: 'private',
-                type: 'BOOLEAN',
-                description: 'Should the result only be shown to you?',
-                required: false,
-            }
-        ]
-    },
+    command: new SlashCommandBuilder()
+    .setName('whois')
+    .setDescription('Find another user\'s profile card by Nexus Mods name or Discord ID.')
+    .addUserOption(option => 
+      option.setName('discord')
+      .setDescription('Discord account')
+      .setRequired(false)
+    )
+    .addStringOption(option => 
+        option.setName('nexus')
+        .setDescription('Nexus Mods account') 
+        .setRequired(false)   
+    )
+    .addBooleanOption(option => 
+        option.setName('private')
+        .setDescription('Should the result only be shown to you?')    
+        .setRequired(false)
+    )
+    .setDMPermission(false),
     public: true,
     guilds: [
         '581095546291355649'
@@ -38,8 +32,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
     const show: boolean = !!showValue ? (showValue.value as boolean) : true;
@@ -127,8 +121,8 @@ const botUser = (client: Client): NexusUser => {
     }
 }
 
-const notAllowed = (client: Client): MessageEmbed => {
-    return new MessageEmbed()
+const notAllowed = (client: Client): EmbedBuilder => {
+    return new EmbedBuilder()
     .setTitle('⛔  Profile Unavailable')
     .setColor('#ff0000')
     .setDescription('The user you are looking for is not a member of this server.')

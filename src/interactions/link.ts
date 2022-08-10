@@ -1,21 +1,20 @@
-import { CommandInteraction, Snowflake, MessageEmbed, Client, Interaction, Guild } from "discord.js";
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, Interaction, Guild, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
-import { DiscordInteraction } from "../types/util";
+import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink, getUserByNexusModsId, deleteUser } from '../api/bot-db';
 import { validate } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'link',
-        description: 'Link your Nexus Mods account to Discord.',
-        options: [{
-            name: 'apikey',
-            type: 'STRING',
-            description: 'Provide your API key for your Nexus Mods account',
-            required: false,
-        }]
-    },
+    command: new SlashCommandBuilder()
+    .setName('link')
+    .setDescription('Link your Nexus Mods account to Discord.')
+    .addStringOption(option => 
+        option.setName('apikey')
+        .setDescription('Provide your API key for your Nexus Mods account.')
+    )
+    .setDMPermission(true)
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     public: true,
     guilds: [
         '581095546291355649'
@@ -23,8 +22,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Link interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, apikey: !!interaction.options.getString('apikey') });
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
@@ -61,8 +60,8 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     }
 }
 
-const sendKeyEmbed = (client: Client, interaction: CommandInteraction ): MessageEmbed => {
-    const embed = new MessageEmbed()
+const sendKeyEmbed = (client: Client, interaction: CommandInteraction ): EmbedBuilder => {
+    const embed = new EmbedBuilder()
     .setTitle('Please send your API key to link your Nexus Mods account')
     .setColor(0xda8e35)
     .setURL('https://www.nexusmods.com/users/myaccount?tab=api+access')

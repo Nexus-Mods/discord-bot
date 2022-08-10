@@ -1,16 +1,15 @@
-import { CommandInteraction, Client, User, Role, Interaction, Guild, Collection, GuildMember } from "discord.js";
-import { DiscordInteraction, } from "../types/util";
+import { CommandInteraction, Client, User, Role, Interaction, Guild, Collection, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { DiscordInteraction, } from "../types/DiscordTypes";
 import { getAllUsers, updateRoles, getServer, getLinksByServer, deleteServerLink } from '../api/bot-db';
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { logMessage } from "../api/util";
-import { BotServer } from "../types/servers";
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'roleaudit',
-        description: 'Clean up bot-issued roles in this server.',
-        options: []
-    },
+    command: new SlashCommandBuilder()
+    .setName('roleaudit')
+    .setDescription('Clean up bot-issued roles in this server.')
+    .setDMPermission(false)
+    .setDefaultMemberPermissions(0),
     public: false,
     guilds: [
         '232168805038686208',
@@ -20,10 +19,10 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = baseinteraction as CommandInteraction;
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
-    if (!interaction.memberPermissions?.toArray().includes('ADMINISTRATOR')) return interaction.editReply('You do not have permission to use this command.');
+    if (!interaction.memberPermissions?.toArray().includes('Administrator')) return interaction.editReply('You do not have permission to use this command.');
 
     // Get the roles from the bot
     const guild: Guild | null = interaction.guild;

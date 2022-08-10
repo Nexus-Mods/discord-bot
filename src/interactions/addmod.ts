@@ -1,5 +1,6 @@
-import { CommandInteraction, EmbedFieldData, Client, MessageEmbed, Interaction } from "discord.js";
-import { DiscordInteraction, ModDownloadInfo, NexusSearchModResult } from "../types/util";
+import { Client, EmbedBuilder, APIEmbedField, SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction } from "discord.js";
+import { ModDownloadInfo, NexusSearchModResult } from "../types/util";
+import { DiscordInteraction } from '../types/DiscordTypes';
 import { NexusUser, NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from '../api/bot-db';
 import { logMessage } from "../api/util";
@@ -9,16 +10,15 @@ import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 const modUrlExp = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i;
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'addmod',
-        description: 'Associate a mod with your Discord account.',
-        options: [{
-            name: 'searchterm',
-            type: 'STRING',
-            description: 'Add links or search terms for mods to add, comma separated.',
-            required: true,
-        }]
-    },
+    command: new SlashCommandBuilder()
+    .setName('addmod')
+    .setDescription('Associated a mod with your Discord account.')
+    .addStringOption(option => 
+      option.setName('searchterm')  
+      .setDescription('Add links or search terms for mods to add, comma separated.')
+      .setRequired(true)
+    )
+    .setDMPermission(true),
     public: true,
     guilds: [
         '581095546291355649'
@@ -26,12 +26,12 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-interface SearchError extends EmbedFieldData {
+interface SearchError extends APIEmbedField {
     error: boolean;
 }
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('AddMod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
 
@@ -48,7 +48,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 
     logMessage('Looking up mods', { name: user.name, discord: interaction.user.tag, urlQueries, strQueries });
 
-    const searchingEmbed: MessageEmbed = new MessageEmbed()
+    const searchingEmbed: EmbedBuilder = new EmbedBuilder()
     .setTitle(`Checking ${args.length} search terms(s)...`)
     .setDescription(args.join('\n'))
     .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
@@ -60,19 +60,19 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     try {
         const gameList: IGameInfo[] = await games(user);
 
-        const urlResults: (EmbedFieldData[] | SearchError[]) = await Promise.all(
+        const urlResults: (APIEmbedField[] | SearchError[]) = await Promise.all(
             urlQueries.map((url: string) => urlCheck(url, mods, gameList, user))
         );
-        const strResults: (EmbedFieldData[] | SearchError[]) = await Promise.all(
+        const strResults: (APIEmbedField[] | SearchError[]) = await Promise.all(
             strQueries.map((query: string) => stringCheck(query, mods, gameList, user))
         );
 
-        const allResults: (EmbedFieldData | SearchError)[] = urlResults.concat(strResults).filter(r => r !== undefined);
-        const addedMods: EmbedFieldData[] = allResults.filter(r => (r as EmbedFieldData) && !(r as SearchError).error);
+        const allResults: (APIEmbedField | SearchError)[] = urlResults.concat(strResults).filter(r => r !== undefined);
+        const addedMods: APIEmbedField[] = allResults.filter(r => (r as APIEmbedField) && !(r as SearchError).error);
         logMessage('Added mods', { user: interaction.user.tag, mods: addedMods.length });
 
         searchingEmbed.setTitle('Adding mods complete')
-        .setDescription('')
+        .setDescription(null)
         .addFields(allResults.slice(0, 24));
 
         await interaction.editReply({ embeds: [ searchingEmbed ] });
@@ -90,7 +90,7 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
 
 }
 
-async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<EmbedFieldData | SearchError> {
+async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<APIEmbedField | SearchError> {
     let modName: string|undefined = undefined;
 
     try {
@@ -124,7 +124,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
             }
         }
 
-        if (modData.user.member_id !== user.id) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domain_name}/mods/${modData.mod_id}) was uploaded by [${modData.user.name}](https://www.nexusmods.com/users/${modData.user.member_id}) so it cannot be added to your account.`);
+        if (modData.user.member_id != user.id) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domain_name}/mods/${modData.mod_id}) was uploaded by [${modData.user.name}](https://www.nexusmods.com/users/${modData.user.member_id}) so it cannot be added to your account.`);
 
         if (!modData.name) throw new Error(`[Mod #${modId}](${url}) for ${game.name} could not be added as it doesn't seem to have a title. Please try again in a few minutes.`);
         
@@ -148,17 +148,18 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         return { name: modName, value: `- [${newMod.name}](${url}) added.` };
     }
     catch(err) {
-        return { name: modName || link, value: (err as Error).message, error: true };
+        logMessage('Error creating mod entry', {err, modName, link}, true);
+        return { name: modName || link, value: `Error: ${(err as Error).message}`, error: true };
     }
 
 }
 
-async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<EmbedFieldData | SearchError> {
+async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameInfo[], user: NexusUser): Promise<APIEmbedField | SearchError> {
 
     try {
         const search: NexusSearchModResult[] = (await quicksearch(query, true).catch(() => { return { results: [] } } )).results;
         const filteredResult: NexusSearchModResult[] = 
-            search.filter(mod => mod.user_id === user.id && !mods.find(m => m.mod_id === mod.mod_id && m.domain === mod.game_name));
+            search.filter(mod => mod.user_id == user.id && !mods.find(m => m.mod_id === mod.mod_id && m.domain === mod.game_name));
 
         if (!filteredResult.length) throw new Error(`No matching mods created by ${user.name}`);
 
@@ -186,10 +187,10 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
             }
         ));
 
-        return { name: query, value: messages.join('\n').substr(0, 1024) };
+        return { name: query, value: messages.join('\n').substring(0, 1024) };
     }
     catch(err) {
-        return { name: query, value: (err as Error).message, error: true };
+        return { name: query, value: `Error: ${(err as Error).message}`, error: true };
     }
 
 }

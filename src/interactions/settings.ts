@@ -1,9 +1,8 @@
-import { CommandInteraction, Client, Guild, MessageEmbed, Role, ThreadChannel, GuildChannel, GuildMember, Interaction } from "discord.js";
-import { DiscordInteraction, } from "../types/util";
+import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { NexusUser } from "../types/users";
 import { BotServer } from "../types/servers";
-import { ClientExt } from "../types/util";
+import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { games } from "../api/nexus-discord";
@@ -17,126 +16,77 @@ interface BotServerChange {
 }
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'settings',
-        description: 'Adjust settings for this bot in your server.',
-        options: [
-            {
-                name: 'view',
-                type: 'SUB_COMMAND',
-                description: 'View the current settings for this server',
-                options: []
-            },
-            {
-                name: 'update',
-                type: 'SUB_COMMAND_GROUP',
-                description: 'Update the settings for this server',
-                options: [
-                    {
-                        name: 'filter',
-                        type: 'SUB_COMMAND',
-                        description: 'The game to used for mod search commands',
-                        options: [
-                            {
-                                name: 'game',
-                                type: 'STRING',
-                                description: 'The domain name or title (must be exact). e.g. Stardew Valley or stardewvalley'
-                            }
-                        ]
-                    },
-                    {
-                        name: 'role',
-                        type: 'SUB_COMMAND',
-                        description: 'The roles assigned by the bot.',
-                        options: [
-                            {
-                                name: 'type',
-                                type: 'STRING',
-                                description: 'The role type to edit.',
-                                required: true,
-                                choices: [
-                                    {
-                                        value: 'author',
-                                        name: 'Mod Author'
-                                    },
-                                    {
-                                        value: 'linked',
-                                        name: 'Linked to Nexus Mods'
-                                    },
-                                    {
-                                        value: 'premium',
-                                        name: 'Nexus Mods Premium'
-                                    },
-                                    {
-                                        value: 'supporter',
-                                        name: 'Nexus Mods Supporter'
-                                    }
-                                ]
-                            },
-                            {
-                                name: 'newrole',
-                                type: 'ROLE',
-                                description: 'Role to use. To unset, leave this blank.'
-                            }
-                        ]
-                    },
-                    {
-                        name: 'channel',
-                        type: 'SUB_COMMAND',
-                        description: 'Channels used by the bot.',
-                        options: [
-                            {
-                                name: 'type',
-                                type: 'STRING',
-                                description: 'The channel to edit',
-                                required: true,
-                                choices: [
-                                    {
-                                        value: 'replychannel',
-                                        name: 'Text-Command Reply Channel'
-                                    },
-                                    {
-                                        value: 'logchannel',
-                                        name: 'Activity Log'
-                                    }
-                                ]
-                            },
-                            {
-                                name: 'newchannel',
-                                type: 'CHANNEL',
-                                description: 'Channel to use. To unset, leave this blank.'
-                            }
-                        ]
-                    },
-                    {
-                        name: 'value',
-                        type: 'SUB_COMMAND',
-                        description: 'Update a setting value',
-                        options: [
-                            {
-                                name: 'key',
-                                type: 'STRING',
-                                description: 'The key to update',
-                                choices: [
-                                    {
-                                        value: 'authordownloads',
-                                        name: 'Minimum Unique Downloads to be considered a Mod Author'
-                                    }
-                                ],
-                                required: true
-                            },
-                            {
-                                name: 'newvalue',
-                                type: 'INTEGER',
-                                description: 'The numerical value to set',
-                            }
-                        ]
-                    }                  
-
-                ]
-            },
-        ]
-    },
+    command: new SlashCommandBuilder()
+    .setName('settings')
+    .setDescription('Adjust settings for this bot in your server.')
+    .addSubcommand(sc => 
+        sc.setName('view')
+        .setDescription('View the current settings for this server.')
+    )
+    .addSubcommandGroup(scg =>
+        scg.setName('update')
+        .setDescription('Update the settings for this server.')
+        .addSubcommand(sc => 
+            sc.setName('filter')
+            .setDescription('The game to used for mod search commands.')
+            .addStringOption(option =>
+                option.setName('game')   
+                .setDescription('The domain name or title (must be exact). e.g. Stardew Valley or stardewvalley.') 
+            )
+        )
+        .addSubcommand(sc => 
+            sc.setName('role')
+            .setDescription('The roles assigned by the bot.')
+            .addStringOption(option =>
+                option.setName('type')
+                .setDescription('The role type to edit.')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Mod Author', value: 'author' },
+                    { name: 'Linked to Nexus Mods', value: 'linked' },
+                    { name: 'Nexus Mods Premium', value: 'premium' },
+                    { name: 'Nexus Mods Supporter', value: 'supporter' },
+                )
+            )
+            .addRoleOption(option => 
+                option.setName('newrole')  
+                .setDescription('Role to use. To unset, leave this blank.')
+            )
+        )
+        .addSubcommand(sc => 
+            sc.setName('channel')
+            .setDescription('Channels used by the bot.')
+            .addStringOption(option =>
+                option.setName('type')
+                .setDescription('The channel to edit.')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Text-Command Reply Channel', value: 'replychannel' },
+                    { name: 'Activity Log', value: 'logchannel' }
+                )
+            )
+            .addChannelOption(option =>
+                option.setName('newchannel') 
+                .setDescription('Channel to use. To unset, leave this blank.')   
+            )
+        )
+        .addSubcommand(sc => 
+            sc.setName('value')
+            .setDescription('Channels used by the bot.')
+            .addStringOption(option =>
+                option.setName('key')
+                .setDescription('The key to update.')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Minimum Unique Downloads to be considered a Mod Author', value: 'authordownloads' }
+                )
+            )
+            .addIntegerOption(option =>
+                option.setName('newvalue')
+                .setDescription('The numerical value to set.')
+            )
+        )
+    ) as SlashCommandBuilder,
     public: true,
     guilds: [
         '581095546291355649'
@@ -144,8 +94,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Settings interaction triggered', 
     // { 
     //     user: interaction.user.tag, 
@@ -166,7 +116,7 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
     if (!guild) throw new Error('This interaction only works in a valid server');
 
     // Check we're dealing with a server admin.
-    if (!interaction.memberPermissions?.toArray().includes('ADMINISTRATOR') 
+    if (!interaction.memberPermissions?.toArray().includes('Administrator') 
     && !client.config.ownerID?.includes(discordId)) {
         return interaction.editReply('Server settings are only accessible by administrators');
     }
@@ -181,7 +131,7 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
 
         // Viewing the current settings
         if (!subComGroup && subCom === 'view') {
-            const view: MessageEmbed = await serverEmbed(client, guild, server, filterGame?.name);
+            const view: EmbedBuilder = await serverEmbed(client, guild, server, filterGame?.name);
             return interaction.editReply({ embeds: [view] });
         }
         // Update 
@@ -308,11 +258,11 @@ async function action(client: ClientExt, baseinteraction: Interaction): Promise<
     }
 }
 
-const updateEmbed = (data: BotServerChange): MessageEmbed => { 
+const updateEmbed = (data: BotServerChange): EmbedBuilder => { 
     const curVal = (data.cur as IGameInfo) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
     const newVal = (data.new as IGameInfo) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
     console.log({curVal, newVal, data});
-    return new MessageEmbed()
+    return new EmbedBuilder()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)
     .setDescription(`${data.name} updated from ${curVal || data.cur} to ${newVal || data.new}`);
@@ -325,7 +275,7 @@ function resolveFilter(games: IGameInfo[], term: string|null|undefined): IGameIn
     return game;
 }
 
-const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameName?: string): Promise<MessageEmbed> => {
+const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameName?: string): Promise<EmbedBuilder> => {
     const linkedRole: Role|null = server.role_linked ? guild.roles.resolve(server.role_linked) : null;
     const premiumRole: Role|null = server.role_premium ? guild.roles.resolve(server.role_premium) : null;
     const supporterRole: Role|null = server.role_supporter ? guild.roles.resolve(server.role_supporter) : null;
@@ -337,32 +287,34 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     const owner: GuildMember = await guild.fetchOwner();
     const minDownloads: Number = server.author_min_downloads ? parseInt(server.author_min_downloads) : 1000;
 
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
     .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })
     .setTitle(`Server Configuration - ${guild.name}`)
     .setDescription('Configure any of these options for your server by using the /settings command`')
     .setColor(0xda8e35)
-    .addField(
-        'Role Settings', 
-        'Set roles for linked accounts, mod authors and Nexus Mods memberships.\n\n'+
-        `**Connected Accounts:** ${linkedRole?.toString() || '*Not set*'}\n`+
-        `**Mod Authors:** ${authorRole?.toString() || '*Not set*'} (Users with ${minDownloads.toLocaleString()}+ unique downloads)\n`+
-        `**Supporter/Premium:** ${supporterRole?.toString() || '*Not set*'}/${premiumRole?.toString() || '*Not set*'}`
-    )
-    .addField(
-        'Channel Settings',
-        'Set a bot channel to limit bot replies to one place or set a channel for bot logging messages.\n\n'+
-        `**Reply Channel:** ${botChannel?.toString() || '*<any>*'}\n`+
-        `**Log Channel:** ${nexusChannel?.toString() || '*Not set*'}`
-    )
-    .addField(
-        'Search', 
-        `Showing ${server.game_filter ? `mods from ${gameName || server.game_filter}` : 'all games' }.`
-    )
+    .addFields([
+        {
+            name: 'Role Settings', 
+            value: 'Set roles for linked accounts, mod authors and Nexus Mods memberships.\n\n'+
+            `**Connected Accounts:** ${linkedRole?.toString() || '*Not set*'}\n`+
+            `**Mod Authors:** ${authorRole?.toString() || '*Not set*'} (Users with ${minDownloads.toLocaleString()}+ unique downloads)\n`+
+            `**Supporter/Premium:** ${supporterRole?.toString() || '*Not set*'}/${premiumRole?.toString() || '*Not set*'}`
+        },
+        {
+            name: 'Channel Settings',
+            value: 'Set a bot channel to limit bot replies to one place or set a channel for bot logging messages.\n\n'+
+            `**Reply Channel:** ${botChannel?.toString() || '*<any>*'}\n`+
+            `**Log Channel:** ${nexusChannel?.toString() || '*Not set*'}`
+        },
+        {
+            name: 'Search',
+            value: `Showing ${server.game_filter ? `mods from ${gameName || server.game_filter}` : 'all games' }.`
+        }
+    ])
     .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: client.user?.avatarURL() || '' });
 
-    if (newsChannel || logChannel) embed.addField('Depreciated Channels', `News: ${newsChannel?.toString() || 'n/a'}, Log: ${logChannel?.toString() || 'n/a'}`);
-    if (server.official) embed.addField('Official Nexus Mods Server', 'This server is an official Nexus Mods server, all bot functions are enabled.');
+    if (newsChannel || logChannel) embed.addFields({ name: 'Depreciated Channels', value: `News: ${newsChannel?.toString() || 'n/a'}, Log: ${logChannel?.toString() || 'n/a'}`});
+    if (server.official) embed.addFields({ name: 'Official Nexus Mods Server', value: 'This server is an official Nexus Mods server, all bot functions are enabled.'});
 
     return embed;
 }

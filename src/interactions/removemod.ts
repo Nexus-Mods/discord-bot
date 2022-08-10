@@ -1,23 +1,26 @@
-import { CommandInteraction, Client, MessageEmbed, MessageActionRow, MessageSelectMenu, MessageSelectOptionData, MessageButton, Message, Interaction } from "discord.js";
-import { DiscordInteraction, } from "../types/util";
+import { 
+    CommandInteraction, Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, 
+    Message, Interaction, ButtonStyle, SlashCommandBuilder, SelectMenuBuilder, 
+    SelectMenuOptionBuilder, 
+    ChatInputCommandInteraction
+} from "discord.js";
+import { DiscordInteraction, } from "../types/DiscordTypes";
 import { NexusUser, NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, deleteMod, updateAllRoles } from '../api/bot-db';
 import { logMessage } from '../api/util';
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'removemod',
-        description: 'Remove a mod associated with your Discord account.',
-    },
+    command: new SlashCommandBuilder()
+    .setName('removemod')
+    .setDescription('Remove a mod associated with your Discord account.'),
     public: true,
     guilds: [
         '581095546291355649'
     ],
     action
 }
-
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Remove mod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
@@ -31,26 +34,26 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     // If the user has no mods, we can exit here! 
     if (!mods.length) return interaction.editReply({ content: 'You do not have any mods linked to your profile.' });
 
-    const options: MessageSelectOptionData[] = mods.map((m, idx) => ({ label: m.name, description: m.game, value: m.path }));
+    const options: SelectMenuOptionBuilder[] = mods.map((m) =>  new SelectMenuOptionBuilder().setLabel(m.name).setDescription(m.game).setValue(m.path));
 
-    const components: MessageActionRow[] = [
-        new MessageActionRow()
+    const components: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = [
+        new ActionRowBuilder<SelectMenuBuilder>()
         .addComponents(
-            new MessageSelectMenu()
+            new SelectMenuBuilder()
             .setCustomId('mod-selector')
             .setPlaceholder('Select mods to remove...')
             .setMaxValues(options.length)
             .setMinValues(1)
             .addOptions(options)
         ),
-        new MessageActionRow()
+        new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
-            new MessageButton()
+            new ButtonBuilder()
             .setCustomId('cancel')
             .setLabel('Cancel')
-            .setStyle('SECONDARY'),
-            new MessageButton()
-            .setStyle('DANGER')
+            .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+            .setStyle(ButtonStyle.Danger)
             .setCustomId('remove-all')
             .setLabel('Remove All')
         )
@@ -98,8 +101,8 @@ async function removeMods (mods: NexusLinkedMod[]) {
     Promise.all(mods.map(async m => deleteMod(m)))
 }
 
-const selectEmbed = (client: Client, user: NexusUser): MessageEmbed => {
-    return new MessageEmbed()
+const selectEmbed = (client: Client, user: NexusUser): EmbedBuilder => {
+    return new EmbedBuilder()
     .setTitle('Select Mods to remove')
     .setDescription('Use the drop-down menu below to select which mods you wish to remove.')
     .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
@@ -107,9 +110,9 @@ const selectEmbed = (client: Client, user: NexusUser): MessageEmbed => {
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
 }
 
-const completedEmbed = (client: Client, user: NexusUser, modsRemoved: NexusLinkedMod[]): MessageEmbed => {
+const completedEmbed = (client: Client, user: NexusUser, modsRemoved: NexusLinkedMod[]): EmbedBuilder => {
     const modsText: string = modsRemoved.map(m => `- [${m.name}](https://nexusmods.com/${m.path})`).join('\n');
-    return new MessageEmbed()
+    return new EmbedBuilder()
     .setTitle('Mods Removed')
     .setDescription('The following mods have been successfully removed from your Discord account:\n'+modsText)
     .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')

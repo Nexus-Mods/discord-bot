@@ -1,10 +1,11 @@
 import { 
-    CommandInteraction, Snowflake, MessageEmbed, Client, 
+    CommandInteraction, Snowflake, EmbedBuilder, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
-    MessageActionRow, MessageButton, InteractionCollector, EmbedFieldData
+    ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
+    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType
 } from "discord.js";
 import { NexusUser } from "../types/users";
-import { DiscordInteraction } from "../types/util";
+import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
 import { games } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
@@ -12,66 +13,53 @@ import { IGameInfo } from "@nexusmods/nexus-api";
 import { GameFeed } from "../types/feeds";
 
 const discordInteraction: DiscordInteraction = {
-    command: {
-        name: 'gamefeed',
-        description: 'Game Feeds post new or updated mods every 10 minutes.',
-        options: [
-            {
-                name: 'about',
-                type: 'SUB_COMMAND',
-                description: 'Learn more about this feature.'
-            },
-            {
-                name: 'create',
-                type: 'SUB_COMMAND',
-                description: 'Create a Game Feed in this channel.',
-                options: [
-                    {
-                        name: 'game',
-                        description: 'The game name or domain ID',
-                        type: 'STRING',
-                        required: true
-                    }
-                ]
-            },
-            {
-                name: 'list',
-                type: 'SUB_COMMAND',
-                description: 'List Game Feeds for this server',
-            },
-            {
-                name: 'manage',
-                type: 'SUB_COMMAND',
-                description: 'Manage an existing Game Feed',
-                options: [
-                    {
-                        name: 'id',
-                        type: 'NUMBER',
-                        description: 'The ID of the existing feed',
-                        required: true
-                    },
-                    {
-                        name: 'message',
-                        type: 'STRING',
-                        description: 'Message to attach to Game Feed annoucements',
-                        required: false
-                    }
-                ]
-            }
-        ]
-    },
+    command: new SlashCommandBuilder()
+    .setName('gamefeed')
+    .setDescription('Game Feeds post new or updated mods every 10 minutes.')
+    .setDMPermission(false)
+    .addSubcommand(subcommand => 
+        subcommand.setName('about')
+        .setDescription('Learn more about this feature.')
+    )
+    .addSubcommand(subcommand => 
+        subcommand.setName('create')
+        .setDescription('Create a Game Feed in this channel.')
+        .addStringOption(option => 
+            option.setName('game')
+            .setDescription('The game name or domain ID')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(subcommand => 
+        subcommand.setName('list')
+        .setDescription('ist Game Feeds for this server.')
+    )
+    .addSubcommand(subcommand => 
+        subcommand.setName('manage')
+        .setDescription('Manage an existing Game Feed.')
+        .addNumberOption(option => 
+            option.setName('id')
+            .setDescription('The ID of the existing feed.')
+            .setRequired(true)
+        )
+        .addStringOption(option => 
+            option.setName('message')    
+            .setDescription('Message to attach to Game Feed annoucements.')
+            .setRequired(false)
+        )
+    ) as SlashCommandBuilder,
     public: true,
     guilds: [],
     action
 }
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
 
-    if (!interaction.memberPermissions?.toArray().includes('MANAGE_CHANNELS')) {
+    if (!interaction.memberPermissions?.toArray().includes('ManageChannels')) {
         // User is not a moderator. 
         await interaction.editReply('Gamefeeds can only be created or managed by server moderators with the "Manage Channels" permission.');
         return logMessage('Permission to create gamefeed denied', { user: interaction.user.tag, guild: interaction.guild?.name });
@@ -90,22 +78,30 @@ async function action(client: Client, baseinteraction: Interaction): Promise<any
     }
 }
 
-async function aboutGameFeeds(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<void> {
-    const aboutEmbed = new MessageEmbed()
+async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInteraction, user: NexusUser): Promise<void> {
+    const aboutEmbed = new EmbedBuilder()
     .setTitle('Game Feeds')
     .setDescription("Using this feature you can create a feed in this channel which will periodically report new and updated mods posted for the specfied game."+
     "\n\nTo set up the feed add the name or domain of the game to the `/gamefeed create` command e.g. \"Stardew Valley\" or \"stardewvalley\"."+
     "\n\nBy default adult content will only be included if the channel is marked NSFW in Discord."+
     "\n\n*The feed will use the API key linked to your account and can consume approximately 144 - 1500 requests per day depending on your settings and the number of mods posted.*")
-    .addField('Editing or Cancelling Game Feeds', 'To edit an existing feed, use `/gamefeed manage id:` followed by the number reference of your feed e.g. /gamefeed manage 117.')
-    .addField('Listing Active Game Feeds', 'To view a list of feeds in the current channel, use `/gamefeed list`.')
+    .addFields([
+        {
+            name: 'Editing or Cancelling Game Feeds',
+            value: 'To edit an existing feed, use `/gamefeed manage id:` followed by the number reference of your feed e.g. /gamefeed manage 117.',
+        },
+        {
+            name: 'Listing Active Game Feeds',
+            value: 'To view a list of feeds in the current channel, use `/gamefeed list'
+        }
+    ])
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
     interaction.editReply({ content: null, embeds: [aboutEmbed] });
 }
 
-async function createFeed(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<any> {
+async function createFeed(client: Client, interaction: ChatInputCommandInteraction, user: NexusUser): Promise<any> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     const query: string = interaction.options.getString('game') || '';
@@ -119,33 +115,31 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
         if (!game) throw new Error(`No matching games for ${query}`);
 
         // Bot permissions - we need to be able to manage webhooks.
-        const perms = interaction.guild?.me?.permissions?.toArray();
-        const channelPerms = interaction.channel ? interaction.guild?.me?.permissionsIn(interaction.channel as TextChannel).toArray() : [];
-        if (!perms || (!perms.includes('MANAGE_WEBHOOKS') && !perms.includes('ADMINISTRATOR'))) {
+        const perms = interaction.guild?.members?.me?.permissions?.toArray();
+        const channelPerms = interaction.channel ? interaction.guild?.members?.me?.permissionsIn(interaction.channel as TextChannel).toArray() : [];
+        if (!perms || (!perms.includes('ManageWebhooks') && !perms.includes('Administrator'))) {
             throw new Error('Missing permission: MANAGE_WEBHOOKS');
         }
-        if (!channelPerms || (!channelPerms.includes('MANAGE_WEBHOOKS') && !channelPerms.includes('ADMINISTRATOR'))) {
+        if (!channelPerms || (!channelPerms.includes('ManageWebhooks') && !channelPerms.includes('Administrator'))) {
             throw new Error('Missing channel permission: MANAGE_WEBHOOKS');
         }
 
         // Confirm with the user.
-        const confirm: MessageEmbed = confirmEmbed(client, interaction, game, user, nsfw);
-        const buttons: MessageActionRow = new MessageActionRow()
+        const confirm: EmbedBuilder = confirmEmbed(client, interaction, game, user, nsfw);
+        const buttons = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
-                new MessageButton({
-                    label: '✅ Confirm',
-                    style: 'PRIMARY',
-                    customId: 'confirm'
-                }),
-                new MessageButton({
-                    label: '❌ Cancel',
-                    style: 'SECONDARY',
-                    customId: 'cancel'
-                })
+                new ButtonBuilder()
+                .setLabel('✅ Confirm')
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId('confirm'),
+                new ButtonBuilder()
+                .setLabel('❌ Cancel')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('cancel')
             )
         interaction.editReply({ content: null, embeds: [confirm], components: [buttons] });
         const replyMsg = await interaction.fetchReply();
-        const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
+        const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ componentType: ComponentType.Button, time: 15000 });
         
         collector.on('collect', async (i) => {
             await i.deferUpdate().catch(undefined);
@@ -162,7 +156,7 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
             if (!gameHook) {
                 // There isn't already a webhook for this channel, so we need to create one. 
                 try {
-                    gameHook = await (interaction.channel as TextChannel).createWebhook('Nexus Mods Game Feed', { avatar: client.user?.avatarURL() || '', reason: 'Game feed'})
+                    gameHook = await (interaction.channel as TextChannel).createWebhook({ name: 'Nexus Mods Game Feed', avatar: client.user?.avatarURL() || '', reason: 'Game feed' });
                 }
                 catch(err) {
                     logMessage('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err}, true);
@@ -190,7 +184,7 @@ async function createFeed(client: Client, interaction: CommandInteraction, user:
                 await interaction.editReply({ content: 'Game Feed created successfully', components: [], embeds: [] });
                 logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).name, owner: interaction.user.tag });
                 const infoMsg = await interaction?.followUp({ content: null, embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch((err) => logMessage('Followup error', err, true));
-                if (perms.includes('MANAGE_MESSAGES')) await (infoMsg as Message)?.pin().catch((err) => logMessage('Pinning post error', err, true));
+                if (perms.includes('ManageMessages')) await (infoMsg as Message)?.pin().catch((err) => logMessage('Pinning post error', err, true));
                 return;
             }
             catch(err) {
@@ -213,7 +207,7 @@ async function listFeeds(client: Client, interaction: CommandInteraction, user: 
     const feeds: GameFeed[] = guildId ? await getGameFeedsForServer(guildId) : [];
     const displayableFeeds = feeds.slice(0, 23);
     
-    const feedFieldData: EmbedFieldData[] = displayableFeeds.map(f => {
+    const feedFieldData: APIEmbedField[] = displayableFeeds.map(f => {
         return {
             name: `${f.title} - (Feed ID: ${f._id})`,
             value: `Created by ${interaction.guild?.members.resolve(f.owner)?.toString() || '*Unknown*'} in <#${f.channel}>\n`+
@@ -222,7 +216,7 @@ async function listFeeds(client: Client, interaction: CommandInteraction, user: 
         }
     })
     
-    const embed: MessageEmbed = new MessageEmbed()
+    const embed: EmbedBuilder = new EmbedBuilder()
     .setTitle(`Game Feeds in ${interaction.guild?.name || 'this server'} (${feeds.length})`)
     .setDescription('To edit an existing feed, use the `/gamefeed manage` command and include the number reference of your feed e.g. /gamefeed manage id:1.')
     .setColor(0xda8e35)
@@ -232,7 +226,7 @@ async function listFeeds(client: Client, interaction: CommandInteraction, user: 
     interaction.editReply({ content: null, embeds: [embed] });
 }
 
-async function manageFeed(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<void> {
+async function manageFeed(client: Client, interaction: ChatInputCommandInteraction, user: NexusUser): Promise<void> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     const feedId = interaction.options.getNumber('id');
@@ -247,59 +241,51 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
         if (feed.guild !== interaction.guildId) throw new Error(`Feed ${feedId} can only be edited in the server it was created in.`);
 
         // Create the buttons we need.
-        const buttons = (feed: GameFeed, edits: Partial<GameFeed>): MessageActionRow[] => {
-            return [new MessageActionRow()
+        const buttons = (feed: GameFeed, edits: Partial<GameFeed>): ActionRowBuilder<ButtonBuilder>[] => {
+            return [new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
-                new MessageButton({
-                    label: feed.show_new ? '🆕 Hide New' : '🆕 Show New',
-                    style: 'SECONDARY',
-                    customId: 'toggle-new'
-                }),
-                new MessageButton({
-                    label: feed.show_updates ? '⏫ Hide Updates' : '⏫ Show Updates',
-                    style: 'SECONDARY',
-                    customId: 'toggle-updates'
-                }),
-                new MessageButton({
-                    label: feed.nsfw ? '🔞 Hide Adult' : '🔞 Show Adult',
-                    style: 'SECONDARY',
-                    customId: 'toggle-nsfw'
-                }),
-                new MessageButton({
-                    label: feed.sfw ? '🕹 Hide Non-Adult' : '🕹 Show Non-Adult',
-                    style: 'SECONDARY',
-                    customId: 'toggle-sfw'
-                }),
-                new MessageButton({
-                    label: feed.compact ? '↕ Set Full Size' : '↕ Set Compact',
-                    style: 'SECONDARY',
-                    customId: 'toggle-compact'
-                }),
+                new ButtonBuilder()
+                .setLabel(feed.show_new ? '🆕 Hide New' : '🆕 Show New')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('toggle-new'),
+                new ButtonBuilder()
+                .setLabel(feed.show_updates ? '⏫ Hide Updates' : '⏫ Show Updates')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('toggle-updates'),
+                new ButtonBuilder()
+                .setLabel(feed.nsfw ? '🔞 Hide Adult' : '🔞 Show Adult')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('toggle-nsfw'),
+                new ButtonBuilder()
+                .setLabel(feed.sfw ? '🕹 Hide Non-Adult' : '🕹 Show Non-Adult')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('toggle-sfw'),
+                new ButtonBuilder()
+                .setLabel(feed.compact ? '↕ Set Full Size' : '↕ Set Compact')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('toggle-compact'),
             ),
-            new MessageActionRow()
+            new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
-                new MessageButton({
-                    label: 'Save',
-                    style: 'PRIMARY',
-                    customId: 'save',
-                    disabled: Object.keys(edits).length ? false : true,
-                }),
-                new MessageButton({
-                    label: 'Delete',
-                    style: 'DANGER',
-                    customId: 'delete'
-                }),
-                new MessageButton({
-                    label: 'Cancel',
-                    style: 'SECONDARY',
-                    customId: 'cancel'
-                }),
+                new ButtonBuilder()
+                .setLabel('Save')
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId('save')
+                .setDisabled(Object.keys(edits).length ? false : true),
+                new ButtonBuilder()
+                .setLabel('Delete')
+                .setStyle(ButtonStyle.Danger)
+                .setCustomId('delete'),
+                new ButtonBuilder()
+                .setLabel('Cancel')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('cancel')
             )
             ]
         }
 
-        const embed = (feed: GameFeed): MessageEmbed => {
-            return new MessageEmbed()
+        const embed = (feed: GameFeed): EmbedBuilder => {
+            return new EmbedBuilder()
             .setTitle(`Editing GameFeed #${feed._id}`)
             .setColor(0xda8e35)
             .setTimestamp(feed.created)
@@ -311,10 +297,10 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
                 `Message: ${feed.message ? `"${feed.message}"` : '*Not set*'}.\n\n`+
                 'To change the feed settings, use the buttons below. The message can be set when triggering this command.'
             )
-            .addField('Settings', 
-                `🆕 Show new: ${feed.show_new} | ⏫ Show updates: ${feed.show_updates} | ↕ Compact Mode: ${feed.compact}\n`+
+            .addFields({name: 'Settings', 
+                value: `🆕 Show new: ${feed.show_new} | ⏫ Show updates: ${feed.show_updates} | ↕ Compact Mode: ${feed.compact}\n`+
                 `🔞 Adult Content: ${feed.nsfw} | 🕹 Safe Content: ${feed.sfw}`
-            );
+            });
 
         }
 
@@ -331,7 +317,7 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
 
         // Prepare the interaction collector.
         const replyMsg = await interaction.fetchReply();
-        const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ componentType: 'BUTTON', time: 120000 });
+        const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ componentType: ComponentType.Button, time: 120000 });
 
         collector.on('collect', async i => {
             const id: string = i.customId;
@@ -437,8 +423,8 @@ async function manageFeed(client: Client, interaction: CommandInteraction, user:
     }
 }
 
-const confirmEmbed = (client: Client, interaction: Interaction, game: IGameInfo, user: NexusUser, nsfw: boolean): MessageEmbed => {
-    return new MessageEmbed()
+const confirmEmbed = (client: Client, interaction: Interaction, game: IGameInfo, user: NexusUser, nsfw: boolean): EmbedBuilder => {
+    return new EmbedBuilder()
     .setColor(0xda8e35)
     .setTitle(`Create game feed in #${(interaction.channel as any).name}?`)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`)
@@ -450,8 +436,8 @@ const confirmEmbed = (client: Client, interaction: Interaction, game: IGameInfo,
     .setFooter({ text: `Nexus Mods API link`, iconURL: client.user?.avatarURL() || '' })
 }
 
-const successEmbed = (interaction: Interaction, feed: Partial<GameFeed>, game: IGameInfo, id: number): MessageEmbed => {
-    return new MessageEmbed()
+const successEmbed = (interaction: Interaction, feed: Partial<GameFeed>, game: IGameInfo, id: number): EmbedBuilder => {
+    return new EmbedBuilder()
     .setTitle(`Mods for ${feed.title} will be posted in this channel`)
     .setColor(0xda8e35)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game?.id}.jpg`)
@@ -460,8 +446,8 @@ const successEmbed = (interaction: Interaction, feed: Partial<GameFeed>, game: I
 }
 
 async function rejectMessage(reason: string,  interaction: CommandInteraction) {
-    const rejectEmbed = new MessageEmbed()
-    .setColor('DARK_RED')
+    const rejectEmbed = new EmbedBuilder()
+    .setColor('DarkRed')
     .setTitle('Error accessing Game Feeds')
     .setDescription(reason)
 

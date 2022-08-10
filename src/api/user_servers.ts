@@ -3,7 +3,7 @@ import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { BotServer } from '../types/servers';
 import { getAllServers, getServer } from './bot-db';
-import { Client, User, Guild, GuildMember, Role, GuildChannel, MessageEmbed, ThreadChannel, PermissionString, RoleResolvable } from 'discord.js';
+import { Client, User, Guild, GuildMember, Role, GuildChannel, EmbedBuilder, ThreadChannel, RoleResolvable, PermissionFlags, PermissionFlagsBits } from 'discord.js';
 import { getModsbyUser } from './user_mods';
 import { logMessage } from './util';
 
@@ -77,8 +77,8 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         // Check we can actually assign roles.
         const botMember = client.user ? await guild.members.fetch(client.user.id): undefined;
-        const botPermissions: PermissionString[] = botMember?.permissions.toArray() || [];
-        if (!botPermissions.includes('MANAGE_ROLES') && !botPermissions.includes('ADMINISTRATOR')) {            
+        const botPermissions = botMember?.permissions?.toArray() || [];
+        if (!botPermissions.includes('ManageRoles') && !botPermissions.includes('Administrator')) {            
             if (guildData.role_premium || guildData.role_linked || guildData.role_supporter || guildData.role_author) {
                 // Only write a log message if I am expected to have these permissions. 
                 logMessage(`Permissions in ${guild.name} do not allow role assignment.`);
@@ -193,8 +193,8 @@ const modUniqueDLTotal = (allMods: NexusLinkedMod[]): number => {
     return !isNaN(downloads) ? downloads : 0;
 }
 
-const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): MessageEmbed => {
-    const embed = new MessageEmbed()
+const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): EmbedBuilder => {
+    const embed = new EmbedBuilder()
     .setAuthor({ name: `Account ${remove ? 'Unlinked' : 'Linked'}`, iconURL: user.avatar_url})
     .setDescription(`${discord.toString()} ${remove ? 'unlinked from' : 'linked to'} [${user.name}](https://nexusmods.com/users/${user.id}).`)
     .setTimestamp(new Date())

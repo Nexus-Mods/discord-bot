@@ -1,8 +1,8 @@
 import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
-import { ClientExt } from "../types/util";
+import { ClientExt } from "../types/DiscordTypes";
 import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, MessageEmbed, Client } from 'discord.js';
+import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, EmbedBuilder, Client, PermissionsBitField } from 'discord.js';
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
 import { IModInfoExt } from '../types/util';
@@ -118,8 +118,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     const channel: TextChannel|null = guild ? (guild.channels.resolve(feed.channel) as TextChannel) : null;
     let webHook: WebhookClient | undefined = undefined;
     if (feed.webhook_id && feed.webhook_token) webHook = new WebhookClient({id: feed.webhook_id, token: feed.webhook_token});
-    const botMember: GuildMember|null = guild ? guild.me : null;
-    const botPerms: Readonly<Permissions>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
+    const botMember: GuildMember|null = guild ? guild?.members?.me : null;
+    const botPerms: Readonly<PermissionsBitField>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
 
     // console.log(`${tn()} - Checking game feed #${feed._id} for updates (${feed.title}) in ${guild?.name}`);
 
@@ -133,7 +133,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     }
 
     // Check for relevant permissions.
-    if (botPerms && !botPerms.has('SEND_MESSAGES', true)) {
+    if (botPerms && !botPerms.has('SendMessages', true)) {
         webHook?.destroy();
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
@@ -185,7 +185,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         // No mods to show
         if (!filteredMods.length) return;
 
-        let modEmbeds: MessageEmbed[] = [];
+        let modEmbeds: EmbedBuilder[] = [];
         let lastUpdate: Date = feed.last_timestamp;
 
         let rateLimited: boolean = false;
@@ -229,13 +229,13 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             // Determine if this a new or updated mod and build the embed.
             const timeDiff: number = (new Date (mod.updatedAt || 0)?.getTime()) - (new Date (mod.createdAt || 0)?.getTime());
             if (timeDiff < timeNew && feed.show_new) {
-                const embed: MessageEmbed = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, true, undefined, feed.compact);
+                const embed: EmbedBuilder = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, true, undefined, feed.compact);
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
             else if (feed.show_updates) {
                 const changelog: IChangelogs|undefined = await modChangelogs(userData, feed.domain, mod.modId || 0).catch(() => undefined);
-                const embed: MessageEmbed = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, false, changelog, feed.compact)
+                const embed: EmbedBuilder = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, false, changelog, feed.compact)
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
@@ -295,28 +295,28 @@ function createModEmbedGQL(client: Client,
     game: IGameInfo, 
     newMod: boolean, 
     changeLog: IChangelogs|undefined, 
-    compact: boolean): MessageEmbed {
+    compact: boolean): EmbedBuilder {
 const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
 const category: string = mod.modCategory.name || 'Unknown';
 const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.uploader.memberId}`;
 
-let post = new MessageEmbed()
+let post = new EmbedBuilder()
 .setAuthor({name:`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, iconURL: client.user?.avatarURL() || '' })
 .setTitle(mod.name || 'Name not found')
 .setColor(newMod ? 0xda8e35 : 0x57a5cc)
 .setURL(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`)
 .setDescription(sanitiseBreaks(mod.summary || 'No summary'))
-.setImage(!compact? mod.pictureUrl || '' : '')
+.setImage(!compact? mod.pictureUrl || null : null)
 .setThumbnail(compact ? mod.pictureUrl || '' : gameThumb)
 if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
 let versionChanges = changeLog[mod.version].join("\n").replace('<br />', '');
 if (versionChanges.length > 1024) versionChanges = versionChanges.substring(0,1020)+"..."
-post.addField(`Changelog (v${mod.version})`, versionChanges);
+post.addFields({ name: `Changelog (v${mod.version})`, value: versionChanges });
 }
-post.addField('Author', mod.author, true)
-.addField('Uploader', `[${mod.uploader?.name}](${uploaderProfile})`, true)
-if (mod.authorDiscord) post.addField('Discord', mod.authorDiscord.toString(), true)
-if (!compact) post.addField('Category', category, true)
+post.addFields({ name: 'Author', value: mod.author, inline: true})
+.addFields({ name: 'Uploader', value: `[${mod.uploader?.name}](${uploaderProfile})`, inline: true})
+if (mod.authorDiscord) post.addFields({ name: 'Discord', value: mod.authorDiscord.toString(), inline: true})
+if (!compact) post.addFields({ name: 'Category', value: category, inline: true })
 post.setTimestamp(new Date(mod.updatedAt))
 .setFooter({ text: `${game.name}  •  ${category}  • v${mod.version} `, iconURL: client?.user?.avatarURL() || '' });
 
