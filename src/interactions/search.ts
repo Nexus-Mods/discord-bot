@@ -147,7 +147,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     const filterGame: IGameInfo|undefined = allGames.find(g => g.id === gameIdFilter);
 
     // Need to escape brackets as this breaks Markdown on mobile
-    const safeSearchURL = (input?: string) => input ? input.replace(/[()]/g, (c) => c.charCodeAt(0).toString(16)): undefined;
+    const safeSearchURL = (input?: string) => input ? input.replace(/[()]/g, (c) => `%${c.charCodeAt(0).toString(16)}`): undefined;
 
     // Search for mods
     try {
