@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
@@ -22,7 +22,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('News interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     // Ignore anyone who isn't an owner.

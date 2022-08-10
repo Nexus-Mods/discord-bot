@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, SlashCommandBuilder, ButtonStyle, ChatInputCommandInteraction } from "discord.js";
+import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, SlashCommandBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
 
 const discordInteraction: DiscordInteraction = {
@@ -31,7 +31,8 @@ const actions: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuil
     .setURL('https://github.com/Nexus-Mods/discord-bot/issues'),
 );
 
-async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Help interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, });
     return interaction.reply({ embeds: [helpEmbed], components: [actions] });
 }

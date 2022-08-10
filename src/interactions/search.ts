@@ -97,7 +97,8 @@ interface IModFieldResult {
     game: IGameInfo|undefined;
 }
 
-async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Search interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
     const searchType: string = interaction.options.getSubcommand(true).toUpperCase();

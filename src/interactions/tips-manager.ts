@@ -54,7 +54,8 @@ const discordInteraction: DiscordInteraction = {
 
 type SubCommandType = 'tojson' | 'create' | 'update';
 
-async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     const subCommand: SubCommandType = interaction.options.getSubcommand(true) as SubCommandType;
 
     await interaction.deferReply({ ephemeral: true });

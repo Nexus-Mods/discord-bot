@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, Interaction, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { NexusUser } from "../types/users";
 import { BotServer } from "../types/servers";
@@ -94,7 +94,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Settings interaction triggered', 
     // { 
     //     user: interaction.user.tag, 

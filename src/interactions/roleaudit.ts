@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, User, Role, Interaction, Guild, Collection, GuildMember, SlashCommandBuilder } from "discord.js";
+import { CommandInteraction, Client, User, Role, Interaction, Guild, Collection, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
 import { getAllUsers, updateRoles, getServer, getLinksByServer, deleteServerLink } from '../api/bot-db';
 import { NexusUser, NexusUserServerLink } from "../types/users";
@@ -19,8 +19,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = baseinteraction as CommandInteraction;
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
     if (!interaction.memberPermissions?.toArray().includes('Administrator')) return interaction.editReply('You do not have permission to use this command.');
 

@@ -53,7 +53,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;

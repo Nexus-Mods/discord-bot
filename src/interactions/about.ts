@@ -1,6 +1,6 @@
 import { 
     Client, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
-    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder 
+    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction 
 } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
 import { getAllUsers, getAllGameFeeds } from '../api/bot-db';
@@ -41,7 +41,8 @@ const minPermissions: { name: string, code: string }[] = [
     }
 ];
 
-async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
 
     const option: boolean | null = interaction.options.getBoolean('private');
     const ephemeral: boolean = option !== null ? option : true;

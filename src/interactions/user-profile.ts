@@ -1,4 +1,4 @@
-import { Client, Snowflake, EmbedBuilder, ChatInputCommandInteraction, ContextMenuCommandInteraction, SlashCommandBuilder, ContextMenuCommandBuilder, ApplicationCommandType } from "discord.js";
+import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId, userEmbed, getLinksByUser } from '../api/bot-db';
 import { logMessage } from "../api/util";
@@ -13,7 +13,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseinteraction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseinteraction: CommandInteraction): Promise<any> {
     const interaction = (baseinteraction as any as ContextMenuCommandInteraction);
     await interaction.deferReply( { ephemeral: true });
     const member = interaction.targetId;

@@ -28,7 +28,7 @@ interface DiscordEventInterface {
 
 interface DiscordInteraction {
     command: SlashCommandBuilder | ContextMenuCommandBuilder;
-    action: (client: Client, interact: ChatInputCommandInteraction) => Promise<void>;
+    action: (client: Client, interact: CommandInteraction) => Promise<void>;
     public: boolean;
     guilds?: Snowflake[];
     permissions?: PermissionsExt[];

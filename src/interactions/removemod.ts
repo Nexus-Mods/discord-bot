@@ -1,7 +1,8 @@
 import { 
     CommandInteraction, Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, 
     Message, Interaction, ButtonStyle, SlashCommandBuilder, SelectMenuBuilder, 
-    SelectMenuOptionBuilder 
+    SelectMenuOptionBuilder, 
+    ChatInputCommandInteraction
 } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
 import { NexusUser, NexusLinkedMod } from "../types/users";
@@ -18,9 +19,8 @@ const discordInteraction: DiscordInteraction = {
     ],
     action
 }
-
-async function action(client: Client, baseinteraction: Interaction): Promise<any> {
-    const interaction = (baseinteraction as CommandInteraction);
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Remove mod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
 
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;

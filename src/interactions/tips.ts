@@ -28,7 +28,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
     
     const message: string | null = interaction.options.getString('code');

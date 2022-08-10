@@ -1,4 +1,4 @@
-import { CommandInteraction, Interaction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, Interaction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 // import { logMessage } from "../api/util";
 import { getUserByDiscordId } from '../api/bot-db';
@@ -19,8 +19,8 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseinteraction: Interaction): Promise<any> {
-    const interaction = baseinteraction as CommandInteraction;
+async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
     const discordId = interaction.user.id;
     const user = await getUserByDiscordId(discordId);

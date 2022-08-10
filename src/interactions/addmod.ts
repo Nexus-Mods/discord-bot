@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, APIEmbedField, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { Client, EmbedBuilder, APIEmbedField, SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction } from "discord.js";
 import { ModDownloadInfo, NexusSearchModResult } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { NexusUser, NexusLinkedMod } from "../types/users";
@@ -30,7 +30,8 @@ interface SearchError extends APIEmbedField {
     error: boolean;
 }
 
-async function action(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('AddMod interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name });
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
 
@@ -71,7 +72,7 @@ async function action(client: Client, interaction: ChatInputCommandInteraction):
         logMessage('Added mods', { user: interaction.user.tag, mods: addedMods.length });
 
         searchingEmbed.setTitle('Adding mods complete')
-        .setDescription('')
+        .setDescription(null)
         .addFields(allResults.slice(0, 24));
 
         await interaction.editReply({ embeds: [ searchingEmbed ] });
@@ -123,7 +124,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
             }
         }
 
-        if (modData.user.member_id !== user.id) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domain_name}/mods/${modData.mod_id}) was uploaded by [${modData.user.name}](https://www.nexusmods.com/users/${modData.user.member_id}) so it cannot be added to your account.`);
+        if (modData.user.member_id != user.id) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domain_name}/mods/${modData.mod_id}) was uploaded by [${modData.user.name}](https://www.nexusmods.com/users/${modData.user.member_id}) so it cannot be added to your account.`);
 
         if (!modData.name) throw new Error(`[Mod #${modId}](${url}) for ${game.name} could not be added as it doesn't seem to have a title. Please try again in a few minutes.`);
         
@@ -147,7 +148,8 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         return { name: modName, value: `- [${newMod.name}](${url}) added.` };
     }
     catch(err) {
-        return { name: modName || link, value: (err as Error).message, error: true };
+        logMessage('Error creating mod entry', {err, modName, link}, true);
+        return { name: modName || link, value: `Error: ${(err as Error).message}`, error: true };
     }
 
 }
@@ -157,7 +159,7 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
     try {
         const search: NexusSearchModResult[] = (await quicksearch(query, true).catch(() => { return { results: [] } } )).results;
         const filteredResult: NexusSearchModResult[] = 
-            search.filter(mod => mod.user_id === user.id && !mods.find(m => m.mod_id === mod.mod_id && m.domain === mod.game_name));
+            search.filter(mod => mod.user_id == user.id && !mods.find(m => m.mod_id === mod.mod_id && m.domain === mod.game_name));
 
         if (!filteredResult.length) throw new Error(`No matching mods created by ${user.name}`);
 
@@ -185,10 +187,10 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameI
             }
         ));
 
-        return { name: query, value: messages.join('\n').substr(0, 1024) };
+        return { name: query, value: messages.join('\n').substring(0, 1024) };
     }
     catch(err) {
-        return { name: query, value: (err as Error).message, error: true };
+        return { name: query, value: `Error: ${(err as Error).message}`, error: true };
     }
 
 }

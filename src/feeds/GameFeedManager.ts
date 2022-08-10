@@ -306,7 +306,7 @@ let post = new EmbedBuilder()
 .setColor(newMod ? 0xda8e35 : 0x57a5cc)
 .setURL(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`)
 .setDescription(sanitiseBreaks(mod.summary || 'No summary'))
-.setImage(!compact? mod.pictureUrl || '' : '')
+.setImage(!compact? mod.pictureUrl || null : null)
 .setThumbnail(compact ? mod.pictureUrl || '' : gameThumb)
 if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
 let versionChanges = changeLog[mod.version].join("\n").replace('<br />', '');

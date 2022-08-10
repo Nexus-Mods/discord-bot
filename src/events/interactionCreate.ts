@@ -1,5 +1,5 @@
 import { 
-    Interaction, InteractionReplyOptions, ChatInputCommandInteraction, GuildChannel 
+    Interaction, InteractionReplyOptions, ChatInputCommandInteraction, GuildChannel, UserContextMenuCommandInteraction, CommandInteraction 
 } from 'discord.js';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
@@ -12,8 +12,8 @@ const ignoreErrors: string[] = [
 const main: DiscordEventInterface = {
     name: 'interactionCreate',
     once: false,
-    async execute(client: ClientExt, interaction: Interaction) {
-        if (!interaction || !interaction.isChatInputCommand()) return; // Not an interaction we want to handle.
+    async execute(client: ClientExt, interaction: CommandInteraction) {
+        if (!interaction || (!interaction.isChatInputCommand() && !interaction.isContextMenuCommand())) return; // Not an interaction we want to handle.
 
         const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
         if (!interact) return logMessage('Invalid interaction requested', {name: interaction.commandName, i: client.interactions, commands: await interaction.guild?.commands.fetch()}, true);
@@ -26,12 +26,12 @@ const main: DiscordEventInterface = {
                 channelName: (interaction.channel as GuildChannel)?.name,
             }
             );
-            interact.action(client, interaction).catch(err => {sendUnexpectedError(interaction, interaction, err)});
+            interact.action(client, interaction).catch(err => {sendUnexpectedError(interaction, (interaction as CommandInteraction), err)});
         }
     }
 }
 
-export async function sendUnexpectedError(interaction:ChatInputCommandInteraction|undefined, i:Interaction, err:Error):Promise<void> {
+export async function sendUnexpectedError(interaction: CommandInteraction|undefined, i:CommandInteraction, err:Error):Promise<void> {
     if (!interaction) return;
     const context = {
         server: `${interaction.guild?.name} (${interaction.guildId})`,
