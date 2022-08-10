@@ -95,7 +95,7 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
     try {
         const searchQuery = await requestPromise({ url: nexusSearchAPI, qs: { terms: encodeURI(query), game_id, include_adult: bIncludeAdult }, timeout: 15000 });
         let results = JSON.parse(searchQuery);
-        results.fullSearchURL = `https://www.nexusmods.com/search/?RH_ModList=nav:true,home:false,type:0,user_id:0,game_id:${game_id},advfilt:true,search%5Bfilename%5D:${query.split(',').join('+')},include_adult:${bIncludeAdult},page_size:20,show_game_filter:true`;
+        results.fullSearchURL = `https://www.nexusmods.com/search/?RH_ModList=nav:true,home:false,type:0,user_id:0,game_id:${game_id},advfilt:true,search%5Bfilename%5D:${encodeURIComponent(query.split(',').join('+'))},include_adult:${bIncludeAdult},page_size:20,show_game_filter:true`;
         return results;
     }
     catch(err) {
