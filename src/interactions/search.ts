@@ -146,6 +146,9 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
     const filterGame: IGameInfo|undefined = allGames.find(g => g.id === gameIdFilter);
 
+    // Need to escape brackets as this breaks Markdown on mobile
+    const safeSearchURL = (input?: string) => input ? input.replace(/[()]/g, (c) => c.charCodeAt(0).toString(16)): undefined;
+
     // Search for mods
     try {
         const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
@@ -153,7 +156,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             // No results!
             const noResults: EmbedBuilder = new EmbedBuilder()
             .setTitle('Search complete')
-            .setDescription(`No results for "${query}".\nTry using the [full search](${search.fullSearchURL}) on the website.`)
+            .setDescription(`No results for "${query}".\nTry using the [full search](${safeSearchURL(search.fullSearchURL)}) on the website.`)
             .setThumbnail(client.user?.avatarURL() || '')
             .setColor(0xda8e35);
 
