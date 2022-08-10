@@ -9,28 +9,16 @@ import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 
 const modUrlExp = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i;
 
-const command = new SlashCommandBuilder()
-.setName('addmod')
-.setDescription('Associated a mod with your Discord account.')
-.addStringOption(option => 
-  option.setName('searchterm')  
-  .setDescription('Add links or search terms for mods to add, comma separated.')
-  .setRequired(true)
-)
-.setDMPermission(true);
-
 const discordInteraction: DiscordInteraction = {
-    // command: {
-    //     name: 'addmod',
-    //     description: 'Associate a mod with your Discord account.',
-    //     options: [{
-    //         name: 'searchterm',
-    //         type: 'STRING',
-    //         description: 'Add links or search terms for mods to add, comma separated.',
-    //         required: true,
-    //     }]
-    // },
-    command,
+    command: new SlashCommandBuilder()
+    .setName('addmod')
+    .setDescription('Associated a mod with your Discord account.')
+    .addStringOption(option => 
+      option.setName('searchterm')  
+      .setDescription('Add links or search terms for mods to add, comma separated.')
+      .setRequired(true)
+    )
+    .setDMPermission(true),
     public: true,
     guilds: [
         '581095546291355649'

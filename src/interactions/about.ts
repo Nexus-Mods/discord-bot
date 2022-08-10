@@ -7,31 +7,17 @@ import { getAllUsers, getAllGameFeeds } from '../api/bot-db';
 import { NexusUser } from "../types/users";
 import { GameFeed } from "../types/feeds";
 
-const command = new SlashCommandBuilder()
-.setName('about')
-.setDescription('Information about this bot.')
-.addBooleanOption(option => 
-    option.setName('private')
-    .setDescription('Only show to me.')
-    .setRequired(false)
-)
-.setDMPermission(true)
-.setDefaultMemberPermissions(PermissionFlagsBits.SendMessages);
-
 const discordInteraction: DiscordInteraction = {
-    // command: {
-    //     name: 'about',
-    //     description: 'Information about this bot.',
-    //     options: [
-    //         {
-    //             name: 'private',
-    //             type: 'BOOLEAN',
-    //             description: 'Only show to me.',
-    //             required: false
-    //         }
-    //     ]
-    // },
-    command,
+    command: new SlashCommandBuilder()
+    .setName('about')
+    .setDescription('Information about this bot.')
+    .addBooleanOption(option => 
+        option.setName('private')
+        .setDescription('Only show to me.')
+        .setRequired(false)
+    )
+    .setDMPermission(true)
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     public: true,
     action
 }

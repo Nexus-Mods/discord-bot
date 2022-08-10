@@ -12,92 +12,42 @@ import { logMessage } from '../api/util';
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { GameFeed } from "../types/feeds";
 
-const command = new SlashCommandBuilder()
-.setName('gamefeed')
-.setDescription('Game Feeds post new or updated mods every 10 minutes.')
-.setDMPermission(false)
-.addSubcommand(subcommand => 
-    subcommand.setName('about')
-    .setDescription('Learn more about this feature.')
-)
-.addSubcommand(subcommand => 
-    subcommand.setName('create')
-    .setDescription('Create a Game Feed in this channel.')
-    .addStringOption(option => 
-        option.setName('game')
-        .setDescription('The game name or domain ID')
-        .setRequired(true)
-    )
-)
-.addSubcommand(subcommand => 
-    subcommand.setName('list')
-    .setDescription('ist Game Feeds for this server.')
-)
-.addSubcommand(subcommand => 
-    subcommand.setName('manage')
-    .setDescription('Manage an existing Game Feed.')
-    .addNumberOption(option => 
-        option.setName('id')
-        .setDescription('The ID of the existing feed.')
-        .setRequired(true)
-    )
-    .addStringOption(option => 
-        option.setName('message')    
-        .setDescription('Message to attach to Game Feed annoucements.')
-        .setRequired(false)
-    )
-);
-
 const discordInteraction: DiscordInteraction = {
-    // command: {
-    //     name: 'gamefeed',
-    //     description: 'Game Feeds post new or updated mods every 10 minutes.',
-    //     options: [
-    //         {
-    //             name: 'about',
-    //             type: 'SUB_COMMAND',
-    //             description: 'Learn more about this feature.'
-    //         },
-    //         {
-    //             name: 'create',
-    //             type: 'SUB_COMMAND',
-    //             description: 'Create a Game Feed in this channel.',
-    //             options: [
-    //                 {
-    //                     name: 'game',
-    //                     description: 'The game name or domain ID',
-    //                     type: 'STRING',
-    //                     required: true
-    //                 }
-    //             ]
-    //         },
-    //         {
-    //             name: 'list',
-    //             type: 'SUB_COMMAND',
-    //             description: 'List Game Feeds for this server',
-    //         },
-    //         {
-    //             name: 'manage',
-    //             type: 'SUB_COMMAND',
-    //             description: 'Manage an existing Game Feed',
-    //             options: [
-    //                 {
-    //                     name: 'id',
-    //                     type: 'NUMBER',
-    //                     description: 'The ID of the existing feed',
-    //                     required: true
-    //                 },
-    //                 {
-    //                     name: 'message',
-    //                     type: 'STRING',
-    //                     description: 'Message to attach to Game Feed annoucements',
-    //                     required: false
-    //                 }
-    //             ]
-    //         }
-    //     ]
-    // },
-    command: command as SlashCommandBuilder,
+    command: new SlashCommandBuilder()
+    .setName('gamefeed')
+    .setDescription('Game Feeds post new or updated mods every 10 minutes.')
+    .setDMPermission(false)
+    .addSubcommand(subcommand => 
+        subcommand.setName('about')
+        .setDescription('Learn more about this feature.')
+    )
+    .addSubcommand(subcommand => 
+        subcommand.setName('create')
+        .setDescription('Create a Game Feed in this channel.')
+        .addStringOption(option => 
+            option.setName('game')
+            .setDescription('The game name or domain ID')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(subcommand => 
+        subcommand.setName('list')
+        .setDescription('ist Game Feeds for this server.')
+    )
+    .addSubcommand(subcommand => 
+        subcommand.setName('manage')
+        .setDescription('Manage an existing Game Feed.')
+        .addNumberOption(option => 
+            option.setName('id')
+            .setDescription('The ID of the existing feed.')
+            .setRequired(true)
+        )
+        .addStringOption(option => 
+            option.setName('message')    
+            .setDescription('Message to attach to Game Feed annoucements.')
+            .setRequired(false)
+        )
+    ) as SlashCommandBuilder,
     public: true,
     guilds: [],
     action
