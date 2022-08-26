@@ -41,7 +41,7 @@ const main: DiscordEventInterface = {
                     continue;
                 }
                 if (!server.channel_nexus) continue;
-                const postChannel: NonThreadGuildBasedChannel | null = await guild.channels.fetch(server.channel_nexus);
+                const postChannel: NonThreadGuildBasedChannel | null = await guild.channels.fetch(server.channel_nexus).catch(() => null);
                 // If the channel couldn't be resolved or we can't send messages.
                 if (!postChannel || !(postChannel as TextChannel).send) continue;
                 try {
