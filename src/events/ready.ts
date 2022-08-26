@@ -8,10 +8,9 @@ import { logMessage } from '../api/util';
 import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
 
 // Prepare the online status embed for quick reuse.
-const onlineEmbed = new EmbedBuilder({
-    title: `Nexus Mods Discord Bot v${process.env.npm_package_version || '0.0.0'} is online.`,
-    color: 0x009933
-});
+const onlineEmbed = new EmbedBuilder()
+.setTitle('Nexus Mods Discord Bot is online.')
+.setColor(0x009933);
 
 const main: DiscordEventInterface = {
     name: 'ready',

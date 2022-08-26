@@ -1,18 +1,24 @@
-import { Client, Collection, ApplicationCommandData, GatewayIntentBits, Routes, Snowflake } from 'discord.js';
+import { Client, Collection, ApplicationCommandData, GatewayIntentBits, Routes, Snowflake, IntentsBitField } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import * as fs from 'fs';
 import path from 'path';
 import { logMessage } from './api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
 
+// const intents: GatewayIntentBits[] = [
+//     GatewayIntentBits.Guilds, 
+//     GatewayIntentBits.DirectMessages, 
+//     GatewayIntentBits.GuildMessages,
+//     GatewayIntentBits.GuildMembers,
+//     GatewayIntentBits.GuildWebhooks,
+//     GatewayIntentBits.GuildMessageReactions,
+//     GatewayIntentBits.GuildIntegrations
+// ];
+
 const intents: GatewayIntentBits[] = [
-    GatewayIntentBits.Guilds, 
-    GatewayIntentBits.DirectMessages, 
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildWebhooks,
-    GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.GuildIntegrations
+    IntentsBitField.Flags.Guilds, IntentsBitField.Flags.DirectMessages,
+    IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.GuildWebhooks,
+    IntentsBitField.Flags.GuildMessageReactions, IntentsBitField.Flags.GuildIntegrations
 ];
 
 export class DiscordBot {
