@@ -197,7 +197,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
         });
     }
     catch(err) {
-        if (!(err as Error).message.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
+        if (!(err as Error).message?.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
         rejectMessage((err as any).message || err, interaction);
     }
 }
