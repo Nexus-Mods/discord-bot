@@ -1,5 +1,5 @@
 import { gql, GraphQLClient, ClientError } from 'graphql-request';
-import requestPromise from 'request-promise-native'; //For making API requests
+// import requestPromise from 'request-promise-native'; //For making API requests
 import { verify } from 'jsonwebtoken';
 import { IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';

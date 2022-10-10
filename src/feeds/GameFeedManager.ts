@@ -2,11 +2,11 @@ import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, Permissions, EmbedBuilder, Client, PermissionsBitField } from 'discord.js';
+import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField } from 'discord.js';
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
-import { IModInfoExt } from '../types/util';
 import { logMessage } from '../api/util';
+import { NexusAPIServerError } from '../types/util';
 import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
 import * as GQLTypes from '../types/GQLTypes';
 
@@ -121,13 +121,14 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     const botMember: GuildMember|null = guild ? guild?.members?.me : null;
     const botPerms: Readonly<PermissionsBitField>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
 
-    // console.log(`${tn()} - Checking game feed #${feed._id} for updates (${feed.title}) in ${guild?.name}`);
+    // logMessage(`Checking game feed #${feed._id} for updates (${feed.title}) in ${guild?.name}`);
 
     // If we can't reach the feed owner. 
     if (!discordUser || !userData) {
         webHook?.destroy();
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
+        logMessage(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${userData?.name || '???' }`);
         if (channel) channel.send(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${userData?.name || '???' }`).catch(() => undefined);
         return Promise.reject(`Deleted game update #${feed._id} (${feed.title}) due to missing guild or channel data. Discord user: ${discordUser} Nexus User: ${userData?.name || '???' }`);
     }
@@ -155,14 +156,15 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         await validate(userData.apikey);
     }
     catch(err) {
+        logMessage('API Key error!', err);
         webHook?.destroy();
-        if ((err as any).includes('401')) {
+        if ((err as NexusAPIServerError)?.code === 401) {
             if (client.config.testing) return;
             await deleteGameFeed(feed._id);
             if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild?.name} as your API key is invalid`).catch(() => undefined);
             return Promise.reject('User API ket invalid.');
         }
-        else return Promise.reject(`An error occurred when validing game key for ${userData.name}: ${(err as Error).message || err}`);
+        else return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as Error).message || err}`);
     }
 
     // Get all the games if we need them.
@@ -248,7 +250,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         
         // Nothing to post?
         if (!modEmbeds.length) { 
-            // console.log(`${tn()} - No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
+            // logMessage(`No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
             return;
         };
         
