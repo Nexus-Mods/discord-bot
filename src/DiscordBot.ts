@@ -55,6 +55,7 @@ export class DiscordBot {
             await this.client.login(this.token);
             logMessage('Connected to Discord');
             await this.client.application?.fetch();
+            this.client.updateInteractions = this.setupInteractions
         }
         catch(err) {
             logMessage('Failed to connect to Discord during bot setup', { error: (err as Error).message }, true);
@@ -62,9 +63,9 @@ export class DiscordBot {
         }
     }
 
-    public async setupInteractions(): Promise<void> {
+    public async setupInteractions(force?: boolean): Promise<void> {
         try {
-            await this.setInteractions();
+            await this.setInteractions(force);
         }
         catch(err) {
             logMessage('Failed to set interactions', err, true);
@@ -88,7 +89,7 @@ export class DiscordBot {
         }
     }
 
-    private async setInteractions(): Promise<void> {
+    private async setInteractions(forceUpdate?: boolean): Promise<void> {
         if (!this.client.updateInteractions) this.client.updateInteractions = this.setInteractions;
         logMessage('Setting interaction commands');
         if (!this.client.interactions) this.client.interactions = new Collection();
@@ -98,6 +99,7 @@ export class DiscordBot {
             .filter(i => i.toLowerCase().endsWith('.js'));6
 
         let globalCommandsToSet : ApplicationCommandData[] = []; //Collect all global commands
+        const commandsReg = await this.client.application?.commands.fetch(); // Collection of global commands that are already registerd.
         let guildCommandsToSet : {[guild: string] : ApplicationCommandData[]} = {}; // Collect all guild-specific commands. 
         let allInteractions : DiscordInteraction[] = [];
 
@@ -108,7 +110,7 @@ export class DiscordBot {
             if (!interaction) continue;
             // Add all valid interactions to the main array.
             allInteractions.push(interaction);
-            // Global commands should be added to the global list.
+            // Global commands should be added to the global list if not already registered.
             if (interaction.public === true) globalCommandsToSet.push(interaction.command.toJSON());
             // If we can get this working, change it to a database of servers and unlisted interactions that are allowed.
             if (!!interaction.guilds && interaction.public === false) {
@@ -126,17 +128,23 @@ export class DiscordBot {
         // Set global commands
         try {
             if (globalCommandsToSet.length) {
-                // Remove all global commands
-                await this.rest.put(
-                    Routes.applicationCommands(this.clientId),
-                    { body: [] }
-                );
-                // Add all valid commands. 
-                await this.rest.put(
-                    Routes.applicationCommands(this.clientId),
-                    { body: globalCommandsToSet }
-                );
-                logMessage('Global interactions set up', { commands: globalCommandsToSet.map(c => c.name).join(', ') });
+                const newCommands = globalCommandsToSet.filter(g => !commandsReg?.find(c => c.name === g.name));
+                if (newCommands.length || forceUpdate) {
+                    // Remove all global commands
+                    await this.rest.put(
+                        Routes.applicationCommands(this.clientId),
+                        { body: [] }
+                    );
+
+                    // Add all valid commands. 
+                    await this.rest.put(
+                        Routes.applicationCommands(this.clientId),
+                        { body: globalCommandsToSet }
+                    );
+
+                    logMessage('Global interactions set up', { commands: globalCommandsToSet.map(c => c.name).join(', ') });
+                }
+                else logMessage('Global interactions did not require changes');
             }
             else logMessage('No global interactions to set', {}, true);
         }
@@ -147,7 +155,12 @@ export class DiscordBot {
 
         // Set guild commands
         for (const guildId of Object.keys(guildCommandsToSet)) {
-            const guild = await this.client.guilds.fetch(guildId).catch(() => undefined)
+            const guild = await this.client.guilds.fetch(guildId).catch(() => undefined);
+            if (!guild) continue;
+            const commands = await guild?.commands.fetch(); // Get commands already set for this guild.
+            const newCommands = guildCommandsToSet[guildId].filter(c => !commands?.find(ex => ex.name === c.name));
+            if (!newCommands.length) continue;
+
 
             try {
                 // Remove all current commands
@@ -160,10 +173,10 @@ export class DiscordBot {
                     Routes.applicationGuildCommands(this.clientId, guildId),
                     { body: guildCommandsToSet[guildId] }
                 );
-                logMessage('Guild interactions set up', { guild: guild?.name || guildId, commands: guildCommandsToSet[guildId].map(c => c.name).join(', ') });
+                logMessage('Guild interactions set up', { guild: guild?.name || guildId, commands: newCommands.map(c => c.name).join(', ') });
             }
             catch(err) {
-                logMessage('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) }, true);
+                logMessage('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: newCommands.map(c => c.name) }, true);
             }
         }
 

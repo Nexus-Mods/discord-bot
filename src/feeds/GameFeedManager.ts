@@ -158,7 +158,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     catch(err) {
         webHook?.destroy();
         if ((err as NexusAPIServerError)?.code === 401) {
-            if (client.config.testing) return logMessage('Game feed delete skipped due to testing mode', err);
+            if (client.config.testing) return logMessage('Game feed delete skipped due to testing mode', { id: feed._id, err});
             await deleteGameFeed(feed._id);
             if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild?.name} as your API key is invalid.`).catch(() => undefined);
             return Promise.reject('User API ket invalid.');
