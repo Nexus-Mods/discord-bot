@@ -2,7 +2,7 @@ import {
     CommandInteraction, Snowflake, EmbedBuilder, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
     ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType
+    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle
 } from "discord.js";
 import { NexusUser } from "../types/users";
 import { DiscordInteraction } from "../types/DiscordTypes";
@@ -279,7 +279,11 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 new ButtonBuilder()
                 .setLabel('Cancel')
                 .setStyle(ButtonStyle.Secondary)
-                .setCustomId('cancel')
+                .setCustomId('cancel'),
+                new ButtonBuilder()
+                .setLabel('Test')
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId('test')
             )
             ]
         }
@@ -377,6 +381,23 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                             components: buttons({...feed,...newData}, newData) 
                         });
                     break;
+                }
+                case 'test': {
+                    const textbox = new TextInputBuilder()
+                    .setCustomId('message-test')
+                    .setLabel('Message to append')
+                    .setStyle(TextInputStyle.Paragraph);
+
+                    const input = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+                    .addComponents(textbox);
+
+                    const modal = new ModalBuilder()
+                    .setTitle('Message')
+                    .setCustomId('editMessage')
+                    .addComponents(input)
+                    await interaction.showModal(modal);
+                    const result = await interaction.awaitModalSubmit({ time: 15_000 });
+                    logMessage('Modal Result', result);
                 }
                 default: logMessage('Missed all cases for button press', undefined, true);
             }
