@@ -242,7 +242,6 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
 
         // Create the buttons we need.
         const buttons = (feed: GameFeed, edits: Partial<GameFeed>): ActionRowBuilder<ButtonBuilder>[] => {
-            logMessage('Building buttons!')
             return [new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 new ButtonBuilder()
@@ -388,7 +387,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 }
                 case 'newmessage': {
                     const textbox = new TextInputBuilder()
-                    .setCustomId('message-test')
+                    .setCustomId('message-text')
                     .setLabel('Text to display')
                     .setPlaceholder('Enter a message to be posted with updates to this game feed.')
                     .setValue(feed.message)
@@ -403,8 +402,16 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     .addComponents(input)
                     await i.showModal(modal);
                     const modalSubmit = await i.awaitModalSubmit({ time: 15_000 });
-                    logMessage('Modal Result', modalSubmit.fields.getTextInputValue('message-test'));
-                    modalSubmit.reply('boo').catch(undefined);
+                    await (modalSubmit as any).deferUpdate();
+                    const newMsg = modalSubmit.fields.getTextInputValue('message-text');
+                    newData.message = newMsg;
+                    await i.editReply(
+                        { 
+                        content: null, 
+                        embeds: [embed({...feed, ...newData})], 
+                        components: buttons({...feed,...newData}, newData) 
+                        }
+                    ).catch(undefined);
                     break;
                 }
                 default: logMessage('Missed all cases for button press', undefined, true);
