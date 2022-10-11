@@ -1,8 +1,8 @@
 import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
-import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField } from 'discord.js';
+import Nexus, { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
+import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, Embed } from 'discord.js';
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
@@ -163,7 +163,17 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild?.name} as your API key is invalid.`).catch(() => undefined);
             return Promise.reject('User API ket invalid.');
         }
-        else return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}`);
+        else {
+            if (err as NexusAPIServerError) {
+                const error = err as NexusAPIServerError;
+                const notifyEmbed = new EmbedBuilder()
+                .setColor('DarkOrange')
+                .setTitle('Error Updating Game Feed')
+                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${error.name} (${error.code}) - ${error.message}.\nThis may be a temporary issue. Retrying in 10 minutes.`);
+                await channel?.send({ embeds: [ notifyEmbed ] }).catch(undefined);
+            }
+            return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}`);
+        };
     }
 
     // Get all the games if we need them.
@@ -261,21 +271,15 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         }
         catch(err) {
             logMessage(`Error posting via webhook for ${feed.title} in ${guild?.name} (#${feed._id})`, (err as Error)?.message, true);
-            if (feed.message) channel?.send(feed.message).catch(() => undefined);
+            if (feed.message) await channel?.send(feed.message).catch(() => undefined);
+            const warnEmbed = new EmbedBuilder()
+            .setColor('DarkRed')
+            .setTitle('Warning')
+            .setDescription('The Webhook for this game feed no longer exists. Please delete and re-create the feed!')
+            await channel?.send({ embeds:[ warnEmbed ] }).catch(() => undefined);
             modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
             if (webHook) webHook.destroy();
-        }
-
-        // if (webHook) webHook.send({ embeds: modEmbeds, content: feed.message }).then(() => webHook?.destroy())
-        // .catch(() => {
-        //     if (feed.message) channel?.send(feed.message).catch(() => undefined);
-        //     modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
-        // });
-        // else {
-        //     if (feed.message) channel?.send(feed.message).catch(() => undefined);
-        //     modEmbeds.forEach(mod => channel?.send({ embeds: [mod] }).catch(() => undefined));
-        // }
-        
+        }        
     }
     catch(err) {
         webHook?.destroy();

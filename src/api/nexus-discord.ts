@@ -44,52 +44,10 @@ async function v1APIQuery (path: string, apiKey: string, params?: { [key: string
 
 async function games(user: NexusUser, bUnapproved?: boolean): Promise<IGameInfo[]>  {
     return v1APIQuery('/v1/games', user?.apikey, { include_unapproved: bUnapproved });
-
-    const apiKey: string = user.apikey;
-    if (!apiKey) Promise.reject('API Error 401: Please link your Nexus Mods account to your Discord in order to use this feature. See `/link` for help.');
-
-    // requestHeader.apikey = apiKey;
-    try {
-        // const gameList = await requestPromise({url: `${nexusAPI}v1/games`, headers: requestHeader, qs: { include_unapproved: bUnapproved }});
-        const gameList = await axios({
-            baseURL: nexusAPI,
-            url: `/games`,
-            transformResponse: (data) => JSON.parse(data),
-            headers: v1headers(apiKey),
-            params: { include_unapproved: bUnapproved }
-        });
-        // const gamesParsed = JSON.parse(gameList);
-        return gameList.data;
-    }
-    catch(err) {
-        return Promise.reject(`Nexus Mods API responded with ${(err as AxiosError).response?.status} while fetching all games. Please try again later.`);
-    }
-
 }
 
 async function gameInfo(user: NexusUser, domainQuery: string): Promise<IGameListEntry> {
     return v1APIQuery(`/v1/games/${domainQuery}`, user?.apikey);
-    const apiKey = user.apikey;
-    if (!apiKey) Promise.reject('API Error 401: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.');
-
-    requestHeader.apikey = apiKey;
-
-    try {
-        const gameReq = await axios({
-            baseURL: nexusAPI,
-            url: `/v1/games/${domainQuery}`,
-            headers: v1headers(apiKey),
-            transformResponse: (data) => JSON.parse(data),
-        });
-        // const game = await requestPromise({ url: `${nexusAPI}v1/games/${domainQuery}`, headers: requestHeader });
-        // const gameInfo: IGameListEntry = JSON.parse(game);
-        return gameReq.data;
-    }
-    catch(err) {
-        return Promise.reject(new NexusAPIServerError(err as AxiosError));
-        if ((err as any).statusCode === 404) return Promise.reject(`${(err as any).statusCode} - Game ${domainQuery} not found`);
-        return Promise.reject(`API Error(gameInfo): Nexus Mods API responded with ${(err as any).statusCode}.`)
-    }
 }
 
 export interface IValidateResponse extends IValidateKeyResponse {
@@ -97,23 +55,10 @@ export interface IValidateResponse extends IValidateKeyResponse {
 }
 
 async function validate(apiKey: string): Promise<IValidateResponse> {
-    return v1APIQuery('/v1/users/validate.json', apiKey);
-    // requestHeader.apikey = apiKey;
-    
-    try {
-        // const validate: IValidateKeyResponse = await requestPromise({ url: `${nexusAPI}v1/users/validate.json`, headers: requestHeader, json: true });
-        const validate: AxiosResponse = await axios({ 
-            baseURL: nexusAPI, 
-            url: '/v1/users/validate.json', 
-            transformResponse: (data) => JSON.parse(data), 
-            headers: v1headers(apiKey) 
-        });
-        const is_ModAuthor: boolean = await getModAuthor(validate.data.user_id);
-        return {is_ModAuthor, ...validate.data};
-    }
-    catch(err) {
-        return Promise.reject(new NexusAPIServerError(err as AxiosError));
-    }
+    const baseCheck: IValidateKeyResponse = await v1APIQuery('/v1/users/validate.json', apiKey);
+    // We need to talk to GraphQL to see if this user is a mod author. 
+    const is_ModAuthor: boolean = await getModAuthor(baseCheck.user_id);
+    return { is_ModAuthor, ...baseCheck };
 }
 
 async function getModAuthor(id: number): Promise<boolean> {
@@ -168,88 +113,18 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
 
 async function updatedMods(user: NexusUser, gameDomain: string, period: string = '1d'): Promise<IUpdateEntry[]> {
     return v1APIQuery(`/v1/games/${gameDomain}/mods/updated.json`, user?.apikey, { period });
-    const apiKey = user.apikey;
-    if (!apiKey) Promise.reject('API Error 403: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.');
-
-    requestHeader.apikey = apiKey;
-
-    try {
-        const updatedQuery = await axios({
-            baseURL: nexusAPI,
-            url: `/v1/games/${gameDomain}/mods/updated.json`,
-            headers: v1headers(apiKey),
-            params: { period },
-            transformResponse: (data) => JSON.parse(data),
-        });
-        return updatedQuery.data;
-        // const updatedMods = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/updated.json`, headers: requestHeader, qs: {period: period}});
-        // return JSON.parse(updatedMods);
-    }
-    catch(err) {
-        return Promise.reject(err);
-        // return Promise.reject(`API Error(updateMods): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
-    }
 }
 
 async function modInfo(user: NexusUser, gameDomain: string, modId: number): Promise<IModInfo> {
     return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}.json`, user?.apikey);
-    const apiKey = user.apikey;
-    if (!apiKey) Promise.reject('API Error 403: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.');
-
-    requestHeader.apikey = apiKey;
-
-    try {
-        const modQuery = await axios({
-            baseURL: nexusAPI,
-            url: `/v1/games/${gameDomain}/mods/${modId}.json`,
-            headers: v1headers(apiKey),
-            transformResponse: (data) => JSON.parse(data)
-        });
-        return modQuery.data;
-        // const modInfo = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/${modId}.json`, headers: requestHeader});
-        // return JSON.parse(modInfo);
-    }
-    catch(err) {
-        return Promise.reject(err);
-        // return Promise.reject(`API Error(modInfo): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
-    }
 }
 
 async function modFiles(user: NexusUser, gameDomain: string, modId: number): Promise<IModFiles> {
     return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/files.json`, user?.apikey);
-    // const apiKey = user.apikey;
-    // if (!apiKey) Promise.reject('API Error 403: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.');
-
-    // requestHeader.apikey = apiKey;
-
-    // try {
-    //     const modFilesQuery = await axios({
-
-    //     });
-    //     const modFiles = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/${modId}/files.json`, headers: requestHeader});
-    //     return JSON.parse(modFiles);
-    // }
-    // catch(err) {
-    //     return Promise.reject(`API Error (modFiles): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
-    // }
-
 }
 
 async function modChangelogs(user: NexusUser, gameDomain: string, modId: number): Promise<IChangelogs> {
     return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/changelogs.json`, user?.apikey);
-    // const apiKey = user.apikey;
-    // if (!apiKey) Promise.reject('API Error 403: Please link your Nexus Mods account to your Discord in order to use this feature. See `!nexus link` for help.');
-
-    // requestHeader.apikey = apiKey;
-
-    // try {
-    //     const modChangelogs = await requestPromise({url: `${nexusAPI}v1/games/${gameDomain}/mods/${modId}/changelogs.json`, headers: requestHeader});
-    //     return JSON.parse(modChangelogs);
-    // }
-    // catch(err) {
-    //     return Promise.reject(`API Error(modChangelogs): Nexus Mods API responded with ${(err as any).statusCode}. ${(err as Error).message}`);
-    // }
-
 }
 
 class downloadStatsCache {
@@ -297,7 +172,8 @@ class downloadStatsCache {
             };
         });
         const endSize = JSON.stringify(this.downloadStats).length;
-        if (startSize != endSize) logMessage('Clean up of download stats cache done', { newSize: JSON.stringify(this.downloadStats).length });
+        const change = endSize - startSize;
+        if (startSize != endSize) logMessage('Clean up of download stats cache done', { change });
     }
 }
 
