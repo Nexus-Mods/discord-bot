@@ -163,7 +163,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild?.name} as your API key is invalid.`).catch(() => undefined);
             return Promise.reject('User API ket invalid.');
         }
-        else return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as Error).message || err}`);
+        else return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}`);
     }
 
     // Get all the games if we need them.
