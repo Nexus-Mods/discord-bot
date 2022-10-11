@@ -280,7 +280,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 .setCustomId('save')
                 .setDisabled(Object.keys(edits).length ? false : true),
                 new ButtonBuilder()
-                .setLabel('Delete!')
+                .setLabel('Delete')
                 .setStyle(ButtonStyle.Danger)
                 .setCustomId('delete'),
                 new ButtonBuilder()
@@ -392,7 +392,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     const textbox = new TextInputBuilder()
                     .setCustomId('message-text')
                     .setLabel('Message to attach to Game Feed annoucements')
-                    .setPlaceholder('Enter a message to be posted with updates to this game feed. Role, channnel or user mentions can be added with ID codes.')
+                    .setPlaceholder('Enter a message to be posted with updates to this game feed.')
                     .setValue(newData.message || feed.message)
                     .setStyle(TextInputStyle.Short);
 
