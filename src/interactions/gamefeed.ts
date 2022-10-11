@@ -42,11 +42,11 @@ const discordInteraction: DiscordInteraction = {
             .setDescription('The ID of the existing feed.')
             .setRequired(true)
         )
-        .addStringOption(option => 
-            option.setName('message')    
-            .setDescription('Message to attach to Game Feed annoucements.')
-            .setRequired(false)
-        )
+        // .addStringOption(option => 
+        //     option.setName('message')    
+        //     .setDescription('Message to attach to Game Feed annoucements.')
+        //     .setRequired(false)
+        // )
     ) as SlashCommandBuilder,
     public: true,
     guilds: [],
@@ -268,6 +268,13 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
             new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 new ButtonBuilder()
+                .setLabel('📣 Edit Message')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('newmessage')
+            ),
+            new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+                new ButtonBuilder()
                 .setLabel('Save')
                 .setStyle(ButtonStyle.Primary)
                 .setCustomId('save')
@@ -280,10 +287,6 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 .setLabel('Cancel')
                 .setStyle(ButtonStyle.Secondary)
                 .setCustomId('cancel'),
-                new ButtonBuilder()
-                .setLabel('Message')
-                .setStyle(ButtonStyle.Primary)
-                .setCustomId('newmessage')
             )
             ]
         }
@@ -388,10 +391,10 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 case 'newmessage': {
                     const textbox = new TextInputBuilder()
                     .setCustomId('message-text')
-                    .setLabel('Text to display')
-                    .setPlaceholder('Enter a message to be posted with updates to this game feed.')
-                    .setValue(feed.message)
-                    .setStyle(TextInputStyle.Paragraph);
+                    .setLabel('Message to attach to Game Feed annoucements')
+                    .setPlaceholder('Enter a message to be posted with updates to this game feed. Role, channnel or user mentions can be added with ID codes.')
+                    .setValue(newData.message || feed.message)
+                    .setStyle(TextInputStyle.Short);
 
                     const input = new ActionRowBuilder<ModalActionRowComponentBuilder>()
                     .addComponents(textbox);
