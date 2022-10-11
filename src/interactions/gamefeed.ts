@@ -281,9 +281,9 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 .setStyle(ButtonStyle.Secondary)
                 .setCustomId('cancel'),
                 new ButtonBuilder()
-                .setLabel('Test')
+                .setLabel('Message')
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId('test')
+                .setCustomId('message')
             )
             ]
         }
