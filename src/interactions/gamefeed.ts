@@ -2,7 +2,7 @@ import {
     CommandInteraction, Snowflake, EmbedBuilder, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
     ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle
+    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction
 } from "discord.js";
 import { NexusUser } from "../types/users";
 import { DiscordInteraction } from "../types/DiscordTypes";
@@ -324,16 +324,15 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
         const replyMsg = await interaction.fetchReply();
         const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ componentType: ComponentType.Button, time: 120000 });
 
-        collector.on('collect', async i => {
+        collector.on('collect', async (i: ButtonInteraction) => {
             const id: string = i.customId;
-
-            if (id !== 'newmessage') await i.deferUpdate().catch(undefined);
 
             switch (id) {
                 case 'cancel': return collector.stop('cancel');
                 case 'save': return collector.stop('save');
                 case 'delete': return collector.stop('delete');
                 case 'toggle-new': {
+                    await i.deferUpdate().catch(undefined);
                     newData.show_new = !!newData.show_new ? !newData.show_new : !feed.show_new;
                     await i.editReply(
                         { 
@@ -344,6 +343,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-updates': {
+                    await i.deferUpdate().catch(undefined);
                     newData.show_updates = !!newData.show_updates ? !newData.show_updates : !feed.show_updates;
                     await i.editReply(
                         { 
@@ -354,6 +354,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-nsfw': {
+                    await i.deferUpdate().catch(undefined);
                     newData.nsfw = !!newData.nsfw ? !newData.nsfw : !feed.nsfw;
                     await i.editReply(
                         { 
@@ -364,6 +365,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-sfw': {
+                    await i.deferUpdate().catch(undefined)
                     newData.sfw = !!newData.sfw ? !newData.sfw : !feed.sfw;
                     await i.editReply(
                         { 
@@ -374,6 +376,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-compact': {
+                    await i.deferUpdate().catch(undefined)
                     newData.compact = !!newData.compact ? !newData.compact : !feed.compact;
                     await i.editReply(
                         { 
@@ -386,19 +389,22 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 case 'newmessage': {
                     const textbox = new TextInputBuilder()
                     .setCustomId('message-test')
-                    .setLabel('Message to append')
+                    .setLabel('Text to display')
+                    .setPlaceholder('Enter a message to be posted with updates to this game feed.')
+                    .setValue(feed.message)
                     .setStyle(TextInputStyle.Paragraph);
 
                     const input = new ActionRowBuilder<ModalActionRowComponentBuilder>()
                     .addComponents(textbox);
 
                     const modal = new ModalBuilder()
-                    .setTitle('Message')
+                    .setTitle('Edit Message')
                     .setCustomId('editMessage')
                     .addComponents(input)
                     await i.showModal(modal);
-                    const result = await i.awaitModalSubmit({ time: 15_000 });
-                    logMessage('Modal Result', result);
+                    const modalSubmit = await i.awaitModalSubmit({ time: 15_000 });
+                    logMessage('Modal Result', modalSubmit);
+                    break;
                 }
                 default: logMessage('Missed all cases for button press', undefined, true);
             }
