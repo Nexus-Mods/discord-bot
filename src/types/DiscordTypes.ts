@@ -13,7 +13,7 @@ interface ClientExt extends Client {
     gameFeeds?: GameFeedManager;
     modFeeds?: ModFeedManager;
     newsFeed?: NewsFeedManager;
-    updateInteractions?: () => Promise<void>
+    updateInteractions?: (force?: boolean) => Promise<void>
 }
 
 interface DiscordEventInterface {

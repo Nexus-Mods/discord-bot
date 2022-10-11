@@ -3,9 +3,19 @@ import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { BotServer } from '../types/servers';
 import { getAllServers, getServer } from './bot-db';
-import { Client, User, Guild, GuildMember, Role, GuildChannel, EmbedBuilder, ThreadChannel, RoleResolvable, PermissionFlags, PermissionFlagsBits } from 'discord.js';
+import { Client, User, Guild, GuildMember, Role, GuildChannel, EmbedBuilder, ThreadChannel, RoleResolvable } from 'discord.js';
 import { getModsbyUser } from './user_mods';
 import { logMessage } from './util';
+
+async function getAllLinks(): Promise<NexusUserServerLink[]> {
+    return new Promise((resolve, reject) => {
+        query('SELECT * FROM user_servers', [], (error: Error, result?: QueryResult) => {
+            if (error) return reject(error);
+            resolve(result?.rows || []);
+        });
+
+    });
+}
 
 async function getLinksByUser(userId: number): Promise<NexusUserServerLink[]> {
     return new Promise((resolve, reject) => {
@@ -58,6 +68,24 @@ async function deleteAllServerLinksByUser(client: Client, user: NexusUser, disco
                 const server = await client.guilds.fetch(link.server_id);
                 if (server) await updateRoles(client, user, discordUser, server, true);
             }
+            resolve();
+        });
+    });
+}
+
+async function deleteServerLinksByUserSilent(userId: Number): Promise<void> {
+    return new Promise((resolve, reject) => {
+        query('DELETE FROM user_servers WHERE user_id = $1', [userId], async (error: Error, result?: QueryResult) => {
+            if (error) return reject(error);
+            resolve();
+        });
+    });
+}
+
+async function deleteServerLinksByServerSilent(userId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        query('DELETE FROM user_servers WHERE server_id = $1', [userId], async (error: Error, result?: QueryResult) => {
+            if (error) return reject(error);
             resolve();
         });
     });
@@ -204,4 +232,6 @@ const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): EmbedBuild
     return embed;
 }
 
-export { getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal };
+export { getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, 
+    deleteServerLinksByUserSilent, deleteServerLinksByServerSilent,
+    deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal };

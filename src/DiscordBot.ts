@@ -55,7 +55,7 @@ export class DiscordBot {
             await this.client.login(this.token);
             logMessage('Connected to Discord');
             await this.client.application?.fetch();
-            this.client.updateInteractions = this.setupInteractions
+            this.client.updateInteractions = this.setupInteractions.bind(this)
         }
         catch(err) {
             logMessage('Failed to connect to Discord during bot setup', { error: (err as Error).message }, true);
@@ -69,6 +69,7 @@ export class DiscordBot {
         }
         catch(err) {
             logMessage('Failed to set interactions', err, true);
+            if (force === true) return Promise.reject(err);
         }
     }
 
@@ -159,7 +160,7 @@ export class DiscordBot {
             if (!guild) continue;
             const commands = await guild?.commands.fetch(); // Get commands already set for this guild.
             const newCommands = guildCommandsToSet[guildId].filter(c => !commands?.find(ex => ex.name === c.name));
-            if (!newCommands.length) continue;
+            if (!newCommands.length && !forceUpdate) continue;
 
 
             try {
@@ -173,10 +174,10 @@ export class DiscordBot {
                     Routes.applicationGuildCommands(this.clientId, guildId),
                     { body: guildCommandsToSet[guildId] }
                 );
-                logMessage('Guild interactions set up', { guild: guild?.name || guildId, commands: newCommands.map(c => c.name).join(', ') });
+                logMessage('Guild interactions set up', { guild: guild?.name || guildId, commands: guildCommandsToSet[guildId].map(c => c.name).join(', ') });
             }
             catch(err) {
-                logMessage('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: newCommands.map(c => c.name) }, true);
+                logMessage('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) }, true);
             }
         }
 

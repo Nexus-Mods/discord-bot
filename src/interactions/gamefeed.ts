@@ -451,10 +451,6 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
             else await interaction.editReply({ content: 'Editing timed out.', embeds: [embed(feed)], components: [] });
         });
 
-
-
-
-
     }
     catch(err) {
         logMessage('Game Feed management error', err, true);
