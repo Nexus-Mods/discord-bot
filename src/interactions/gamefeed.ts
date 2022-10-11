@@ -396,8 +396,8 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     .setTitle('Message')
                     .setCustomId('editMessage')
                     .addComponents(input)
-                    await interaction.showModal(modal);
-                    const result = await interaction.awaitModalSubmit({ time: 15_000 });
+                    await i.showModal(modal);
+                    const result = await i.awaitModalSubmit({ time: 15_000 });
                     logMessage('Modal Result', result);
                 }
                 default: logMessage('Missed all cases for button press', undefined, true);
