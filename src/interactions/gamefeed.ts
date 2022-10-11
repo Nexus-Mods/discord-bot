@@ -327,7 +327,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
         collector.on('collect', async i => {
             const id: string = i.customId;
 
-            await i.deferUpdate().catch(undefined);
+            if (id !== 'newmessage') await i.deferUpdate().catch(undefined);
 
             switch (id) {
                 case 'cancel': return collector.stop('cancel');
