@@ -403,7 +403,8 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     .addComponents(input)
                     await i.showModal(modal);
                     const modalSubmit = await i.awaitModalSubmit({ time: 15_000 });
-                    logMessage('Modal Result', modalSubmit);
+                    logMessage('Modal Result', modalSubmit.fields.getTextInputValue('message-test'));
+                    modalSubmit.reply('boo').catch(undefined);
                     break;
                 }
                 default: logMessage('Missed all cases for button press', undefined, true);
