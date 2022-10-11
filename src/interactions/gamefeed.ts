@@ -242,6 +242,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
 
         // Create the buttons we need.
         const buttons = (feed: GameFeed, edits: Partial<GameFeed>): ActionRowBuilder<ButtonBuilder>[] => {
+            logMessage('Building buttons!')
             return [new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 new ButtonBuilder()
