@@ -273,7 +273,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 .setCustomId('save')
                 .setDisabled(Object.keys(edits).length ? false : true),
                 new ButtonBuilder()
-                .setLabel('Delete')
+                .setLabel('Delete!')
                 .setStyle(ButtonStyle.Danger)
                 .setCustomId('delete'),
                 new ButtonBuilder()
@@ -283,7 +283,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 new ButtonBuilder()
                 .setLabel('Message')
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId('message')
+                .setCustomId('newmessage')
             )
             ]
         }
@@ -382,7 +382,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                         });
                     break;
                 }
-                case 'test': {
+                case 'newmessage': {
                     const textbox = new TextInputBuilder()
                     .setCustomId('message-test')
                     .setLabel('Message to append')
