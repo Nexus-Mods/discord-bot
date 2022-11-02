@@ -81,6 +81,7 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
     try {
         const searchQuery = await axios({
             baseURL: nexusAPI,
+            url: '/mods',
             params: {
                 terms: encodeURI(query),
                 game_id,
