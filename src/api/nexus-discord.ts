@@ -1,6 +1,6 @@
 //Commands for interacting with the Nexus Mods API. 
 // import requestPromise from 'request-promise-native'; //For making API requests
-import axios, { AxiosResponse, AxiosError } from 'axios'; // For interactiing with API v1 and quicksearch. 
+import axios, { AxiosError } from 'axios'; // For interactiing with API v1 and quicksearch. 
 import { request, gql } from 'graphql-request'; // For interacting with API v2.
 import { NexusUser } from '../types/users';
 import { IGameListEntry, IValidateKeyResponse, IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api'
@@ -9,13 +9,7 @@ import { logMessage } from './util';
 
 const nexusAPI: string = 'https://api.nexusmods.com/'; //for all regular API functions
 const nexusGraphAPI: string = nexusAPI+'/v2/graphql';
-const nexusSearchAPI: string ='https://search.nexusmods.com/mods'; //for quicksearching mods
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
-const requestHeader = {
-    'Application-Name': 'Nexus Mods Discord Bot',
-    'Application-Version': process.env.npm_package_version,
-    'apikey': '' 
-};
 
 const v1headers = (apiKey: string) => ({
     'Application-Name': 'Nexus Mods Discord Bot',
@@ -38,7 +32,7 @@ async function v1APIQuery (path: string, apiKey: string, params?: { [key: string
     catch(err) {
         if (err as AxiosError) return Promise.reject(new NexusAPIServerError(err as AxiosError, path));
         logMessage('Unexpected API error', err, true);
-        return Promise.reject(new Error(`Unexpected API error: ${err as Error}.message`));
+        return Promise.reject(new Error(`Unexpected API error: ${(err as Error)?.message}`));
     }
 }
 
@@ -86,7 +80,7 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
     query = query.split(' ').toString();//query.replace(/[^A-Za-z0-9\s]/gi, '').split(' ').join(',');
     try {
         const searchQuery = await axios({
-            baseURL: nexusSearchAPI,
+            baseURL: nexusAPI,
             params: {
                 terms: encodeURI(query),
                 game_id,
