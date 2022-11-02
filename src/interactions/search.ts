@@ -226,6 +226,8 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     }
     catch(err) {
         logMessage('Mod Search failed!', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, err}, true);
+        await interaction.deleteReply().catch(() => undefined);
+        return interaction.followUp({ content: 'Search failed!', embeds:[], components: [], ephemeral: true});
     }
 
 }
