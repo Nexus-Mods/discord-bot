@@ -106,7 +106,7 @@ async function checkAPIKey(client: Client, interact: CommandInteraction, key: st
 
     }
     catch(err) {
-        await interact.followUp({ content: `Could not link your account due to the following error:\n`+err,  ephemeral: true });
+        await interact.followUp({ content: `Could not link your account due to the following error:\n${(err as any)?.message || err}`,  ephemeral: true });
     }
 }
 
