@@ -33,5 +33,7 @@ packages/
 *.env
 data/
 dist/
+.yarn/
 serverconfig.json
 config.json
+.yarnrc.yml

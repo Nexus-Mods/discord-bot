@@ -10,7 +10,7 @@ export interface GameFeed extends Feed {
     show_updates: boolean;
     compact: boolean;
     message: string;
-    
+    error_count: number;
 }
 
 export interface ModFeed extends Feed {

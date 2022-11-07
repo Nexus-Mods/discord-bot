@@ -165,6 +165,12 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         }
         else {
             if (err as NexusAPIServerError) {
+                // Count up concurrent errors
+                const newErrorCount: number = feed.error_count + 1;
+                await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
+                if (newErrorCount != 18) return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}. Error count: ${newErrorCount}`)
+
+                // If the error count is over 18 (i.e. the feed has failed to update for 3 hours straight, report it to the user.)
                 const error = err as NexusAPIServerError;
                 const notifyEmbed = new EmbedBuilder()
                 .setColor('DarkOrange')
@@ -172,7 +178,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${error.name} (${error.code}) - ${error.message}.\nThis may be a temporary issue. Retrying in 10 minutes.`);
                 await channel?.send({ embeds: [ notifyEmbed ] }).catch(undefined);
             }
-            return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}`);
+            return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}, posting failure notice.`);
         };
     }
 
@@ -253,7 +259,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
         }
 
-        if (lastUpdate > feed.last_timestamp) await updateGameFeed(feed._id, { last_timestamp: lastUpdate})
+        if (lastUpdate > feed.last_timestamp) await updateGameFeed(feed._id, { last_timestamp: lastUpdate, error_count: 0 })
             .catch(() => { Promise.reject(`Failed to update timestamp`) });
         // else logMessage('Did not update feed date', { lastUpdate, feed: feed.last_timestamp });
         
