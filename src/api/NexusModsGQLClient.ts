@@ -268,6 +268,46 @@ class NexusModsGQLClient {
         }
     }
 
+    public async collectionSearch(filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean): Promise<any> {
+        const query = gql`
+        query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean, $count: Int, $sort: String) {
+            collections(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sort) {
+                nodes {
+                    slug
+                    name
+                    category {
+                        name
+                    }
+                    game {
+                        name
+                    }
+                    overallRating
+                    totalDownloads
+                    endorsements
+                    user {
+                        name
+                    }
+                }
+                nodesFilter
+            }
+        }
+        `;
+
+        const variables = {
+            filters,
+            sort: sort || 'endorsements_count',
+            adultContent: adultContent || false,
+        };
+
+        try {
+            const res: { data: { collections: GQLTypes.CollectionPage } } = await this.GQLClient.request(query, variables, this.headers);
+            return res.data?.collections;
+        }
+        catch(err) {
+            throw err;
+        }
+    }
+
     public async findUser(nameOrId: string|number): Promise<any> {
         let query = '';
         let variables = {};
