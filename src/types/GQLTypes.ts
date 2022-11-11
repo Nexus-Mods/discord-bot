@@ -120,7 +120,7 @@ interface Collection {
     gameId: number;
     headerImage: any;
     id: number;
-    lastestPublishedRevision: any;
+    latestPublishedRevision: any;
     latestPublishedRevisionRating: any;
     listedAt: Date;
     manuallyVerifyMedia: boolean;
@@ -188,10 +188,11 @@ interface CollectionsFilter {
 
 interface CollectionPage {
     nodes?: Collection[];
-    nodesAggregations: any[];
-    nodesCount: number;
-    nodesFacets: any[];
-    nodesFilter: string;
+    nodesAggregations?: any[];
+    nodesCount?: number;
+    nodesFacets?: any[];
+    nodesFilter?: string;
+    nextURL?: string; //URL to browser the results on the website.
 }
 
 export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, CollectionsFilter, CollectionsSortBy };

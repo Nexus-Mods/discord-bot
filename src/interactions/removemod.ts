@@ -2,7 +2,8 @@ import {
     CommandInteraction, Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, 
     Message, Interaction, ButtonStyle, SlashCommandBuilder, SelectMenuBuilder, 
     SelectMenuOptionBuilder, 
-    ChatInputCommandInteraction
+    ChatInputCommandInteraction,
+    MessageComponentInteraction
 } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
 import { NexusUser, NexusLinkedMod } from "../types/users";
@@ -64,7 +65,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const message = await interaction.fetchReply();
     const collector = (message as Message).createMessageComponentCollector({ time: 60000 });
 
-    collector.on('collect', async i => {
+    collector.on('collect', async (i: MessageComponentInteraction) => {
         await i.update({ components: [] });
         let removals: NexusLinkedMod[] = [];
         if (i.isButton()) {

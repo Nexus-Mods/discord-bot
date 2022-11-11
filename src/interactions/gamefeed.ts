@@ -183,7 +183,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
                 const id = await createGameFeed(newFeed);
                 await interaction.editReply({ content: 'Game Feed created successfully', components: [], embeds: [] });
                 logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).name, owner: interaction.user.tag });
-                const infoMsg = await interaction?.followUp({ content: null, embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch((err) => logMessage('Followup error', err, true));
+                const infoMsg = await interaction?.followUp({ content: '', embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch((err) => logMessage('Followup error', err, true));
                 if (perms.includes('ManageMessages')) await (infoMsg as Message)?.pin().catch((err) => logMessage('Pinning post error', err, true));
                 return;
             }

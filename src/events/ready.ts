@@ -1,5 +1,5 @@
 import { GameFeedManager } from '../feeds/GameFeedManager';
-import { EmbedBuilder, Guild, TextChannel, ActivityType, NonThreadGuildBasedChannel } from 'discord.js';
+import { EmbedBuilder, Guild, TextChannel, ActivityType, GuildBasedChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
 import { ModFeedManager } from '../feeds/ModFeedManager';
@@ -41,7 +41,7 @@ const main: DiscordEventInterface = {
                     continue;
                 }
                 if (!server.channel_nexus) continue;
-                const postChannel: NonThreadGuildBasedChannel | null = await guild.channels.fetch(server.channel_nexus).catch(() => null);
+                const postChannel: GuildBasedChannel | null = await guild.channels.fetch(server.channel_nexus).catch(() => null);
                 // If the channel couldn't be resolved or we can't send messages.
                 if (!postChannel || !(postChannel as TextChannel).send) continue;
                 try {
