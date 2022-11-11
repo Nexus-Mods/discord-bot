@@ -32,7 +32,7 @@ const discordInteraction: DiscordInteraction = {
     )
     .addSubcommand(subcommand => 
         subcommand.setName('list')
-        .setDescription('ist Game Feeds for this server.')
+        .setDescription('List Game Feeds for this server.')
     )
     .addSubcommand(subcommand => 
         subcommand.setName('manage')
