@@ -199,8 +199,6 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         // Filter out the mods from before our saved timestamp.
         const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
-        
-        if (feed._id === 833) logMessage('Spiderman feed', { total: newMods.length, filtered: filteredMods.length, newMods });
 
         // No mods to show
         if (!filteredMods.length) return;
@@ -259,6 +257,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
+            else logMessage('No embed created!', { mod: mod.name, path: feed.domain+`/mods/`+mod.modId, feed: feed._id, timeDiff, timeNew, updated: mod.updatedAt, created: mod.createdAt }, true);
 
         }
 
@@ -266,6 +265,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             .catch(() => { Promise.reject(`Failed to update timestamp`) });
         // else logMessage('Did not update feed date', { lastUpdate, feed: feed.last_timestamp });
         
+        if (feed._id === 833) logMessage('Spiderman feed', { embeds: modEmbeds.length, lastUpdate, feedtime: feed.last_timestamp }, true);
+
         // Nothing to post?
         if (!modEmbeds.length) { 
             // logMessage(`No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
