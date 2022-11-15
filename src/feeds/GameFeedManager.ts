@@ -200,8 +200,6 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
 
-        if (feed._id === 833) logMessage('Check for mod', { new: newMods.find(n => n.mod_id === 3227), filteredMods: filteredMods.find(f => f.mod_id === 3227) });
-
         // No mods to show
         if (!filteredMods.length) return;
 
@@ -223,6 +221,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             }
             return m;
         });
+
+        if (feed._id === 833) logMessage('Latest Mods', { mods: modMeta.map(m => m.name), modsToCheck, sameSize: (modMeta.length === filteredMods.length) });
 
         // Interate through the mods and build embeds.
         for (const mod of modMeta) {
