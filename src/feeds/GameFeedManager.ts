@@ -201,6 +201,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
 
         if (feed._id === 833) logMessage('Filtered mods', { total: newMods.length, filtered: filteredMods.length, lastUpdateEpoc, mods:filteredMods.slice(0, 5) }, true);
+        if (feed._id === 833) logMessage('Check for mod', { new: newMods.find(n => n.mod_id === 3227), filteredMods: filteredMods.find(f => f.mod_id === 3227) });
 
         // No mods to show
         if (!filteredMods.length) return;
