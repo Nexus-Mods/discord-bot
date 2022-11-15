@@ -199,6 +199,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         // Filter out the mods from before our saved timestamp.
         const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
+        logMessage('Filtered mods', { total: newMods.length, filtered: newMods.length, lastUpdateEpoc, game: feed.domain, id: feed._id });
         // No mods to show
         if (!filteredMods.length) return;
 
