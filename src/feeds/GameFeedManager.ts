@@ -222,11 +222,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             return m;
         });
 
-        if (feed._id === 833) logMessage('Latest Mods', { mods: modMeta.map(m => m.name), modsToCheck, sameSize: (modMeta.length === filteredMods.length) });
-
         // Interate through the mods and build embeds.
         for (const mod of modMeta) {
-            if (feed._id === 833) logMessage('Lastest Mod', { mod: mod.name, id: mod.modId }); //&& mod.modId === 3227
             // If we've been rate limited, there's no point in continuing here:
             if (rateLimited) break;
             // Stop if we have 10 embeds.
@@ -261,15 +258,13 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
-            // else if (feed._id === 833) logMessage('No embed created!', { mod: mod.name, path: feed.domain+`/mods/`+mod.modId, feed: feed._id, timeDiff, timeNew, updated: mod.updatedAt, created: mod.createdAt }, true);
 
         }
 
         if (lastUpdate > feed.last_timestamp) await updateGameFeed(feed._id, { last_timestamp: lastUpdate, error_count: 0 })
             .catch(() => { Promise.reject(`Failed to update timestamp`) });
         // else logMessage('Did not update feed date', { lastUpdate, feed: feed.last_timestamp });
-        
-        if (feed._id === 833) logMessage('Spiderman feed', { embeds: modEmbeds.length, lastUpdate, feedtime: feed.last_timestamp }, true);
+    
 
         // Nothing to post?
         if (!modEmbeds.length) { 
