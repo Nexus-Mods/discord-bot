@@ -226,7 +226,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
         // Interate through the mods and build embeds.
         for (const mod of modMeta) {
-            if (feed._id === 833 && mod.modId === 3227) logMessage('Lastest Mod', { mod });
+            if (feed._id === 833) logMessage('Lastest Mod', { mod: mod.name, id: mod.modId }); //&& mod.modId === 3227
             // If we've been rate limited, there's no point in continuing here:
             if (rateLimited) break;
             // Stop if we have 10 embeds.
