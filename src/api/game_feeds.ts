@@ -63,16 +63,17 @@ function createGameFeed (newFeed: Partial<GameFeed>): Promise<number> {
     });
 }
 
-function updateGameFeed(feedId: number, newData: Partial<GameFeed>): Promise<boolean> {
+function updateGameFeed(feedId: number, newData: Partial<GameFeed>): Promise<void> {
     return new Promise(async (resolve, reject) => {
         const valuesToChange = Object.keys(newData);
+        const q2 = valuesToChange.map((v, i) => `${v} = ${i+1}`).join((', '));
         const q = `(${valuesToChange.join(', ')}) = (${valuesToChange.map((v, i) => `$${i+1}`).join(', ')})`;
-        const updateQuery = `UPDATE game_feeds SET ${q} WHERE _id = $${valuesToChange.length + 1}`;
+        const updateQuery = `UPDATE game_feeds SET ${q2} WHERE _id = $${valuesToChange.length + 1}`;
         const variables = [...Object.values(newData), feedId];
 
         query(updateQuery, variables, (error: Error) => {
-            if (!!error) return resolve(false);
-            else return resolve(true);
+            if (!!error) return reject(error);
+            else return resolve();
         });
     });
 }
