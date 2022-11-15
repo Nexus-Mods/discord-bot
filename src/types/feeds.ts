@@ -10,19 +10,16 @@ export interface GameFeed extends Feed {
     show_updates: boolean;
     compact: boolean;
     message: string;
-    error_count: number;
 }
 
 export interface ModFeed extends Feed {
     domain: string;
     mod_id: number;
     title: string;
-    show_files: boolean;
-    show_other: boolean;
-    last_timestamp: Date;
+    latest_file_id: number;
     last_status: string;
+    compact: boolean;
     message: string;
-    created: Date;
 }
 
 interface Feed {
@@ -33,7 +30,8 @@ interface Feed {
     webhook_id?: Snowflake;
     webhook_token?: string;
     last_timestamp: Date;
-    created?: Date;
+    created: Date;
+    error_count: number;
 }
 
 export interface NewsArticle {

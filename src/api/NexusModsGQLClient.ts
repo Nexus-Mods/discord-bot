@@ -268,10 +268,10 @@ class NexusModsGQLClient {
         }
     }
 
-    public async collectionSearch(filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean): Promise<any> {
+    public async collectionSearch(filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean): Promise<GQLTypes.CollectionPage> {
         const query = gql`
-        query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean, $count: Int, $sort: String) {
-            collections(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sort) {
+        query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean, $count: Int, $sortBy: String) {
+            collections(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sortBy) {
                 nodes {
                     slug
                     name
@@ -280,6 +280,7 @@ class NexusModsGQLClient {
                     }
                     game {
                         name
+                        domainName
                     }
                     overallRating
                     totalDownloads
@@ -289,23 +290,91 @@ class NexusModsGQLClient {
                     }
                 }
                 nodesFilter
+                nodesCount
             }
         }
         `;
 
         const variables = {
             filters,
-            sort: sort || 'endorsements_count',
+            sortBy: sort || 'endorsements_count',
             adultContent: adultContent || false,
+            count: 5
         };
 
+        const websiteLink = () => {
+            const baseURL = 'https://next.nexusmods.com/search-results/collections?';
+            const sorting = `sortBy=${variables.sortBy}`;
+            const keyword = variables.filters.generalSearch ? `keyword=${variables.filters.generalSearch.value}` : '';
+            const game = variables.filters.gameName ? `gameName=${encodeURI(variables.filters.gameName.value)}` : '';
+            const adult = `adultContent=${variables.filters.adultContent?.value === true ? 1 : 0 || 0}`;
+            const params = [keyword, adult, game, sorting].filter(p => p != '').join('&');
+            return `${baseURL}${params}`;
+        }
+
         try {
-            const res: { data: { collections: GQLTypes.CollectionPage } } = await this.GQLClient.request(query, variables, this.headers);
-            return res.data?.collections;
+            const res: { collections: GQLTypes.CollectionPage } = await this.GQLClient.request(query, variables, this.headers);
+            const collections = res.collections;
+            collections.nextURL = websiteLink();
+            return collections;
         }
         catch(err) {
             throw err;
         }
+    }
+
+    public async collection(slug: string, gameDomain: string, adult: boolean): Promise<Partial<GQLTypes.Collection>> {
+
+        const query = gql`
+        query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
+            collection(slug: $slug, viewAdultContent: $adult, domainName: $domain) {
+                adultContent
+                category {
+                    name
+                }
+                endorsements
+                game {
+                    name
+                    domainName
+                }
+                slug
+                name
+                overallRating
+                overallRatingCount
+                summary
+                tileImage {
+                    thumbnailUrl(size: small)
+                }
+                totalDownloads
+                user {
+                    name
+                    memberId
+                    avatar
+                }
+                updatedAt
+                latestPublishedRevision {
+                    modCount
+                    revisionNumber
+                }
+            }
+        }
+        `
+    const variables = {
+        slug,
+        adult,
+        domain: gameDomain
+    }
+
+    try {
+        const result: { collection: Partial<GQLTypes.Collection> } = await this.GQLClient.request(query, variables, this.headers);
+        return result.collection;
+        
+    }
+    catch(err) {
+        logMessage(`Could not resolve collection: ${gameDomain}/${slug}`, (err as ClientError).response|| err, true);
+        throw new Error(`Could not resolve collection: ${gameDomain}/${slug}`);
+    }
+
     }
 
     public async findUser(nameOrId: string|number): Promise<any> {
