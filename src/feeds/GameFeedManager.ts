@@ -257,7 +257,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
-            // else logMessage('No embed created!', { mod: mod.name, path: feed.domain+`/mods/`+mod.modId, feed: feed._id, timeDiff, timeNew, updated: mod.updatedAt, created: mod.createdAt }, true);
+            else if (feed._id === 833) logMessage('No embed created!', { mod: mod.name, path: feed.domain+`/mods/`+mod.modId, feed: feed._id, timeDiff, timeNew, updated: mod.updatedAt, created: mod.createdAt }, true);
 
         }
 
