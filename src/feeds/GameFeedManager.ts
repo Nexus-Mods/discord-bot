@@ -200,7 +200,6 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
 
-        if (feed._id === 833) logMessage('Filtered mods', { total: newMods.length, filtered: filteredMods.length, lastUpdateEpoc, mods:filteredMods.slice(0, 5) }, true);
         if (feed._id === 833) logMessage('Check for mod', { new: newMods.find(n => n.mod_id === 3227), filteredMods: filteredMods.find(f => f.mod_id === 3227) });
 
         // No mods to show
@@ -227,6 +226,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
         // Interate through the mods and build embeds.
         for (const mod of modMeta) {
+            if (feed._id === 833 && mod.modId === 3227) logMessage('Lastest Mod', { mod });
             // If we've been rate limited, there's no point in continuing here:
             if (rateLimited) break;
             // Stop if we have 10 embeds.
@@ -250,6 +250,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             // Determine if this a new or updated mod and build the embed.
             const timeDiff: number = (new Date (mod.updatedAt || 0)?.getTime()) - (new Date (mod.createdAt || 0)?.getTime());
             if (timeDiff < timeNew && feed.show_new) {
+                if (feed._id === 833) logMessage('New mod', { name: mod.name });
                 const embed: EmbedBuilder = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, true, undefined, feed.compact);
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
@@ -260,7 +261,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
-            else if (feed._id === 833) logMessage('No embed created!', { mod: mod.name, path: feed.domain+`/mods/`+mod.modId, feed: feed._id, timeDiff, timeNew, updated: mod.updatedAt, created: mod.createdAt }, true);
+            // else if (feed._id === 833) logMessage('No embed created!', { mod: mod.name, path: feed.domain+`/mods/`+mod.modId, feed: feed._id, timeDiff, timeNew, updated: mod.updatedAt, created: mod.createdAt }, true);
 
         }
 
