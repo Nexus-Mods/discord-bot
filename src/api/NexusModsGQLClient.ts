@@ -115,7 +115,7 @@ class NexusModsGQLClient {
 
         const pages: { gameDomain: string, modId: number }[][] = [];
         let length = 0
-        while (length < ids.length) {
+        while (length < ids.length - 1) {
             pages.push(ids.slice(length, 50));
             length += 50;
         }
