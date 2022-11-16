@@ -108,13 +108,40 @@ class NexusModsGQLClient {
     }
 
     public async modInfo(rawIds: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<Partial<GQLTypes.Mod>[]> {
-        // GraphQL is missing the updated times from the v1 API. 
+        // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
         let ids: { gameDomain: string, modId: number }[] = [];
         if (!Array.isArray(rawIds)) ids = [rawIds];
-        else ids = rawIds
+        else ids = rawIds;
+
+        const pages: { gameDomain: string, modId: number }[][] = [];
+        let length = 0
+        while (length < ids.length) {
+            pages.push(ids.slice(length, 50));
+            length += 50;
+        }
+        logMessage('Processing mods in page batches', { total: pages.length, sizes: pages.map(p => p.length) });
+
+        let results: Partial<GQLTypes.Mod>[] = [];
+
+        for (const page of pages) {
+            try {
+                const pageData = await this.modInfoPage(page);
+                if (pageData.length != page.length) logMessage('Did not get back the same number of mods as send', { sent: page.length, got: pageData.length }, true);
+                results = [...results, ...pageData];
+            }
+            catch(err) {
+                logMessage('Error fetching mod data', err, true);
+            }
+        }
+
+        return results;
+    }
+
+    public async modInfoPage(ids: { gameDomain: string, modId: number }[], offset: Number = 0, count: Number = 50): Promise<Partial<GQLTypes.Mod>[]> {
+        // GraphQL is missing the updated times from the v1 API. 
         const query = gql
-        `query Mods($ids: [CompositeDomainWithIdInput!]!) {
-            legacyModsByDomain(ids: $ids) {
+        `query Mods($ids: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
+            legacyModsByDomain(ids: $ids, count: $count, offset: $offset) {
               nodes {
                 uid
                 modId
@@ -144,7 +171,7 @@ class NexusModsGQLClient {
         }`
 
         try {
-            const res = await this.GQLClient.request(query, { ids });
+            const res = await this.GQLClient.request(query, { ids, count, offset });
             return res.legacyModsByDomain?.nodes || [];
         }
         catch(err) {
