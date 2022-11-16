@@ -109,9 +109,9 @@ class NexusModsGQLClient {
 
     public async modInfo(rawIds: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<Partial<GQLTypes.Mod>[]> {
         // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
-        let ids: { gameDomain: string, modId: number }[] = [];
-        if (!Array.isArray(rawIds)) ids = [rawIds];
-        else ids = rawIds;
+        const ids: { gameDomain: string, modId: number }[] = (!Array.isArray(rawIds)) ? [rawIds] : rawIds;
+
+        if (!ids.length) return [];
 
         const pages: { gameDomain: string, modId: number }[][] = [];
         let length = 0
@@ -119,14 +119,14 @@ class NexusModsGQLClient {
             pages.push(ids.slice(length, 50));
             length += 50;
         }
-        logMessage('Processing mods in page batches', { total: pages.length, sizes: pages.map(p => p.length) });
+        // logMessage('Processing mods in page batches', { total: pages.length, sizes: pages.map(p => p.length) });
 
         let results: Partial<GQLTypes.Mod>[] = [];
 
         for (const page of pages) {
             try {
                 const pageData = await this.modInfoPage(page);
-                if (pageData.length != page.length) logMessage('Did not get back the same number of mods as send', { sent: page.length, got: pageData.length }, true);
+                if (pageData.length != page.length) logMessage('Did not get back the same number of mods as sent', { sent: page.length, got: pageData.length }, true);
                 results = [...results, ...pageData];
             }
             catch(err) {
