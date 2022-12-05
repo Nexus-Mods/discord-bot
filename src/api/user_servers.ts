@@ -165,7 +165,7 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) logMessage(`${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
         // Apply the MA role if the criteria has been met.
         if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) {
-            if ((modUniqueTotal !== -1 && modUniqueTotal >= modAuthorDownloads) || userData.modauthor) {
+            if ((modUniqueTotal !== -1 && modUniqueTotal >= modAuthorDownloads) || (userData.modauthor === true)) {
                 rolesToAdd.push(modAuthorRole.id);
                 logMessage(`${userData.name} as now a recognised mod author in ${guild.name}`);
                 (guildMember as any).send(`Congratulations! You are now a recognised mod author in ${guild.name}!`).catch(() => undefined);     
