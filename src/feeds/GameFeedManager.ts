@@ -242,17 +242,17 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
             // If the mod author is in this server, get their Discord handle.
             const authorData: NexusUser|undefined = await getUserByNexusModsName(mod.uploader?.name || '').catch(() => undefined);
-            (mod as GQLTypes.FeedMod ).authorDiscord = guild && authorData ? guild.members.resolve(authorData?.d_id) : null;
+            (mod as GQLTypes.FeedMod).authorDiscord = guild && authorData ? guild.members.resolve(authorData?.d_id) : null;
 
             // Determine if this a new or updated mod and build the embed.
             const timeDiff: number = (new Date (mod.updatedAt || 0)?.getTime()) - (new Date (mod.createdAt || 0)?.getTime());
-            if (timeDiff < timeNew && feed.show_new) {
-                if (feed._id === 833) logMessage('New mod', { name: mod.name });
+            const isNewMod: boolean = (timeDiff < timeNew && feed.show_new);
+            if (isNewMod === true && feed.show_new) {
                 const embed: EmbedBuilder = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, true, undefined, feed.compact);
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
-            else if (feed.show_updates) {
+            else if (isNewMod === false && feed.show_updates) {
                 const changelog: IChangelogs|undefined = await modChangelogs(userData, feed.domain, mod.modId || 0).catch(() => undefined);
                 const embed: EmbedBuilder = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, false, changelog, feed.compact)
                 modEmbeds.push(embed);
