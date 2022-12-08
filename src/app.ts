@@ -1,7 +1,5 @@
 import { logMessage } from './api/util';
 import { DiscordBot } from './DiscordBot';
-import heapdump from 'heapdump'
-import http from 'http';
 
 require('dotenv').config();
 
@@ -25,18 +23,3 @@ async function start() {
         process.exit();
     }
 }
-
-const requestLogs: { url: string | undefined, date: Date }[] = [];
-const server = http.createServer((req, res) => {
-    if (req.url === '/heapdump') {
-        heapdump.writeSnapshot((err, filename) => {
-            logMessage('Heapdump written: ', filename);
-        })
-    }
-    requestLogs.push({ url: req.url, date: new Date() });
-    res.end(JSON.stringify(requestLogs));
-});
-
-server.listen(3000);
-logMessage('Server listening to port 3000');
-logMessage(`Heapdump enabled. Run "kill -USR2 ${process.pid} or send a request to heapdump to generate a heapdump.`);
