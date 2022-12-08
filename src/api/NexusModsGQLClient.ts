@@ -1,5 +1,4 @@
 import { gql, GraphQLClient, ClientError } from 'graphql-request';
-import requestPromise from 'request-promise-native'; //For making API requests
 import { verify } from 'jsonwebtoken';
 import { IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
@@ -109,13 +108,40 @@ class NexusModsGQLClient {
     }
 
     public async modInfo(rawIds: { gameDomain: string, modId: number }|{ gameDomain: string, modId: number }[]): Promise<Partial<GQLTypes.Mod>[]> {
+        // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
+        const ids: { gameDomain: string, modId: number }[] = (!Array.isArray(rawIds)) ? [rawIds] : rawIds;
+
+        if (!ids.length) return [];
+
+        const pages: { gameDomain: string, modId: number }[][] = [];
+        let length = 0
+        while (length < ids.length - 1) {
+            pages.push(ids.slice(length, 50));
+            length += 50;
+        }
+        // logMessage('Processing mods in page batches', { total: pages.length, sizes: pages.map(p => p.length) });
+
+        let results: Partial<GQLTypes.Mod>[] = [];
+
+        for (const page of pages) {
+            try {
+                const pageData = await this.modInfoPage(page);
+                if (pageData.length != page.length) logMessage('Did not get back the same number of mods as sent', { sent: page.length, got: pageData.length }, true);
+                results = [...results, ...pageData];
+            }
+            catch(err) {
+                logMessage('Error fetching mod data', err, true);
+            }
+        }
+
+        return results;
+    }
+
+    public async modInfoPage(ids: { gameDomain: string, modId: number }[], offset: Number = 0, count: Number = 50): Promise<Partial<GQLTypes.Mod>[]> {
         // GraphQL is missing the updated times from the v1 API. 
-        let ids: { gameDomain: string, modId: number }[] = [];
-        if (!Array.isArray(rawIds)) ids = [rawIds];
-        else ids = rawIds
         const query = gql
-        `query Mods($ids: [CompositeDomainWithIdInput!]!) {
-            legacyModsByDomain(ids: $ids) {
+        `query Mods($ids: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
+            legacyModsByDomain(ids: $ids, count: $count, offset: $offset) {
               nodes {
                 uid
                 modId
@@ -145,7 +171,7 @@ class NexusModsGQLClient {
         }`
 
         try {
-            const res = await this.GQLClient.request(query, { ids });
+            const res = await this.GQLClient.request(query, { ids, count, offset });
             return res.legacyModsByDomain?.nodes || [];
         }
         catch(err) {
@@ -267,6 +293,115 @@ class NexusModsGQLClient {
         catch(err) {
             throw err;
         }
+    }
+
+    public async collectionSearch(filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean): Promise<GQLTypes.CollectionPage> {
+        const query = gql`
+        query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean, $count: Int, $sortBy: String) {
+            collections(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sortBy) {
+                nodes {
+                    slug
+                    name
+                    category {
+                        name
+                    }
+                    game {
+                        name
+                        domainName
+                    }
+                    overallRating
+                    totalDownloads
+                    endorsements
+                    user {
+                        name
+                    }
+                }
+                nodesFilter
+                nodesCount
+            }
+        }
+        `;
+
+        const variables = {
+            filters,
+            sortBy: sort || 'endorsements_count',
+            adultContent: adultContent || false,
+            count: 5
+        };
+
+        const websiteLink = () => {
+            const baseURL = 'https://next.nexusmods.com/search-results/collections?';
+            const sorting = `sortBy=${variables.sortBy}`;
+            const keyword = variables.filters.generalSearch ? `keyword=${variables.filters.generalSearch.value}` : '';
+            const game = variables.filters.gameName ? `gameName=${encodeURI(variables.filters.gameName.value)}` : '';
+            const adult = `adultContent=${variables.filters.adultContent?.value === true ? 1 : 0 || 0}`;
+            const params = [keyword, adult, game, sorting].filter(p => p != '').join('&');
+            return `${baseURL}${params}`;
+        }
+
+        try {
+            const res: { collections: GQLTypes.CollectionPage } = await this.GQLClient.request(query, variables, this.headers);
+            const collections = res.collections;
+            collections.nextURL = websiteLink();
+            return collections;
+        }
+        catch(err) {
+            throw err;
+        }
+    }
+
+    public async collection(slug: string, gameDomain: string, adult: boolean): Promise<Partial<GQLTypes.Collection>> {
+
+        const query = gql`
+        query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
+            collection(slug: $slug, viewAdultContent: $adult, domainName: $domain) {
+                adultContent
+                category {
+                    name
+                }
+                endorsements
+                game {
+                    name
+                    domainName
+                }
+                slug
+                name
+                overallRating
+                overallRatingCount
+                summary
+                tileImage {
+                    thumbnailUrl(size: small)
+                }
+                totalDownloads
+                user {
+                    name
+                    memberId
+                    avatar
+                }
+                updatedAt
+                latestPublishedRevision {
+                    modCount
+                    revisionNumber
+                }
+            }
+        }
+        `
+    const variables = {
+        slug,
+        adult,
+        domain: gameDomain
+    }
+
+    try {
+        const result: { collection: Partial<GQLTypes.Collection> } = await this.GQLClient.request(query, variables, this.headers);
+        return result.collection;
+        
+    }
+    catch(err) {
+        logMessage(`Could not resolve collection: ${gameDomain}/${slug}`, (err as ClientError).response|| err, true);
+        throw new Error(`Could not resolve collection: ${gameDomain}/${slug}`);
+    }
+
     }
 
     public async findUser(nameOrId: string|number): Promise<any> {

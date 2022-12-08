@@ -1,5 +1,5 @@
 import { GameFeedManager } from '../feeds/GameFeedManager';
-import { EmbedBuilder, Guild, TextChannel, ActivityType, NonThreadGuildBasedChannel } from 'discord.js';
+import { EmbedBuilder, Guild, TextChannel, ActivityType, GuildBasedChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
 import { ModFeedManager } from '../feeds/ModFeedManager';
@@ -8,10 +8,9 @@ import { logMessage } from '../api/util';
 import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
 
 // Prepare the online status embed for quick reuse.
-const onlineEmbed = new EmbedBuilder({
-    title: `Nexus Mods Discord Bot v${process.env.npm_package_version || '0.0.0'} is online.`,
-    color: 0x009933
-});
+const onlineEmbed = new EmbedBuilder()
+.setTitle('Nexus Mods Discord Bot is online.')
+.setColor(0x009933);
 
 const main: DiscordEventInterface = {
     name: 'ready',
@@ -42,7 +41,7 @@ const main: DiscordEventInterface = {
                     continue;
                 }
                 if (!server.channel_nexus) continue;
-                const postChannel: NonThreadGuildBasedChannel | null = await guild.channels.fetch(server.channel_nexus);
+                const postChannel: GuildBasedChannel | null = await guild.channels.fetch(server.channel_nexus).catch(() => null);
                 // If the channel couldn't be resolved or we can't send messages.
                 if (!postChannel || !(postChannel as TextChannel).send) continue;
                 try {

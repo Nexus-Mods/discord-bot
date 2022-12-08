@@ -1,4 +1,4 @@
-import { GuildMember } from "discord.js";
+import { Base, GuildMember } from "discord.js";
 
 type ID = number | string | bigint;
 type ModStatus = 'under_moderation' | 'published' | 'not_published' | 'publish_with_game' | 'removed' | 'wastebinned' | 'hidden';
@@ -92,4 +92,107 @@ interface TrackingState {
     test: number;
 }
 
-export { Mod, Game, User, Tag, FeedMod }
+/** COLLECTIONS */
+type CollectionStatus = 'listed' | 'unlisted' | 'under_moderation';
+
+interface Collection {
+    adultContent: boolean;
+    allowUserMedia: boolean;
+    bugReport: any;
+    bugReports: any;
+    category: any;
+    collectionChangelogs: any[];
+    collectionStatus: CollectionStatus;
+    commentLink: string;
+    comments: any[];
+    contentPreviewLink: string;
+    createdAt: Date;
+    currentRevision: any;
+    description: string;
+    discardReason: any;
+    discardedAt: boolean; //???
+    downloadLink: string;
+    draftRevisionNumber: number;
+    enableDonations: boolean;
+    endorsements: number;
+    forumTopic: any;
+    game: Game;
+    gameId: number;
+    headerImage: any;
+    id: number;
+    latestPublishedRevision: any;
+    latestPublishedRevisionRating: any;
+    listedAt: Date;
+    manuallyVerifyMedia: boolean;
+    media: any[];
+    metadata: any;
+    moderations: any[];
+    name: string;
+    overallRating: string;
+    overallRatingCount: number;
+    permissions: any[];
+    publicRevisions: any[];
+    publishedAt: Date;
+    recentRating: string;
+    recentRatingCount: number;
+    revisions: any[];
+    slug: string;
+    summary: string;
+    tags: any[];
+    tileImage: any;
+    totalDownloads: number;
+    uniqueDownloads: number;
+    updatedAt: Date;
+    user: User;
+    userId: number;
+}
+
+/** COLLECTIONS SEARCH AND FILTERING */
+
+type FilterComparisonOperator = 'EQUALS' | 'NOT_EQUALS' | 'MATCHES' | 'WILDCARD';
+type FilterLogicalOperator = 'AND' | 'OR';
+
+interface BaseFilterValue {
+    value: string;
+    op: FilterComparisonOperator;
+}
+
+interface BooleanFilterValue {
+    value: boolean;
+    op: FilterComparisonOperator;
+}
+
+type CollectionsSortBy = 'listed_at' | 'endorsements_count' | 'latest_published_revision_rating' | 
+    'total_downloads'| 'published_at'| 'name.keyword'| 'created_at'| 'updated_at'| 'recent_rating'| 'overall_rating';
+
+interface CollectionsFilter {
+    filter?: CollectionsFilter;
+    op?: FilterLogicalOperator;
+    name?: BaseFilterValue;
+    collectionRating?: BaseFilterValue;
+    collectionStatus?: BaseFilterValue;
+    gameId?: BaseFilterValue;
+    gameDomain?: BaseFilterValue;
+    gameName?: BaseFilterValue;
+    categoryId?: BaseFilterValue;
+    categoryName?: BaseFilterValue;
+    gameVersion?: BaseFilterValue;
+    modUid?: BaseFilterValue;
+    modName?: BaseFilterValue;
+    tag?: BaseFilterValue;
+    adultContent?: BooleanFilterValue;
+    hasDraftRevision?: BooleanFilterValue;
+    hasPublishedRevision?: BooleanFilterValue;
+    generalSearch?: BaseFilterValue;
+}
+
+interface CollectionPage {
+    nodes?: Collection[];
+    nodesAggregations?: any[];
+    nodesCount?: number;
+    nodesFacets?: any[];
+    nodesFilter?: string;
+    nextURL?: string; //URL to browser the results on the website.
+}
+
+export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, CollectionsFilter, CollectionsSortBy };

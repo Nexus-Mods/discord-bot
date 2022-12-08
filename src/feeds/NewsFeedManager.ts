@@ -115,7 +115,7 @@ export class NewsFeedManager {
 
 function buildEmbed(client: ClientExt, news: NewsArticle): EmbedBuilder {
     const embed = new EmbedBuilder()
-    .setTitle(decodeURI(news.title))
+    .setTitle(decodeURI(news.title).replace(/\&amp;/g,'&'))
     .setURL(news.link)
     .setImage(news.enclosure?.url)
     .setDescription(`${decodeURI(news["nexusmods:plain_description"].substr(0, 250))}...`)

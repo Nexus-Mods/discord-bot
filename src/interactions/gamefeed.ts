@@ -2,7 +2,7 @@ import {
     CommandInteraction, Snowflake, EmbedBuilder, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
     ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType
+    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction
 } from "discord.js";
 import { NexusUser } from "../types/users";
 import { DiscordInteraction } from "../types/DiscordTypes";
@@ -32,7 +32,7 @@ const discordInteraction: DiscordInteraction = {
     )
     .addSubcommand(subcommand => 
         subcommand.setName('list')
-        .setDescription('ist Game Feeds for this server.')
+        .setDescription('List Game Feeds for this server.')
     )
     .addSubcommand(subcommand => 
         subcommand.setName('manage')
@@ -42,11 +42,11 @@ const discordInteraction: DiscordInteraction = {
             .setDescription('The ID of the existing feed.')
             .setRequired(true)
         )
-        .addStringOption(option => 
-            option.setName('message')    
-            .setDescription('Message to attach to Game Feed annoucements.')
-            .setRequired(false)
-        )
+        // .addStringOption(option => 
+        //     option.setName('message')    
+        //     .setDescription('Message to attach to Game Feed annoucements.')
+        //     .setRequired(false)
+        // )
     ) as SlashCommandBuilder,
     public: true,
     guilds: [],
@@ -183,7 +183,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
                 const id = await createGameFeed(newFeed);
                 await interaction.editReply({ content: 'Game Feed created successfully', components: [], embeds: [] });
                 logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).name, owner: interaction.user.tag });
-                const infoMsg = await interaction?.followUp({ content: null, embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch((err) => logMessage('Followup error', err, true));
+                const infoMsg = await interaction?.followUp({ content: '', embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch((err) => logMessage('Followup error', err, true));
                 if (perms.includes('ManageMessages')) await (infoMsg as Message)?.pin().catch((err) => logMessage('Pinning post error', err, true));
                 return;
             }
@@ -197,7 +197,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
         });
     }
     catch(err) {
-        if (!(err as Error).message.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
+        if (!(err as Error).message?.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
         rejectMessage((err as any).message || err, interaction);
     }
 }
@@ -268,6 +268,13 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
             new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 new ButtonBuilder()
+                .setLabel('📣 Edit Message')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId('newmessage')
+            ),
+            new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+                new ButtonBuilder()
                 .setLabel('Save')
                 .setStyle(ButtonStyle.Primary)
                 .setCustomId('save')
@@ -279,7 +286,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 new ButtonBuilder()
                 .setLabel('Cancel')
                 .setStyle(ButtonStyle.Secondary)
-                .setCustomId('cancel')
+                .setCustomId('cancel'),
             )
             ]
         }
@@ -319,16 +326,15 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
         const replyMsg = await interaction.fetchReply();
         const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ componentType: ComponentType.Button, time: 120000 });
 
-        collector.on('collect', async i => {
+        collector.on('collect', async (i: ButtonInteraction) => {
             const id: string = i.customId;
-
-            await i.deferUpdate().catch(undefined);
 
             switch (id) {
                 case 'cancel': return collector.stop('cancel');
                 case 'save': return collector.stop('save');
                 case 'delete': return collector.stop('delete');
                 case 'toggle-new': {
+                    await i.deferUpdate().catch(undefined);
                     newData.show_new = !!newData.show_new ? !newData.show_new : !feed.show_new;
                     await i.editReply(
                         { 
@@ -339,6 +345,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-updates': {
+                    await i.deferUpdate().catch(undefined);
                     newData.show_updates = !!newData.show_updates ? !newData.show_updates : !feed.show_updates;
                     await i.editReply(
                         { 
@@ -349,6 +356,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-nsfw': {
+                    await i.deferUpdate().catch(undefined);
                     newData.nsfw = !!newData.nsfw ? !newData.nsfw : !feed.nsfw;
                     await i.editReply(
                         { 
@@ -359,6 +367,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-sfw': {
+                    await i.deferUpdate().catch(undefined)
                     newData.sfw = !!newData.sfw ? !newData.sfw : !feed.sfw;
                     await i.editReply(
                         { 
@@ -369,6 +378,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     break;
                 }
                 case 'toggle-compact': {
+                    await i.deferUpdate().catch(undefined)
                     newData.compact = !!newData.compact ? !newData.compact : !feed.compact;
                     await i.editReply(
                         { 
@@ -376,6 +386,35 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                             embeds: [embed({...feed, ...newData})], 
                             components: buttons({...feed,...newData}, newData) 
                         });
+                    break;
+                }
+                case 'newmessage': {
+                    const textbox = new TextInputBuilder()
+                    .setCustomId('message-text')
+                    .setLabel('Message to attach to Game Feed annoucements')
+                    .setPlaceholder('Enter a message to be posted with updates to this game feed.')
+                    .setValue(newData.message || feed.message)
+                    .setStyle(TextInputStyle.Short);
+
+                    const input = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+                    .addComponents(textbox);
+
+                    const modal = new ModalBuilder()
+                    .setTitle('Edit Message')
+                    .setCustomId('editMessage')
+                    .addComponents(input)
+                    await i.showModal(modal);
+                    const modalSubmit = await i.awaitModalSubmit({ time: 15_000 });
+                    await (modalSubmit as any).deferUpdate();
+                    const newMsg = modalSubmit.fields.getTextInputValue('message-text');
+                    newData.message = newMsg;
+                    await i.editReply(
+                        { 
+                        content: null, 
+                        embeds: [embed({...feed, ...newData})], 
+                        components: buttons({...feed,...newData}, newData) 
+                        }
+                    ).catch(undefined);
                     break;
                 }
                 default: logMessage('Missed all cases for button press', undefined, true);
@@ -411,10 +450,6 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
             else if (ic.find(i => i.customId === 'cancel')) await interaction.editReply({ content: 'Editing cancelled.', embeds: [embed(feed)], components: [] });
             else await interaction.editReply({ content: 'Editing timed out.', embeds: [embed(feed)], components: [] });
         });
-
-
-
-
 
     }
     catch(err) {

@@ -2,6 +2,16 @@ import query from '../api/dbConnect';
 import { QueryResult } from 'pg';
 import { NexusLinkedMod } from '../types/users';
 
+async function getAllMods(): Promise<NexusLinkedMod[]> {
+    return new Promise( (resolve, reject) => {
+        query('SELECT * FROM user_mods', [],
+        (error: Error, result?: QueryResult) => {
+            if (error) { console.log(error); return resolve([]) };
+            return resolve(result?.rows || []);
+        });
+    })
+}
+
 async function getModsbyUser(userId: number): Promise<NexusLinkedMod[]> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM user_mods WHERE owner = $1', [userId],
@@ -53,4 +63,4 @@ async function updateMod(mod: NexusLinkedMod, newData: any): Promise<boolean> {
     });
 }
 
-export { getModsbyUser, createMod, deleteMod, updateMod };
+export { getAllMods, getModsbyUser, createMod, deleteMod, updateMod };

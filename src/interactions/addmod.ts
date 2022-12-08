@@ -106,7 +106,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         if (mods.find(m => m.domain === domain && m.mod_id === modId)) {
             const matchedMod = mods.find(m => m.domain === domain && m.mod_id === modId);
             modName = matchedMod?.name;
-            throw new Error(`This mod is already linked to your account. Use \`!nm refresh\` to update the data.`);
+            throw new Error(`This mod is already linked to your account. Use \`/refresh\` to update the data.`);
         }
 
         const modData: IModInfo|undefined = await modInfo(user, domain, modId).catch(() => undefined);

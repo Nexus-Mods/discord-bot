@@ -4,7 +4,7 @@
 import { getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed } from './users';
 
 // USER MOD FUNCTIONS 
-import { getModsbyUser, createMod, deleteMod, updateMod } from './user_mods';
+import { getAllMods, getModsbyUser, createMod, deleteMod, updateMod } from './user_mods';
 
 // SERVER MANAGEMENT FUNCTIONS
 import { getAllServers, getServer, addServer, updateServer, deleteServer } from './servers';
@@ -19,18 +19,19 @@ import { getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, up
 import { getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed } from './mod_feeds';
 
 // USER SERVER LINK MANAGEMENT
-import { getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal } from './user_servers';
+import { getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal } from './user_servers';
 
 // INFO MANAGEMENT 
 import { getAllInfos, createInfo, deleteInfo, displayInfo } from './infos';
 
 export {
     getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, 
-    getModsbyUser, createMod, deleteMod, updateMod, 
+    getAllMods, getModsbyUser, createMod, deleteMod, updateMod, 
     getAllServers, getServer, addServer, updateServer, deleteServer,
     getSavedNews, updateSavedNews,
     getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed,
     getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed,
-    getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal,
+    getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, 
+    deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, updateRoles, updateAllRoles, modUniqueDLTotal,
     getAllInfos, createInfo, deleteInfo, displayInfo
 };

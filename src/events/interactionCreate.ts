@@ -1,5 +1,5 @@
 import { 
-    Interaction, InteractionReplyOptions, ChatInputCommandInteraction, GuildChannel, UserContextMenuCommandInteraction, CommandInteraction 
+    InteractionReplyOptions, GuildChannel, CommandInteraction 
 } from 'discord.js';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
