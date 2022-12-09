@@ -96,7 +96,7 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
         return downloads;
     }
     let embed = new EmbedBuilder()
-    .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || ''})
+    .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || undefined})
     .addFields({ 
         name:  "Nexus Mods", 
         value: `[${userData.name}](https://nexusmods.com/users/${userData.id})\n${userData.premium ? "Premium Member" : userData.supporter ? "Supporter" : "Member"}`, 
