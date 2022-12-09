@@ -36,7 +36,6 @@ async function action(client: Client, baseinteraction: CommandInteraction): Prom
             };
     }
     catch(err) {
-        logMessage('User lookup error', err);
         throw err;        
     }
 
