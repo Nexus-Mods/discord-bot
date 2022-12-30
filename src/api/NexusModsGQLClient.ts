@@ -139,6 +139,7 @@ class NexusModsGQLClient {
 
     public async modInfoPage(ids: { gameDomain: string, modId: number }[], offset: Number = 0, count: Number = 50): Promise<Partial<GQLTypes.Mod>[]> {
         // GraphQL is missing the updated times from the v1 API. 
+        if (!ids.length) return [];
         const query = gql
         `query Mods($ids: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
             legacyModsByDomain(ids: $ids, count: $count, offset: $offset) {
