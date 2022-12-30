@@ -9,10 +9,6 @@ export class AuthSite {
     private app = express();
     private port = process.env.AUTH_PORT || 3000;
 
-
-    // private token: Snowflake = process.env.D_TOKEN as Snowflake;
-    // private clientId: Snowflake = process.env.CLIENT_ID as Snowflake;
-
     private constructor() {
         this.initialize();
     }
