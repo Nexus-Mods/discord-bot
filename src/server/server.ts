@@ -40,7 +40,7 @@ export class AuthSite {
 
         this.app.get('/discord-oauth-callback', this.discordOauthCallback);
 
-        this.app.listen(this.port, () => console.log(`Example app listening on port ${this.port}`));
+        this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
     }
 
     linkedRole(req: express.Request, res: express.Response) {
