@@ -3,11 +3,14 @@ import cookieparser from 'cookie-parser';
 import {} from 'discord.js';
 import * as util from './util';
 import { logMessage } from '../api/util';
+import { createUser } from '../api/users';
+import { NexusUser } from '../types/users';
 
 export class AuthSite {
     private static instance: AuthSite;
     private app = express();
     private port = process.env.AUTH_PORT || 3000;
+    private _TempStore: Map<string, any> = new Map();
 
     private constructor() {
         this.initialize();
@@ -35,6 +38,8 @@ export class AuthSite {
         this.app.get('/linked-role', this.linkedRole);
 
         this.app.get('/discord-oauth-callback', this.discordOauthCallback);
+
+        this.app.get('/nexus-mods-callback', this.nexusModsOauthCallback);
 
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
     }
@@ -66,18 +71,67 @@ export class AuthSite {
 
             const meData = await util.getDiscordUserData(tokens);
             const userId = meData.user.id;
-            // Store the Discord token
+            // Store the Discord token temporarily
+            this._TempStore.set(clientState, { id: userId, tokens });
 
-            // Perform Nexus Mods auth. (May need to split into a seprate function)
-
-            // Store Nexus Mods tokens
-
-            // Push the metadata through to the Discord API (May need to split into a seprate function)
-
+            // Forward to Nexus Mods auth.
+            const { url } = util.getNexusModsOAuthUrl(clientState);
+            return res.redirect(url);
         }
         catch(err) {
             logMessage('Discord OAuth Error', err, true);
-            res.sendStatus(500);
+            return res.sendStatus(500);
         }
+    }
+
+    async nexusModsOauthCallback(req: express.Request, res: express.Response) {
+        // After authing Discord, the user is forwarded to the Nexus Mods auth. 
+        const code = req.query['code'];
+        const discordState = req.query['state'];
+
+        const { clientState } = req.signedCookies;
+        if (clientState != discordState) {
+            logMessage('Nexus Mods OAuth state verification failed.');
+            return res.sendStatus(403);
+        }
+
+        // Get the Discord data from the store
+        const discordData = this._TempStore.get(clientState);
+        if (!discordData) {
+            logMessage('Could not find matching Discord Auth to pair accounts', req.url, true);
+            return res.sendStatus(403);
+        }
+
+        try {
+            const tokens = await util.getNexusModsOAuthTokens(code as string);
+            logMessage('Got tokens for Nexus Mods', tokens);
+            const userData = await util.getNexusModsUserData(tokens);
+            logMessage('Got Nexus Mods user data from tokens', userData);
+            const user: NexusUser = {
+                d_id: discordData.id,
+                id: 0,
+                name: '',
+                apikey: '',
+                avatar_url: 'apikey',
+                supporter: false,
+                premium: false,
+                modauthor: false,
+                nexus_access: '',
+                nexus_refresh: '',
+                nexus_expires: new Date(),                
+            }
+            // createUser()
+
+        }
+        catch(err) {
+            logMessage('Nexus Mods OAuth Error', err, true);
+            return res.sendStatus(500);
+        }
+
+        // Store Nexus Mods tokens
+
+            
+        // Push the metadata through to the Discord API (May need to split into a seprate function)
+
     }
 }

@@ -15,7 +15,8 @@ const config = {
   DISCORD_REDIRECT_URI: nconf.get('DISCORD_REDIRECT_URI'),
   COOKIE_SECRET: nconf.get('COOKIE_SECRET'),
   NEXUS_REDIRECT_URI: nconf.get('NEXUS_REDIRECT_URI'),
-  NEXUS_OAUTH_ID: nconf.get('NEXUS_OAUTH_ID')
+  NEXUS_OAUTH_ID: nconf.get('NEXUS_OAUTH_ID'),
+  NEXUS_OAUTH_SECRET: nconf.get('NEXUS_OAUTH_SECRET')
 };
 
 export default config;

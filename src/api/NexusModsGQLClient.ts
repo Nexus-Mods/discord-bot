@@ -8,26 +8,27 @@ import { games, modChangelogs, modFiles as files, updatedMods } from './nexus-di
 
 const domain = 'https://api.nexusmods.com/v2/graphql';
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
+const oauthTokenPath = 'https://users.nexusmods.com/oauth/token';
 const graphOptions = {};
 let cache: { [id: string]: { expiry: number, data: any } } = {};
 const cachePeriod: number = (5*60*1000); // 5mins
 
-type NexusModsAuthTypes = 'JWT' | 'APIKEY';
+type NexusModsAuthTypes = 'OAUTH' | 'APIKEY';
 type UpdatedModsPeriod = '1d' | '1w' | '1m';
 
 class NexusModsGQLClient {
     public GQLClient : GraphQLClient;
     private NexusModsUser: NexusUser;
     private headers: any;
-    private authType: NexusModsAuthTypes = 'JWT';
+    private authType: NexusModsAuthTypes = 'OAUTH';
     
     constructor(user: NexusUser) {
         this.GQLClient = new GraphQLClient(domain, graphOptions);
         this.NexusModsUser = user;
-        this.authType = user.jwt ? 'JWT' : 'APIKEY';
-        this.headers = this.authType === 'JWT'  
+        this.authType = user.nexus_access ? 'OAUTH' : 'APIKEY';
+        this.headers = this.authType === 'OAUTH'  
         ? { apikey: user.apikey }
-        : {  };
+        : { Authorization: `Bearer ${user.nexus_access}` };
         this.GQLClient.setHeaders(this.headers);
     }
 

@@ -112,8 +112,8 @@ export async function getAccessToken(userId: string, tokens: { refresh_token: st
     return tokens.access_token;
   }
 
-export function getNexusModsOAuthUrl() {
-    const state = crypto.randomUUID();
+export function getNexusModsOAuthUrl(sharedState: string) {
+    const state = sharedState ?? crypto.randomUUID();
   
     const url = new URL('https://users.nexusmods.com/oauth/authorize');
     url.searchParams.set('client_id', config.NEXUS_OAUTH_ID);
@@ -123,4 +123,44 @@ export function getNexusModsOAuthUrl() {
     url.searchParams.set('scope', 'openid+email+profile');
     // url.searchParams.set('approval_prompt', 'auto'); // Skips the auth prompt?
     return { state, url: url.toString() };
+}
+
+export async function getNexusModsOAuthTokens(code: string) {
+  const url = 'https://users.nexusmods.com/oauth/token';
+  const body = new URLSearchParams({
+    client_id: config.NEXUS_OAUTH_ID,
+    client_secret: config.NEXUS_OAUTH_SECRET,
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: config.NEXUS_REDIRECT_URI,
+  });
+
+  const response = await fetch(url, {
+    body,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+  if (response.ok) {
+    const data = await response.json();
+    return data;
+  } else {
+    throw new Error(`Error fetching OAuth tokens: [${response.status}] ${response.statusText}`);
+  }
+}
+
+export async function getNexusModsUserData(tokens: { access_token: string, refresh_token: string, expires_in: number }) {
+  const url = 'https://users.nexusmods.com/oauth/userinfo';
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${tokens.access_token}`,
+    },
+  });
+  if (response.ok) {
+    const data = await response.json();
+    return data;
+  } else {
+    throw new Error(`Error fetching user data: [${response.status}] ${response.statusText}`);
+  }
 }

@@ -11,9 +11,9 @@ interface NexusUser {
     modauthor?: boolean;
     lastupdate?: Date;
     servers?: NexusUserServerLink[];
-    jwt?: string;
-    refreshToken?: string;
-    jwtExpires?: Date;
+    nexus_access?: string;
+    nexus_refresh?: string;
+    nexus_expires?: Date;
 }
 
 interface NexusUserServerLink {
