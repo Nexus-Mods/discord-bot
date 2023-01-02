@@ -46,6 +46,7 @@ export class AuthSite {
 
     linkedRole(req: express.Request, res: express.Response) {
         const { url, state } = util.getDiscordOAuthUrl();
+        logMessage('Redirecting to', url);
 
           // Store the signed state param in the user's cookies so we can verify
           // the value later. See:
