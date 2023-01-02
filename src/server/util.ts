@@ -1,5 +1,6 @@
 // import config from './config';
 import crypto from 'crypto';
+import { logMessage } from '../api/util';
 
 export function getDiscordOAuthUrl() {
     const state = crypto?.randomUUID() || 'test';
@@ -132,7 +133,10 @@ export function getNexusModsOAuthUrl(sharedState: string) {
     const state = sharedState ?? crypto.randomUUID();
 
     const { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI } = process.env;
-    if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI) return { url: '/', state };
+    if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI) {
+      logMessage('Could not generate Nexus Mods OAUTH URL', { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI }, true);
+      return { url: '/', state };
+    };
   
     const url = new URL('https://users.nexusmods.com/oauth/authorize');
     url.searchParams.set('client_id', NEXUS_OAUTH_ID);
