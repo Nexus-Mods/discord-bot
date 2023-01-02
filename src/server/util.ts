@@ -1,10 +1,8 @@
-import config from './config';
+// import config from './config';
 import crypto from 'crypto';
 
 export function getDiscordOAuthUrl() {
     const state = crypto?.randomUUID() || 'test';
-
-    console.log('config', config);
 
     if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_REDIRECT_URI) return { url: '/', state };
   
@@ -19,13 +17,17 @@ export function getDiscordOAuthUrl() {
 }
 
 export async function getDiscordOAuthTokens(code: string) {
+    const {DISCORD_CLIENT_ID,DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI } = process.env;
+  
+    if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) throw new Error('Bot environment variables are not configured properly.');
+
     const url = 'https://discord.com/api/v10/oauth2/token';
     const body = new URLSearchParams({
-      client_id: config.DISCORD_CLIENT_ID,
-      client_secret: config.DISCORD_CLIENT_SECRET,
+      client_id: DISCORD_CLIENT_ID,
+      client_secret: DISCORD_CLIENT_SECRET,
       grant_type: 'authorization_code',
       code,
-      redirect_uri: config.DISCORD_REDIRECT_URI,
+      redirect_uri: DISCORD_REDIRECT_URI,
     });
   
     const response = await fetch(url, {
@@ -63,8 +65,11 @@ export async function getDiscordUserData(tokens: { access_token: string, refresh
  * of the current user.
  */
 export async function pushDiscordMetadata(userId: string, tokens: any, metadata: any) {
+
+    const { DISCORD_CLIENT_ID } = process.env;
+    if (!DISCORD_CLIENT_ID) throw new Error('Cannot push Discord metadata, ENVARS invalid');
     // GET/PUT /users/@me/applications/:id/role-connection
-    const url = `https://discord.com/api/v10/users/@me/applications/${config.DISCORD_CLIENT_ID}/role-connection`;
+    const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;
     const accessToken = await getAccessToken(userId, tokens);
     const body = {
       platform_name: 'Example Linked Role Discord Bot',
@@ -89,11 +94,16 @@ export async function pushDiscordMetadata(userId: string, tokens: any, metadata:
  * refresh token to acquire a new, fresh access token.
  */
 export async function getAccessToken(userId: string, tokens: { refresh_token: string, access_token: string, expires_at: number }) {
+    const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } = process.env;
+
+    if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) throw new Error('Error getting Discord access token, ENV VARS are undefined.');
+
+
     if (Date.now() > tokens.expires_at) {
       const url = 'https://discord.com/api/v10/oauth2/token';
       const body = new URLSearchParams({
-        client_id: config.DISCORD_CLIENT_ID,
-        client_secret: config.DISCORD_CLIENT_SECRET,
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
         grant_type: 'refresh_token',
         refresh_token: tokens.refresh_token,
       });
@@ -118,11 +128,15 @@ export async function getAccessToken(userId: string, tokens: { refresh_token: st
   }
 
 export function getNexusModsOAuthUrl(sharedState: string) {
+    
     const state = sharedState ?? crypto.randomUUID();
+
+    const { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI } = process.env;
+    if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI) return { url: '/', state };
   
     const url = new URL('https://users.nexusmods.com/oauth/authorize');
-    url.searchParams.set('client_id', config.NEXUS_OAUTH_ID);
-    url.searchParams.set('redirect_uri', config.NEXUS_REDIRECT_URI);
+    url.searchParams.set('client_id', NEXUS_OAUTH_ID);
+    url.searchParams.set('redirect_uri', NEXUS_REDIRECT_URI);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('state', state);
     url.searchParams.set('scope', 'openid+email+profile');
@@ -131,13 +145,17 @@ export function getNexusModsOAuthUrl(sharedState: string) {
 }
 
 export async function getNexusModsOAuthTokens(code: string) {
+
+  const { NEXUS_OAUTH_ID, NEXUS_OAUTH_SECRET, NEXUS_REDIRECT_URI } = process.env;
+    if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI || !NEXUS_OAUTH_SECRET) throw new Error('Cannot get Nexus Mods OAuth Tokens, ENVARs invalid');
+
   const url = 'https://users.nexusmods.com/oauth/token';
   const body = new URLSearchParams({
-    client_id: config.NEXUS_OAUTH_ID,
-    client_secret: config.NEXUS_OAUTH_SECRET,
+    client_id: NEXUS_OAUTH_ID,
+    client_secret: NEXUS_OAUTH_SECRET,
     grant_type: 'authorization_code',
     code,
-    redirect_uri: config.NEXUS_REDIRECT_URI,
+    redirect_uri: NEXUS_REDIRECT_URI,
   });
 
   const response = await fetch(url, {

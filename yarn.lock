@@ -454,13 +454,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"async@npm:^3.0.0":
-  version: 3.2.4
-  resolution: "async@npm:3.2.4"
-  checksum: 43d07459a4e1d09b84a20772414aa684ff4de085cbcaec6eea3c7a8f8150e8c62aa6cd4e699fe8ee93c3a5b324e777d34642531875a0817a35697522c1b02e89
-  languageName: node
-  linkType: hard
-
 "asynckit@npm:^0.4.0":
   version: 0.4.0
   resolution: "asynckit@npm:0.4.0"
@@ -1531,13 +1524,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ini@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "ini@npm:2.0.0"
-  checksum: e7aadc5fb2e4aefc666d74ee2160c073995a4061556b1b5b4241ecb19ad609243b9cceafe91bae49c219519394bbd31512516cb22a3b1ca6e66d869e0447e84e
-  languageName: node
-  linkType: hard
-
 "ipaddr.js@npm:1.9.1":
   version: 1.9.1
   resolution: "ipaddr.js@npm:1.9.1"
@@ -1923,18 +1909,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nconf@npm:^0.12.0":
-  version: 0.12.0
-  resolution: "nconf@npm:0.12.0"
-  dependencies:
-    async: ^3.0.0
-    ini: ^2.0.0
-    secure-keys: ^1.0.0
-    yargs: ^16.1.1
-  checksum: 70c1ce82d91149940dbe57555372c99282a9625a961915b302093b34e04ab308d978d1885224b9738a0873c064a0aa48914a7260e67ba312441fc4917221dbd8
-  languageName: node
-  linkType: hard
-
 "negotiator@npm:0.6.3":
   version: 0.6.3
   resolution: "negotiator@npm:0.6.3"
@@ -1969,7 +1943,6 @@ __metadata:
     graphql: ^16.3.0
     graphql-request: ^4.0.0
     jsonwebtoken: ^9.0.0
-    nconf: ^0.12.0
     path: ^0.12.7
     pg: ^8.3.2
     rss-parser: ^3.9.0
@@ -2494,13 +2467,6 @@ __metadata:
   version: 1.2.4
   resolution: "sax@npm:1.2.4"
   checksum: d3df7d32b897a2c2f28e941f732c71ba90e27c24f62ee918bd4d9a8cfb3553f2f81e5493c7f0be94a11c1911b643a9108f231dd6f60df3fa9586b5d2e3e9e1fe
-  languageName: node
-  linkType: hard
-
-"secure-keys@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "secure-keys@npm:1.0.0"
-  checksum: 3dd4e64e6717fe6e2dc4c70e172982fcbad87b853e96566ab1cfaec540587f737bac106853ae469cb32d4a6413cfe80a28176cfe7dfcf7ddd35c9f92e58dffed
   languageName: node
   linkType: hard
 
@@ -3047,7 +3013,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs@npm:^16.1.0, yargs@npm:^16.1.1":
+"yargs@npm:^16.1.0":
   version: 16.2.0
   resolution: "yargs@npm:16.2.0"
   dependencies:
