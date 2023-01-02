@@ -100,7 +100,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameInfo[]
         const game: IGameInfo|undefined = games.find(g => g.domain_name === domain);
         if (!game) throw new Error(`${domain} does not appear to be a valid game.`);
         const modId: number = parseInt(matches[2]);
-        if (modId === NaN) throw new Error('Invalid Mod ID');
+        if (Number.isNaN(modId)) throw new Error('Invalid Mod ID');
         const url = `https://nexusmods.com/${domain}/mods/${modId}`;
         // Check if the mod is already attached to their account.
         if (mods.find(m => m.domain === domain && m.mod_id === modId)) {
