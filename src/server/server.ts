@@ -10,7 +10,7 @@ export class AuthSite {
     private static instance: AuthSite;
     private app = express();
     private port = process.env.AUTH_PORT || 3000;
-    private _TempStore: Map<string, any> = new Map();
+    private TempStore: Map<string, any> = new Map();
 
     private constructor() {
         this.initialize();
@@ -73,7 +73,7 @@ export class AuthSite {
             const meData = await util.getDiscordUserData(tokens);
             const userId = meData.user.id;
             // Store the Discord token temporarily
-            this._TempStore.set(clientState, { id: userId, tokens });
+            this.TempStore.set(clientState, { id: userId, tokens });
 
             // Forward to Nexus Mods auth.
             const { url } = util.getNexusModsOAuthUrl(clientState);
@@ -97,7 +97,7 @@ export class AuthSite {
         }
 
         // Get the Discord data from the store
-        const discordData = this._TempStore.get(clientState);
+        const discordData = this.TempStore.get(clientState);
         if (!discordData) {
             logMessage('Could not find matching Discord Auth to pair accounts', req.url, true);
             return res.sendStatus(403);
