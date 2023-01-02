@@ -131,7 +131,7 @@ class NexusModsGQLClient {
                 results = [...results, ...pageData];
             }
             catch(err) {
-                logMessage('Error fetching mod data', err, true);
+                logMessage('Error fetching mod data', {err, auth: this.authType}, true);
             }
         }
 
