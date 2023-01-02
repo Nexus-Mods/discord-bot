@@ -6,7 +6,7 @@ import nconf from 'nconf';
  * configuration should not be checked into source control.
  */
 
-nconf.env().argv().file('config.json');
+nconf.env().argv().file('../.env');
 
 const config = {
   DISCORD_TOKEN: nconf.get('DISCORD_TOKEN'),
