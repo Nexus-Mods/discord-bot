@@ -10,7 +10,7 @@ export class AuthSite {
     private static instance: AuthSite;
     private app = express();
     private port = process.env.AUTH_PORT || 3000;
-    private TempStore: Map<string, any> = new Map();
+    public TempStore: Map<string, any> = new Map();
 
     private constructor() {
         this.initialize();
