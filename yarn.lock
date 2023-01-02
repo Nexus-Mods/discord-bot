@@ -745,13 +745,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"crypto@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "crypto@npm:1.0.1"
-  checksum: 087fe3165bd94c333a49e6ed66a0193911f63eac38a24f379b3001a5fe260a59c413646e53a0f67875ba13902b2686d81dc703cb2c147a4ec727dcdc04e5645e
-  languageName: node
-  linkType: hard
-
 "dashdash@npm:^1.12.0":
   version: 1.14.1
   resolution: "dashdash@npm:1.14.1"
@@ -1967,7 +1960,6 @@ __metadata:
     axios: ^1.1.2
     cookie-parser: ^1.4.6
     copyfiles: ^2.1.1
-    crypto: ^1.0.1
     discord-api-types: ^0.26.1
     discord.js: ^14.6.0
     dotenv: ^10.0.0
