@@ -188,7 +188,7 @@ class NexusModsGQLClient {
                     });
                     throw new Error('One or more mods are missing the category attribute.'+consolidatedIds.join('\n'));
                 }
-                else throw new Error('GraphQLError '+error);
+                else throw new Error('GraphQLError '+error+this.authType);
             }
             logMessage('Unkown Mod Lookup Error!', err);
             throw new Error('Could not find some or all of the mods.');
