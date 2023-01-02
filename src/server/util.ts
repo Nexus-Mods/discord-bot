@@ -1,10 +1,11 @@
 import config from './config';
 
-// import crypto from 'crypto';
+import crypto from 'crypto';
 
 export function getDiscordOAuthUrl() {
     // const c: Crypto = crypto || require('crypto');
-    console.log('Crypto', crypto);
+    const testCrypto = require('crypto');
+    console.log('Crypto', { crypto, testCrypto });
     const state = crypto?.randomUUID() || 'test';
   
     const url = new URL('https://discord.com/api/oauth2/authorize');
