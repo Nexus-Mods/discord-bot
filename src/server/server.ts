@@ -37,9 +37,9 @@ export class AuthSite {
          */
         this.app.get('/linked-role', this.linkedRole);
 
-        this.app.get('/discord-oauth-callback', this.discordOauthCallback);
+        this.app.get('/discord-oauth-callback', this.discordOauthCallback.bind(this));
 
-        this.app.get('/nexus-mods-callback', this.nexusModsOauthCallback);
+        this.app.get('/nexus-mods-callback', this.nexusModsOauthCallback.bind(this));
 
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
     }
