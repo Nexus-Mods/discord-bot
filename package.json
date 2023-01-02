@@ -30,6 +30,7 @@
     "@types/request-promise-native": "^1.0.17",
     "axios": "^1.1.2",
     "cookie-parser": "^1.4.6",
+    "crypto": "^1.0.1",
     "discord-api-types": "^0.26.1",
     "discord.js": "^14.6.0",
     "dotenv": "^10.0.0",
