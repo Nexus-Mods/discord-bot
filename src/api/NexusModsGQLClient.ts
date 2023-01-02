@@ -25,7 +25,7 @@ class NexusModsGQLClient {
     constructor(user: NexusUser) {
         this.GQLClient = new GraphQLClient(domain, graphOptions);
         this.NexusModsUser = user;
-        this.authType = user.nexus_access ? 'OAUTH' : 'APIKEY';
+        this.authType = !!user.nexus_access ? 'OAUTH' : 'APIKEY';
         this.headers = this.authType === 'OAUTH'  
         ? { apikey: user.apikey }
         : { Authorization: `Bearer ${user.nexus_access}` };
