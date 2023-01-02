@@ -27,7 +27,7 @@ export class AuthSite {
     private initialize(): void {
         this.app.use(cookieparser(process.env.COOKIE_SECRET));
 
-        this.app.get('/', (req, res) => res.send('Discord bot OAuth site is online.'));
+        this.app.get('/', (req, res) => res.send(`Discord bot OAuth site is online. ${new Date().toLocaleDateString()}`));
 
         /**
          * Route configured in the Discord developer console which facilitates the
