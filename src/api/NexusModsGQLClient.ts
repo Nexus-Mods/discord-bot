@@ -26,7 +26,7 @@ class NexusModsGQLClient {
         this.GQLClient = new GraphQLClient(domain, graphOptions);
         this.NexusModsUser = user;
         this.authType = !!user.nexus_access ? 'OAUTH' : 'APIKEY';
-        this.headers = this.authType === 'OAUTH'  
+        this.headers = this.authType === 'APIKEY'  
         ? { apikey: user.apikey }
         : { Authorization: `Bearer ${user.nexus_access}` };
         this.GQLClient.setHeaders(this.headers);
@@ -131,7 +131,7 @@ class NexusModsGQLClient {
                 results = [...results, ...pageData];
             }
             catch(err) {
-                logMessage('Error fetching mod data', {err, auth: this.authType}, true);
+                logMessage('Error fetching mod data', {err, auth: this.authType, headers: this.headers}, true);
             }
         }
 
@@ -188,7 +188,7 @@ class NexusModsGQLClient {
                     });
                     throw new Error('One or more mods are missing the category attribute.'+consolidatedIds.join('\n'));
                 }
-                else throw new Error('GraphQLError '+error+this.authType);
+                else throw new Error('GraphQLError '+error);
             }
             logMessage('Unkown Mod Lookup Error!', err);
             throw new Error('Could not find some or all of the mods.');
