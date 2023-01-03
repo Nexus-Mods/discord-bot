@@ -105,23 +105,26 @@ export class AuthSite {
 
         try {
             const tokens = await util.getNexusModsOAuthTokens(code as string);
-            logMessage('Got tokens for Nexus Mods', tokens);
+            // logMessage('Got tokens for Nexus Mods', tokens);
             const userData = await util.getNexusModsUserData(tokens);
-            logMessage('Got Nexus Mods user data from tokens', userData);
+            logMessage('Got Nexus Mods user data from tokens', {userData, discordData});
+            const nexus_expires = new Date(new Date().getTime() + (tokens.expires_in * 1000));
+
             const user: NexusUser = {
                 d_id: discordData.id,
-                id: 0,
-                name: '',
+                id: userData.sub,
+                name: userData.name,
                 apikey: '',
-                avatar_url: 'apikey',
-                supporter: false,
-                premium: false,
+                avatar_url: userData.avatar,
+                supporter: (userData.membership_roles.includes('supporter') && userData.membership_roles.includes('premium')),
+                premium: userData.membership_roles.includes('premium'),
                 modauthor: false,
-                nexus_access: '',
-                nexus_refresh: '',
-                nexus_expires: new Date(),                
+                nexus_access: tokens.access_token,
+                nexus_refresh: tokens.refresh_token,
+                nexus_expires,                
             }
             // createUser()
+            res.send(JSON.stringify(user));
 
         }
         catch(err) {
