@@ -2,7 +2,20 @@
 import crypto from 'crypto';
 import { logMessage } from '../api/util';
 
-export function getDiscordOAuthUrl() {
+interface OAuthTokens {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+}
+
+interface OAuthURL {
+  url: string;
+  state: string;
+}
+
+export function getDiscordOAuthUrl(): OAuthURL {
     const state = crypto?.randomUUID() || 'test';
 
     if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_REDIRECT_URI) return { url: '/', state };
@@ -17,7 +30,7 @@ export function getDiscordOAuthUrl() {
     return { state, url: url.toString() };
 }
 
-export async function getDiscordOAuthTokens(code: string) {
+export async function getDiscordOAuthTokens(code: string): Promise<OAuthTokens> {
     const {DISCORD_CLIENT_ID,DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI } = process.env;
   
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) throw new Error('Bot environment variables are not configured properly.');
@@ -65,7 +78,7 @@ export async function getDiscordUserData(tokens: { access_token: string, refresh
  * Given metadata that matches the schema, push that data to Discord on behalf
  * of the current user.
  */
-export async function pushDiscordMetadata(userId: string, tokens: any, metadata: any) {
+export async function pushDiscordMetadata(userId: string, tokens: any, metadata: any): Promise<void> {
 
     const { DISCORD_CLIENT_ID } = process.env;
     if (!DISCORD_CLIENT_ID) throw new Error('Cannot push Discord metadata, ENVARS invalid');
@@ -128,7 +141,7 @@ export async function getAccessToken(userId: string, tokens: { refresh_token: st
     return tokens.access_token;
   }
 
-export function getNexusModsOAuthUrl(sharedState: string) {
+export function getNexusModsOAuthUrl(sharedState: string): OAuthURL {
     
     const state = sharedState ?? crypto.randomUUID();
 
@@ -148,7 +161,12 @@ export function getNexusModsOAuthUrl(sharedState: string) {
     return { state, url: url.toString() };
 }
 
-export async function getNexusModsOAuthTokens(code: string) {
+interface NexusOAuthTokens extends OAuthTokens {
+  created_at: number;
+  id_token: string;
+}
+
+export async function getNexusModsOAuthTokens(code: string): Promise<NexusOAuthTokens> {
 
   const { NEXUS_OAUTH_ID, NEXUS_OAUTH_SECRET, NEXUS_REDIRECT_URI } = process.env;
     if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI || !NEXUS_OAUTH_SECRET) throw new Error('Cannot get Nexus Mods OAuth Tokens, ENVARs invalid');
@@ -177,7 +195,18 @@ export async function getNexusModsOAuthTokens(code: string) {
   }
 }
 
-export async function getNexusModsUserData(tokens: { access_token: string, refresh_token: string, expires_in: number }) {
+type NexusMembershipRoles = 'member' | 'supporter' | 'premium' | 'lifetimepremium';
+
+interface NexusUserData {
+  sub: string;
+  name: string;
+  email: string;
+  avatar: string;
+  group_id: number;
+  membership_roles: NexusMembershipRoles[];
+}
+
+export async function getNexusModsUserData(tokens: { access_token: string, refresh_token: string, expires_in: number }): Promise<NexusUserData> {
   const url = 'https://users.nexusmods.com/oauth/userinfo';
   const response = await fetch(url, {
     headers: {

@@ -55,7 +55,7 @@ async function validate(apiKey: string): Promise<IValidateResponse> {
     return { is_ModAuthor, ...baseCheck };
 }
 
-async function getModAuthor(id: number): Promise<boolean> {
+export async function getModAuthor(id: number): Promise<boolean> {
     const query = gql`
     query getModAuthorStatus($id: Int!) {
         user(id: $id) {

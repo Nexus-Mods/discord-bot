@@ -5,6 +5,7 @@ import * as util from './util';
 import { logMessage } from '../api/util';
 import { createUser } from '../api/users';
 import { NexusUser } from '../types/users';
+import {getModAuthor } from '../api/nexus-discord';
 
 export class AuthSite {
     private static instance: AuthSite;
@@ -46,7 +47,7 @@ export class AuthSite {
 
     linkedRole(req: express.Request, res: express.Response) {
         const { url, state } = util.getDiscordOAuthUrl();
-        logMessage('Redirecting to', url);
+        // logMessage('Redirecting to', url);
 
           // Store the signed state param in the user's cookies so we can verify
           // the value later. See:
@@ -73,6 +74,7 @@ export class AuthSite {
             const meData = await util.getDiscordUserData(tokens);
             const userId = meData.user.id;
             // Store the Discord token temporarily
+            logMessage('Discord user data', meData);
             this.TempStore.set(clientState, { id: userId, tokens });
 
             // Forward to Nexus Mods auth.
@@ -108,23 +110,25 @@ export class AuthSite {
             // logMessage('Got tokens for Nexus Mods', tokens);
             const userData = await util.getNexusModsUserData(tokens);
             logMessage('Got Nexus Mods user data from tokens', {userData, discordData});
+            // Work out the expiry time (6 hours at time of writing);
             const nexus_expires = new Date(new Date().getTime() + (tokens.expires_in * 1000));
+            const modauthor = await getModAuthor(parseInt(userData.sub)).catch(() => false);
 
             const user: NexusUser = {
                 d_id: discordData.id,
-                id: userData.sub,
+                id: parseInt(userData.sub),
                 name: userData.name,
                 apikey: '',
                 avatar_url: userData.avatar,
-                supporter: (userData.membership_roles.includes('supporter') && userData.membership_roles.includes('premium')),
+                supporter: (userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium')),
                 premium: userData.membership_roles.includes('premium'),
-                modauthor: false,
+                modauthor,
                 nexus_access: tokens.access_token,
                 nexus_refresh: tokens.refresh_token,
                 nexus_expires                
             }
             // createUser()
-            res.send(JSON.stringify(user, null, 2));
+            res.send(JSON.stringify(user, null, '</br>'));
 
         }
         catch(err) {
