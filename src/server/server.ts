@@ -77,7 +77,7 @@ export class AuthSite {
             const userId = meData.user.id;
             // Store the Discord token temporarily
             logMessage('Discord user data', meData);
-            this.TempStore.set(clientState, { id: userId, tokens });
+            this.TempStore.set(clientState, { id: userId, name: meData.tag, tokens });
 
             // Forward to Nexus Mods auth.
             const { url } = util.getNexusModsOAuthUrl(clientState);
@@ -106,6 +106,7 @@ export class AuthSite {
             logMessage('Could not find matching Discord Auth to pair accounts', req.url, true);
             return res.sendStatus(403);
         }
+        const existingUser: NexusUser = await getUserByDiscordId(discordData.id);
 
         try {
             const tokens = await util.getNexusModsOAuthTokens(code as string);
@@ -116,11 +117,9 @@ export class AuthSite {
             const nexus_expires = new Date(new Date().getTime() + (tokens.expires_in * 1000));
             const modauthor = await getModAuthor(parseInt(userData.sub)).catch(() => false);
 
-            const user: NexusUser = {
-                d_id: discordData.id,
+            const user: Partial<NexusUser> = {
                 id: parseInt(userData.sub),
                 name: userData.name,
-                apikey: '',
                 avatar_url: userData.avatar,
                 supporter: (userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium')),
                 premium: userData.membership_roles.includes('premium'),
@@ -129,7 +128,8 @@ export class AuthSite {
                 nexus_refresh: tokens.refresh_token,
                 nexus_expires                
             }
-            // createUser()
+            // createUser() // d_id: discordData.id,
+            existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             res.send(JSON.stringify(user, null, '</br>'));
 
         }
