@@ -18,7 +18,7 @@ const pool = new Pool(poolConfig);
 function doQuery(query: string, values: any[], callback: (err: Error, result?: QueryResult) => void) {
     pool.connect((err: Error, client: PoolClient, release) => {
         if (err) {
-            console.error('Error acquiring client', query, err.message);
+            console.error('Error acquiring client', query, { err: err.message, poolConfig });
             release();
             return callback(err);
         };
