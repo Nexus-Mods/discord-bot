@@ -121,10 +121,10 @@ export class AuthSite {
                 modauthor: false,
                 nexus_access: tokens.access_token,
                 nexus_refresh: tokens.refresh_token,
-                nexus_expires,                
+                nexus_expires                
             }
             // createUser()
-            res.send(JSON.stringify(user));
+            res.send(JSON.stringify(user, null, 2));
 
         }
         catch(err) {
