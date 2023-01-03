@@ -18,7 +18,7 @@ interface OAuthURL {
 export function getDiscordOAuthUrl(): OAuthURL {
     const state = crypto?.randomUUID() || 'test';
 
-    if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_REDIRECT_URI) return { url: '/', state };
+    if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_REDIRECT_URI) return { url: '/oauth-error', state };
   
     const url = new URL('https://discord.com/api/oauth2/authorize');
     url.searchParams.set('client_id', process.env.DISCORD_CLIENT_ID);
@@ -148,7 +148,7 @@ export function getNexusModsOAuthUrl(sharedState: string): OAuthURL {
     const { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI } = process.env;
     if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI) {
       logMessage('Could not generate Nexus Mods OAUTH URL', { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI }, true);
-      return { url: '/', state };
+      return { url: '/oauth-error', state };
     };
   
     const url = new URL('https://users.nexusmods.com/oauth/authorize');

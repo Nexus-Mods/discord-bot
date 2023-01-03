@@ -3,7 +3,7 @@ import cookieparser from 'cookie-parser';
 import {} from 'discord.js';
 import * as util from './util';
 import { logMessage } from '../api/util';
-import { createUser } from '../api/users';
+import { createUser, updateUser, getUserByDiscordId } from '../api/users';
 import { NexusUser } from '../types/users';
 import {getModAuthor } from '../api/nexus-discord';
 
@@ -41,6 +41,8 @@ export class AuthSite {
         this.app.get('/discord-oauth-callback', this.discordOauthCallback.bind(this));
 
         this.app.get('/nexus-mods-callback', this.nexusModsOauthCallback.bind(this));
+
+        this.app.get('/oauth-error', (req, res) => res.send('OAuth Error!'));
 
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
     }
