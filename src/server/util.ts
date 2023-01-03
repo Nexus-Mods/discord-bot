@@ -143,7 +143,7 @@ export function getNexusModsOAuthUrl(sharedState: string) {
     url.searchParams.set('redirect_uri', NEXUS_REDIRECT_URI);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('state', state);
-    url.searchParams.set('scope', 'openid+email+profile');
+    url.searchParams.set('scope', 'openid email profile');
     // url.searchParams.set('approval_prompt', 'auto'); // Skips the auth prompt?
     return { state, url: url.toString() };
 }
