@@ -1,7 +1,10 @@
 import { Pool, PoolConfig, PoolClient, QueryResult } from 'pg';
 import path from 'path';
+import { logMessage } from './util';
 const config = require(path.join('..', 'config.json'));
-const poolConfig: PoolConfig = {
+const poolConfig: () => PoolConfig = () =>{
+    logMessage('Loading pool config', {port: process.env.port});
+    return {
     user: process.env.DBUSER,
     password: process.env.DBPASS,
     host: process.env.HOST,
@@ -11,14 +14,14 @@ const poolConfig: PoolConfig = {
         rejectUnauthorized: false,
     } : false,
     statement_timeout: 5000
-};
+} };
 
-const pool = new Pool(poolConfig);
+const pool = new Pool(poolConfig());
 
 function doQuery(query: string, values: any[], callback: (err: Error, result?: QueryResult) => void) {
     pool.connect((err: Error, client: PoolClient, release) => {
         if (err) {
-            console.error('Error acquiring client', query, { err: err.message, poolConfig, env: process.env });
+            console.error('Error acquiring client', query, { err: err.message, poolConfig });
             release();
             return callback(err);
         };

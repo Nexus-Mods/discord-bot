@@ -1,8 +1,9 @@
 import { logMessage } from './api/util';
 import { DiscordBot } from './DiscordBot';
 import { AuthSite } from './server/server';
+import * as dotenv from 'dotenv';
 
-require('dotenv').config();
+dotenv.config();
 
 const bot = DiscordBot.getInstance();
 start();
