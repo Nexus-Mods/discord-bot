@@ -114,6 +114,7 @@ export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata
 
     const { DISCORD_CLIENT_ID } = process.env;
     if (!DISCORD_CLIENT_ID) throw new Error('Cannot push Discord metadata, ENVARS invalid');
+    logMessage('Setting metadata', metadata);
     // GET/PUT /users/@me/applications/:id/role-connection
     const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;
     const accessTokens = await getAccessToken(userId, tokens);

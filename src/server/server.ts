@@ -113,7 +113,7 @@ export class AuthSite {
             const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
             // logMessage('Got tokens for Nexus Mods', tokens);
             const userData = await NexusModsOAuth.getUserData(tokens);
-            logMessage('Got Nexus Mods user data from tokens', {userData, discordData});
+            // logMessage('Got Nexus Mods user data from tokens', {userData, discordData});
             // Work out the expiry time (6 hours at time of writing);
             const user: Partial<NexusUser> = {
                 id: parseInt(userData.sub),
