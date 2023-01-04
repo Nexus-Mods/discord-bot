@@ -15,6 +15,29 @@ interface OAuthTokens {
     scope?: string;
 }
 
+interface DiscordUserData {
+  application: {
+    id: string;
+    name: string;
+    icon: string;
+    description: string;
+    summary: string;
+    type: any;
+    hook: boolean;
+    guild_id: string;
+  }
+  scopes: string[];
+  expires: Date;
+  user: {
+    id: string;
+    username: string;
+    avatar: string;
+    avatar_decoration: string | null;
+    discriminator: string;
+    public_flags: number;
+  }
+}
+
 export function getOAuthUrl(): OAuthURL {
     const state = crypto?.randomUUID() || 'test';
 
@@ -60,7 +83,7 @@ export async function getOAuthTokens(code: string): Promise<OAuthTokens> {
     }
 }
 
-export async function getUserData(tokens: OAuthTokens) {
+export async function getUserData(tokens: OAuthTokens): Promise<DiscordUserData> {
     const url = 'https://discord.com/api/v10/oauth2/@me';
     const response = await fetch(url, {
       headers: {
@@ -88,7 +111,7 @@ export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata
     const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;
     const accessTokens = await getAccessToken(userId, tokens);
     const body = {
-      platform_name: 'Example Linked Role Discord Bot',
+      platform_name: 'Nexus Mods Discord Bot',
       metadata,
     };
     const response = await fetch(url, {
@@ -100,7 +123,7 @@ export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata
       },
     });
     if (!response.ok) {
-      throw new Error(`Error pushing discord metadata: [${response.status}] ${response.statusText}`);
+      throw new Error(`Error pushing discord metadata: [${response.status}] ${response.statusText}. Token: ${!!accessTokens.access_token}`);
     }
 }
 

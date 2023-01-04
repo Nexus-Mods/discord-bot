@@ -78,8 +78,7 @@ export class AuthSite {
             const meData = await DiscordOAuth.getUserData(tokens);
             const userId = meData.user.id;
             // Store the Discord token temporarily
-            logMessage('Discord user data', meData);
-            this.TempStore.set(clientState, { id: userId, name: meData.tag, tokens });
+            this.TempStore.set(clientState, { id: userId, name: `${meData.user.username}#${meData.user.discriminator}`, tokens });
 
             // Forward to Nexus Mods auth.
             const { url } = NexusModsOAuth.getOAuthUrl(clientState);
