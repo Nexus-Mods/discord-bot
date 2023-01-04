@@ -36,7 +36,7 @@ class NexusModsGQLClient {
         const client = new NexusModsGQLClient(user);
         // if (!user.jwt) throw new Error('Nexus Mods GQL Client requires a JWT token');
         try {
-            await client.getAccessToken(user);
+            if (client.authType === 'OAUTH') await client.getAccessToken(user);
             return client;
         }
         catch(err) {
@@ -46,7 +46,7 @@ class NexusModsGQLClient {
 
     private async getAccessToken(user: NexusUser): Promise<string> {
         // Check the OAuth Token is valid, so we can make requests.
-        if (user.nexus_expires! < new Date()) {
+        if (Date.now() > user.nexus_expires!) {
             // Token has expired and we need a new one!
             return 'n';
         }

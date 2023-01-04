@@ -5,7 +5,7 @@ interface NexusUser {
     id: number;
     name: string;
     avatar_url?: string;
-    apikey: string;
+    apikey?: string;
     supporter: boolean;
     premium: boolean;
     modauthor?: boolean;
@@ -13,7 +13,10 @@ interface NexusUser {
     servers?: NexusUserServerLink[];
     nexus_access?: string;
     nexus_refresh?: string;
-    nexus_expires?: Date;
+    nexus_expires?: number;
+    discord_access?: string;
+    discord_refresh?: string;
+    discord_expires?: number;
 }
 
 interface NexusUserServerLink {

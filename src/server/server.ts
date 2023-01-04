@@ -1,11 +1,11 @@
 import express from 'express';
 import cookieparser from 'cookie-parser';
 import {} from 'discord.js';
-import * as util from './util';
+import * as DiscordOAuth from './DiscordOAuth';
+import * as NexusModsOAuth from './NexusModsOAuth';
 import { logMessage } from '../api/util';
 import { createUser, updateUser, getUserByDiscordId } from '../api/users';
 import { NexusUser } from '../types/users';
-import {getModAuthor } from '../api/nexus-discord';
 
 export class AuthSite {
     private static instance: AuthSite;
@@ -44,11 +44,13 @@ export class AuthSite {
 
         this.app.get('/oauth-error', (req, res) => res.send('OAuth Error!'));
 
+        this.app.post('/update-metadata', this.updateMetaData.bind(this));
+
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
     }
 
     linkedRole(req: express.Request, res: express.Response) {
-        const { url, state } = util.getDiscordOAuthUrl();
+        const { url, state } = DiscordOAuth.getOAuthUrl();
         // logMessage('Redirecting to', url);
 
           // Store the signed state param in the user's cookies so we can verify
@@ -71,16 +73,16 @@ export class AuthSite {
                 return res.sendStatus(403);
             }
 
-            const tokens = await util.getDiscordOAuthTokens(code as string);
+            const tokens = await DiscordOAuth.getOAuthTokens(code as string);
 
-            const meData = await util.getDiscordUserData(tokens);
+            const meData = await DiscordOAuth.getUserData(tokens);
             const userId = meData.user.id;
             // Store the Discord token temporarily
             logMessage('Discord user data', meData);
             this.TempStore.set(clientState, { id: userId, name: meData.tag, tokens });
 
             // Forward to Nexus Mods auth.
-            const { url } = util.getNexusModsOAuthUrl(clientState);
+            const { url } = NexusModsOAuth.getOAuthUrl(clientState);
             return res.redirect(url);
         }
         catch(err) {
@@ -109,28 +111,29 @@ export class AuthSite {
         const existingUser: NexusUser = await getUserByDiscordId(discordData.id);
 
         try {
-            const tokens = await util.getNexusModsOAuthTokens(code as string);
+            const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
             // logMessage('Got tokens for Nexus Mods', tokens);
-            const userData = await util.getNexusModsUserData(tokens);
+            const userData = await NexusModsOAuth.getUserData(tokens);
             logMessage('Got Nexus Mods user data from tokens', {userData, discordData});
             // Work out the expiry time (6 hours at time of writing);
-            const nexus_expires = new Date(new Date().getTime() + (tokens.expires_in * 1000));
-            const modauthor = await getModAuthor(parseInt(userData.sub)).catch(() => false);
-
             const user: Partial<NexusUser> = {
                 id: parseInt(userData.sub),
                 name: userData.name,
                 avatar_url: userData.avatar,
                 supporter: (userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium')),
                 premium: userData.membership_roles.includes('premium'),
-                modauthor,
+                modauthor: userData.membership_roles.includes('modauthor'),
                 nexus_access: tokens.access_token,
                 nexus_refresh: tokens.refresh_token,
-                nexus_expires                
+                nexus_expires: tokens.expires_at,
+                discord_access: discordData.access_token,
+                discord_refresh: discordData.refresh_token,
+                discord_expires: discordData.expires_at                
             }
-            // createUser() // d_id: discordData.id,
+            // Store the tokens
             existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
-            res.send(JSON.stringify(user, null, '</br>'));
+            await this.updateDiscordMetadata(discordData.id);
+            res.send(`${discordData.name} has been linked to ${user.name}! <br/><br/>`+ JSON.stringify(user, null, '</br>'));
 
         }
         catch(err) {
@@ -142,6 +145,57 @@ export class AuthSite {
 
             
         // Push the metadata through to the Discord API (May need to split into a seprate function)
+
+    }
+
+    async updateMetaData(req: express.Request, res: express.Response) {
+        try {
+            const userId = req.body.userId;
+            await this.updateDiscordMetadata(userId);
+            res.sendStatus(204);
+        }
+        catch(err) {
+            res.sendStatus(500);
+        }
+    }
+
+    async updateDiscordMetadata(userId: string) {
+        let metadata = {};
+        const user: NexusUser = await getUserByDiscordId(userId);
+        if (!user) throw new Error('No linked users for this Discord ID.');
+        if (!user.discord_access || !user.discord_refresh || !user.discord_expires) {
+            throw new Error('No Discord OAuth tokens for this user');
+        }
+        if (!user.nexus_access || !user.nexus_refresh || !user.nexus_expires) {
+            throw new Error('No Nexus Mods OAuth tokens for this user');
+        }
+        const tokens = { 
+            access_token: user.discord_access, 
+            refresh_token: user.discord_refresh, 
+            expires_at: user.discord_expires 
+        };
+        try {
+            const nexusTokens = {
+                access_token: user.nexus_access,
+                refresh_token: user.nexus_refresh,
+                expires_at: user.nexus_expires
+            };
+            const accessTokens = await NexusModsOAuth.getAccessToken(nexusTokens);
+            const userData = await NexusModsOAuth.getUserData(accessTokens);
+            metadata = {
+                member: userData.membership_roles.includes('member'),
+                modauthor: userData.membership_roles.includes('modauthor'),
+                premium: userData.membership_roles.includes('premium'),
+                supporter: userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium'),
+            };
+
+        }
+        catch(err) {
+            (err as Error).message =  `Error fetching role metadata: ${(err as Error).message}`;
+            logMessage(`Error fetching role metadata: ${(err as Error).message}`, err, true);
+        }
+
+        await DiscordOAuth.pushMetadata(userId, tokens, metadata);
 
     }
 }
