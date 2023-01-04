@@ -130,6 +130,7 @@ export class AuthSite {
                 discord_refresh: discordData.refresh_token,
                 discord_expires: discordData.expires_at                
             }
+            logMessage('User data', user);
             // Store the tokens
             existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id);
