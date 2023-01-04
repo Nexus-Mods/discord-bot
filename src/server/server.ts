@@ -203,9 +203,9 @@ export class AuthSite {
             const userData = await NexusModsOAuth.getUserData(accessTokens);
             metadata = {
                 member: userData.membership_roles.includes('member'),
-                modauthor: userData.membership_roles.includes('modauthor'),
-                premium: userData.membership_roles.includes('premium'),
-                supporter: userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium'),
+                // modauthor: userData.membership_roles.includes('modauthor'),
+                // premium: userData.membership_roles.includes('premium'),
+                // supporter: userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium'),
             };
 
         }
@@ -214,7 +214,7 @@ export class AuthSite {
             logMessage(`Error fetching role metadata: ${(err as Error).message}`, err, true);
         }
 
-        await DiscordOAuth.pushMetadata(userId, tokens, metadata);
+        await DiscordOAuth.pushMetadata(userId, user.name, tokens, metadata);
 
     }
 }

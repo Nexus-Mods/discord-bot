@@ -110,7 +110,7 @@ export async function getUserData(tokens: OAuthTokens): Promise<DiscordUserData>
  * Given metadata that matches the schema, push that data to Discord on behalf
  * of the current user.
  */
-export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata: BotMetaData): Promise<void> {
+export async function pushMetadata(userId: string, username: string, tokens: OAuthTokens, metadata: BotMetaData): Promise<void> {
 
     const { DISCORD_CLIENT_ID } = process.env;
     if (!DISCORD_CLIENT_ID) throw new Error('Cannot push Discord metadata, ENVARS invalid');
@@ -120,6 +120,7 @@ export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata
     const accessTokens = await getAccessToken(userId, tokens);
     const body = {
       platform_name: 'Nexus Mods Discord Bot',
+      platform_username: username,
       metadata,
     };
     const response = await fetch(url, {
