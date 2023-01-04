@@ -1,10 +1,12 @@
 import { gql, GraphQLClient, ClientError } from 'graphql-request';
 import { verify } from 'jsonwebtoken';
+import { getAccessToken } from '../server/NexusModsOAuth';
 import { IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
 import * as GQLTypes from '../types/GQLTypes';
 import { logMessage } from './util';
 import { games, modChangelogs, modFiles as files, updatedMods } from './nexus-discord';
+import { updateUser } from './users';
 
 const domain = 'https://api.nexusmods.com/v2/graphql';
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
@@ -15,6 +17,12 @@ const cachePeriod: number = (5*60*1000); // 5mins
 
 type NexusModsAuthTypes = 'OAUTH' | 'APIKEY';
 type UpdatedModsPeriod = '1d' | '1w' | '1m';
+
+interface OAuthTokens {
+    access_token: string;
+    refresh_token: string;
+    expires_at: number;
+}
 
 class NexusModsGQLClient {
     public GQLClient : GraphQLClient;
@@ -44,14 +52,39 @@ class NexusModsGQLClient {
         }
     }
 
-    private async getAccessToken(user: NexusUser): Promise<string> {
+    private async getAccessToken(user: NexusUser): Promise<OAuthTokens> {
         // Check the OAuth Token is valid, so we can make requests.
-        if (Date.now() > user.nexus_expires!) {
-            // Token has expired and we need a new one!
-            return 'n';
+        if (!!user.nexus_expires && !!user.nexus_refresh && !!user.nexus_access) {
+            const tokens = {
+                access_token: user.nexus_access,
+                refresh_token: user.nexus_refresh,
+                expires_at: user.nexus_expires
+            }
+            try {
+                const newTokens = await getAccessToken(tokens);
+                if (tokens.access_token !== newTokens.access_token) {
+                    await this.updateTokens(newTokens);
+                }
+                return newTokens;
+            }
+            catch(err) {
+                throw new Error('Unable to get OAuth tokens');
+            }
         }
-        else if (!!user.nexus_access) return user.nexus_access;
         else throw new Error('Token invalid or missing');
+    }
+
+    public async updateTokens(tokens: OAuthTokens): Promise<void> {
+
+        const newTokens = {
+            nexus_access: tokens.access_token,
+            nexus_refresh: tokens.refresh_token,
+            nexus_expires: tokens.expires_at
+        };
+        // Update the tokens saved in the database (and in the globals)
+        this.NexusModsUser = { ...this.NexusModsUser, ...newTokens };
+        // Save the new tokens to the database.
+        await updateUser(this.NexusModsUser.d_id, newTokens);
     }
 
     public async me(): Promise<NexusUser|undefined> {

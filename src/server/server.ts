@@ -1,6 +1,5 @@
 import express from 'express';
 import cookieparser from 'cookie-parser';
-import {} from 'discord.js';
 import * as DiscordOAuth from './DiscordOAuth';
 import * as NexusModsOAuth from './NexusModsOAuth';
 import { logMessage } from '../api/util';
@@ -11,7 +10,7 @@ export class AuthSite {
     private static instance: AuthSite;
     private app = express();
     private port = process.env.AUTH_PORT || 3000;
-    public TempStore: Map<string, any> = new Map();
+    public TempStore: Map<string, { name: string, id: string, tokens: any }> = new Map();
 
     private constructor() {
         this.initialize();
