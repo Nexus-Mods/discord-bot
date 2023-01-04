@@ -126,9 +126,9 @@ export class AuthSite {
                 nexus_access: tokens.access_token,
                 nexus_refresh: tokens.refresh_token,
                 nexus_expires: tokens.expires_at,
-                discord_access: discordData.access_token,
-                discord_refresh: discordData.refresh_token,
-                discord_expires: discordData.expires_at                
+                discord_access: discordData.tokens.access_token,
+                discord_refresh: discordData.tokens.refresh_token,
+                discord_expires: discordData.tokens.expires_at                
             }
             logMessage('User data', user);
             // Store the tokens
