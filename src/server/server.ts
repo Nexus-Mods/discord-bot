@@ -131,10 +131,10 @@ export class AuthSite {
                 discord_refresh: discordData.tokens.refresh_token,
                 discord_expires: discordData.tokens.expires_at                
             }
-            logMessage('User data', user);
             // Store the tokens
             existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id);
+            logMessage('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
             res.send(`${discordData.name} has been linked to ${user.name}! <br/><br/>`+ JSON.stringify(user, null, '</br>'));
 
         }
