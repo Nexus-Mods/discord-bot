@@ -5,6 +5,7 @@ import * as NexusModsOAuth from './NexusModsOAuth';
 import { logMessage } from '../api/util';
 import { createUser, updateUser, getUserByDiscordId } from '../api/users';
 import { NexusUser } from '../types/users';
+import path from 'path';
 
 export class AuthSite {
     private static instance: AuthSite;
@@ -26,8 +27,17 @@ export class AuthSite {
 
     private initialize(): void {
         this.app.use(cookieparser(process.env.COOKIE_SECRET));
+        this.app.set('views', path.join(__dirname, 'views'));
+        this.app.use(express.static(path.join(__dirname, 'public')));
+        this.app.set('view engine', 'ejs');
 
-        this.app.get('/', (req, res) => res.send(`Discord bot OAuth site is online. ${new Date().toLocaleDateString()} ${new Date().toTimeString()}`));
+        // this.app.get('/', (req, res) => res.send(`Discord bot OAuth site is online. ${new Date().toLocaleDateString()} ${new Date().toTimeString()}`));
+
+        this.app.get('/', (req, res) => { 
+            res.render('index', { timestamp: `${new Date().toLocaleDateString()} ${new Date().toTimeString()}` });
+        });
+
+        this.app.get('/success', this.success.bind(this));
 
         /**
          * Route configured in the Discord developer console which facilitates the
@@ -48,6 +58,19 @@ export class AuthSite {
         this.app.get('/show-metadata', this.showMetaData.bind(this));
 
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
+    }
+
+    success(req: express.Request, res: express.Response) {
+        const discord = req.query['discord'] || 'UnknownDiscordUser';
+        const discordId = req.query['d_id'] || '0';
+        const nexus = req.query['nexus'] || 'UnknownNexusModsUser';
+        const nexusId = req.query['n_id'] || '0';
+        res.render('success', { 
+            discord, 
+            nexus,
+            discordId,
+            nexusId
+        });
     }
 
     linkedRole(req: express.Request, res: express.Response) {
@@ -134,7 +157,14 @@ export class AuthSite {
             existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id);
             logMessage('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
-            res.send(`${discordData.name} has been linked to ${user.name}! <br/><br/>`+ JSON.stringify(user, null, '</br>'));
+            const successUrl = new URL('/success');
+            successUrl.searchParams.set('nexus', user.name||'???');
+            successUrl.searchParams.set('n_id', user.id?.toString() || '0');
+            successUrl.searchParams.set('discord', discordData.name);
+            successUrl.searchParams.set('d_id', discordData.id);
+
+            res.redirect(successUrl.toString());
+            // res.send(`${discordData.name} has been linked to ${user.name}! <br/><br/>`));
 
         }
         catch(err) {
