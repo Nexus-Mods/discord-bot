@@ -106,6 +106,7 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
 
 
     if (Date.now() > tokens.expires_at) {
+      logMessage('RENEW NEXUS MODS ACCESS TOKENS', new Date(tokens.expires_at));
       const url = 'https://users.nexusmods.com/oauth/token';
       const body = new URLSearchParams({
         client_id: NEXUS_OAUTH_ID,

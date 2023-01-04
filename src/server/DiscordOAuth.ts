@@ -38,6 +38,13 @@ interface DiscordUserData {
   }
 }
 
+interface BotMetaData {
+  member?: boolean;
+  modauthor?: boolean;
+  premium?: boolean;
+  supporter?: boolean;
+}
+
 export function getOAuthUrl(): OAuthURL {
     const state = crypto?.randomUUID() || 'test';
 
@@ -103,7 +110,7 @@ export async function getUserData(tokens: OAuthTokens): Promise<DiscordUserData>
  * Given metadata that matches the schema, push that data to Discord on behalf
  * of the current user.
  */
-export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata: any): Promise<void> {
+export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata: BotMetaData): Promise<void> {
 
     const { DISCORD_CLIENT_ID } = process.env;
     if (!DISCORD_CLIENT_ID) throw new Error('Cannot push Discord metadata, ENVARS invalid');
@@ -139,6 +146,7 @@ export async function getAccessToken(userId: string, tokens: OAuthTokens): Promi
 
 
     if (Date.now() > tokens.expires_at) {
+      logMessage('RENEW DISCORD ACCESS TOKENS', new Date(tokens.expires_at));
       const url = 'https://discord.com/api/v10/oauth2/token';
       const body = new URLSearchParams({
         client_id: DISCORD_CLIENT_ID,
