@@ -39,7 +39,7 @@ interface DiscordUserData {
 }
 
 interface BotMetaData {
-  member?: boolean;
+  member?: number;
   modauthor?: boolean;
   premium?: boolean;
   supporter?: boolean;

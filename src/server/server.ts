@@ -202,7 +202,7 @@ export class AuthSite {
             const accessTokens = await NexusModsOAuth.getAccessToken(nexusTokens);
             const userData = await NexusModsOAuth.getUserData(accessTokens);
             metadata = {
-                member: userData.membership_roles.includes('member'),
+                member: userData.membership_roles.includes('member') ? 1 : 0,
                 // modauthor: userData.membership_roles.includes('modauthor'),
                 // premium: userData.membership_roles.includes('premium'),
                 // supporter: userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium'),
