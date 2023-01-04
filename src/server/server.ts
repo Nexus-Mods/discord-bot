@@ -46,6 +46,8 @@ export class AuthSite {
 
         this.app.post('/update-metadata', this.updateMetaData.bind(this));
 
+        this.app.get('/show-metadata', this.showMetaData.bind(this));
+
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
     }
 
@@ -157,6 +159,23 @@ export class AuthSite {
         catch(err) {
             res.sendStatus(500);
         }
+    }
+
+    async showMetaData(req: express.Request, res: express.Response) {
+        try {
+            const id = req.query['id'];
+            if (!id) throw new Error('ID not sent');
+            const user = await getUserByDiscordId(id as string);
+            if (!user.discord_access || !user.discord_expires || !user.discord_refresh) throw new Error('Invalid Discord OAuth Data');
+            const tokens = { access_token: user.discord_access, refresh_token: user.discord_refresh, expires_at: user.discord_expires };
+            const meta = await DiscordOAuth.getMetadata((id as string),tokens);
+            res.send(JSON.stringify(meta, null, '</br>'));
+            
+        }
+        catch(err) {
+            res.send('Error: '+(err as Error).message);
+        }
+        
     }
 
     async updateDiscordMetadata(userId: string) {

@@ -136,6 +136,28 @@ export async function pushMetadata(userId: string, tokens: OAuthTokens, metadata
 }
 
 /**
+ * Fetch the metadata currently pushed to Discord for the currently logged
+ * in user, for this specific bot.
+ */
+export async function getMetadata(userId: string, tokens: OAuthTokens) {
+  // GET/PUT /users/@me/applications/:id/role-connection
+  const { DISCORD_CLIENT_ID } = process.env;
+  const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;
+  const accessToken = await getAccessToken(userId, tokens);
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken.access_token}`,
+    },
+  });
+  if (response.ok) {
+    const data = await response.json();
+    return data;
+  } else {
+    throw new Error(`Error getting discord metadata: [${response.status}] ${response.statusText}`);
+  }
+}
+
+/**
  * The initial token request comes with both an access token and a refresh
  * token.  Check if the access token has expired, and if it has, use the
  * refresh token to acquire a new, fresh access token.
