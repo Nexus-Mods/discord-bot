@@ -201,11 +201,12 @@ export class AuthSite {
             };
             const accessTokens = await NexusModsOAuth.getAccessToken(nexusTokens);
             const userData = await NexusModsOAuth.getUserData(accessTokens);
+            // The Discord Metadata API is super janky and accepts INTs but not True/False.
             metadata = {
                 member: userData.membership_roles.includes('member') ? 1 : 0,
-                // modauthor: userData.membership_roles.includes('modauthor'),
-                // premium: userData.membership_roles.includes('premium'),
-                // supporter: userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium'),
+                modauthor: userData.membership_roles.includes('modauthor')? 1 : 0,
+                premium: userData.membership_roles.includes('premium') ? 1 : 0,
+                supporter: (userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium')) ? 1 : 0,
             };
 
         }

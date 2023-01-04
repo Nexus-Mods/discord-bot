@@ -39,10 +39,10 @@ interface DiscordUserData {
 }
 
 interface BotMetaData {
-  member?: number;
-  modauthor?: boolean;
-  premium?: boolean;
-  supporter?: boolean;
+  member?: '0' | '1';
+  modauthor?: '0' | '1';
+  premium?: '0' | '1';
+  supporter?: '0' | '1';
 }
 
 export function getOAuthUrl(): OAuthURL {
