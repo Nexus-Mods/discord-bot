@@ -75,6 +75,9 @@ footer{
     margin-top:2rem;
     margin-bottom:2rem
 }
+.maintenance-page__text a {
+    color: #d98f40;
+}
 a{
     text-decoration:none
 }

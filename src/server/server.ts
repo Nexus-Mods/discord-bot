@@ -51,11 +51,13 @@ export class AuthSite {
 
         this.app.get('/nexus-mods-callback', this.nexusModsOauthCallback.bind(this));
 
-        this.app.get('/oauth-error', (req, res) => res.send('OAuth Error!'));
+        this.app.get('/oauth-error', this.error.bind(this));
 
         this.app.post('/update-metadata', this.updateMetaData.bind(this));
 
         this.app.get('/show-metadata', this.showMetaData.bind(this));
+
+        this.app.get('*', (req, res) => res.redirect('/'));
 
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
     }
@@ -71,6 +73,13 @@ export class AuthSite {
             discordId,
             nexusId
         });
+    }
+
+    error(req: express.Request, res: express.Response) {
+        // We'll set the error info as a cookie and pull it out as needed.
+        // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
+        const { ErrorDetail } = req.signedCookies;
+        res.render('error', { error: ErrorDetail || 'Unknown error' });
     }
 
     linkedRole(req: express.Request, res: express.Response) {
@@ -110,7 +119,9 @@ export class AuthSite {
         }
         catch(err) {
             logMessage('Discord OAuth Error', err, true);
-            return res.sendStatus(500);
+            res.cookie('ErrorDetail', `Discord OAuth Error: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.redirect('/oauth-error');
+            // return res.sendStatus(500);
         }
     }
 
@@ -169,14 +180,10 @@ export class AuthSite {
         }
         catch(err) {
             logMessage('Nexus Mods OAuth Error', err, true);
-            return res.sendStatus(500);
+            res.cookie('ErrorDetail', `Neuxs Mods OAuth Error: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.redirect('/oauth-error');
+            // return res.sendStatus(500);
         }
-
-        // Store Nexus Mods tokens
-
-            
-        // Push the metadata through to the Discord API (May need to split into a seprate function)
-
     }
 
     async updateMetaData(req: express.Request, res: express.Response) {
@@ -186,7 +193,9 @@ export class AuthSite {
             res.sendStatus(204);
         }
         catch(err) {
-            res.sendStatus(500);
+            res.cookie('ErrorDetail', `Error pushing role metadata to Discord: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.redirect('/oauth-error');
+            // res.sendStatus(500);
         }
     }
 
@@ -202,7 +211,8 @@ export class AuthSite {
             
         }
         catch(err) {
-            res.send('Error: '+(err as Error).message);
+            res.cookie('ErrorDetail', `Error getting metadata: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.redirect('/oauth-error');
         }
         
     }
