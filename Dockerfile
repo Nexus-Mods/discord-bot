@@ -1,17 +1,14 @@
-FROM node:13
+FROM node:18
 
-ENV WORK_DIR=/bot
+WORKDIR /app
 
-# create the directories to load the bot code into
-RUN mkdir -p $WORK_DIR
+COPY package*.json ./
 
-# Tell docker where our working directory lives
-WORKDIR $WORK_DIR
+RUN npm install
 
 # Copy the files over
-COPY . $WORK_DIR
+COPY . .
 
-# Expose port 80 so it can talk to the world
-EXPOSE 80
+RUN npm run build
 
-ENTRYPOINT $WORK_DIR/build.sh
+ENTRYPOINT npm run start
