@@ -94,7 +94,7 @@ const discordInteraction: DiscordInteraction = {
         sc.setName('users')    
         .setDescription('Search for users on Nexus Mods') 
         .addStringOption(gameTitle => 
-            gameTitle.setName('name-or-id')
+            gameTitle.setName('query')
             .setDescription('Enter the username or user ID of to look up. Exact matches only.')
             .setRequired(true)
         )
