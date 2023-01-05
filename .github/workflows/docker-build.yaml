@@ -24,3 +24,13 @@ jobs:
         with:
           push: true
           tags: nexusmods/discord-bot:latest
+
+  redeploy:
+    name: Redeploy webhook call
+    runs-on: ubuntu-latest
+    needs: [ docker ]
+    steps:
+      - name: Deploy docker container webhook
+        uses: joelwmale/webhook-action@master
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL  }}
