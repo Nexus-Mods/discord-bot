@@ -1,7 +1,8 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
 import { logMessage } from './api/util';
 import { DiscordBot } from './DiscordBot';
-
-require('dotenv').config();
+import { AuthSite } from './server/server';
 
 const bot = DiscordBot.getInstance();
 start();
@@ -21,5 +22,12 @@ async function start() {
     catch(err) {
         logMessage('Failed to set up Discord bot interactions', err, true);
         process.exit();
+    }
+
+    try {
+        const site = AuthSite.getInstance();
+    }
+    catch(err) {
+        logMessage('Failed to set up Auth website', err, true);
     }
 }

@@ -72,12 +72,12 @@ async function deleteUser(discordId: string): Promise<boolean> {
     });
 }
 
-async function updateUser(discordId: string, newUser: any): Promise<boolean> {
+async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
         let errors = 0;
         newUser.lastupdate = new Date();
         Object.keys(newUser).forEach((key: string) => {
-            query(`UPDATE users SET ${key} = $1 WHERE d_id = $2`, [newUser[key], discordId], (error: Error, result?: QueryResult) => {
+            query(`UPDATE users SET ${key} = $1 WHERE d_id = $2`, [newUser[key as keyof NexusUser], discordId], (error: Error, result?: QueryResult) => {
                 if (error) errors += 1;
             });
         });

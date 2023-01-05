@@ -20,9 +20,14 @@ const main: DiscordEventInterface = {
         if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
 
         // Start up the feeds
-        client.gameFeeds = GameFeedManager.getInstance(client);
-        client.modFeeds = ModFeedManager.getInstance(client);
-        client.newsFeed = NewsFeedManager.getInstance(client);
+        try {
+            client.gameFeeds = GameFeedManager.getInstance(client);
+            client.modFeeds = ModFeedManager.getInstance(client);
+            client.newsFeed = NewsFeedManager.getInstance(client);
+        }
+        catch(err) {
+            logMessage('Error starting up feeds', err, true);
+        }
 
         // Publish online message to servers. (Cache server listing?)
         if (client.config.testing) return logMessage('Testing mode - did not send online message');

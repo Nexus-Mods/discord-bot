@@ -1,0 +1,169 @@
+body{
+    background:#2b2d2f;
+    padding:0;
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column
+}
+header{
+    height:56px;
+    background:#101010;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-grow:0
+}
+main{
+    font-family:Montserrat,Helvetica,sans-serif;
+    text-align:left;
+    color:#fff;
+    padding-top:1.25rem;
+    padding-left:1rem;
+    padding-right:1rem;
+    margin-left:auto;
+    margin-right:auto;
+    flex-grow:1
+}
+footer{
+    flex-grow:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-bottom:2.5rem;
+    padding-top:4.5rem;
+    font-family:Roboto,Helvetica,sans-serif;
+    font-size:.75rem;
+    color:#aaa
+}
+.maintenance-page__content{
+    max-width:900px
+}
+.maintenance-page__title{
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:2rem;
+    letter-spacing:.8px
+}
+.maintenance-page__main-image{
+    max-width:385px;
+    width:100%
+}
+.maintenance-page__subtext{
+    font-family:Roboto;
+    font-size:1.125rem;
+    line-height:1.5;
+    font-weight:400;
+    margin-top:2rem;
+    margin-bottom:2rem
+}
+.maintenance-page__subtext a {
+    color: #d98f40;
+}
+.maintenance-page__supertext{
+    color:#aaa;
+    font-size:.875rem;
+    line-height:1.5;
+    font-family:Roboto;
+    font-weight:400
+}
+.maintenance-page__text{
+    font-size:.875rem;
+    line-height:1.5;
+    font-family:Roboto;
+    font-weight:400;
+    margin-top:2rem;
+    margin-bottom:2rem
+}
+.maintenance-page__text a {
+    color: #d98f40;
+}
+a{
+    text-decoration:none
+}
+.maintenance-page__social-links{
+    margin-bottom:1.5rem
+}
+.maintenance-page__social-links>*+*{
+    margin-left:1rem
+}
+.maintenance-page__social-links img{
+    opacity:.6
+}
+.maintenance-page__social-links a:hover img{
+    opacity:1
+}
+.maintenance-page__centered-content{
+    display:flex;
+    justify-content:center
+}
+.maintenance-page__discord-button{
+    background:0 0;
+    border:1px solid #d98f40;
+    border-radius:4px;
+    color:#fff;
+    font-family:Montserrat;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.7px;
+    font-size:.875rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:0 16px;
+    height:36px
+}
+.maintenance-page__discord-button:hover{
+    background:#3a413f
+}
+.maintenance-page__discord-button:focus{
+    background:#3a413f;
+    outline:2px solid #388ffa;
+    outline-offset:2px
+}
+.maintenance-page__discord-button>img{
+    width:1.25rem
+}
+@media (min-width:768px){
+    main{
+        padding-top:2.5rem;
+        padding-left:3rem;
+        padding-right:3rem
+    }
+    .maintenance-page__title{
+        font-size:2.5rem;
+        line-height:3rem;
+        font-weight:500;
+        letter-spacing:unset
+    }
+    .maintenance-page__main-image{
+        max-width:510px
+    }
+    .maintenance-page__subtext{
+        font-family:Montserrat;
+        font-size:1.125rem;
+        line-height:1.375;
+        font-weight:600
+    }
+    .maintenance-page__supertext{
+        font-size:1.125rem
+    }
+    .maintenance-page__text{
+        font-size:1.125rem
+    }
+}
+@media (min-width:1000px){
+    .maintenance-page__content{
+        max-width:1100px
+    }
+    .maintenance-page__title{
+        font-size:3rem;
+        line-height:3.5rem;
+        font-weight:600;
+        letter-spacing:-1.2px
+    }
+    .maintenance-page__main-image{
+        max-width:858px
+    }
+}
