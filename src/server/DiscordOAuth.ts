@@ -186,7 +186,7 @@ export async function getAccessToken(userId: string, tokens: OAuthTokens): Promi
       });
       if (response.ok) {
         const tokens = await response.json();
-        tokens.access_token = tokens.access_token;
+        // tokens.access_token = tokens.access_token;
         tokens.expires_at = Date.now() + tokens.expires_in * 1000;
         return tokens;
       } else {

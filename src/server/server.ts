@@ -193,9 +193,10 @@ export class AuthSite {
             res.sendStatus(204);
         }
         catch(err) {
-            res.cookie('ErrorDetail', `Error pushing role metadata to Discord: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
-            res.redirect('/oauth-error');
-            // res.sendStatus(500);
+            // res.cookie('ErrorDetail', `Error pushing role metadata to Discord: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            // res.redirect('/oauth-error');
+            logMessage('Error in update-meta endpoint', err, true);
+            res.sendStatus(500);
         }
     }
 
