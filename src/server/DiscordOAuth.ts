@@ -61,7 +61,7 @@ export function getOAuthUrl(): OAuthURL {
 }
 
 export async function getOAuthTokens(code: string): Promise<OAuthTokens> {
-    const {DISCORD_CLIENT_ID,DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI } = process.env;
+    const { DISCORD_CLIENT_ID,DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI } = process.env;
   
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) throw new Error('Bot environment variables are not configured properly.');
 
@@ -86,7 +86,7 @@ export async function getOAuthTokens(code: string): Promise<OAuthTokens> {
       data.expires_at = Date.now() + (data.expires_in * 1000);
       return data;
     } else {
-      throw new Error(`Error fetching OAuth tokens: [${response.status}] ${response.statusText}`);
+      throw new Error(`Error fetching Discord OAuth tokens: [${response.status}] ${response.statusText}`);
     }
 }
 
@@ -101,7 +101,7 @@ export async function getUserData(tokens: OAuthTokens): Promise<DiscordUserData>
       const data = await response.json();
       return data;
     } else {
-      throw new Error(`Error fetching user data: [${response.status}] ${response.statusText}`);
+      throw new Error(`Error fetching Discord user data: [${response.status}] ${response.statusText}`);
     }
 }
 
@@ -132,7 +132,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
       },
     });
     if (!response.ok) {
-      throw new Error(`Error pushing discord metadata: [${response.status}] ${response.statusText}.`);
+      throw new Error(`Error pushing Discord metadata: [${response.status}] ${response.statusText}.`);
     }
 }
 
@@ -154,7 +154,7 @@ export async function getMetadata(userId: string, tokens: OAuthTokens) {
     const data = await response.json();
     return data;
   } else {
-    throw new Error(`Error getting discord metadata: [${response.status}] ${response.statusText}`);
+    throw new Error(`Error getting Discord metadata: [${response.status}] ${response.statusText}`);
   }
 }
 
@@ -191,7 +191,7 @@ export async function getAccessToken(userId: string, tokens: OAuthTokens): Promi
         tokens.expires_at = Date.now() + tokens.expires_in * 1000;
         return tokens;
       } else {
-        throw new Error(`Error refreshing access token: [${response.status}] ${response.statusText}`);
+        throw new Error(`Error refreshing Discord access token: [${response.status}] ${response.statusText}`);
       }
     }
     return tokens;

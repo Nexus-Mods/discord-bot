@@ -78,7 +78,7 @@ export async function getOAuthTokens(code: string): Promise<NexusOAuthTokens> {
       data.expires_at = Date.now() + (data.expires_in * 1000);
       return data;
     } else {
-      throw new Error(`Error fetching OAuth tokens: [${response.status}] ${response.statusText}`);
+      throw new Error(`Error fetching Nexus Mods OAuth tokens: [${response.status}] ${response.statusText}`);
     }
 }
 
@@ -95,7 +95,7 @@ export async function getUserData(tokens: NexusOAuthTokens): Promise<NexusUserDa
       if (modauthor === true) data.membership_roles?.push('modauthor');
       return data;
     } else {
-      throw new Error(`Error fetching user data: [${response.status}] ${response.statusText}`);
+      throw new Error(`Error fetching Nexus Mods user data: [${response.status}] ${response.statusText}`);
     }
 }
 
@@ -127,7 +127,7 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
         tokens.expires_at = Date.now() + tokens.expires_in * 1000;
         return tokens;
       } else {
-        throw new Error(`Error refreshing access token: [${response.status}] ${response.statusText}`);
+        throw new Error(`Error refreshing Nexus Mods access token: [${response.status}] ${response.statusText}`);
       }
     }
     return tokens;

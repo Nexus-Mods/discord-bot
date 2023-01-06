@@ -2,7 +2,7 @@ import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import Nexus, { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, Embed } from 'discord.js';
+import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, Embed, Webhook } from 'discord.js';
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
@@ -271,6 +271,9 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             // logMessage(`No matching updates for ${feed.title} in ${guild?.name} (#${feed._id})`)
             return;
         };
+
+        // Added a webhook error catcher here as there seems to be a rare "unhandled error in webhook" crash that might be coming from here.
+        webHook?.on('error', (err: Error) => logMessage('Gamefeed Webhook error', { err, feed: feed._id }, true));
         
         try {
             await webHook?.send({ embeds: modEmbeds, content: feed.message });
