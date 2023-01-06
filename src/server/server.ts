@@ -234,10 +234,10 @@ export class AuthSite {
         if (!user) user = await getUserByDiscordId(userId);
         if (!user) throw new Error('No linked users for this Discord ID.');
         if (!user.discord_access || !user.discord_refresh || !user.discord_expires) {
-            throw new Error('No Discord OAuth tokens for this user');
+            throw new Error('No Discord OAuth tokens for this user:'+user.name);
         }
         if (!user.nexus_access || !user.nexus_refresh || !user.nexus_expires) {
-            throw new Error('No Nexus Mods OAuth tokens for this user');
+            throw new Error('No Nexus Mods OAuth tokens for this user:'+user.name);
         }
         const tokens = { 
             access_token: user.discord_access, 
