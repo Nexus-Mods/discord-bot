@@ -3,7 +3,7 @@ import cookieparser from 'cookie-parser';
 import * as DiscordOAuth from './DiscordOAuth';
 import * as NexusModsOAuth from './NexusModsOAuth';
 import { logMessage } from '../api/util';
-import { createUser, updateUser, getUserByDiscordId, deleteUser } from '../api/users';
+import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users';
 import { NexusUser } from '../types/users';
 import path from 'path';
 
@@ -159,6 +159,22 @@ export class AuthSite {
             const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
             // logMessage('Got tokens for Nexus Mods', tokens);
             const userData = await NexusModsOAuth.getUserData(tokens);
+            if (!existingUser) {
+                const nexusUser = await getUserByNexusModsId(parseInt(userData.sub));
+                if (!!nexusUser) {
+                    // If their Discord is linked to another account, remove that link. 
+                    logMessage('Deleting link to a different Discord account!', { user: nexusUser.name, discord: nexusUser.d_id });
+                    try {
+                    if (!!nexusUser.nexus_access && !!nexusUser.nexus_refresh && !!nexusUser.nexus_expires) 
+                        await NexusModsOAuth.revoke({ access_token: nexusUser.nexus_access, refresh_token: nexusUser.nexus_refresh, expires_at: nexusUser.nexus_expires });
+                    if (!!nexusUser.discord_access && !!nexusUser.discord_refresh && !!nexusUser.discord_expires) 
+                        await DiscordOAuth.revoke({ access_token: nexusUser.discord_access, refresh_token: nexusUser.discord_refresh, expires_at: nexusUser.discord_expires });
+                    }
+                    catch(err) { logMessage('Error revoking tokens for alternate account', err, true); }
+                    await deleteUser(nexusUser.d_id);
+                }
+            }
+
             // logMessage('Got Nexus Mods user data from tokens', {userData, discordData});
             // Work out the expiry time (6 hours at time of writing);
             const user: Partial<NexusUser> = {
@@ -176,7 +192,7 @@ export class AuthSite {
                 discord_expires: discordData.tokens.expires_at                
             }
             // Store the tokens
-            logMessage('Pushing user data to database', { update: !!existingUser, name: user.name });
+            // logMessage('Pushing user data to database', { update: !!existingUser, name: user.name });
             const updatedUser = !!existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id, updatedUser);
             logMessage('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
