@@ -301,8 +301,8 @@ export class AuthSite {
                     discord_refresh: undefined 
             });
             logMessage('Revoke successful for user', user.name);
-            res.send('Revoke complete!');
-            res.render('revoked');
+            // res.send('Revoke complete!');
+            res.render('revoked', { pageTitle: 'Link Removed' });
         }
         catch(err) {
             logMessage('Error removing account link', err, true);
