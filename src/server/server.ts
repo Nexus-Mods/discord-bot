@@ -280,6 +280,15 @@ export class AuthSite {
 
             // Delete from database
             // await deleteUser(id);
+            await updateUser(id, 
+                { 
+                    nexus_access: undefined, 
+                    nexus_expires: undefined, 
+                    nexus_refresh: undefined, 
+                    discord_access: undefined, 
+                    discord_expires: undefined, 
+                    discord_refresh: undefined 
+            });
             logMessage('Revoke successful for user', user.name);
             res.send('Revoke complete!');
         }
