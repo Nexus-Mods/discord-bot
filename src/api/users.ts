@@ -3,6 +3,7 @@ import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { Client, EmbedBuilder, User, Guild, Snowflake } from 'discord.js';
 import { getModsbyUser, getLinksByUser } from './bot-db';
+import { logMessage } from './util';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     return new Promise( (resolve, reject) => {
@@ -81,6 +82,7 @@ async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promi
                 if (error) errors += 1;
             });
         });
+        logMessage('Updated values on User', Object.keys(newUser));
         if (errors > 0) resolve(false);
         else resolve(true);
     });
