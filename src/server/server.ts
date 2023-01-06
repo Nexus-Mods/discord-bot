@@ -253,6 +253,7 @@ export class AuthSite {
         catch(err) {
             (err as Error).message =  `Error updating role metadata: ${(err as Error).message}`;
             logMessage(`Error updating role metadata: ${(err as Error).message}`, err, true);
+            console.trace('Role metadata update failed.');
         }
 
         await DiscordOAuth.pushMetadata(userId, user.name, tokens, metadata);
