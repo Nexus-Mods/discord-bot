@@ -104,7 +104,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         if (Object.keys(newData).length > 1) {
             const updatedFields: string[] = getFieldNames(Object.keys(newData));
             card.addFields({ name: 'User Info', value: `Updated:\n ${updatedFields.join('\n')}`});
-            await updateUser(discordId, newData);
+            const newUser = await updateUser(discordId, newData);
             updateRoles = true;
         }
         else {
@@ -113,6 +113,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     }
     catch(err) {
+        logMessage('Error updating using info', { err, stack: (err as Error)?.stack }, true);
         card.addFields({ name: 'User Info', value: `Error updating user info: \n${err}`});
     }
 

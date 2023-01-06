@@ -4,6 +4,7 @@ import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { Client, EmbedBuilder, User, Guild, Snowflake } from 'discord.js';
 import { getModsbyUser, getLinksByUser } from './bot-db';
 import { logMessage } from './util';
+import { stringify } from 'querystring';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     return new Promise( (resolve, reject) => {
@@ -43,10 +44,10 @@ async function getUserByNexusModsId(id: number): Promise<NexusUser> {
     });
 }
 
-async function createUser(user: NexusUser): Promise<boolean> {
+async function createUser(user: NexusUser): Promise<NexusUser> {
     return new Promise(
         (resolve, reject) => {
-        query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+        query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
         [user.d_id, user.id, user.name, user.avatar_url, user.apikey, user.supporter, user.premium, user.modauthor||false, new Date()], 
         (error: Error, result?: QueryResult) => {
             if (error) {
@@ -56,7 +57,7 @@ async function createUser(user: NexusUser): Promise<boolean> {
                 //if (error.code === "23505") return reject(`Error ${error.code} - The field ${error.constraint} is not unique.`);
             };
             //console.log("User inserted into the database: "+user.nexusName);
-            resolve(true);
+            resolve(result?.rows?.[0]);
         })
     });
 }
@@ -73,18 +74,22 @@ async function deleteUser(discordId: string): Promise<boolean> {
     });
 }
 
-async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<boolean> {
+async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<NexusUser> {
+    let values: any[] = [];
+    let updateString: string[] = [];
+    Object.entries(newUser).map(([key, value], idx) => {
+        values.push(value);
+        updateString.push(`${key} = $${idx + 1}`);
+    });
+    values.push(discordId);
+
+    const updateQuery = `UPDATE users SET ${updateString.join(', ')} WHERE d_id = $${values.length} RETURNING *`;
     return new Promise(async (resolve, reject) => {
-        let errors = 0;
-        newUser.lastupdate = new Date();
-        Object.keys(newUser).forEach((key: string) => {
-            query(`UPDATE users SET ${key} = $1 WHERE d_id = $2`, [newUser[key as keyof NexusUser], discordId], (error: Error, result?: QueryResult) => {
-                if (error) errors += 1;
-            });
+        logMessage('Update user query', { updateQuery, values });
+        query(updateQuery, values, (error: Error, result?: QueryResult) => {
+            if (!!error) return reject(error);
+            resolve(result?.rows[0]);
         });
-        logMessage('Updated values on User', Object.keys(newUser));
-        if (errors > 0) resolve(false);
-        else resolve(true);
     });
 }
 
