@@ -177,7 +177,7 @@ export class AuthSite {
             }
             // Store the tokens
             const updatedUser = existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
-            await this.updateDiscordMetadata(discordData.id);
+            await this.updateDiscordMetadata(discordData.id, updatedUser);
             logMessage('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
             const successUrl = '/success'
             +`?nexus=${encodeURIComponent(user.name || '')}`
@@ -229,9 +229,9 @@ export class AuthSite {
         
     }
 
-    async updateDiscordMetadata(userId: string) {
+    async updateDiscordMetadata(userId: string, user?: NexusUser) {
         let metadata = {};
-        const user: NexusUser = await getUserByDiscordId(userId);
+        if (!user) user = await getUserByDiscordId(userId);
         if (!user) throw new Error('No linked users for this Discord ID.');
         if (!user.discord_access || !user.discord_refresh || !user.discord_expires) {
             throw new Error('No Discord OAuth tokens for this user');
