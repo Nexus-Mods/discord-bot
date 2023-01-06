@@ -202,7 +202,7 @@ export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
 
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) throw new Error('Bot environment variables are not configured properly.');
 
-  const url = 'https://discord.com/api/v10/oauth2/revoke';
+  const url = 'https://discord.com/api/oauth2/token/revoke';
   const body = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
     client_secret: DISCORD_CLIENT_SECRET,
@@ -221,6 +221,6 @@ export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
     data.expires_at = Date.now() + (data.expires_in * 1000);
     return data;
   } else {
-    throw new Error(`Error revoking OAuth tokens: [${response.status}] ${response.statusText}`);
+    throw new Error(`Error revoking Discord OAuth tokens: [${response.status}] ${response.statusText}`);
   }
 }

@@ -158,6 +158,6 @@ export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
     data.expires_at = Date.now() + (data.expires_in * 1000);
     return data;
   } else {
-    throw new Error(`Error revoking OAuth tokens: [${response.status}] ${response.statusText}`);
+    throw new Error(`Error revoking Neuxs Mods OAuth tokens: [${response.status}] ${response.statusText}`);
   }
 }
