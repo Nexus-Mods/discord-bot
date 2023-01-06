@@ -16,6 +16,26 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
+async function queryPromise(query: string, values: any[]): Promise<any> {
+    return new Promise((resolve, reject) => {
+        pool.connect((err: Error, client: PoolClient, release) => {
+            if (err) {
+                logMessage('Error acquiring client', { query, err: err.message }, true);
+                return reject(err);
+            };
+            client.query(query, values, (err: Error, result: QueryResult) => {
+                if (err) {
+                    logMessage('Error in query', { query, values, err }, true);
+                    return reject(err);
+                }
+                return resolve(result);
+            })
+
+        })
+
+    });
+}
+
 function doQuery(query: string, values: any[], callback: (err: Error, result?: QueryResult) => void) {
     pool.connect((err: Error, client: PoolClient, release) => {
         if (err) {
