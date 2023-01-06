@@ -32,6 +32,7 @@ export class AuthSite {
         this.app.set('view engine', 'ejs');
 
         this.app.get('/', (req, res) => { 
+            // Readme icon from https://www.iconfinder.com/icons/9113356/readme_icon
             res.render('index', { timestamp: `${new Date().toLocaleDateString()} ${new Date().toTimeString()}`, pageTitle: undefined });
         });
 
