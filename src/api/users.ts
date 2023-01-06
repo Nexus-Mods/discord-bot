@@ -4,7 +4,6 @@ import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
 import { Client, EmbedBuilder, User, Guild, Snowflake } from 'discord.js';
 import { getModsbyUser, getLinksByUser } from './bot-db';
 import { logMessage } from './util';
-import { stringify } from 'querystring';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     return new Promise( (resolve, reject) => {
@@ -75,6 +74,7 @@ async function deleteUser(discordId: string): Promise<boolean> {
 }
 
 async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<NexusUser> {
+    newUser.lastupdate = new Date();
     let values: any[] = [];
     let updateString: string[] = [];
     Object.entries(newUser).map(([key, value], idx) => {
@@ -85,7 +85,6 @@ async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promi
 
     const updateQuery = `UPDATE users SET ${updateString.join(', ')} WHERE d_id = $${values.length} RETURNING *`;
     return new Promise(async (resolve, reject) => {
-        logMessage('Update user query', { updateQuery, values });
         query(updateQuery, values, (error: Error, result?: QueryResult) => {
             if (!!error) return reject(error);
             resolve(result?.rows[0]);
