@@ -84,6 +84,7 @@ export async function getOAuthTokens(code: string): Promise<NexusOAuthTokens> {
 
 export async function getUserData(tokens: NexusOAuthTokens): Promise<NexusUserData> {
     const url = 'https://users.nexusmods.com/oauth/userinfo';
+    logMessage('Fetching Nexus Mods data with access token', { token: tokens.access_token });
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
