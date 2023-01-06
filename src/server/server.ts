@@ -50,7 +50,9 @@ export class AuthSite {
 
         this.app.get('/nexus-mods-callback', this.nexusModsOauthCallback.bind(this));
 
-        this.app.get('/oauth-error', this.error.bind(this));
+        this.app.get('/oauth-error', this.linkError.bind(this));
+
+        this.app.get('/unlink-error', this.unlinkError.bind(this));
 
         this.app.post('/update-metadata', this.updateMetaData.bind(this));
 
@@ -77,11 +79,18 @@ export class AuthSite {
         });
     }
 
-    error(req: express.Request, res: express.Response) {
+    linkError(req: express.Request, res: express.Response) {
         // We'll set the error info as a cookie and pull it out as needed.
         // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
         const { ErrorDetail } = req.signedCookies;
-        res.render('error', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Authentication Error' });
+        res.render('linkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Authentication Error' });
+    }
+
+    unlinkError(req: express.Request, res: express.Response) {
+        // We'll set the error info as a cookie and pull it out as needed.
+        // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
+        const { ErrorDetail } = req.signedCookies;
+        res.render('unlinkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Unlinking Error' });
     }
 
     linkedRole(req: express.Request, res: express.Response) {
@@ -265,20 +274,20 @@ export class AuthSite {
         try {
             const id: string = req.query['id'] as string;
             if (!id) throw new Error('Discord ID parameter was not supplied.');
-            const user =await getUserByDiscordId(id);
+            const user = await getUserByDiscordId(id);
             if (!user) throw new Error(`No links exist for the Discord ID ${id}`);
             // Revoke Discord tokens
             if (!!user.discord_access && !!user.discord_expires && !!user.discord_refresh) {
                 const discordTokens = { access_token: user.discord_access, refresh_token: user.discord_refresh, expires_at: user.discord_expires };
                 await DiscordOAuth.revoke(discordTokens);
             }
-            else logMessage('No Discord Tokens to revoke', { user });
+            else logMessage('No Discord Tokens to revoke', user.name);
             // Revoke Nexus Mods tokens
             if (!!user.nexus_access && !!user.nexus_expires && !!user.nexus_refresh) {
                 const nexusTokens = { access_token: user.nexus_access, refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
                 await NexusModsOAuth.revoke(nexusTokens);
             }
-            else logMessage('No Nexus Mods Tokens to revoke', { user });
+            else logMessage('No Nexus Mods Tokens to revoke', user.name);
 
             // Delete from database
             // await deleteUser(id);
@@ -293,11 +302,12 @@ export class AuthSite {
             });
             logMessage('Revoke successful for user', user.name);
             res.send('Revoke complete!');
+            res.render('revoked');
         }
         catch(err) {
             logMessage('Error removing account link', err, true);
             res.cookie('ErrorDetail', `Error unlinking accounts: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
-            res.redirect('/oauth-error');
+            res.redirect('/unlink-error');
         }
         
     }
