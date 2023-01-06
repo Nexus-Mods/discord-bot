@@ -32,7 +32,7 @@ export class AuthSite {
         this.app.set('view engine', 'ejs');
 
         this.app.get('/', (req, res) => { 
-            res.render('index', { timestamp: `${new Date().toLocaleDateString()} ${new Date().toTimeString()}` });
+            res.render('index', { timestamp: `${new Date().toLocaleDateString()} ${new Date().toTimeString()}`, pageTitle: undefined });
         });
 
         this.app.get('/success', this.success.bind(this));
@@ -71,7 +71,8 @@ export class AuthSite {
             discord, 
             nexus,
             discordId,
-            nexusId
+            nexusId,
+            pageTitle: 'Success!'
         });
     }
 
@@ -79,7 +80,7 @@ export class AuthSite {
         // We'll set the error info as a cookie and pull it out as needed.
         // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
         const { ErrorDetail } = req.signedCookies;
-        res.render('error', { error: ErrorDetail || 'Unknown error' });
+        res.render('error', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Authentication Error' });
     }
 
     linkedRole(req: express.Request, res: express.Response) {
