@@ -132,3 +132,32 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
     }
     return tokens;
 }
+
+// Revoke tokens
+export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
+  const { NEXUS_OAUTH_ID, NEXUS_OAUTH_SECRET } = process.env;
+
+  if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Bot environment variables are not configured properly.');
+
+  const url = 'https://users.nexusmods.com/oauth/token';
+  const body = new URLSearchParams({
+    client_id: NEXUS_OAUTH_ID,
+    client_secret: NEXUS_OAUTH_SECRET,
+    token: tokens.refresh_token,
+  });
+
+  const response = await fetch(url, {
+    body,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+  if (response.ok) {
+    const data = await response.json();
+    data.expires_at = Date.now() + (data.expires_in * 1000);
+    return data;
+  } else {
+    throw new Error(`Error revoking OAuth tokens: [${response.status}] ${response.statusText}`);
+  }
+}

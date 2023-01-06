@@ -195,3 +195,32 @@ export async function getAccessToken(userId: string, tokens: OAuthTokens): Promi
     }
     return tokens;
 }
+
+// Revoke tokens
+export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
+  const {DISCORD_CLIENT_ID,DISCORD_CLIENT_SECRET } = process.env;
+
+  if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) throw new Error('Bot environment variables are not configured properly.');
+
+  const url = 'https://discord.com/api/v10/oauth2/revoke';
+  const body = new URLSearchParams({
+    client_id: DISCORD_CLIENT_ID,
+    client_secret: DISCORD_CLIENT_SECRET,
+    token: tokens.refresh_token,
+  });
+
+  const response = await fetch(url, {
+    body,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+  if (response.ok) {
+    const data = await response.json();
+    data.expires_at = Date.now() + (data.expires_in * 1000);
+    return data;
+  } else {
+    throw new Error(`Error revoking OAuth tokens: [${response.status}] ${response.statusText}`);
+  }
+}

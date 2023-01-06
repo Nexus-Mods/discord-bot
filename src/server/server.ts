@@ -3,7 +3,7 @@ import cookieparser from 'cookie-parser';
 import * as DiscordOAuth from './DiscordOAuth';
 import * as NexusModsOAuth from './NexusModsOAuth';
 import { logMessage } from '../api/util';
-import { createUser, updateUser, getUserByDiscordId } from '../api/users';
+import { createUser, updateUser, getUserByDiscordId, deleteUser } from '../api/users';
 import { NexusUser } from '../types/users';
 import path from 'path';
 
@@ -31,8 +31,6 @@ export class AuthSite {
         this.app.use(express.static(path.join(__dirname, 'public')));
         this.app.set('view engine', 'ejs');
 
-        // this.app.get('/', (req, res) => res.send(`Discord bot OAuth site is online. ${new Date().toLocaleDateString()} ${new Date().toTimeString()}`));
-
         this.app.get('/', (req, res) => { 
             res.render('index', { timestamp: `${new Date().toLocaleDateString()} ${new Date().toTimeString()}` });
         });
@@ -56,6 +54,8 @@ export class AuthSite {
         this.app.post('/update-metadata', this.updateMetaData.bind(this));
 
         this.app.get('/show-metadata', this.showMetaData.bind(this));
+        
+        this.app.get('/revoke', this.revokeAccess.bind(this));
 
         this.app.get('*', (req, res) => res.redirect('/'));
 
@@ -256,5 +256,37 @@ export class AuthSite {
 
         await DiscordOAuth.pushMetadata(userId, user.name, tokens, metadata);
 
+    }
+
+    async revokeAccess(req: express.Request, res: express.Response) {
+        try {
+            const id: string = req.query['id'] as string;
+            if (!id) throw new Error('Discord ID parameter was not supplied.');
+            const user =await getUserByDiscordId(id);
+            if (!user) throw new Error(`No links exist for the Discord ID ${id}`);
+            // Revoke Discord tokens
+            if (!!user.discord_access && !!user.discord_expires && !!user.discord_refresh) {
+                const discordTokens = { access_token: user.discord_access, refresh_token: user.discord_refresh, expires_at: user.discord_expires };
+                await DiscordOAuth.revoke(discordTokens);
+            }
+            else logMessage('No Discord Tokens to revoke', { user });
+            // Revoke Nexus Mods tokens
+            if (!!user.nexus_access && !!user.nexus_expires && !!user.nexus_refresh) {
+                const nexusTokens = { access_token: user.nexus_access, refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
+                await NexusModsOAuth.revoke(nexusTokens);
+            }
+            else logMessage('No Nexus Mods Tokens to revoke', { user });
+
+            // Delete from database
+            // await deleteUser(id);
+            logMessage('Revoke successful for user', user.name);
+            res.send('Revoke complete!');
+        }
+        catch(err) {
+            logMessage('Error removing account link', err, true);
+            res.cookie('ErrorDetail', `Error unlinking accounts: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.redirect('/oauth-error');
+        }
+        
     }
 }
