@@ -139,7 +139,7 @@ export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
 
   if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Bot environment variables are not configured properly.');
 
-  const url = 'https://users.nexusmods.com/oauth/token';
+  const url = 'https://users.nexusmods.com/oauth/revoke';
   const body = new URLSearchParams({
     client_id: NEXUS_OAUTH_ID,
     client_secret: NEXUS_OAUTH_SECRET,
