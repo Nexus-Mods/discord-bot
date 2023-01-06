@@ -122,6 +122,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
       platform_username: username,
       metadata,
     };
+    logMessage('Pushing metadata', { username, token: accessTokens.access_token });
     const response = await fetch(url, {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -131,7 +132,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
       },
     });
     if (!response.ok) {
-      throw new Error(`Error pushing discord metadata: [${response.status}] ${response.statusText}. Token: ${accessTokens.access_token}`);
+      throw new Error(`Error pushing discord metadata: [${response.status}] ${response.statusText}.`);
     }
 }
 
