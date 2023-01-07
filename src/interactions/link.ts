@@ -44,6 +44,10 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             const guild = client.guilds.cache.get(interaction.guildId)
             await addServerLink(client, userData, interaction.user, guild as Guild).catch(() => undefined);
             await interaction.followUp({ content:`Your Discord account has been linked to ${userData.name} in this server.`,  ephemeral: true });
+
+            // If the user is already linked, make sure their roles are correct.
+            if (client.user) await updateAllRoles(client, userData, client.user, true);
+
             return;
         }
         else {
