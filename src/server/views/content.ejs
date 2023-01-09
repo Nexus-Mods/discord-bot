@@ -1,13 +1,13 @@
 <div class="maintenance-page__content">
 <h1 class="maintenance-page__title">Discord bot is online.</h1>
 <p class="maintenance-page__supertext"><%=timestamp%></p>
-<div style="display: flex;">
-    <a target="_blank" rel="noreferrer" href="discord://discord.com/application-directory/458591118209187851" class="maintenance-page__discord-button">
-        <img class="icon" alt="" src="/images/discord.svg"> 
+<div style="display: flex; padding-bottom: 16px;">
+    <a target="_blank" rel="noreferrer" href="https://discord.com/api/v9/oauth2/authorize?client_id=<%=clientId%>&scope=applications.commands%20bot" class="maintenance-page__discord-button">
+        <img class="icon" alt="" src="/images/Discord.svg"> 
         <span>Add to server</span>
     </a>
-    <a target="_blank" rel="noreferrer" href="https://discord.com/application-directory/458591118209187851" class="maintenance-page__discord-button" style="margin-left: 8px;">
-        <img class="icon" alt="" src="/images/discord.svg"> 
+    <a target="_blank" rel="noreferrer" href="https://discord.com/application-directory/<%=clientId%>" class="maintenance-page__discord-button" style="margin-left: 8px;">
+        <img class="icon" alt="" src="/images/Discord.svg"> 
         <span>View in App Directory</span>
     </a>
 </div>
