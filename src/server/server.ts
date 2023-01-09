@@ -204,14 +204,12 @@ export class AuthSite {
             +`&d_id=${encodeURIComponent(discordData.id)}`;
 
             res.redirect(successUrl);
-            // res.send(`${discordData.name} has been linked to ${user.name}! <br/><br/>`));
 
         }
         catch(err) {
             logMessage('Nexus Mods OAuth Error', err, true);
             res.cookie('ErrorDetail', `Neuxs Mods OAuth Error: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
             res.redirect('/oauth-error');
-            // return res.sendStatus(500);
         }
     }
 
