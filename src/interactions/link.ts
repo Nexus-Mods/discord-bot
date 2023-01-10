@@ -1,6 +1,6 @@
 import { 
     CommandInteraction, Snowflake, EmbedBuilder, Client, Guild, SlashCommandBuilder, PermissionFlagsBits, 
-    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, AnyComponentBuilder 
+    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle 
 } from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/DiscordTypes";
@@ -70,7 +70,7 @@ const linkingEmbed = (user: NexusUser, discordId: string, client: Client): { emb
     else {
         embed.setTitle('Connect your Discord account')
         .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
-        .setDescription(`Linking your account will allow you to use Game Feeds, Search and more!\n\n[**Link my account**](https://discordbot.nexusmods.com/linked-role?id=${discordId})`)
+        .setDescription(`Linking your account will allow you to use Game Feeds, Search and more!`)
         
         const linkButton = new ActionRowBuilder()
         .addComponents(
