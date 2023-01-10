@@ -36,8 +36,10 @@ const v1headers = (token: string | undefined, apiKey?: string): IRequestHeaders 
 async function v1APIQuery (path: string, user: NexusUser, params?: { [key: string]: any }): Promise<any> {
     // Build request header using API key or tokens
     let headers = {};
+    let authType: 'OAUTH' | 'APIKEY';
     if (!!user.nexus_access && !!user.nexus_refresh && !!user.nexus_expires) {
         const tokens = { access_token: user.nexus_access, refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
+        authType = 'OAUTH';
         try {
             const newTokens = await getAccessToken(tokens);
             headers = v1headers(newTokens.access_token);
@@ -47,6 +49,7 @@ async function v1APIQuery (path: string, user: NexusUser, params?: { [key: strin
         }
     }
     else if (!!user.apikey) {
+        authType = 'APIKEY';
         headers = v1headers(undefined, user.apikey);
     }
     else throw new Error('API Key Missing: Please link your Nexus Mods account to your Discord in order to use this feature. See `/link` for help.');
@@ -62,7 +65,7 @@ async function v1APIQuery (path: string, user: NexusUser, params?: { [key: strin
         return query.data;
     }
     catch(err) {
-        if (err as AxiosError) return Promise.reject(new NexusAPIServerError(err as AxiosError, path));
+        if (err as AxiosError) return Promise.reject(new NexusAPIServerError(err as AxiosError, authType, path));
         logMessage('Unexpected API error', err, true);
         return Promise.reject(new Error(`Unexpected API error: ${(err as Error)?.message}`));
     }

@@ -77,11 +77,13 @@ export class NexusAPIServerError implements Error {
     public name: string = 'Unknown Error';
     public message: string = 'An unknown network error occurred when communicating with the API.';
     public path?: string = undefined;
+    public authType?: string = undefined;
     // public raw: Response;
 
-    constructor(error: AxiosError, path?: string) {
+    constructor(error: AxiosError, authType: 'OAUTH' | 'APIKEY', path?: string) {
         this.code = error.response?.status || -1;
         this.path = path;
+        this.authType = authType;
         // this.raw = errorResponse;
         const errorType: string|undefined = error.response?.status.toString()[0];
 
