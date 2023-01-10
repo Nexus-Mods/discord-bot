@@ -6,25 +6,57 @@ import { NexusUser } from '../types/users';
 import { IGameListEntry, IValidateKeyResponse, IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api'
 import { ModDownloadInfo, NexusSearchResult, NexusAPIServerError } from '../types/util';
 import { logMessage } from './util';
+import { getAccessToken } from '../server/NexusModsOAuth';
 
 const nexusAPI: string = 'https://api.nexusmods.com/'; //for all regular API functions
 const nexusGraphAPI: string = nexusAPI+'/v2/graphql';
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
 
-const v1headers = (apiKey: string) => ({
+interface IRequestHeaders {
+    'Application-Name': string;
+    'Application-Version': string;
+    'Authorization'?: string;
+    'apikey'?: string;
+}
+
+const v1headers = (token: string | undefined, apiKey?: string): IRequestHeaders => (
+    !token 
+    ? {
     'Application-Name': 'Nexus Mods Discord Bot',
     'Application-Version': process.env.npm_package_version || '0.0.0',
-    'apikey': apiKey, 
-});
+    'apikey': apiKey
+    } 
+    : {
+    'Application-Name': 'Nexus Mods Discord Bot',
+    'Application-Version': process.env.npm_package_version || '0.0.0',
+    'Authorization': `Bearer ${token}`
+    }
+);
 
-async function v1APIQuery (path: string, apiKey: string, params?: { [key: string]: any }): Promise<any> {
-    if (!apiKey) return Promise.reject(new Error('API Key Missing: Please link your Nexus Mods account to your Discord in order to use this feature. See `/link` for help.'));
+async function v1APIQuery (path: string, user: NexusUser, params?: { [key: string]: any }): Promise<any> {
+    // Build request header using API key or tokens
+    let headers = {};
+    if (!!user.nexus_access && !!user.nexus_refresh && !!user.nexus_expires) {
+        const tokens = { access_token: user.nexus_access, refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
+        try {
+            const newTokens = await getAccessToken(tokens);
+            headers = v1headers(newTokens.access_token);
+        }
+        catch(err) {
+            logMessage('Could not validate tokens for user', { user: user.name, error: err });
+        }
+    }
+    else if (!!user.apikey) {
+        headers = v1headers(undefined, user.apikey);
+    }
+    else throw new Error('API Key Missing: Please link your Nexus Mods account to your Discord in order to use this feature. See `/link` for help.');
+
     try {
         const query = await axios({
             baseURL: nexusAPI,
             url: path,
             transformResponse: (data) => JSON.parse(data),
-            headers: v1headers(apiKey),
+            headers,
             params,
         });
         return query.data;
@@ -37,11 +69,11 @@ async function v1APIQuery (path: string, apiKey: string, params?: { [key: string
 }
 
 async function games(user: NexusUser, bUnapproved?: boolean): Promise<IGameInfo[]>  {
-    return v1APIQuery('/v1/games', user?.apikey, { include_unapproved: bUnapproved });
+    return v1APIQuery('/v1/games', user, { include_unapproved: bUnapproved });
 }
 
 async function gameInfo(user: NexusUser, domainQuery: string): Promise<IGameListEntry> {
-    return v1APIQuery(`/v1/games/${domainQuery}`, user?.apikey);
+    return v1APIQuery(`/v1/games/${domainQuery}`, user);
 }
 
 export interface IValidateResponse extends IValidateKeyResponse {
@@ -49,7 +81,14 @@ export interface IValidateResponse extends IValidateKeyResponse {
 }
 
 async function validate(apiKey: string): Promise<IValidateResponse> {
-    const baseCheck: IValidateKeyResponse = await v1APIQuery('/v1/users/validate.json', apiKey);
+    // const baseCheck: IValidateKeyResponse = await v1APIQuery('/v1/users/validate.json', apiKey);
+    const query = await axios({
+        baseURL: nexusAPI,
+        url: '/v1/users/validate.json',
+        transformResponse: (data) => JSON.parse(data),
+        headers: { ...v1headers(undefined, apiKey) },
+    });
+    const baseCheck: IValidateKeyResponse = query.data;
     // We need to talk to GraphQL to see if this user is a mod author. 
     const is_ModAuthor: boolean = await getModAuthor(baseCheck.user_id);
     return { is_ModAuthor, ...baseCheck };
@@ -67,7 +106,7 @@ export async function getModAuthor(id: number): Promise<boolean> {
     const variables = { id };
     
     try {
-        const data = await request(nexusGraphAPI, query, variables, v1headers(''));
+        const data = await request(nexusGraphAPI, query, variables, { ...v1headers(undefined, '') });
         return data?.user?.recognizedAuthor;
     }
     catch(err) {
@@ -107,19 +146,19 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
 }
 
 async function updatedMods(user: NexusUser, gameDomain: string, period: string = '1d'): Promise<IUpdateEntry[]> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/updated.json`, user?.apikey, { period });
+    return v1APIQuery(`/v1/games/${gameDomain}/mods/updated.json`, user, { period });
 }
 
 async function modInfo(user: NexusUser, gameDomain: string, modId: number): Promise<IModInfo> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}.json`, user?.apikey);
+    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}.json`, user);
 }
 
 async function modFiles(user: NexusUser, gameDomain: string, modId: number): Promise<IModFiles> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/files.json`, user?.apikey);
+    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/files.json`, user);
 }
 
 async function modChangelogs(user: NexusUser, gameDomain: string, modId: number): Promise<IChangelogs> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/changelogs.json`, user?.apikey);
+    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/changelogs.json`, user);
 }
 
 class downloadStatsCache {
