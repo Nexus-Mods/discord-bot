@@ -55,13 +55,7 @@ const linkingEmbed = (user: NexusUser, discordId: string, client: Client): { emb
     if (!!user) {
         embed.setTitle(`Your Discord account is linked with ${user.name}`)
         .setDescription('With your account linked you can now use all the features of the Discord bot!')
-        .setAuthor({ name: user.name, url: `https://nexusmods.com/users/${user.id}`, iconURL: user.avatar_url })
-        .addFields([
-            {
-                name: 'Unlink',
-                value: `Remove the link between your accounts [here](https://discordbot.nexusmods.com/revoke?id=${discordId}).`
-            }
-        ]);
+        .setAuthor({ name: user.name, url: `https://nexusmods.com/users/${user.id}`, iconURL: user.avatar_url });
 
         const unlinkButton = new ActionRowBuilder()
         .addComponents(
