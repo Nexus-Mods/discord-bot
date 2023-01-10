@@ -197,11 +197,21 @@ export class AuthSite {
             const updatedUser = !!existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id, updatedUser);
             logMessage('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
-            const successUrl = '/success'
-            +`?nexus=${encodeURIComponent(user.name || '')}`
-            +`&n_id=${encodeURIComponent(user.id?.toString() || '0')}`
-            +`&discord=${encodeURIComponent(discordData.name)}`
-            +`&d_id=${encodeURIComponent(discordData.id)}`;
+            const params: Record<string, string> =  {
+                nexus: user.name || '',
+                n_id: user.id?.toString() || '0',
+                discord: discordData.name,
+                d_id: discordData.id
+            }
+
+            const successUrl = `/success?${new URLSearchParams(params).toString()}`;
+
+
+            // const successUrl = '/success'
+            // +`?nexus=${encodeURIComponent(user.name || '')}`
+            // +`&n_id=${encodeURIComponent(user.id?.toString() || '0')}`
+            // +`&discord=${encodeURIComponent(discordData.name)}`
+            // +`&d_id=${encodeURIComponent(discordData.id)}`;
 
             res.redirect(successUrl);
 
