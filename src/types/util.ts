@@ -103,6 +103,11 @@ export class NexusAPIServerError implements Error {
         }
         // Client Error
         else if (errorType === '4') {
+            // Bad Request
+            if (this.code === 400) {
+                this.name = 'Bad Request';
+                this.message = 'The request is invalid. This could be an issue with your account link, try unlinking and relinking.';
+            }
             // Unauthorised
             if (this.code === 401) {
                 this.name = 'Unauthorised';
