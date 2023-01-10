@@ -1,4 +1,7 @@
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, Interaction, Guild, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction } from "discord.js";
+import { 
+    CommandInteraction, Snowflake, EmbedBuilder, Client, Guild, SlashCommandBuilder, PermissionFlagsBits, 
+    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, AnyComponentBuilder 
+} from "discord.js";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createUser, updateAllRoles, getLinksByUser, addServerLink, getUserByNexusModsId, deleteUser } from '../api/bot-db';
@@ -28,8 +31,8 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     try {
         const userData = await getUserByDiscordId(discordId);
-        const embed = linkingEmbed(userData, discordId, client);
-        return interaction.editReply({ embeds: [embed], components: [] }).catch(undefined);
+        const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = linkingEmbed(userData, discordId, client);
+        return interaction.editReply(response).catch(undefined);
     }
     catch(err) {
         logMessage('Error in /link command', err, true);
@@ -38,7 +41,8 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
 }
 
-const linkingEmbed = (user: NexusUser, discordId: string, client: Client): EmbedBuilder => {
+const linkingEmbed = (user: NexusUser, discordId: string, client: Client): { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } => {
+    let components = [];
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
     .addFields([
@@ -50,7 +54,6 @@ const linkingEmbed = (user: NexusUser, discordId: string, client: Client): Embed
     .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
     if (!!user) {
         embed.setTitle(`Your Discord account is linked with ${user.name}`)
-        .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
         .setDescription('With your account linked you can now use all the features of the Discord bot!')
         .setAuthor({ name: user.name, url: `https://nexusmods.com/users/${user.id}`, iconURL: user.avatar_url })
         .addFields([
@@ -58,15 +61,34 @@ const linkingEmbed = (user: NexusUser, discordId: string, client: Client): Embed
                 name: 'Unlink',
                 value: `Remove the link between your accounts [here](https://discordbot.nexusmods.com/revoke?id=${discordId}).`
             }
-        ])
+        ]);
+
+        const unlinkButton = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+            .setLabel('Unlink Account')
+            .setStyle(ButtonStyle.Link)
+            .setURL(`https://discordbot.nexusmods.com/revoke?id=${discordId}`)
+        );
+        components.push(unlinkButton);
 
     }
     else {
         embed.setTitle('Connect your Discord account')
+        .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
         .setDescription(`Linking your account will allow you to use Game Feeds, Search and more!\n\n[**Link my account**](https://discordbot.nexusmods.com/linked-role?id=${discordId})`)
+        
+        const linkButton = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+            .setLabel('Link Account')
+            .setStyle(ButtonStyle.Link)
+            .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
+        );
+        components.push(linkButton);
     }
 
-    return embed;
+    return { embeds : [embed], components: (components as ActionRowBuilder<ButtonBuilder>[] ) };
 }
 
 async function oldaction(client: Client, baseInteraction: CommandInteraction): Promise<any> {
