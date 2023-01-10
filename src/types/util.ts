@@ -106,7 +106,7 @@ export class NexusAPIServerError implements Error {
             // Unauthorised
             if (this.code === 401) {
                 this.name = 'Unauthorised';
-                this.message = 'The API key linked with your account is invalid. Please use the /link command to update it.';
+                this.message = 'The API key or OAuth token for your account is not authorised to make this request. Please use the /link command to update it.';
             }
             // Not found
             else if (this.code === 404) {
