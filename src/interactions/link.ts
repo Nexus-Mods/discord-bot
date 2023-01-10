@@ -50,6 +50,7 @@ const linkingEmbed = (user: NexusUser, discordId: string, client: Client): Embed
     .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
     if (!!user) {
         embed.setTitle(`Your Discord account is linked with ${user.name}`)
+        .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
         .setDescription('With your account linked you can now use all the features of the Discord bot!')
         .setAuthor({ name: user.name, url: `https://nexusmods.com/users/${user.id}`, iconURL: user.avatar_url })
         .addFields([
@@ -62,7 +63,7 @@ const linkingEmbed = (user: NexusUser, discordId: string, client: Client): Embed
     }
     else {
         embed.setTitle('Connect your Discord account')
-        .setDescription(`Linking your account will allow you to use Game Feeds, Search and more!\n\n[**Link my account**](https://discordbot.nexusmods.com/linkedrole?id=${discordId})`)
+        .setDescription(`Linking your account will allow you to use Game Feeds, Search and more!\n\n[**Link my account**](https://discordbot.nexusmods.com/linked-role?id=${discordId})`)
     }
 
     return embed;
