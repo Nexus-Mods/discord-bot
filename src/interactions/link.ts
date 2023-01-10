@@ -9,10 +9,10 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('link')
     .setDescription('Link your Nexus Mods account to Discord.')
-    .addStringOption(option => 
-        option.setName('apikey')
-        .setDescription('Provide your API key for your Nexus Mods account.')
-    )
+    // .addStringOption(option => 
+    //     option.setName('apikey')
+    //     .setDescription('Provide your API key for your Nexus Mods account.')
+    // )
     .setDMPermission(true)
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     public: true,
@@ -23,6 +23,52 @@ const discordInteraction: DiscordInteraction = {
 }
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+    const interaction = (baseInteraction as ChatInputCommandInteraction);
+    const discordId: Snowflake = interaction.user.id;
+    await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
+    try {
+        const userData = await getUserByDiscordId(discordId);
+        const embed = linkingEmbed(userData, discordId, client);
+        return interaction.editReply({ embeds: [embed], components: [] }).catch(undefined);
+    }
+    catch(err) {
+        logMessage('Error in /link command', err, true);
+        return interaction.editReply('Unexpected error! '+(err as Error).message);
+    }
+
+}
+
+const linkingEmbed = (user: NexusUser, discordId: string, client: Client): EmbedBuilder => {
+    const embed = new EmbedBuilder()
+    .setColor(0xda8e35)
+    .addFields([
+        {
+            name: 'Linked Roles',
+            value: 'You can claim your roles using the "Linked Roles" option in the server drop-down menu.'
+        }
+    ])
+    .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
+    if (!!user) {
+        embed.setTitle(`Your Discord account is linked with ${user.name}`)
+        .setDescription('With your account linked you can now use all the features of the Discord bot!')
+        .setAuthor({ name: user.name, url: `https://nexusmods.com/users/${user.id}`, iconURL: user.avatar_url })
+        .addFields([
+            {
+                name: 'Unlink',
+                value: `Remove the link between your accounts [here](https://discordbot.nexusmods.com/revoke?id=${discordId}).`
+            }
+        ])
+
+    }
+    else {
+        embed.setTitle('Connect your Discord account')
+        .setDescription(`Linking your account will allow you to use Game Feeds, Search and more!\n\n[**Link my account**](https://discordbot.nexusmods.com/linkedrole?id=${discordId})`)
+    }
+
+    return embed;
+}
+
+async function oldaction(client: Client, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Link interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, apikey: !!interaction.options.getString('apikey') });
     const discordId: Snowflake | undefined = interaction.user.id;
