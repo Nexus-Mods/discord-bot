@@ -104,7 +104,7 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
 
     if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Error getting Discord access token, ENV VARS are undefined.');
 
-    logMessage('CHECKING NEXUS MODS ACCESS TOKENS', { expires: new Date(Math.floor(tokens.expires_at/1000)), timestamp: tokens.expires_at});
+    logMessage('CHECKING NEXUS MODS ACCESS TOKENS', { expires: new Date(tokens.expires_at), timestamp: tokens.expires_at});
 
     // Tokens are valid for 6 hours from the point they are issued. 
     if (Date.now() > tokens.expires_at) {
