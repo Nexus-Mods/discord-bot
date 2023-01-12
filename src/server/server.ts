@@ -190,6 +190,7 @@ export class AuthSite {
                 nexus_access: tokens.access_token,
                 nexus_refresh: tokens.refresh_token,
                 nexus_expires: tokens.expires_at,
+                apikey: undefined,
                 discord_access: discordData.tokens.access_token,
                 discord_refresh: discordData.tokens.refresh_token,
                 discord_expires: discordData.tokens.expires_at                
