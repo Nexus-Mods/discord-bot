@@ -33,7 +33,7 @@ export class AuthSite {
 
         this.app.get('/', (req, res) => { 
             // Readme icon from https://www.iconfinder.com/icons/9113356/readme_icon
-            res.render('index', { timestamp: `${new Date().toLocaleDateString('en-GB')} ${new Date().toTimeString()}`, pageTitle: undefined, clientId: process.env.DISCORD_CLIENT_ID });
+            res.send(200).render('index', { timestamp: `${new Date().toLocaleDateString('en-GB')} ${new Date().toTimeString()}`, pageTitle: undefined, clientId: process.env.DISCORD_CLIENT_ID });
         });
 
         this.app.get('/success', this.success.bind(this));
@@ -70,7 +70,7 @@ export class AuthSite {
         const discordId = req.query['d_id'] || '0';
         const nexus = req.query['nexus'] || 'UnknownNexusModsUser';
         const nexusId = req.query['n_id'] || '0';
-        res.render('success', { 
+        res.send(200).render('success', { 
             discord, 
             nexus,
             discordId,
@@ -83,14 +83,14 @@ export class AuthSite {
         // We'll set the error info as a cookie and pull it out as needed.
         // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
         const { ErrorDetail } = req.signedCookies;
-        res.render('linkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Authentication Error' });
+        res.send(500).render('linkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Authentication Error' });
     }
 
     unlinkError(req: express.Request, res: express.Response) {
         // We'll set the error info as a cookie and pull it out as needed.
         // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
         const { ErrorDetail } = req.signedCookies;
-        res.render('unlinkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Unlinking Error' });
+        res.send(500).render('unlinkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Unlinking Error' });
     }
 
     linkedRole(req: express.Request, res: express.Response) {
@@ -206,13 +206,6 @@ export class AuthSite {
 
             const successUrl = `/success?${new URLSearchParams(params).toString()}`;
 
-
-            // const successUrl = '/success'
-            // +`?nexus=${encodeURIComponent(user.name || '')}`
-            // +`&n_id=${encodeURIComponent(user.id?.toString() || '0')}`
-            // +`&discord=${encodeURIComponent(discordData.name)}`
-            // +`&d_id=${encodeURIComponent(discordData.id)}`;
-
             res.redirect(successUrl);
 
         }
@@ -233,7 +226,7 @@ export class AuthSite {
             // res.cookie('ErrorDetail', `Error pushing role metadata to Discord: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
             // res.redirect('/oauth-error');
             logMessage('Error in update-meta endpoint', err, true);
-            res.sendStatus(500);
+            res.sendStatus(500).send(`Error in update-meta request: ${(err as Error)?.message}`);
         }
     }
 
