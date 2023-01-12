@@ -33,7 +33,7 @@ export class AuthSite {
 
         this.app.get('/', (req, res) => { 
             // Readme icon from https://www.iconfinder.com/icons/9113356/readme_icon
-            res.sendStatus(200).render('index', { timestamp: `${new Date().toLocaleDateString('en-GB')} ${new Date().toTimeString()}`, pageTitle: undefined, clientId: process.env.DISCORD_CLIENT_ID });
+            res.render('index', { timestamp: `${new Date().toLocaleDateString('en-GB')} ${new Date().toTimeString()}`, pageTitle: undefined, clientId: process.env.DISCORD_CLIENT_ID });
         });
 
         this.app.get('/success', this.success.bind(this));
