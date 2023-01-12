@@ -70,7 +70,7 @@ export class AuthSite {
         const discordId = req.query['d_id'] || '0';
         const nexus = req.query['nexus'] || 'UnknownNexusModsUser';
         const nexusId = req.query['n_id'] || '0';
-        res.sendStatus(200).render('success', { 
+        res.render('success', { 
             discord, 
             nexus,
             discordId,
@@ -83,14 +83,16 @@ export class AuthSite {
         // We'll set the error info as a cookie and pull it out as needed.
         // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
         const { ErrorDetail } = req.signedCookies;
-        res.sendStatus(500).render('linkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Authentication Error' });
+        res.statusCode = 500;
+        res.render('linkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Authentication Error' });
     }
 
     unlinkError(req: express.Request, res: express.Response) {
         // We'll set the error info as a cookie and pull it out as needed.
         // retry icon https://www.iconfinder.com/icons/3229643/material_designs_refresh_retry_icon
         const { ErrorDetail } = req.signedCookies;
-        res.sendStatus(500).render('unlinkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Unlinking Error' });
+        res.statusCode = 500;
+        res.render('unlinkerror', { error: ErrorDetail || 'No error recorded. Are you blocking cookies?', pageTitle: 'Unlinking Error' });
     }
 
     linkedRole(req: express.Request, res: express.Response) {
@@ -226,7 +228,8 @@ export class AuthSite {
             // res.cookie('ErrorDetail', `Error pushing role metadata to Discord: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
             // res.redirect('/oauth-error');
             logMessage('Error in update-meta endpoint', err, true);
-            res.sendStatus(500).send(`Error in update-meta request: ${(err as Error)?.message}`);
+            res.statusCode = 500;
+            res.send(`Error in update-meta request: ${(err as Error)?.message}`);
         }
     }
 
@@ -238,7 +241,7 @@ export class AuthSite {
             if (!user.discord_access || !user.discord_expires || !user.discord_refresh) throw new Error('Invalid Discord OAuth Data');
             const tokens = { access_token: user.discord_access, refresh_token: user.discord_refresh, expires_at: user.discord_expires };
             const meta = await DiscordOAuth.getMetadata((id as string),tokens);
-            res.sendStatus(200).send(JSON.stringify(meta, null, '</br>'));
+            res.send(JSON.stringify(meta, null, '</br>'));
             
         }
         catch(err) {
