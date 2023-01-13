@@ -209,7 +209,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         let rateLimited: boolean = false;
 
         // Using GQL for requests instead of doing it one at a time.
-        const nexusGQL = new NexusModsGQLClient(userData);
+        const nexusGQL = await NexusModsGQLClient.create(userData);
         const modsToCheck = filteredMods.map(m => ({ gameDomain: feed.domain, modId: m.mod_id }));
         let modMeta: Partial<GQLTypes.FeedMod>[] = await nexusGQL.modInfo(modsToCheck);
 

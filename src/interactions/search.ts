@@ -168,7 +168,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
     try {
-        const gql = new NexusModsGQLClient(user);
+        const gql = await NexusModsGQLClient.create(user);
         const filters: CollectionsFilter = {
             'generalSearch' : {
                 value: query,
@@ -397,7 +397,7 @@ async function searchUsers(query: string, ephemeral: boolean, client: Client, in
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
-    const GQL = new NexusModsGQLClient(user);
+    const GQL = await NexusModsGQLClient.create(user);
     const searchTerm: string | number = isNaN(parseInt(query)) ? query : parseInt(query);
     const foundUser: { name: string, memberId: number, avatar: string, recognisedAuthor: boolean } = await GQL.findUser(searchTerm);
     if (!foundUser) return postResult(interaction, noUserFound(), ephemeral);

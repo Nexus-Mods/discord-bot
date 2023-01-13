@@ -478,7 +478,7 @@ class NexusModsGQLClient {
         }
         catch(err) {
             logMessage(`Could not resolve user: ${nameOrId}`, (err as ClientError).response|| err, true);
-            throw new Error(`Could not resolve user: ${nameOrId}`);
+            throw new Error(`Could not resolve user: ${nameOrId} - [${(err as ClientError).response?.status}] - ${(err as ClientError).response.errors?.toString()}`);
         }
     }
 }
