@@ -195,16 +195,26 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
             logMessage('Error creating GQL Client for Gamefeed', { id: feed._id, err });
             if (newErrorCount === 1) {
-                const feedDetails = { id: feed._id, game: feed.title, server: guild?.name, channel: channel?.name };
                 const oAuthErrorEmbed = new EmbedBuilder()
                 .setColor('DarkOrange')
                 .setTitle('Authorisation Error Updating Game Feed')
                 .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${(err as Error).message}. You can re-authorise your account below.`)
                 .addFields([
                     {
-                        name: 'Feed Details',
-                        value: `\`\`\`${JSON.stringify(feedDetails, null, 2)}\`\`\``
-                    }
+                        name: 'Feed ID',
+                        value: `#${feed._id}`,
+                        inline: true
+                    },
+                    {
+                        name: 'Game',
+                        value: feed.title,
+                        inline: true
+                    },
+                    {
+                        name: 'Channel',
+                        value: `<#${channel?.id}> (${channel?.name}) - ${guild?.name}`,
+                        inline: true
+                    },
                 ]);
 
                 const buttons = new ActionRowBuilder<ButtonBuilder>()
