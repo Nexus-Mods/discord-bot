@@ -325,7 +325,8 @@ export class AuthSite {
             // });
             logMessage('Revoke successful for user', user.name);
             // res.send('Revoke complete!');
-            res.send(200).render('revoked', { pageTitle: 'Link Removed' });
+            res.statusCode = 200;
+            res.render('revoked', { pageTitle: 'Link Removed' });
         }
         catch(err) {
             logMessage('Error removing account link', err, true);
