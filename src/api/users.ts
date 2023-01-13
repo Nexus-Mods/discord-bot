@@ -96,7 +96,7 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
     const discordUser: User = await client.users.fetch(userData.d_id);
     if (!discordUser) return Promise.reject('Unknown User');
     const mods: NexusLinkedMod[] = await getModsbyUser(userData.id);
-    const servers: NexusUserServerLink[] = userData.servers || await getLinksByUser(userData.id);
+    // const servers: NexusUserServerLink[] = userData.servers || await getLinksByUser(userData.id);
     const totalDownloads = (mods: NexusLinkedMod[]): number => {
         let downloads: number = mods.reduce((prev, cur) => prev = prev + cur.total_downloads, 0);
         return downloads;
@@ -119,16 +119,16 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
         embed.addFields({ name: `My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, value: `${modData.join("\n")}\n-----\n[**See all of ${userData.name}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${userData.id}?tab=user+files)`})
     }
     // Show guilds.
-    let guilds: string[] = servers.map((link: NexusUserServerLink) => {
-        const guild: Guild | undefined = client.guilds.cache.find(g => g.id === link.server_id)
-        return guild ? guild.name : "Unknown server: "+link.server_id;
-    });
-    if (guilds.length > 5) {
-        const total = guilds.length
-        guilds = guilds.splice(0,4);
-        guilds.push(`and ${total - 5} more...`);
-    } 
-    embed.addFields({ name: `Account connected in ${servers.length} server(s)`, value: guilds.join(", ") || "None"});
+    // let guilds: string[] = servers.map((link: NexusUserServerLink) => {
+    //     const guild: Guild | undefined = client.guilds.cache.find(g => g.id === link.server_id)
+    //     return guild ? guild.name : "Unknown server: "+link.server_id;
+    // });
+    // if (guilds.length > 5) {
+    //     const total = guilds.length
+    //     guilds = guilds.splice(0,4);
+    //     guilds.push(`and ${total - 5} more...`);
+    // } 
+    // embed.addFields({ name: `Account connected in ${servers.length} server(s)`, value: guilds.join(", ") || "None"});
 
     return embed;
 }

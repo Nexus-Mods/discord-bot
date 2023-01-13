@@ -85,7 +85,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             // check if we should return the result. If the found user isn't in the current server, reject the request.
             const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === foundUser.d_id;
-            const inGuild: boolean = !!foundServers.find(link => link.server_id === interaction.guild?.id);
+            const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
             if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client)], ephemeral: show });
             else {
                 logMessage('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
