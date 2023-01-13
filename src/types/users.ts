@@ -5,7 +5,7 @@ interface NexusUser {
     id: number;
     name: string;
     avatar_url?: string;
-    apikey: string;
+    apikey?: string;
     supporter: boolean;
     premium: boolean;
     modauthor?: boolean;

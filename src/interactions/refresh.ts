@@ -93,6 +93,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     // Update membership status.
     try {
         // Check the API key
+        if (!!userData.apikey) {
         const apiData: IValidateResponse = await validate(userData.apikey);
         if (userData.id !== apiData.user_id) newData.id = apiData.user_id;
         if (userData.name !== apiData.name) newData.name = apiData.name;
@@ -109,6 +110,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         }
         else {
             card.addFields({ name: 'User Info', value: `No changes required`});
+        }
         }
 
     }

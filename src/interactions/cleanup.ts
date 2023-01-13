@@ -45,7 +45,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         for (const user of users) {
             const apiKey = user.apikey;
             try {
-                await validate(apiKey);
+                if (!!apiKey) await validate(apiKey);
                 cleanedUsers.push(user);
             }
             catch(err) {
