@@ -27,7 +27,7 @@ async function action(client: Client, baseinteraction: CommandInteraction): Prom
         if (!user) return interaction.editReply('No matching linked accounts.');
         const linkedServers: NexusUserServerLink[] = await getLinksByUser(user.id).catch(() => []);
         const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
-        const inGuild: boolean = !!linkedServers.find(link => link.server_id === interaction.guild?.id);
+        const inGuild: boolean = !!interaction.guild // !!linkedServers.find(link => link.server_id === interaction.guild?.id);
         const isMe: boolean = interaction.user.id === user.d_id;
         if (isAdmin || isMe || inGuild) return interaction.editReply({ embeds: [await userEmbed(user, client)] });
             else {
