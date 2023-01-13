@@ -2,7 +2,7 @@ import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import Nexus, { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, Embed, Webhook } from 'discord.js';
+import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, Embed, Webhook, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
@@ -183,14 +183,48 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     }
 
     // Validate OAuth sesssion
-    let nexusGQL: NexusModsGQLClient;
+    let nexusGQL: NexusModsGQLClient | undefined = undefined;
     try {
         nexusGQL = await NexusModsGQLClient.create(userData);
     }
     catch(err) {
-        logMessage('Error creating GQL Client for Gamefeed', { id: feed._id, err });
-        return;
+        webHook?.destroy();
+        if ([400, 401].includes((err as any).code)) {
+            // Add an error entry
+            const newErrorCount: number = feed.error_count + 1;
+            await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
+            logMessage('Error creating GQL Client for Gamefeed', { id: feed._id, err });
+            if (newErrorCount === 1) {
+                const feedDetails = { id: feed._id, game: feed.title, server: guild?.name, channel: channel?.name };
+                const oAuthErrorEmbed = new EmbedBuilder()
+                .setColor('DarkOrange')
+                .setTitle('Authorisation Error Updating Game Feed')
+                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${(err as Error).message} (${(err as any).code}). You can re-authorise your account below.`)
+                .addFields([
+                    {
+                        name: 'Feed Details',
+                        value: `\`\`\`${JSON.stringify(feedDetails, null, 2)}\`\`\``
+                    }
+                ]);
+
+                const buttons = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                    .setLabel('Re-link accounts')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL('https://discordbot.nexusmods.com/linked-role')
+                );
+                
+                // Send to the user.
+                logMessage('Informing user of OAuth Error in GameFeed', { user: userData.name, discord: discordUser.tag, feed: feed._id });
+                await discordUser.send({ embeds: [oAuthErrorEmbed], components: [buttons] }).catch(() => undefined);
+                return;
+            }
+            else return;
+            
+        }
     }
+    if (!nexusGQL) return;
 
     // Get all the games if we need them.
     if (!allGames.length) allGames = await games(userData, true);
