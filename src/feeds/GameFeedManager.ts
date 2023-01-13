@@ -153,7 +153,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
     // Validate the API key
     try {
-        await validate(userData.apikey);
+        if (!!userData.apikey) await validate(userData.apikey);
     }
     catch(err) {
         webHook?.destroy();

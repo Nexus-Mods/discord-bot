@@ -58,7 +58,7 @@ class NexusModsGQLClient {
         // if (!user.jwt) throw new Error('Nexus Mods GQL Client requires a JWT token');
         try {
             if (client.authType === 'OAUTH') await client.getAccessToken(user);
-            logMessage('GQL Client created', { user: user.name, type: client.authType });
+            // logMessage('GQL Client created', { user: user.name, type: client.authType });
             return client;
         }
         catch(err) {
