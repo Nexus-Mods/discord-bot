@@ -65,7 +65,7 @@ class NexusModsGQLClient {
             if ([400, 401].includes((err as any)?.code)) {
                 // Unauthorised or bad request - probably means the OAuth tokens are invalid. 
                 // logMessage('Authorisation error creating GQL Client', { name: user.name, error: err }, true);
-                (err as Error).message = `Authorisation error creating GQL Client: ${(err as Error).message}`;
+                (err as Error).message = `Auth Error: ${(err as Error).message}`;
                 throw err;
             }
             throw new Error('Could not validate auth token. Please try reauthorising your account.');

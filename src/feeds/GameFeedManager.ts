@@ -199,7 +199,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 const oAuthErrorEmbed = new EmbedBuilder()
                 .setColor('DarkOrange')
                 .setTitle('Authorisation Error Updating Game Feed')
-                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${(err as Error).message} (${(err as any).code}). You can re-authorise your account below.`)
+                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${(err as Error).message}. You can re-authorise your account below.`)
                 .addFields([
                     {
                         name: 'Feed Details',
