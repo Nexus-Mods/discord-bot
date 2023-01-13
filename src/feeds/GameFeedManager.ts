@@ -182,6 +182,16 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         };
     }
 
+    // Validate OAuth sesssion
+    let nexusGQL: NexusModsGQLClient;
+    try {
+        nexusGQL = await NexusModsGQLClient.create(userData);
+    }
+    catch(err) {
+        logMessage('Error creating GQL Client for Gamefeed', { id: feed._id, err });
+        return;
+    }
+
     // Get all the games if we need them.
     if (!allGames.length) allGames = await games(userData, true);
 
@@ -209,7 +219,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         let rateLimited: boolean = false;
 
         // Using GQL for requests instead of doing it one at a time.
-        const nexusGQL = await NexusModsGQLClient.create(userData);
+        // const nexusGQL = await NexusModsGQLClient.create(userData);
         const modsToCheck = filteredMods.map(m => ({ gameDomain: feed.domain, modId: m.mod_id }));
         let modMeta: Partial<GQLTypes.FeedMod>[] = await nexusGQL.modInfo(modsToCheck);
 

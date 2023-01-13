@@ -61,6 +61,11 @@ class NexusModsGQLClient {
             return client;
         }
         catch(err) {
+            if ([400, 401].includes((err as any)?.code)) {
+                // Unauthorised or bad request
+                logMessage('Authorisation error creating GQL Client', { name: user.name, error: err }, true);
+                throw new Error('Authorisation failed when updating OAuth session.');
+            }
             throw new Error('Could not validate auth token. Please try reauthorising your account.');
         }
     }
@@ -81,6 +86,7 @@ class NexusModsGQLClient {
                 return newTokens;
             }
             catch(err) {
+                if ((err as any).code) throw err;
                 throw new Error('Unable to get OAuth tokens');
             }
         }
@@ -96,8 +102,14 @@ class NexusModsGQLClient {
         };
         // Update the tokens saved in the database (and in the globals)
         this.NexusModsUser = { ...this.NexusModsUser, ...newTokens };
-        // Save the new tokens to the database.
-        await updateUser(this.NexusModsUser.d_id, newTokens);
+        try {
+            // Save the new tokens to the database.
+            await updateUser(this.NexusModsUser.d_id, newTokens);
+        }
+        catch(err) {
+            logMessage('Could not save new user tokens', err, true);
+            throw err;
+        }
     }
 
     public async me(): Promise<NexusUser|undefined> {
