@@ -2,7 +2,7 @@ import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed } from '../api/bot-db';
 import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction } from "discord.js";
-import { logMessage } from "../api/util";
+import { logMessage, upgradeWarning } from "../api/util";
 
 
 const discordInteraction: DiscordInteraction = {
@@ -46,23 +46,23 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({ephemeral: show}).catch(err => { throw err });;
+    await interaction.deferReply({ephemeral: show}).catch(err => { throw err });
     // Check if they are already linked.
     let userData : NexusUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
     if (!userData) {
-        interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', ephemeral: true});
+        interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', embeds: [upgradeWarning()], ephemeral: true});
         return;
     }
 
     if (!nexus && !user) {
-        interaction.followUp({ content: 'You must provide a Discord user or Nexus Mods username.', ephemeral: true});
+        interaction.followUp({ content: 'You must provide a Discord user or Nexus Mods username.', embeds: [upgradeWarning()], ephemeral: true});
         return;
     }
 
     // If the bot has been pinged. 
     if (user && user === client.user) {
-        interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), client)], ephemeral: show })
+        interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), client), upgradeWarning(),], ephemeral: show })
             .catch(err => console.warn('Failed to send bot info for whois slash command', err));
         return;
     }
@@ -86,16 +86,16 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === foundUser.d_id;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client)], ephemeral: show });
+            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client), upgradeWarning()], ephemeral: show });
             else {
                 logMessage('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
-                interaction.followUp({ embeds: [ notAllowed(client) ], ephemeral: true });
+                interaction.followUp({ embeds: [ notAllowed(client), upgradeWarning() ], ephemeral: true });
             };
         }
                         
     }
     catch (err) {
-        interaction.followUp({ content: 'Error looking up users.', ephemeral: true});
+        interaction.followUp({ content: 'Error looking up users.', embeds: [upgradeWarning()], ephemeral: true});
         logMessage('Error looking up users from slash command', err, true);
         return;
     }
