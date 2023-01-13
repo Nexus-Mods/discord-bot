@@ -129,7 +129,9 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
         tokens.expires_at = Date.now() + (tokens.expires_in * 1000);
         return tokens;
       } else {
-        throw new Error(`Error refreshing Nexus Mods access token: [${response.status}] ${response.statusText}`);
+        const err: any = new Error(`Could not refresh Nexus Mods access token: [${response.status}] ${response.statusText}`);
+        err.code = response.status;
+        throw err;
       }
     }
     return tokens;

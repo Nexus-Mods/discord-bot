@@ -24,6 +24,14 @@ interface OAuthTokens {
     expires_at: number;
 }
 
+/**
+ * Returns a Nexus Mods GraphQL Client to be used with API v1 or v2. You must call create(). Using new NexusModsGQLClient will not update the user's tokens.
+ * 
+ * @remarks
+ * This class is primarily designed for Nexus Mods API v2.
+ * 
+ * @param user - A NexusUser retrieved from the database before initialising the client.
+ */
 class NexusModsGQLClient {
     public GQLClient : GraphQLClient;
     private NexusModsUser: NexusUser;
@@ -40,6 +48,11 @@ class NexusModsGQLClient {
         this.GQLClient.setHeaders(this.headers);
     }
 
+    /**
+     * Create a new client instance. 
+     * @param user - A NexusUser retrieved from the database before initialising the client. 
+     * @returns 
+     */
     static async create(user: NexusUser): Promise<NexusModsGQLClient> {
         const client = new NexusModsGQLClient(user);
         // if (!user.jwt) throw new Error('Nexus Mods GQL Client requires a JWT token');
