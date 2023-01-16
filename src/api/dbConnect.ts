@@ -16,7 +16,7 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
-async function queryPromise(query: string, values: any[]): Promise<any> {
+export async function queryPromise(query: string, values: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
         pool.connect((err: Error, client: PoolClient, release) => {
             if (err) {
