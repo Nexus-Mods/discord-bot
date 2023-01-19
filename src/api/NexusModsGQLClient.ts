@@ -35,17 +35,15 @@ interface OAuthTokens {
 class NexusModsGQLClient {
     public GQLClient : GraphQLClient;
     private NexusModsUser: NexusUser;
-    private headers: any;
+    // private headers: Record<string, string>;
     private authType: NexusModsAuthTypes = 'OAUTH';
     
     constructor(user: NexusUser) {
         this.GQLClient = new GraphQLClient(domain, graphOptions);
         this.NexusModsUser = user;
         this.authType = !!user.nexus_access ? 'OAUTH' : 'APIKEY';
-        this.headers = this.authType === 'APIKEY'  
-        ? { apikey: user.apikey }
-        : { Authorization: `Bearer ${user.nexus_access}` };
-        this.GQLClient.setHeaders(this.headers);
+        this.generateHeaders();
+        // this.GQLClient.setHeaders(this.headers);
     }
 
     /**
@@ -72,7 +70,24 @@ class NexusModsGQLClient {
         }
     }
 
-    private async getAccessToken(user: NexusUser): Promise<OAuthTokens> {
+    private generateHeaders(): Record<string, string> {
+        const baseHeader = { 
+            'Application-Name': 'Nexus Mods Discord Bot',
+            'Application-Version': process.env.npm_package_version || '0.0.0'
+        }
+
+        const newHeader: Record<string, string> = (this.authType === 'APIKEY')
+        ? { 'apikey': this.NexusModsUser.apikey || '' }
+        : { Authorization: `Bearer ${this.NexusModsUser.nexus_access}` };
+
+        this.GQLClient.setHeaders({...baseHeader, ...newHeader});
+
+        return {...baseHeader, ...newHeader};
+    }
+
+    private async getAccessToken(user?: NexusUser): Promise<OAuthTokens> {
+        if (!user) user = this.NexusModsUser;
+        
         // Check the OAuth Token is valid, so we can make requests.
         if (!!user.nexus_expires && !!user.nexus_refresh && !!user.nexus_access) {
             const tokens = {
@@ -174,6 +189,15 @@ class NexusModsGQLClient {
         // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
         const ids: { gameDomain: string, modId: number }[] = (!Array.isArray(rawIds)) ? [rawIds] : rawIds;
 
+        if (this.authType === 'OAUTH') {
+            try {
+                await this.getAccessToken();
+            }
+            catch(err) {
+                throw err;
+            }
+        }
+
         if (!ids.length) return [];
 
         const pages: { gameDomain: string, modId: number }[][] = [];
@@ -193,7 +217,7 @@ class NexusModsGQLClient {
                 results = [...results, ...pageData];
             }
             catch(err) {
-                logMessage('Error fetching mod data', {err, auth: this.authType, headers: this.headers}, true);
+                logMessage('Error fetching mod data', {err, auth: this.authType, headers: this.generateHeaders() }, true);
             }
         }
 
@@ -298,7 +322,7 @@ class NexusModsGQLClient {
         };
 
         try {
-            const res = await this.GQLClient.request(query, variables, this.headers);
+            const res = await this.GQLClient.request(query, variables, this.generateHeaders());
             return res.data?.myCollections;
         }
         catch(err) {
@@ -351,7 +375,7 @@ class NexusModsGQLClient {
         const variables = {};
 
         try {
-            const res = await this.GQLClient.request(query, variables, this.headers);
+            const res = await this.GQLClient.request(query, variables, this.generateHeaders());
             return res.data?.myCollections;
         }
         catch(err) {
@@ -404,7 +428,7 @@ class NexusModsGQLClient {
         }
 
         try {
-            const res: { collections: GQLTypes.CollectionPage } = await this.GQLClient.request(query, variables, this.headers);
+            const res: { collections: GQLTypes.CollectionPage } = await this.GQLClient.request(query, variables, this.generateHeaders());
             const collections = res.collections;
             collections.nextURL = websiteLink();
             return collections;
@@ -457,7 +481,7 @@ class NexusModsGQLClient {
     }
 
     try {
-        const result: { collection: Partial<GQLTypes.Collection> } = await this.GQLClient.request(query, variables, this.headers);
+        const result: { collection: Partial<GQLTypes.Collection> } = await this.GQLClient.request(query, variables, this.generateHeaders());
         return result.collection;
         
     }
@@ -499,7 +523,7 @@ class NexusModsGQLClient {
         }
 
         try {
-            const response = await this.GQLClient?.request(query, variables, this.headers);
+            const response = await this.GQLClient?.request(query, variables, this.generateHeaders());
             // logMessage('GQL Response', response);
             return response?.user ?? response?.userByName;
         }
