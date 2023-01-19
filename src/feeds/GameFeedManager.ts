@@ -1,8 +1,8 @@
 import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
-import Nexus, { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, Embed, Webhook, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
+import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { NexusUser } from '../types/users';
 import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
