@@ -12,7 +12,7 @@ export const unexpectedErrorEmbed = (err: any, context: any): EmbedBuilder => {
     .setDescription('The bot encountered an unexpected error with this command. You may be able to retry after a few minutes. If this issue persists, please report it including the information below.')
     .addFields([
         { 
-            name: 'Error Details', value: `\`\`\`${(err as Error) || JSON.stringify(err, null, 2)}\`\`\``.substring(0,1010)
+            name: 'Error Details', value: `\`\`\`${err.message || err}\`\`\``.substring(0,1010)
         },
         {
             name: 'Error Context', value: `\`\`\`json\n${JSON.stringify(context, null, 2).substring(0,1010)}\n\`\`\``
