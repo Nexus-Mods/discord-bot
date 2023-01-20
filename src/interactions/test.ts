@@ -27,7 +27,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     const initial = { access_token: user.nexus_access, refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
     const initialString = '```'+JSON.stringify(initial, null, 2)+'```';
     const GQL = await NexusModsGQLClient.create(user);
-    const updated = GQL.getAccessToken();
+    const updated = await GQL.getAccessToken();
     const updatedString = '```'+JSON.stringify(updated, null, 2)+'```';
     try {
         return interaction.editReply(`${initialString}\n\n${updatedString}`);
