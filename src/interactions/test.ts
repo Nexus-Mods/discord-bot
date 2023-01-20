@@ -31,7 +31,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     user.nexus_expires = '0';
     const updated = await GQL.getAccessToken(user);
     updated.access_token = updated.access_token.slice(-10);
-    const updatedString = '```'+JSON.stringify(updated, null, 2)+'```';
+    const updatedString = '```'+JSON.stringify({access_token: updated.access_token, refresh_token: updated.refresh_token, expires_At: updated.expires_at}, null, 2)+'```';
     logMessage('Same tokens?', initialString == updatedString);
     try {
         return interaction.editReply(`${initialString}\n\n${updatedString}`);
