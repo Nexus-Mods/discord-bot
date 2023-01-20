@@ -1,5 +1,4 @@
 import { gql, GraphQLClient, ClientError } from 'graphql-request';
-import { verify } from 'jsonwebtoken';
 import { getAccessToken } from '../server/NexusModsOAuth';
 import { IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
@@ -21,7 +20,7 @@ type UpdatedModsPeriod = '1d' | '1w' | '1m';
 interface OAuthTokens {
     access_token: string;
     refresh_token: string;
-    expires_at: number;
+    expires_at: number | string;
 }
 
 /**
@@ -85,7 +84,7 @@ class NexusModsGQLClient {
         return {...baseHeader, ...newHeader};
     }
 
-    private async getAccessToken(user?: NexusUser): Promise<OAuthTokens> {
+    public async getAccessToken(user?: NexusUser): Promise<OAuthTokens> {
         if (!user) user = this.NexusModsUser;
         
         // Check the OAuth Token is valid, so we can make requests.
@@ -110,7 +109,7 @@ class NexusModsGQLClient {
         else throw new Error('Token invalid or missing');
     }
 
-    public async updateTokens(tokens: OAuthTokens): Promise<void> {
+    private async updateTokens(tokens: OAuthTokens): Promise<void> {
 
         const newTokens = {
             nexus_access: tokens.access_token,
