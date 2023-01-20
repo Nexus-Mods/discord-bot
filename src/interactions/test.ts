@@ -28,7 +28,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     const initial = { access_token: user.nexus_access?.slice(-10), refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
     const initialString = '```'+JSON.stringify(initial, null, 2)+'```';
     const GQL = await NexusModsGQLClient.create(user);
-    user.nexus_refresh = '0';
+    user.nexus_expires = '0';
     const updated = await GQL.getAccessToken(user);
     updated.access_token = updated.access_token.slice(-10);
     const updatedString = '```'+JSON.stringify(updated, null, 2)+'```';
