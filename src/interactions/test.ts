@@ -25,11 +25,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     await interaction.deferReply({ ephemeral: true });
     const discordId = interaction.user.id;
     const user = await getUserByDiscordId(discordId);
-    const initial = { access_token: user.nexus_access?.substring(-10), refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
+    const initial = { access_token: user.nexus_access?.slice(-10), refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
     const initialString = '```'+JSON.stringify(initial, null, 2)+'```';
     const GQL = await NexusModsGQLClient.create(user);
     const updated = await GQL.getAccessToken();
-    updated.access_token = updated.access_token.substring(-10);
+    updated.access_token = updated.access_token.slice(-10);
     const updatedString = '```'+JSON.stringify(updated, null, 2)+'```';
     logMessage('Same tokens?', initialString == updatedString);
     try {
