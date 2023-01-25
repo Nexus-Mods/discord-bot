@@ -1,0 +1,1 @@
+export const v2API: string = 'https://api.nexusmods.com/v2/graphql';

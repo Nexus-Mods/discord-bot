@@ -20,7 +20,7 @@ type UpdatedModsPeriod = '1d' | '1w' | '1m';
 interface OAuthTokens {
     access_token: string;
     refresh_token: string;
-    expires_at: number | string;
+    expires_at: number;
 }
 
 /**

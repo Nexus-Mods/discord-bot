@@ -1,12 +1,12 @@
-import { gql, GraphQLClient, ClientError } from 'graphql-request';
+import { GraphQLClient } from 'graphql-request';
 import * as NexusModsOAuth from '../server/NexusModsOAuth';
-import { IValidateKeyResponse } from '@nexusmods/nexus-api';
+import { IUpdateEntry } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
-import * as GQLTypes from '../types/GQLTypes';
 import { logMessage } from './util';
-import { games, IValidateResponse, modChangelogs, modFiles as files, updatedMods, validate } from './nexus-discord';
+import { modFiles as files, validate } from './nexus-discord';
 import { updateUser } from './users';
 import { Client, User } from 'discord.js';
+import { other, v1, v2 } from './queries/queries';
 
 const API_V2: string = 'https://api.nexusmods.com/v2/graphql';
 
@@ -28,6 +28,17 @@ interface NexusUserData {
 type NexusModsAuthTypes = 'OAUTH' | 'APIKEY';
 type NexusMembershipRoles = 'member' | 'supporter' | 'premium' | 'lifetimepremium' | 'modauthor';
 
+interface IRequestHeadersOAuth extends Record<string, string> {
+    'Application-Name': string;
+    'Application-Version': string;
+    'Authorization': string;
+}
+
+interface IRequestHeadersAPIkey extends Record<string, string> {
+    'Application-Name': string;
+    'Application-Version': string;
+    'apikey': string;
+}
 
 
 export class DiscordBotUser {
@@ -39,7 +50,7 @@ export class DiscordBotUser {
     public readonly NexusModsId: Readonly<number>;
     public NexusModsUsername: string;
     public NexusModsAvatar: string | undefined;
-    private NexusModsRoles: NexusMembershipRoles[] = [];
+    private NexusModsRoles: Set<NexusMembershipRoles> = new Set();
     public readonly DiscordId: Readonly<string>;
 
     constructor(user: NexusUser) {
@@ -47,10 +58,10 @@ export class DiscordBotUser {
         this.DiscordId = user.d_id;
         this.NexusModsUsername = user.name;
         this.NexusModsAvatar = user.avatar_url;
-        const NexusRoles: NexusMembershipRoles[]= ['member'];
-        if (user.premium) NexusRoles.push('premium');
-        if (user.supporter) NexusRoles.push('supporter');
-        if (user.modauthor) NexusRoles.push('modauthor');
+        const NexusRoles: Set<NexusMembershipRoles> = new Set<NexusMembershipRoles>().add('member');
+        if (user.premium) NexusRoles.add('premium');
+        if (user.supporter) NexusRoles.add('supporter');
+        if (user.modauthor) NexusRoles.add('modauthor');
         this.NexusModsRoles = NexusRoles;
 
         // Pull out tokens if this is an OAUTH session.
@@ -77,39 +88,21 @@ export class DiscordBotUser {
         else throw new Error('Nexus Mods User does not have any auth options set');
     }
 
-    private UpdateUserData(data: Partial<NexusUser>) {
-        if (data.name) this.NexusModsUsername = data.name;
-        if (data.avatar_url) this.NexusModsAvatar = data.avatar_url;
-        const NexusRoles: NexusMembershipRoles[]= ['member'];
-        if (data.premium) NexusRoles.push('premium');
-        if (data.supporter) NexusRoles.push('supporter');
-        if (data.modauthor) NexusRoles.push('modauthor');
-        this.NexusModsRoles = NexusRoles;
-
-        // Pull out tokens if this is an OAUTH session.
-        if (!!data.nexus_access && !!data.nexus_refresh && data.nexus_expires) {
-            const NexusOAuth: OAuthTokens = {
-                access_token: data.nexus_access,
-                refresh_token: data.nexus_refresh,
-                expires_at: (typeof data.nexus_expires === 'string') ? parseInt(data.nexus_expires) : data.nexus_expires,
-            };
-            const DiscordOAuth = {
-                access_token: data.discord_access || '',
-                refresh_token: data.discord_refresh || '',
-                expires_at: (typeof data.discord_expires === 'string') ? parseInt(data.discord_expires!) : (data.discord_expires || 0),
-            }
-            this.NexusModsAuthType = 'OAUTH';
-            this.NexusModsOAuthTokens = NexusOAuth;
-            this.DiscordOAuthTokens = DiscordOAuth;
-        }
-        // Pull out API key if this is an APIKey session.
-        else if (!!data.apikey) {
-            this.NexusModsAPIKey = data.apikey;
-            this.NexusModsAuthType = 'APIKEY';
-        }
-        else throw new Error('Nexus Mods User does not have any auth options set');
+    private headers = (): (IRequestHeadersOAuth | IRequestHeadersAPIkey) => {
+        if (!this.NexusModsAPIKey && !this.NexusModsOAuthTokens) 
+            throw new Error('Invalid auth - headers could not be generated.');
         
-    }
+        let baseheader: Record<string, string> = {
+            'Application-Name': 'Nexus Mods Discord Bot',
+            'Application-Version': process.env.npm_package_version || '0.0.0',
+        }
+        
+        if (!!this.NexusModsOAuthTokens?.access_token) baseheader['Authorization'] = `Bearer ${this.NexusModsOAuthTokens.access_token}`;
+        else baseheader['apikey'] = this.NexusModsAPIKey!;
+    
+        return baseheader as IRequestHeadersAPIkey || baseheader as IRequestHeadersOAuth;
+        
+    };
 
     public NexusMods = {
         Auth: async () => this.authoriseNexusMods(),
@@ -117,41 +110,71 @@ export class DiscordBotUser {
         Name: (): string => this.NexusModsUsername,
         User: async () => undefined,
         Avatar: (): string | undefined => this.NexusModsAvatar,
-        IsPremium: (): boolean => this.NexusModsRoles.includes('premium'),
-        IsSupporter: (): boolean => this.NexusModsRoles.includes('supporter'),
-        IsAuthor: (): boolean => this.NexusModsRoles.includes('modauthor'),
+        IsPremium: (): boolean => this.NexusModsRoles.has('premium'),
+        IsSupporter: (): boolean => this.NexusModsRoles.has('supporter'),
+        IsAuthor: (): boolean => this.NexusModsRoles.has('modauthor'),
         API: {
             v1: {
-                QuickSearch: async () => [],
-                UpdatedMods: async () => [],
-                Mod: async () => [],
-                ModFiles: async () => [],
-                ModChangelogs: async () => [],
+                Game: async (domain: string) => v1.game(this.headers(), domain),
+                Games: async () => v1.games(this.headers()),
+                ModQuickSearch: 
+                    async (query: string, adult: boolean, gameId?: number) => 
+                        v1.quicksearch(query, adult, gameId),
+                UpdatedMods: 
+                    async (domain: string, period?: string): Promise<IUpdateEntry[]> => 
+                        v1.updatedMods(this.headers(), domain, period),
+                Mod: 
+                    async (domain: string, id: number) => 
+                        v1.modInfo(this.headers(), domain, id),
+                ModFiles: 
+                    async (domain: string, id: number) => 
+                        v1.modFiles(this.headers(), domain, id),
+                ModChangelogs: 
+                    async (domain: string, id: number) => 
+                        v1.modChangelogs(this.headers(), domain, id),
             },
             v2: {
-                IsModAuthor: async (): Promise<boolean> => false,
-                Games: async () => [],
-                Mod: async () => [],
-                Mods: async () => [],
+                IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
+                Games: async () => v2.games(this.headers()),
+                Mod: async (mod: { gameDomain: string, modId: number }) => v2.mods(this.headers(), mod),
+                Mods: async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => v2.mods(this.headers(), mods),
                 MyCollections: async () => [],
                 Collections: async () => [],
                 Collection: async () => [],
-                FindUser: async () => [] 
-            }         
+                CollectionsByUser: async (userId: number) => [],
+                FindUser: async () => []
+            },
+            Other: {
+                // Games pulled from the static Games.json file.
+                Games: async () => other.Games(this.headers()),
+            }     
         }
     }
 
     private async authoriseNexusMods(): Promise<void> {
         if (this.NexusModsOAuthTokens) {
-            const userData = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens);
-            if (userData.name && userData.name !== this.NexusModsUsername)
-            return;
+            const { access_token, refresh_token, expires_at } = await NexusModsOAuth.getAccessToken(this.NexusModsOAuthTokens);
+            this.NexusModsOAuthTokens = { access_token, refresh_token, expires_at: expires_at as number };
+            // const userData: NexusUserData = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens);
+            // ToDo: Need to update the tokens in the class and DB after this!
+            return this.saveTokens({ access_token, refresh_token, expires_at: expires_at as number });
         }
         else if (this.NexusModsAPIKey) {
-            const validatedKey = await validate(this.NexusModsAPIKey);
+            await validate(this.NexusModsAPIKey);
             return;
         }
         else throw new Error('No API key or OAuth tokens');
+    }
+
+    private async saveTokens(newTokens: OAuthTokens): Promise<any> {
+        const { access_token, refresh_token, expires_at } = newTokens;
+        const newData: Partial<NexusUser> = { 
+            nexus_access: access_token, 
+            nexus_expires: expires_at, 
+            nexus_refresh: refresh_token 
+        };
+
+        return updateUser(this.DiscordId, newData);
     }
 
     public Discord = {
@@ -160,3 +183,6 @@ export class DiscordBotUser {
         User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId)
     }
 }
+
+const db = new DiscordBotUser({ d_id: '', id: 234, name: '', supporter: false, premium: false });
+db.NexusMods.API.Other.Games()

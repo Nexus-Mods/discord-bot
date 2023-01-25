@@ -13,10 +13,10 @@ interface NexusUser {
     servers?: NexusUserServerLink[];
     nexus_access?: string;
     nexus_refresh?: string;
-    nexus_expires?: string | number;
+    nexus_expires?: number;
     discord_access?: string;
     discord_refresh?: string;
-    discord_expires?: string;
+    discord_expires?: number;
 }
 
 interface NexusUserServerLink {

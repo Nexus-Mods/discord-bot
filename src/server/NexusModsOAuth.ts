@@ -10,7 +10,7 @@ interface OAuthURL {
 interface OAuthTokens {
     access_token: string;
     refresh_token: string;
-    expires_at: number | string;
+    expires_at: number;
     token_type?: string;
     expires_in?: number;
     scope?: string;
@@ -106,9 +106,10 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
 
     // logMessage('CHECKING NEXUS MODS ACCESS TOKENS', { expires: new Date(tokens.expires_at), timestamp: tokens.expires_at});
 
-    // Tokens are valid for 6 hours from the point they are issued. 
-    if (Date.now() > parseInt(tokens.expires_at as string)) {
-      logMessage('RENEWING NEXUS MODS ACCESS TOKENS', { expires: new Date(parseInt(`${tokens.expires_at}`)), timestamp: tokens.expires_at, timestampType: typeof tokens.expires_at });
+    // Tokens are valid for 6 hours from the point they are issued.
+    const expiryTime = typeof tokens.expires_at === 'string' ? parseInt(tokens.expires_at as string) : tokens.expires_at; 
+    if (Date.now() > expiryTime) {
+      logMessage('RENEWING NEXUS MODS ACCESS TOKENS', { expiryTime, timestamp: tokens.expires_at, timestampType: typeof tokens.expires_at });
       const url = 'https://users.nexusmods.com/oauth/token';
       const body = new URLSearchParams({
         client_id: NEXUS_OAUTH_ID,
