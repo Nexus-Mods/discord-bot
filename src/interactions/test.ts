@@ -1,6 +1,5 @@
-import { ChatInputCommandInteraction, CommandInteraction, Interaction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-// import { logMessage } from "../api/util";
 import { getUserByDiscordId } from '../api/bot-db';
 import { NexusModsGQLClient } from "../api/NexusModsGQLClient";
 import { logMessage } from "../api/util";
