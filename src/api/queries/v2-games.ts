@@ -2,13 +2,13 @@ import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
 import { v2API } from './v2';
 
-export interface IResult {
+interface IResult {
     data: {
         games: IGame[];
     }
 }
 
-interface IGame {
+export interface IGame {
     id: number;
     name: string;
     approvedAt: Date | null;

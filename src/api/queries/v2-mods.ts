@@ -1,3 +1,4 @@
+import { ModStatus } from "@nexusmods/nexus-api";
 import { request, gql, ClientError } from "graphql-request";
 import { logMessage } from "../util";
 import { v2API } from './v2';
@@ -17,7 +18,7 @@ export interface IMod {
     createdAt: Date;
     updatedAt: Date;
     summary: string;
-    status: string;
+    status: ModStatus;
     author: string;
     uploader: {
         name: string;

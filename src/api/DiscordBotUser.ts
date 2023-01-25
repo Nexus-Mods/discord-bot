@@ -147,6 +147,7 @@ export class DiscordBotUser {
             Other: {
                 // Games pulled from the static Games.json file.
                 Games: async () => other.Games(this.headers()),
+                ModDownloads: async () => [],
             }     
         }
     }
@@ -184,5 +185,5 @@ export class DiscordBotUser {
     }
 }
 
-const db = new DiscordBotUser({ d_id: '', id: 234, name: '', supporter: false, premium: false });
-db.NexusMods.API.Other.Games()
+// const db = new DiscordBotUser({ d_id: '', id: 234, name: '', supporter: false, premium: false });
+// db.NexusMods.API.Other.Games()
