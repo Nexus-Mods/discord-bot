@@ -1,13 +1,12 @@
 import * as NexusModsOAuth from '../server/NexusModsOAuth';
-import { IUpdateEntry } from '@nexusmods/nexus-api';
+import * as DiscordOAuth from '../server/DiscordOAuth';
+import { IUpdateEntry, IValidateKeyResponse } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
 import { logMessage } from './util';
 import { updateUser } from './users';
 import { Client, User } from 'discord.js';
 import { other, v1, v2 } from './queries/queries';
 import * as GQLTypes from '../types/GQLTypes';
-
-const API_V2: string = 'https://api.nexusmods.com/v2/graphql';
 
 interface OAuthTokens {
     access_token: string;
@@ -105,6 +104,7 @@ export class DiscordBotUser {
     public NexusMods = {
         Auth: async () => this.authoriseNexusMods(),
         ID: (): number => this.NexusModsId,
+        Refresh: () => this.refreshUserData(),
         Name: (): string => this.NexusModsUsername,
         User: async () => undefined,
         Avatar: (): string | undefined => this.NexusModsAvatar,
@@ -155,6 +155,153 @@ export class DiscordBotUser {
                 // Mod stats from the static CSV files.
                 ModDownloads: async (gameId: number, modId?: number) => other.ModDownloads(gameId, modId),
             }     
+        }
+    }
+
+    private async refreshUserData(): Promise<void> {
+        if (this.NexusModsAPIKey && this.NexusModsAuthType === 'APIKEY') {
+            try {
+                const data = await this.NexusMods.API.v1.Validate();
+                await this.updateUserDataFromAPIKey(data);
+                
+            }
+            catch(err) {
+                (err as Error).message = `Failed to refresh user data - ${(err as Error).message}`
+                throw err;
+            }
+        }
+        else if (this.NexusModsOAuthTokens) {
+            try {
+                const data = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens)
+                await this.updateUserDataFromOAuth(data);
+            }
+            catch(err) {
+                (err as Error).message = `Failed to refresh user data - ${(err as Error).message}`
+                throw err;
+            }
+        }
+
+        // Update Discord Metadata
+        try {
+            if (this.DiscordOAuthTokens) {
+                const meta: Record<string, ('0' | '1')> = { 
+                    member: '1',
+                    premium: this.NexusModsRoles.has('premium') ? '1' :'0', 
+                    supporter: (!this.NexusModsRoles.has('premium') && this.NexusModsRoles.has('supporter')) ? '1' : '0', 
+                    modauthor: this.NexusModsRoles.has('modauthor') ? '1' : '0'
+                };
+
+                await DiscordOAuth.pushMetadata(
+                this.DiscordId, 
+                this.NexusModsUsername, 
+                this.DiscordOAuthTokens, 
+                meta
+                );
+            }
+
+        }
+        catch(err) {
+            logMessage('Failed to update Discord role metadata');
+        }
+    }
+
+    private async updateUserDataFromAPIKey(validatedKey: IValidateKeyResponse) {
+        const { name, is_premium, is_supporter } = validatedKey;
+        let newData: Partial<NexusUser> = {};
+        // Update saved username
+        if (name != this.NexusModsUsername) {
+            newData.name = name;
+            this.NexusModsUsername = name;
+        }
+        // Update saved Premium status
+        if (is_premium && !this.NexusModsRoles.has('premium')) {
+            newData.premium = is_premium;
+            this.NexusModsRoles.add('premium');
+        }
+        else if (!is_premium && this.NexusModsRoles.has('premium')) {
+            newData.premium = is_premium;
+            this.NexusModsRoles.delete('premium');
+        }
+        // Update saved supporter status
+        if ((!is_premium && is_supporter) && !this.NexusModsRoles.has('supporter')) {
+            newData.supporter = is_supporter;
+            this.NexusModsRoles.add('supporter');
+        }
+        try {
+            const modAuthor = await this.NexusMods.API.v2.IsModAuthor(this.NexusModsId);
+            if (modAuthor && !this.NexusModsRoles.has('modauthor')) {
+                newData.modauthor = modAuthor;
+                this.NexusModsRoles.add('modauthor');
+            }
+            else if (!modAuthor && !this.NexusModsRoles.has('modauthor')) {
+                newData.modauthor = modAuthor;
+                this.NexusModsRoles.delete('modauthor');
+            }
+
+        }
+        catch(err) {
+            logMessage('Could not check for mod author status', err);
+        }
+
+        try {
+            if (Object.keys(newData).length) await updateUser(this.DiscordId, newData);
+        }
+        catch(err) {
+            throw new Error('Failed to save user data to database.');
+        }
+    }
+
+    private async updateUserDataFromOAuth(userData: NexusUserData) {
+        const { name, avatar, membership_roles } = userData;
+        let newData: Partial<NexusUser> = {};
+        if (name != this.NexusModsUsername) {
+            this.NexusModsUsername = name;
+            newData.name = name;
+        }
+
+        if (avatar != this.NexusModsAvatar) {
+            this.NexusModsAvatar = avatar;
+            newData.avatar_url = avatar;
+        }
+
+        if (membership_roles.includes('supporter') && !this.NexusModsRoles.has('supporter')) {
+            this.NexusModsRoles.add('supporter');
+            newData.supporter = true;
+        }
+
+        if (membership_roles.includes('premium') && !this.NexusModsRoles.has('premium')) {
+            this.NexusModsRoles.add('premium');
+            this.NexusModsRoles.delete('supporter');
+            newData.premium = true;
+            newData.supporter = false;
+        }
+        else if (!membership_roles.includes('premium') && this.NexusModsRoles.has('premium')) {
+            this.NexusModsRoles.delete('premium');
+            newData.premium = false;
+        }
+
+        try {
+            const modAuthor = await this.NexusMods.API.v2.IsModAuthor(this.NexusModsId);
+            if (modAuthor && !this.NexusModsRoles.has('modauthor')) {
+                newData.modauthor = modAuthor;
+                this.NexusModsRoles.add('modauthor');
+            }
+            else if (!modAuthor && !this.NexusModsRoles.has('modauthor')) {
+                newData.modauthor = modAuthor;
+                this.NexusModsRoles.delete('modauthor');
+            }
+
+        }
+        catch(err) {
+            logMessage('Could not check for mod author status', err);
+        }
+
+
+        try {
+            if (Object.keys(newData).length) await updateUser(this.DiscordId, newData);
+        }
+        catch(err) {
+            throw new Error('Failed to save user data to database.');
         }
     }
 
