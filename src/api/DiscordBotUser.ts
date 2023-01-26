@@ -7,6 +7,7 @@ import { modFiles as files, validate } from './nexus-discord';
 import { updateUser } from './users';
 import { Client, User } from 'discord.js';
 import { other, v1, v2 } from './queries/queries';
+import * as GQLTypes from '../types/GQLTypes';
 
 const API_V2: string = 'https://api.nexusmods.com/v2/graphql';
 
@@ -137,17 +138,23 @@ export class DiscordBotUser {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
                 Games: async () => v2.games(this.headers()),
                 Mod: async (mod: { gameDomain: string, modId: number }) => v2.mods(this.headers(), mod),
-                Mods: async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => v2.mods(this.headers(), mods),
-                MyCollections: async () => [],
-                Collections: async () => [],
-                Collection: async () => [],
-                CollectionsByUser: async (userId: number) => [],
-                FindUser: async () => []
+                Mods: async () => { throw new Error('Not Implemented') },
+                ModsByModId: 
+                    async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
+                        v2.mods(this.headers(), mods),
+                MyCollections: async () => v2.myCollections(this.headers()),
+                Collections: 
+                    async (filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean) => 
+                        v2.collections(this.headers(), filters, sort, adultContent),
+                Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), slug, domain, adult),
+                CollectionsByUser: async (userId: number) => v2.collectionsByUser(this.headers(), userId),
+                FindUser: async (query: string | number) => v2.findUser(this.headers(), query)
             },
             Other: {
                 // Games pulled from the static Games.json file.
                 Games: async () => other.Games(this.headers()),
-                ModDownloads: async () => [],
+                // Mod stats from the static CSV files.
+                ModDownloads: async (domain: string, modId?: number) => { throw new Error('Not Implemented') },
             }     
         }
     }
