@@ -84,8 +84,6 @@ export async function mods(headers: Record<string,string>, mods: IModRequest | I
         length += 50;
     }
 
-    logMessage('Mod pages to check', pages);
-
     let results: any[] = [];
 
     for (const page of pages) {
@@ -107,7 +105,6 @@ async function modsQuery(headers: Record<string,string>, mods: IModRequest[], of
 
     try {
         const result: IResult = await request(v2API, query, { mods, offset, count }, headers);
-        logMessage('Mods query', { result, mods });
         return result.legacyModsByDomain.nodes;
     }
     catch(err) {
