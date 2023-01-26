@@ -17,6 +17,7 @@ interface BotServerChange {
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
+    .setDefaultMemberPermissions('ManageGuild')
     .setName('settings')
     .setDescription('Adjust settings for this bot in your server.')
     .addSubcommand(sc => 
@@ -116,9 +117,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     if (!guild) throw new Error('This interaction only works in a valid server');
 
     // Check we're dealing with a server admin.
-    if (!interaction.memberPermissions?.toArray().includes('Administrator') 
+    if (!interaction.memberPermissions?.toArray().includes('ManageGuild') 
     && !client.config.ownerID?.includes(discordId)) {
-        return interaction.editReply('Server settings are only accessible by administrators');
+        return interaction.editReply('Server settings are only accessible by Guild managers');
     }
 
     // Get user and guild data

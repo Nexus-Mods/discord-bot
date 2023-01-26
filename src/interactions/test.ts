@@ -49,7 +49,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const v2games = await botuser.NexusMods.API.v2.Games();
         logMessage('V2 Games', v2games.length);
         const v2mod = await botuser.NexusMods.API.v2.Mod({ gameDomain: 'skyrim', modId: 3863 });
-        logMessage('V2 Mod', v2mod[0].name);
+        logMessage('V2 Mod', v2mod);
         const v2modidsearch = await botuser.NexusMods.API.v2.ModsByModId([{ gameDomain: 'skyrim', modId: 3863 }]);
         logMessage('V2 Mod ID search', v2modidsearch.length);
         const v2mycollections = await botuser.NexusMods.API.v2.MyCollections();
