@@ -4,10 +4,10 @@ import { v2API, ICollection } from './v2';
 
 interface IResult {
     data: {
-        myCollections: {
-            nodes: ICollection[];
-            nodesCount: number;
-        };
+      myCollections: {
+          nodes: ICollection[];
+          nodesCount: number;
+      };
     }
 }
 
@@ -58,10 +58,11 @@ query MyCollections {
 export async function myCollections(headers: Record<string,string>): Promise<ICollection[]> {
     try {
         const result: IResult = await request(v2API, query, {}, headers);
+        logMessage('MyCollections result', result);
         return result.data.myCollections.nodes;
     }
     catch(err) {
-        logMessage('Error in mycollections v2 request', err, true);
+        logMessage('Error in mycollections v2 request', {err}, true);
         return [];
     }
 }
