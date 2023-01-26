@@ -4,11 +4,9 @@ import { logMessage } from "../util";
 import { v2API } from './v2';
 
 export interface IResult {
-    data: {
-        legacyModsByDomain: {
-            nodes: IMod[];
-        };
-    }
+    legacyModsByDomain: {
+        nodes: IMod[];
+    };
 }
 
 export interface IMod {
@@ -107,7 +105,7 @@ async function modsQuery(headers: Record<string,string>, mods: IModRequest[], of
 
     try {
         const result: IResult = await request(v2API, query, { mods, offset, count }, headers);
-        return result.data.legacyModsByDomain.nodes;
+        return result.legacyModsByDomain.nodes;
     }
     catch(err) {
         if (err as ClientError) {

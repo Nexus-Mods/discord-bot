@@ -3,11 +3,9 @@ import { logMessage } from "../util";
 import { v2API } from './v2';
 
 export interface IResult {
-    data: {
-        user: {
-            name: string;
-            recognizedAuthor: boolean;
-        }
+    user: {
+        name: string;
+        recognizedAuthor: boolean;
     }
 }
 
@@ -25,7 +23,7 @@ export async function isModAuthor(headers: Record<string,string>, id: number): P
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        return result.data?.user?.recognizedAuthor;
+        return result.user?.recognizedAuthor;
     }
     catch(err) {
         logMessage('Error in isModAuthor v2 request', err, true);
