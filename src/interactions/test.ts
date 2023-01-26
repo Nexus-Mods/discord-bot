@@ -25,7 +25,6 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     const discordId = interaction.user.id;
     const user = await getUserByDiscordId(discordId);
     const botuser = new DiscordBotUser(user);
-    logMessage('Discord user', botuser);
     try {
         await botuser.NexusMods.Auth();
         logMessage('Nexus Mods Auth verfied.');

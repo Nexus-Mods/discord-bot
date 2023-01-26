@@ -3,10 +3,8 @@ import { logMessage } from "../util";
 import { v2API } from './v2';
 
 export interface IResult {
-    data: {
-        user?: IUser;
-        userByName?: IUser;
-    };
+    user?: IUser;
+    userByName?: IUser;
 }
 
 export interface IUser {
@@ -55,7 +53,7 @@ export async function findUser(headers: Record<string,string>, idOrName: number 
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        return result.data.user || result.data.userByName;
+        return result.user || result.userByName;
     }
     catch(err) {
         logMessage('Error in findUser v2 request', err, true);

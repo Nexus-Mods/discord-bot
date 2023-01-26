@@ -3,9 +3,7 @@ import { logMessage } from "../util";
 import { v2API } from './v2';
 
 interface IResult {
-    data: {
-        games: IGame[];
-    }
+    games: IGame[];
 }
 
 export interface IGame {
@@ -32,7 +30,7 @@ query Games {
 export async function games(headers: Record<string,string>): Promise<IGame[]> {
     try {
         const result: IResult = await request(v2API, query, {}, headers);
-        return result.data.games;
+        return result.games;
     }
     catch(err) {
         logMessage('Error in games v2 request', err, true);

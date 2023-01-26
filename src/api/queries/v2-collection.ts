@@ -3,9 +3,7 @@ import { logMessage } from "../util";
 import { v2API, ICollection } from './v2';
 
 interface IResult {
-    data: {
-        collection: ICollection;
-    }
+    collection: ICollection;
 }
 
 const query = gql`
@@ -46,11 +44,11 @@ query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
 `;
 
 export async function collection(headers: Record<string,string>, slug: string, domain: string, adult: boolean): Promise<ICollection | undefined> {
-    const vars = { slug, adult, domain };
+    const vars = { slug, adult: adult ?? true, domain };
     
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        return result.data.collection;
+        return result.collection;
     }
     catch(err) {
         logMessage('Error in collection v2 request', err, true);

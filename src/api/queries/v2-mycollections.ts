@@ -57,7 +57,6 @@ query MyCollections {
 export async function myCollections(headers: Record<string,string>): Promise<ICollection[]> {
     try {
         const result: IResult = await request(v2API, query, {}, headers);
-        logMessage('MyCollections result', result);
         return result.myCollections.nodes;
     }
     catch(err) {

@@ -4,9 +4,7 @@ import { v2API, ICollectionSearchResult } from './v2';
 import * as GQLTypes from '../../types/GQLTypes';
 
 interface IResult {
-    data: {
-        collections: ICollectionSearchResult;
-    }
+    collections: ICollectionSearchResult;
 }
 
 const query = gql`
@@ -60,7 +58,7 @@ export async function collectionsByUser(headers: Record<string,string>, id: numb
     
     try {
         const result: IResult = await request(v2API, query, variables, headers);
-        return result.data.collections;
+        return result.collections;
     }
     catch(err) {
         logMessage('Error in collections v2 request', err, true);

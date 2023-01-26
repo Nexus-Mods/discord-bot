@@ -4,10 +4,9 @@ import { v2API, ICollectionSearchResult } from './v2';
 import * as GQLTypes from '../../types/GQLTypes';
 
 interface IResult {
-    data: {
-        collections: ICollectionSearchResult;
-    }
+  collections: ICollectionSearchResult;
 }
+
 const query = gql`
 query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean, $count: Int, $sortBy: String) {
     collections(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sortBy) {
@@ -69,8 +68,8 @@ export async function collections(headers: Record<string,string>, filters: GQLTy
     
     try {
         const result: IResult = await request(v2API, query, variables, headers);
-        result.data.collections.searchURL = websiteLink();
-        return result.data.collections;
+        result.collections.searchURL = websiteLink();
+        return result.collections;
     }
     catch(err) {
         logMessage('Error in collections v2 request', err, true);
