@@ -5,7 +5,7 @@ import { NexusUser } from '../types/users';
 import { logMessage } from './util';
 import { updateUser } from './users';
 import { Client, User } from 'discord.js';
-import { other, v1, v2 } from './queries/queries';
+import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
 
 interface OAuthTokens {
