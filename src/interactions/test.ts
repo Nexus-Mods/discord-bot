@@ -29,10 +29,25 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     try {
         await botuser.NexusMods.Auth();
         logMessage('Nexus Mods Auth verfied.');
-        const v1 = await botuser.NexusMods.API.v1.Games();
-        logMessage('v1 API test complete', v1.length);
-        const testData = await botuser.NexusMods.API.v2.MyCollections();
-        logMessage('v2 API test complete', testData);
+        await botuser.NexusMods.API.v1.Games();
+        await botuser.NexusMods.API.v1.Game('skyrim');
+        await botuser.NexusMods.API.v1.ModQuickSearch('skyui', true);
+        await botuser.NexusMods.API.v1.UpdatedMods('skyrim');
+        await botuser.NexusMods.API.v1.Mod('skyrim', 3863);
+        await botuser.NexusMods.API.v1.ModFiles('skyrim', 3863);
+        await botuser.NexusMods.API.v1.ModChangelogs('skyrim', 3863);
+        logMessage('v1 API test complete');
+        await botuser.NexusMods.API.v2.IsModAuthor(1);
+        await botuser.NexusMods.API.v2.Games();
+        await botuser.NexusMods.API.v2.Mod({ gameDomain: 'skyrim', modId: 3863 });
+        await botuser.NexusMods.API.v2.ModsByModId([{ gameDomain: 'skyrim', modId: 3863 }]);
+        await botuser.NexusMods.API.v2.MyCollections();
+        await botuser.NexusMods.API.v2.Collections({}, 'endorsements_count');
+        await botuser.NexusMods.API.v2.Collection('pkcov7', 'skyrimspecialedition', true);
+        await botuser.NexusMods.API.v2.CollectionsByUser(51448566);
+        await botuser.NexusMods.API.v2.FindUser('Janquel');
+        await botuser.NexusMods.API.v2.FindUser(51448566)
+        logMessage('v2 API test complete');
         return interaction.editReply(`Success`);
     }
     catch(err) {
