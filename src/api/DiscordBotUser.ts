@@ -134,7 +134,7 @@ export class DiscordBotUser {
             },
             v2: {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
-                Game: async () => { throw new Error('Not Implemented') },
+                Game: async () => { throw new Error('Not Implemented') }, // TBC
                 Games: async () => v2.games(this.headers()),
                 Mod: async (mod: { gameDomain: string, modId: number }) => v2.mods(this.headers(), mod),
                 Mods: async () => { throw new Error('Not Implemented') },
@@ -153,7 +153,7 @@ export class DiscordBotUser {
                 // Games pulled from the static Games.json file.
                 Games: async () => other.Games(this.headers()),
                 // Mod stats from the static CSV files.
-                ModDownloads: async (domain: string, modId?: number) => { throw new Error('Not Implemented') },
+                ModDownloads: async (gameId: number, modId?: number) => other.ModDownloads(gameId, modId),
             }     
         }
     }
