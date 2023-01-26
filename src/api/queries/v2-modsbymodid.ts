@@ -41,8 +41,8 @@ interface IModRequest {
 }
 
 const query = gql`
-query Mods($ids: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
-    legacyModsByDomain(ids: $ids, count: $count, offset: $offset) {
+query Mods($mods: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
+    legacyModsByDomain(ids: $mods, count: $count, offset: $offset) {
       nodes {
         uid
         modId
@@ -95,7 +95,7 @@ export async function mods(headers: Record<string,string>, mods: IModRequest | I
             results = [...results, ...pageData];
         }
         catch(err) {
-            logMessage('Error fetching mod data', { err, headers }, true);
+            logMessage('Error fetching mod data', { err, auth: headers['apikey'] ? 'APIKEY' : 'OAUTH' }, true);
         }
     }
 
