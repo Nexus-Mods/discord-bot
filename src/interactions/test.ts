@@ -39,9 +39,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const modv1 = await botuser.NexusMods.API.v1.Mod('skyrim', 3863);
         logMessage('V1 Mod', modv1.name);
         const filesv1 = await botuser.NexusMods.API.v1.ModFiles('skyrim', 3863);
-        logMessage('V1 Files', filesv1.files[0]);
+        logMessage('V1 Files', filesv1.files[0].file_name);
         const changelogsv1 = await botuser.NexusMods.API.v1.ModChangelogs('skyrim', 3863);
-        logMessage('V1 Changelogs', Object.keys(changelogsv1));
+        logMessage('V1 Changelogs', Object.keys(changelogsv1).join(', '));
         logMessage('v1 API test complete');
 
         const v2author = await botuser.NexusMods.API.v2.IsModAuthor(1);
@@ -49,7 +49,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const v2games = await botuser.NexusMods.API.v2.Games();
         logMessage('V2 Games', v2games.length);
         const v2mod = await botuser.NexusMods.API.v2.Mod({ gameDomain: 'skyrim', modId: 3863 });
-        logMessage('V2 Mod', v2mod[0].name);
+        logMessage('V2 Mod', v2mod[0]?.name);
         const v2modidsearch = await botuser.NexusMods.API.v2.ModsByModId([{ gameDomain: 'skyrim', modId: 3863 }]);
         logMessage('V2 Mod ID search', v2modidsearch.length);
         const v2mycollections = await botuser.NexusMods.API.v2.MyCollections();
