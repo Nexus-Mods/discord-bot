@@ -1,4 +1,4 @@
-import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { NexusUser } from "../types/users";
 import { BotServer } from "../types/servers";
@@ -17,7 +17,7 @@ interface BotServerChange {
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
-    .setDefaultMemberPermissions('ManageGuild')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setName('settings')
     .setDescription('Adjust settings for this bot in your server.')
     .addSubcommand(sc => 
