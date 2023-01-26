@@ -201,7 +201,7 @@ export class DiscordBotUser {
 
         }
         catch(err) {
-            logMessage('Failed to update Discord role metadata');
+            logMessage('Failed to update Discord role metadata', err, true);
         }
     }
 
