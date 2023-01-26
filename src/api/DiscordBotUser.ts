@@ -136,6 +136,7 @@ export class DiscordBotUser {
             },
             v2: {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
+                Game: async () => { throw new Error('Not Implemented') },
                 Games: async () => v2.games(this.headers()),
                 Mod: async (mod: { gameDomain: string, modId: number }) => v2.mods(this.headers(), mod),
                 Mods: async () => { throw new Error('Not Implemented') },
