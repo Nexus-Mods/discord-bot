@@ -44,7 +44,7 @@ query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
 `;
 
 export async function collection(headers: Record<string,string>, slug: string, domain: string, adult: boolean): Promise<ICollection | undefined> {
-    const vars = { slug, adult: adult ?? true, domain };
+    const vars = { slug, adult, domain };
     
     try {
         const result: IResult = await request(v2API, query, vars, headers);

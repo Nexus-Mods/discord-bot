@@ -53,7 +53,7 @@ export async function collectionsByUser(headers: Record<string,string>, id: numb
         filters : {
           userId: [ { value: id.toString() } ]
         },
-        adultContent: true,
+        adult: true,
     };
     
     try {
@@ -61,7 +61,7 @@ export async function collectionsByUser(headers: Record<string,string>, id: numb
         return result.collections;
     }
     catch(err) {
-        logMessage('Error in collections v2 request', err, true);
+        logMessage('Error in collectionsbyUser v2 request', err, true);
         return { nodes: [], nodesCount: 0, nodesFilter: '' };
     }
 }
