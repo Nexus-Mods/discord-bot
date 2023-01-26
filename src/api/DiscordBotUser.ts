@@ -1,9 +1,7 @@
-import { GraphQLClient } from 'graphql-request';
 import * as NexusModsOAuth from '../server/NexusModsOAuth';
 import { IUpdateEntry } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
 import { logMessage } from './util';
-import { modFiles as files, validate } from './nexus-discord';
 import { updateUser } from './users';
 import { Client, User } from 'discord.js';
 import { other, v1, v2 } from './queries/queries';
@@ -43,7 +41,6 @@ interface IRequestHeadersAPIkey extends Record<string, string> {
 
 
 export class DiscordBotUser {
-    private GQLClient : GraphQLClient = new GraphQLClient(API_V2);
     private NexusModsAuthType: NexusModsAuthTypes = 'OAUTH';
     private NexusModsAPIKey?: string = undefined;
     private NexusModsOAuthTokens?: OAuthTokens;
@@ -116,6 +113,7 @@ export class DiscordBotUser {
         IsAuthor: (): boolean => this.NexusModsRoles.has('modauthor'),
         API: {
             v1: {
+                Validate: async () => v1.validate(this.headers()),
                 Game: async (domain: string) => v1.game(this.headers(), domain),
                 Games: async () => v1.games(this.headers()),
                 ModQuickSearch: 
@@ -169,7 +167,7 @@ export class DiscordBotUser {
             return this.saveTokens({ access_token, refresh_token, expires_at: expires_at as number });
         }
         else if (this.NexusModsAPIKey) {
-            await validate(this.NexusModsAPIKey);
+            await this.NexusMods.API.v1.Validate();
             return;
         }
         else throw new Error('No API key or OAuth tokens');

@@ -1,4 +1,4 @@
-import { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo } from '@nexusmods/nexus-api';
+import { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo, IValidateKeyResponse } from '@nexusmods/nexus-api';
 import axios, { AxiosError } from 'axios';
 import { NexusAPIServerError, NexusSearchResult } from '../../types/util';
 import { logMessage } from "../util";
@@ -77,3 +77,7 @@ export async function games(headers: Record<string,string>): Promise<IGameInfo[]
 export async function game(headers: Record<string,string>, domain: string): Promise<IGameListEntry> {
     return v1APIQuery(`/v1/games/${domain}.json`, headers);
 } 
+
+export async function validate(headers: Record<string,string>): Promise<IValidateKeyResponse> {
+    return v1APIQuery('/v1/users/validate.json', headers);
+}

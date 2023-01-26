@@ -1,4 +1,4 @@
-import { quicksearch, updatedMods, modInfo, modFiles, modChangelogs, games as gamesV1, game as gameV1 } from './v1';
+import { quicksearch, updatedMods, modInfo, modFiles, modChangelogs, games as gamesV1, game as gameV1, validate } from './v1';
 import { isModAuthor, IResult as IModAuthorResult } from './v2-ismodauthor';
 import { games, IGame as IGameResult } from './v2-games';
 import { mods, IMod as IModResult } from './v2-modsbymodid';
@@ -12,6 +12,7 @@ import { ICollection, ICollectionSearchResult } from './v2';
 import { Games as gamesJSON } from './other';
 
 export const v1 = {
+    validate,
     updatedMods,
     quicksearch,
     modInfo,
