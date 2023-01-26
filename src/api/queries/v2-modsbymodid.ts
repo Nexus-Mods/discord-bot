@@ -75,6 +75,7 @@ query Mods($ids: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
 export async function mods(headers: Record<string,string>, mods: IModRequest | IModRequest[]): Promise<IMod[]> {
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const ids: IModRequest[] = (!Array.isArray(mods)) ? [mods] : mods;
+    logMessage('Mod ids to check', { ids, mods });
     if (!ids.length) return [];
 
     const pages: IModRequest[][] = [];
