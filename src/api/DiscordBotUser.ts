@@ -57,7 +57,7 @@ export class DiscordBotUser {
         this.DiscordId = user.d_id;
         this.NexusModsUsername = user.name;
         this.NexusModsAvatar = user.avatar_url;
-        this.LastUpdated = user.lastupdate;
+        this.LastUpdated = user.lastupdate!;
         const NexusRoles: Set<NexusMembershipRoles> = new Set<NexusMembershipRoles>().add('member');
         if (user.premium) NexusRoles.add('premium');
         if (user.supporter) NexusRoles.add('supporter');
