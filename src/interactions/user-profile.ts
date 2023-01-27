@@ -6,7 +6,7 @@ import { NexusUser, NexusUserServerLink } from "../types/users";
 
 const discordInteraction: DiscordInteraction = {
     command: new ContextMenuCommandBuilder()
-    .setName('Nexus Mods Profile')
+    .setName('Profile - Nexus Mods')
     .setType(ApplicationCommandType.User),
     public: true,
     guilds: [ '581095546291355649' ],
