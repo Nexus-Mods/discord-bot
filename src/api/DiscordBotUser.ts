@@ -1,12 +1,13 @@
 import * as NexusModsOAuth from '../server/NexusModsOAuth';
 import * as DiscordOAuth from '../server/DiscordOAuth';
 import { IUpdateEntry, IValidateKeyResponse } from '@nexusmods/nexus-api';
-import { NexusUser } from '../types/users';
+import { NexusLinkedMod, NexusUser } from '../types/users';
 import { logMessage } from './util';
 import { updateUser } from './users';
 import { Client, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
+import { getModsbyUser, createMod, deleteMod } from './bot-db';
 
 interface OAuthTokens {
     access_token: string;
@@ -47,7 +48,7 @@ export class DiscordBotUser {
     public readonly NexusModsId: Readonly<number>;
     public NexusModsUsername: string;
     public NexusModsAvatar: string | undefined;
-    private NexusModsRoles: Set<NexusMembershipRoles> = new Set();
+    public NexusModsRoles: Set<NexusMembershipRoles> = new Set();
     public readonly DiscordId: Readonly<string>;
 
     constructor(user: NexusUser) {
@@ -106,11 +107,14 @@ export class DiscordBotUser {
         ID: (): number => this.NexusModsId,
         Refresh: () => this.refreshUserData(),
         Name: (): string => this.NexusModsUsername,
-        User: async () => undefined,
+        // User: async () => undefined,
         Avatar: (): string | undefined => this.NexusModsAvatar,
         IsPremium: (): boolean => this.NexusModsRoles.has('premium'),
         IsSupporter: (): boolean => this.NexusModsRoles.has('supporter'),
         IsAuthor: (): boolean => this.NexusModsRoles.has('modauthor'),
+        LinkedMods: () => getModsbyUser(this.NexusModsId),
+        AddLinkedMod: (mod: NexusLinkedMod) => createMod(mod),
+        DeleteLinkedMod: (mod: NexusLinkedMod) => deleteMod(mod),
         API: {
             v1: {
                 Validate: async () => v1.validate(this.headers()),
