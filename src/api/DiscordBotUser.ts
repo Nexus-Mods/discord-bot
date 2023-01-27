@@ -4,10 +4,10 @@ import { IUpdateEntry, IValidateKeyResponse } from '@nexusmods/nexus-api';
 import { NexusLinkedMod, NexusUser } from '../types/users';
 import { logMessage } from './util';
 import { updateUser } from './users';
-import { Client, User } from 'discord.js';
+import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
-import { getModsbyUser, createMod, deleteMod } from './bot-db';
+import { getModsbyUser, createMod, deleteMod, userProfileEmbed } from './bot-db';
 
 interface OAuthTokens {
     access_token: string;
@@ -50,12 +50,14 @@ export class DiscordBotUser {
     public NexusModsAvatar: string | undefined;
     public NexusModsRoles: Set<NexusMembershipRoles> = new Set();
     public readonly DiscordId: Readonly<string>;
+    public LastUpdated: Date;
 
     constructor(user: NexusUser) {
         this.NexusModsId = user.id;
         this.DiscordId = user.d_id;
         this.NexusModsUsername = user.name;
         this.NexusModsAvatar = user.avatar_url;
+        this.LastUpdated = user.lastupdate;
         const NexusRoles: Set<NexusMembershipRoles> = new Set<NexusMembershipRoles>().add('member');
         if (user.premium) NexusRoles.add('premium');
         if (user.supporter) NexusRoles.add('supporter');
@@ -85,6 +87,8 @@ export class DiscordBotUser {
         }
         else throw new Error('Nexus Mods User does not have any auth options set');
     }
+
+    public ProfileEmbed = async (client: Client): Promise<EmbedBuilder> => userProfileEmbed(this, client);
 
     private headers = (): (IRequestHeadersOAuth | IRequestHeadersAPIkey) => {
         if (!this.NexusModsAPIKey && !this.NexusModsOAuthTokens) 
@@ -248,7 +252,10 @@ export class DiscordBotUser {
         }
 
         try {
-            if (Object.keys(newData).length) await updateUser(this.DiscordId, newData);
+            if (Object.keys(newData).length) {
+                await updateUser(this.DiscordId, newData);
+                this.LastUpdated = new Date();
+            };
         }
         catch(err) {
             throw new Error('Failed to save user data to database.');
@@ -302,7 +309,10 @@ export class DiscordBotUser {
 
 
         try {
-            if (Object.keys(newData).length) await updateUser(this.DiscordId, newData);
+            if (Object.keys(newData).length) {
+                await updateUser(this.DiscordId, newData);
+                this.LastUpdated = new Date();
+            };
         }
         catch(err) {
             throw new Error('Failed to save user data to database.');

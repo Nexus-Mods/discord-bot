@@ -1,9 +1,10 @@
 import query from '../api/dbConnect';
 import { QueryResult } from 'pg';
-import { NexusUser, NexusLinkedMod, NexusUserServerLink } from '../types/users';
-import { Client, EmbedBuilder, User, Guild, Snowflake } from 'discord.js';
-import { getModsbyUser, getLinksByUser } from './bot-db';
+import { NexusUser, NexusLinkedMod } from '../types/users';
+import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
+import { getModsbyUser } from './bot-db';
 import { logMessage } from './util';
+import { DiscordBotUser } from './DiscordBotUser';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     return new Promise( (resolve, reject) => {
@@ -133,6 +134,53 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
     return embed;
 }
 
+async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<EmbedBuilder> {
+    const discordUser: User = await user.Discord.User(client);
+    if (!discordUser) return Promise.reject('Unknown User');
+    const mods: NexusLinkedMod[] = await user.NexusMods.LinkedMods();
+    // const servers: NexusUserServerLink[] = userData.servers || await getLinksByUser(userData.id);
+    const totalDownloads = (mods: NexusLinkedMod[]): number => {
+        let downloads: number = mods.reduce((prev, cur) => prev = prev + cur.total_downloads, 0);
+        return downloads;
+    }
+
+    const roleToShow: string = user.NexusModsRoles.has('premium') 
+        ? "Premium Member" : user.NexusModsRoles.has('modauthor') 
+        ? "Mod Author" : user.NexusModsRoles.has('supporter') 
+        ? "Supporter" : "Member";
+
+    let embed = new EmbedBuilder()
+    .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || undefined})
+    .addFields({ 
+        name:  "Nexus Mods", 
+        value: `[${user.NexusModsUsername}](https://nexusmods.com/users/${user.NexusModsId})\n${roleToShow}`, 
+        inline: true
+    })
+    .addFields({ name: "Discord", value: `${discordUser.toString()}\n${discordUser.tag}`, inline: true})
+    .setColor(0xda8e35)
+    .setThumbnail(user.NexusModsAvatar || 'https://www.nexusmods.com/assets/images/default/avatar.png')
+    .setTimestamp(user.LastUpdated)
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || ''});
+    if (mods && mods.length) {
+        let modData = mods.sort(modsort).map( mod => `[${mod.name}](https://nexusmods.com/${mod.path}) - ${mod.game}`);
+        if (modData.length > 5) modData = modData.slice(0,4); //Only show a maximum of 5.
+        embed.addFields({ name: `My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, value: `${modData.join("\n")}\n-----\n[**See all of ${user.NexusModsUsername}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${user.NexusModsId}?tab=user+files)`})
+    }
+    // Show guilds.
+    // let guilds: string[] = servers.map((link: NexusUserServerLink) => {
+    //     const guild: Guild | undefined = client.guilds.cache.find(g => g.id === link.server_id)
+    //     return guild ? guild.name : "Unknown server: "+link.server_id;
+    // });
+    // if (guilds.length > 5) {
+    //     const total = guilds.length
+    //     guilds = guilds.splice(0,4);
+    //     guilds.push(`and ${total - 5} more...`);
+    // } 
+    // embed.addFields({ name: `Account connected in ${servers.length} server(s)`, value: guilds.join(", ") || "None"});
+
+    return embed;
+}
+
 const modsort = (lh: NexusLinkedMod, rh: NexusLinkedMod): number => lh.total_downloads > rh.total_downloads ? -1 : 1;
 
-export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId };
+export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed };

@@ -9,7 +9,7 @@ interface NexusUser {
     supporter: boolean;
     premium: boolean;
     modauthor?: boolean;
-    lastupdate?: Date;
+    lastupdate: Date;
     servers?: NexusUserServerLink[];
     nexus_access?: string;
     nexus_refresh?: string;
