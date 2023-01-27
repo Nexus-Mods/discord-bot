@@ -60,7 +60,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
         const formatted = `**V1 Tests**\n${format(v1test)}\n\n**V2 Tests**\n${format(v2test)}`;
 
-        return interaction.editReply(formatted);
+        const embed = await botuser.ProfileEmbed(client);
+
+        return interaction.editReply({ message:formatted, embeds: [embed] });
     }
     catch(err) {
         return interaction.editReply({ content: 'Error! '+err });
