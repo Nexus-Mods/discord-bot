@@ -62,7 +62,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
         const embed = await botuser.ProfileEmbed(client);
 
-        return interaction.editReply({ message:formatted, embeds: [embed] });
+        return interaction.editReply({ content: formatted, embeds: [embed] });
     }
     catch(err) {
         return interaction.editReply({ content: 'Error! '+err });
