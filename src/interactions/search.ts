@@ -53,7 +53,7 @@ const discordInteraction: DiscordInteraction = {
         )
         .addBooleanOption(hide => 
             hide.setName('private')
-            .setDescription('Should the result only be shown to you?')
+            .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         )
     )
@@ -72,7 +72,7 @@ const discordInteraction: DiscordInteraction = {
         )
         .addBooleanOption(hide => 
             hide.setName('private')
-            .setDescription('Should the result only be shown to you?')
+            .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         )
     )
@@ -86,7 +86,7 @@ const discordInteraction: DiscordInteraction = {
         )
         .addBooleanOption(hide => 
             hide.setName('private')
-            .setDescription('Should the result only be shown to you?')
+            .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         ) 
     )
@@ -100,7 +100,7 @@ const discordInteraction: DiscordInteraction = {
         )
         .addBooleanOption(hide => 
             hide.setName('private')
-            .setDescription('Should the result only be shown to you?')
+            .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         )
     ) as SlashCommandBuilder,
@@ -125,7 +125,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     
     const query: string = interaction.options.getString('query') || '';
     const gameQuery : string = interaction.options.getString('game-query') || '';
-    const ephemeral: boolean = interaction.options.getBoolean('private') || false
+    const ephemeral: boolean = interaction.options.getBoolean('private') || true;
 
     if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral:true });
 
