@@ -52,7 +52,7 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(false)
         )
         .addBooleanOption(hide => 
-            hide.setName('private')
+            hide.setName('public')
             .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         )
@@ -71,7 +71,7 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(false)
         )
         .addBooleanOption(hide => 
-            hide.setName('private')
+            hide.setName('public')
             .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         )
@@ -85,7 +85,7 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(true)
         )
         .addBooleanOption(hide => 
-            hide.setName('private')
+            hide.setName('public')
             .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         ) 
@@ -99,7 +99,7 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(true)
         )
         .addBooleanOption(hide => 
-            hide.setName('private')
+            hide.setName('public')
             .setDescription('Should the result only be shown to everyone? Default: FALSE')
             .setRequired(false)
         )
@@ -125,9 +125,9 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     
     const query: string = interaction.options.getString('query') || '';
     const gameQuery : string = interaction.options.getString('game-query') || '';
-    const ephemeral: boolean = interaction.options.getBoolean('private') || true;
+    const showToAll: boolean = interaction.options.getBoolean('public') || false;
 
-    if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral:true });
+    if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral: true });
 
 
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
@@ -136,10 +136,10 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;
 
     switch(searchType) {
-        case 'MODS' : return searchMods(query, gameQuery, ephemeral, client, interaction, user, server);
-        case 'GAMES' : return searchGames(query, ephemeral, client, interaction, user, server);
-        case 'USERS' : return searchUsers(query, ephemeral, client, interaction, user, server);
-        case 'COLLECTIONS' : return searchCollections(query, gameQuery, ephemeral, client, interaction, user, server);
+        case 'MODS' : return searchMods(query, gameQuery, !showToAll, client, interaction, user, server);
+        case 'GAMES' : return searchGames(query, !showToAll, client, interaction, user, server);
+        case 'USERS' : return searchUsers(query, !showToAll, client, interaction, user, server);
+        case 'COLLECTIONS' : return searchCollections(query, gameQuery, !showToAll, client, interaction, user, server);
         default: return interaction.followUp('Search error: Invalid search type.');
     }
 }
