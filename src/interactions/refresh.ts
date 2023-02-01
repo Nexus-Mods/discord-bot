@@ -2,13 +2,13 @@ import { ModDownloadInfo } from "../types/util";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { NexusLinkedMod, NexusUser } from "../types/users";
 import { 
-    getUserByDiscordId, updateUser, getModsbyUser, deleteMod, updateMod, 
+    getUserByDiscordId, getModsbyUser, deleteMod, updateMod, 
     modUniqueDLTotal, updateAllRoles 
 } from '../api/bot-db';
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, Interaction, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { IModInfo } from "@nexusmods/nexus-api";
-import { getDownloads, modInfo, validate, IValidateResponse } from "../api/nexus-discord";
 import { logMessage } from '../api/util';
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const cooldown: number = (1*60*1000);
 
@@ -24,21 +24,21 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-const replyCard = (client: Client, nexus: NexusUser, discord: User): EmbedBuilder => {
+const replyCard = (client: Client, nexus: DiscordBotUser, discord: User): EmbedBuilder => {
     let result = new EmbedBuilder()
     .setTitle('Updating user data...')
     .setColor(0xda8e35)
-    .setThumbnail(nexus.avatar_url || discord.avatarURL() || '' )
+    .setThumbnail(nexus.NexusModsAvatar || discord.avatarURL() || '' )
     .setFooter({text: `Nexus Mods API link - ${discord.tag}`, iconURL: client.user?.avatarURL() || '' })
     return result;
 }
 
-const cancelCard = (client: Client, nexus: NexusUser, discord: User) => {
+const cancelCard = (client: Client, nexus: DiscordBotUser, discord: User) => {
     return new EmbedBuilder({
         title: 'Update cancelled',
         description: `You must wait at least ${cooldown/1000/60} minute(s) before refreshing your account.`,
         color: 0xda8e35,
-        thumbnail: { url: (nexus.avatar_url || (discord.avatarURL() as string) || '') },
+        thumbnail: { url: (nexus.NexusModsAvatar || (discord.avatarURL() as string) || '') },
         footer: {
             text: `Nexus Mods API link - ${discord.tag}`,
             iconURL: client.user?.avatarURL() || ''
@@ -55,13 +55,13 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     // logMessage('Deferring reply');
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     // Check if they are already linked.
-    let userData : NexusUser | undefined;
+    let userData : DiscordBotUser | undefined;
 
     let card : EmbedBuilder 
     
     try {
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
-        const nextUpdate = new Date( userData?.lastupdate ? userData.lastupdate.getTime() + cooldown : 0 )
+        const nextUpdate = new Date( userData?.LastUpdated ? userData.LastUpdated.getTime() + cooldown : 0 );
         if (!userData) {
             // logMessage('Editing reply, no user data');
             await interaction.editReply('You haven\'t linked your account yet. Use the /link command to get started.');
@@ -92,25 +92,15 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     // Update membership status.
     try {
-        // Check the API key
-        if (!!userData.apikey) {
-        const apiData: IValidateResponse = await validate(userData.apikey);
-        if (userData.id !== apiData.user_id) newData.id = apiData.user_id;
-        if (userData.name !== apiData.name) newData.name = apiData.name;
-        if (userData.avatar_url !== apiData.profile_url) newData.avatar_url = apiData.profile_url;
-        if ((!apiData.is_premium && apiData.is_supporter) !== userData.supporter) newData.supporter = !userData.supporter;
-        if ( apiData.is_ModAuthor !== userData.modauthor) newData.modauthor = apiData.is_ModAuthor;
-        if (userData.premium !== apiData.is_premium) newData.premium = apiData.is_premium;
-        
-        if (Object.keys(newData).length > 1) {
-            const updatedFields: string[] = getFieldNames(Object.keys(newData));
+        await userData.NexusMods.Auth();
+        const newfields = await userData.NexusMods.Refresh();        
+        if (newfields.length > 1) {
+            const updatedFields: string[] = getFieldNames(newfields);
             card.addFields({ name: 'User Info', value: `Updated:\n ${updatedFields.join('\n')}`});
-            const newUser = await updateUser(discordId, newData);
             updateRoles = true;
         }
         else {
             card.addFields({ name: 'User Info', value: `No changes required`});
-        }
         }
 
     }
@@ -126,13 +116,13 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     // Update download counts for the mods
     try {
-        const mods: NexusLinkedMod[] = await getModsbyUser(userData.id).catch(() => []);
+        const mods: NexusLinkedMod[] = await getModsbyUser(userData.NexusModsId).catch(() => []);
         if (mods.length) {
             let updatedMods: (Partial<IModInfo | NexusLinkedMod>)[] = [];
             let deletedMods: (Partial<IModInfo | NexusLinkedMod>)[] = [];
             // Map over all the mods
             const allMods = await Promise.all(mods.map(async (mod) => {
-                const info: IModInfo = await modInfo(userData as NexusUser, mod.domain, mod.mod_id);
+                const info: IModInfo | undefined = await userData?.NexusMods.API.v1.Mod(mod.domain, mod.mod_id) ;
                 if (!info) return mod;
                 if (['removed', 'wastebinned'].includes(info.status)) {
                     // Mod has been deleted
@@ -140,7 +130,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
                     deletedMods.push(mod);
                     return mod;
                 }
-                const dls: ModDownloadInfo = await getDownloads(userData as any, mod.domain, info.game_id, mod.mod_id) as ModDownloadInfo;
+                const dls: ModDownloadInfo = { unique_downloads: info.mod_unique_downloads, total_downloads: info.mod_downloads } as ModDownloadInfo;
                 let newInfo: Partial<NexusLinkedMod> = {};
                 // Compare any changes
                 if (info.name && mod.name !== info.name) newInfo.name = info.name;

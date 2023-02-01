@@ -15,36 +15,41 @@ async function getAllUsers(): Promise<NexusUser[]> {
     });
 }
 
-async function getUserByDiscordId(discordId: Snowflake | string): Promise<NexusUser> {
+async function getUserByDiscordId(discordId: Snowflake | string): Promise<DiscordBotUser|undefined> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            //console.log(result.rows);
-            resolve(result?.rows[0]);
+            const user: NexusUser = result?.rows[0];
+            if (user) resolve(new DiscordBotUser(user));
+            else resolve(undefined);
         })
     
     });
 }
 
-async function getUserByNexusModsName(username: string): Promise<NexusUser> {
+async function getUserByNexusModsName(username: string): Promise<DiscordBotUser|undefined> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            resolve(result?.rows[0]);
+            const user: NexusUser = result?.rows[0];
+            if (user) resolve(new DiscordBotUser(user));
+            else resolve(undefined);
         })
     });
 }
 
-async function getUserByNexusModsId(id: number): Promise<NexusUser> {
+async function getUserByNexusModsId(id: number): Promise<DiscordBotUser|undefined> {
     return new Promise( (resolve, reject) => {
         query('SELECT * FROM users WHERE id = $1', [id], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
-            resolve(result?.rows[0]);
+            const user: NexusUser = result?.rows[0];
+            if (user) resolve(new DiscordBotUser(user));
+            else resolve(undefined);
         })
     });
 }
 
-async function createUser(user: NexusUser): Promise<NexusUser> {
+async function createUser(user: NexusUser): Promise<DiscordBotUser> {
     return new Promise(
         (resolve, reject) => {
         query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
@@ -52,29 +57,26 @@ async function createUser(user: NexusUser): Promise<NexusUser> {
         (error: Error, result?: QueryResult) => {
             if (error) {
                 //throw error;
-                console.log(error);
+                logMessage('Error inserting new user', error, true);
                 return reject(error);
                 //if (error.code === "23505") return reject(`Error ${error.code} - The field ${error.constraint} is not unique.`);
             };
-            //console.log("User inserted into the database: "+user.nexusName);
-            resolve(result?.rows?.[0]);
+            const user: NexusUser = result?.rows[0];
+            return resolve(new DiscordBotUser(user));
         })
     });
 }
 
-async function deleteUser(discordId: string): Promise<boolean> {
+async function deleteUser(discordId: string): Promise<void> {
     return new Promise((resolve, reject) => {
         query('DELETE FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
-            if (error) {
-                //throw error;
-                reject(false);
-            };
-            resolve(true);
+            if (error) reject(error);
+            resolve();
         });
     });
 }
 
-async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<NexusUser> {
+async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<DiscordBotUser> {
     newUser.lastupdate = new Date();
     let values: any[] = [];
     let updateString: string[] = [];
@@ -88,7 +90,7 @@ async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promi
     return new Promise(async (resolve, reject) => {
         query(updateQuery, values, (error: Error, result?: QueryResult) => {
             if (!!error) return reject(error);
-            resolve(result?.rows[0]);
+            resolve(new DiscordBotUser(result?.rows[0]));
         });
     });
 }
@@ -166,17 +168,6 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
         if (modData.length > 5) modData = modData.slice(0,4); //Only show a maximum of 5.
         embed.addFields({ name: `My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, value: `${modData.join("\n")}\n-----\n[**See all of ${user.NexusModsUsername}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${user.NexusModsId}?tab=user+files)`})
     }
-    // Show guilds.
-    // let guilds: string[] = servers.map((link: NexusUserServerLink) => {
-    //     const guild: Guild | undefined = client.guilds.cache.find(g => g.id === link.server_id)
-    //     return guild ? guild.name : "Unknown server: "+link.server_id;
-    // });
-    // if (guilds.length > 5) {
-    //     const total = guilds.length
-    //     guilds = guilds.splice(0,4);
-    //     guilds.push(`and ${total - 5} more...`);
-    // } 
-    // embed.addFields({ name: `Account connected in ${servers.length} server(s)`, value: guilds.join(", ") || "None"});
 
     return embed;
 }

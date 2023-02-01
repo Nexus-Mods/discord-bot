@@ -6,6 +6,7 @@ import { getAllServers, getServer } from './bot-db';
 import { Client, User, Guild, GuildMember, Role, GuildChannel, EmbedBuilder, ThreadChannel, RoleResolvable } from 'discord.js';
 import { getModsbyUser } from './user_mods';
 import { logMessage } from './util';
+import { DiscordBotUser } from './DiscordBotUser';
 
 async function getAllLinks(): Promise<NexusUserServerLink[]> {
     return new Promise((resolve, reject) => {
@@ -36,10 +37,10 @@ async function getLinksByServer(guildId: string): Promise<NexusUserServerLink[]>
     });
 }
 
-async function addServerLink(client: Client, user: NexusUser, discordUser: User, server: Guild | null): Promise<void> {
+async function addServerLink(client: Client, user: DiscordBotUser, discordUser: User, server: Guild | null): Promise<void> {
     if (!server) return;
     return new Promise((resolve, reject) => {
-        query('INSERT INTO user_servers (user_id, server_id) VALUES ($1, $2)', [user.id, server.id], async (error: Error, result?: QueryResult) => {
+        query('INSERT INTO user_servers (user_id, server_id) VALUES ($1, $2)', [user.NexusModsId, server.id], async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             await updateRoles(client, user, discordUser, server);
             resolve();
@@ -47,9 +48,9 @@ async function addServerLink(client: Client, user: NexusUser, discordUser: User,
     });
 }
 
-async function deleteServerLink(client: Client, user: NexusUser, discordUser: User | undefined, server: Guild): Promise<void> {
+async function deleteServerLink(client: Client, user: DiscordBotUser, discordUser: User | undefined, server: Guild): Promise<void> {
     return new Promise( (resolve, reject) => {
-        query('DELETE FROM user_servers WHERE user_id = $1 AND server_id = $2', [user.id, server.id], 
+        query('DELETE FROM user_servers WHERE user_id = $1 AND server_id = $2', [user.NexusModsId, server.id], 
         async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             if (!!discordUser) await updateRoles(client, user, discordUser, server, true);
@@ -58,11 +59,11 @@ async function deleteServerLink(client: Client, user: NexusUser, discordUser: Us
     });
 }
 
-async function deleteAllServerLinksByUser(client: Client, user: NexusUser, discordUser: User): Promise<void> {
-    const links: NexusUserServerLink[] = await getLinksByUser(user.id);
+async function deleteAllServerLinksByUser(client: Client, user: DiscordBotUser, discordUser: User): Promise<void> {
+    const links: NexusUserServerLink[] = await getLinksByUser(user.NexusModsId);
 
     return new Promise((resolve, reject) => {
-        query('DELETE FROM user_servers WHERE user_id = $1', [user.id], async (error: Error, result?: QueryResult) => {
+        query('DELETE FROM user_servers WHERE user_id = $1', [user.NexusModsId], async (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             for (const link of links) {
                 const server = await client.guilds.fetch(link.server_id);
@@ -91,11 +92,11 @@ async function deleteServerLinksByServerSilent(userId: string): Promise<void> {
     });
 }
 
-async function updateRoles(client: Client, userData: NexusUser, discordUser: User, guild: Guild, bRemove: boolean = false): Promise<void> {
+async function updateRoles(client: Client, userData: DiscordBotUser, discordUser: User, guild: Guild, bRemove: boolean = false): Promise<void> {
     // logMessage('Updating roles', { user: discordUser.tag, nexus: userData.name, guild: guild.name });
     return new Promise(async (resolve, reject) => {
         const guildMember: GuildMember|undefined = await guild.members.fetch(discordUser.id).catch(() => undefined);
-        const allUserMods: NexusLinkedMod[] = await getModsbyUser(userData.id);
+        const allUserMods: NexusLinkedMod[] = await getModsbyUser(userData.NexusModsId);
         const guildData: BotServer|undefined = await getServer(guild).catch(() => undefined);
         if (!guildData) return reject('No guild data for '+guild.name);
         // If the user isn't a member of this guild we can exit.
@@ -141,13 +142,13 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
 
         // Remove all roles if we're unlinking.
         if (bRemove) {
-            logMessage(`Removing roles from ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
+            logMessage(`Removing roles from ${guildMember.user.tag} (${userData.NexusModsUsername}) in ${guild.name}`);
             try {
                 await guildMember.roles.remove(allRoles as RoleResolvable[], 'Nexus Mods Discord unlink');
                 if (nexusLogChannel) (nexusLogChannel as any).send({ embeds: [linkEmbed(userData, discordUser, true)] }).catch(() => undefined);
             }
             catch (err) {
-                logMessage(`Could not remove roles from ${userData.name} in ${guild.name}`, (err as Error)?.message, true);
+                logMessage(`Could not remove roles from ${userData.NexusModsUsername} in ${guild.name}`, (err as Error)?.message, true);
             }            
             return resolve();
         }
@@ -156,31 +157,31 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
         if (linkedRole && !guildMember.roles.cache.has(linkedRole.id)) rolesToAdd.push(linkedRole.id);
 
         // Membership roles
-        if (userData.premium && premiumRole && !guildMember.roles.cache.has(premiumRole.id)) rolesToAdd.push(premiumRole.id)
-        else if (userData.supporter && supporterRole && !guildMember.roles.cache.has(supporterRole.id)) rolesToAdd.push(supporterRole.id);
+        if (userData.NexusModsRoles.has('premium') && premiumRole && !guildMember.roles.cache.has(premiumRole.id)) rolesToAdd.push(premiumRole.id)
+        else if (userData.NexusModsRoles.has('supporter') && supporterRole && !guildMember.roles.cache.has(supporterRole.id)) rolesToAdd.push(supporterRole.id);
 
         // Mod Author role
         const modUniqueTotal: number = modUniqueDLTotal(allUserMods);
         // Log the details if the user isn't recognised yet. 
-        if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) logMessage(`${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
+        if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) logMessage(`${userData.NexusModsUsername} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
         // Apply the MA role if the criteria has been met.
         if (modAuthorRole && !guildMember.roles.cache.has(modAuthorRole.id)) {
-            if ((modUniqueTotal !== -1 && modUniqueTotal >= modAuthorDownloads) || (userData.modauthor === true)) {
+            if ((modUniqueTotal !== -1 && modUniqueTotal >= modAuthorDownloads) || (userData.NexusModsRoles.has('modauthor') === true)) {
                 rolesToAdd.push(modAuthorRole.id);
-                logMessage(`${userData.name} as now a recognised mod author in ${guild.name}`);
+                logMessage(`${userData.NexusModsUsername} as now a recognised mod author in ${guild.name}`);
                 (guildMember as any).send(`Congratulations! You are now a recognised mod author in ${guild.name}!`).catch(() => undefined);     
             }
-            else logMessage(`${userData.name} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
+            else logMessage(`${userData.NexusModsUsername} has ${modUniqueTotal} unique downloads for ${allUserMods.length} mods. ${guild.name} threshold ${modAuthorDownloads}`);
         }
         else if (modAuthorRole && guildMember.roles.cache.has(modAuthorRole.id) && modUniqueTotal < modAuthorDownloads) guildMember.roles.remove(modAuthorRole);
 
         if (rolesToAdd.length) {
-            logMessage(`Adding ${rolesToAdd.length} roles to ${guildMember.user.tag} (${userData.name}) in ${guild.name}`);
+            logMessage(`Adding ${rolesToAdd.length} roles to ${guildMember.user.tag} (${userData.NexusModsUsername}) in ${guild.name}`);
             guildMember.roles.add(rolesToAdd, 'Nexus Mods Discord link')
-            .catch(err => logMessage(`Could not add roles to ${userData.name} in ${guild.name}`, err, true));
+            .catch(err => logMessage(`Could not add roles to ${userData.NexusModsUsername} in ${guild.name}`, err, true));
         }
 
-        const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
+        const links: NexusUserServerLink[] = await getLinksByUser(userData.NexusModsId);
         const existingLink: NexusUserServerLink|undefined = links.find(l => l.server_id === guild.id);
         if (nexusLogChannel && !existingLink) (nexusLogChannel as any).send({ embeds: [linkEmbed(userData, discordUser)] }).catch(() => undefined);
         
@@ -190,11 +191,11 @@ async function updateRoles(client: Client, userData: NexusUser, discordUser: Use
     });
 }
 
-async function updateAllRoles(client: Client, userData: NexusUser, discordUser: User, addAll: boolean = false): Promise<void> {
-    logMessage('Updating roles', { user: discordUser.tag, nexus: userData.name });
+async function updateAllRoles(client: Client, userData: DiscordBotUser, discordUser: User, addAll: boolean = false): Promise<void> {
+    logMessage('Updating roles', { user: discordUser.tag, nexus: userData.NexusModsUsername });
     return new Promise(async (resolve, reject) => {
         const servers: BotServer[] = await getAllServers();
-        const links: NexusUserServerLink[] = await getLinksByUser(userData.id);
+        const links: NexusUserServerLink[] = await getLinksByUser(userData.NexusModsId);
         // console.log(`${new Date().toLocaleString()} - Updating all roles for ${userData.name} (${discordUser.tag})`);
         for(const server of servers) {
             const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
@@ -204,7 +205,7 @@ async function updateAllRoles(client: Client, userData: NexusUser, discordUser: 
             if (guild) {
                 if (addAll || existingLink) {
                     if (!existingLink) await addServerLink(client, userData, discordUser, guild).catch(console.error);
-                    else await updateRoles(client, userData, discordUser, guild).catch(err => console.warn(`${new Date().toLocaleString()} - Unable to assign roles to ${userData.name}`, err));
+                    else await updateRoles(client, userData, discordUser, guild).catch(err => console.warn(`${new Date().toLocaleString()} - Unable to assign roles to ${userData.NexusModsUsername}`, err));
                 }
             }            
         }
@@ -221,10 +222,10 @@ const modUniqueDLTotal = (allMods: NexusLinkedMod[]): number => {
     return !isNaN(downloads) ? downloads : 0;
 }
 
-const linkEmbed = (user: NexusUser, discord: User, remove?: boolean): EmbedBuilder => {
+const linkEmbed = (user: DiscordBotUser, discord: User, remove?: boolean): EmbedBuilder => {
     const embed = new EmbedBuilder()
-    .setAuthor({ name: `Account ${remove ? 'Unlinked' : 'Linked'}`, iconURL: user.avatar_url})
-    .setDescription(`${discord.toString()} ${remove ? 'unlinked from' : 'linked to'} [${user.name}](https://nexusmods.com/users/${user.id}).`)
+    .setAuthor({ name: `Account ${remove ? 'Unlinked' : 'Linked'}`, iconURL: user.NexusModsAvatar})
+    .setDescription(`${discord.toString()} ${remove ? 'unlinked from' : 'linked to'} [${user.NexusModsUsername}](https://nexusmods.com/users/${user.NexusModsId}).`)
     .setTimestamp(new Date())
     .setColor(0xda8e35)
     .setFooter({ text: '🔗 Nexus Mods API link' });

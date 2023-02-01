@@ -1,19 +1,21 @@
 import { 
     CommandInteraction, ActionRowBuilder, Client, EmbedBuilder, Message, 
-    ButtonBuilder, TextChannel, EmbedField, ButtonInteraction, ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, ChatInputApplicationCommandData, APIEmbedField, ButtonComponent 
+    ButtonBuilder, TextChannel, EmbedField, ButtonInteraction, ChatInputCommandInteraction, 
+    SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField, 
 } from "discord.js";
 import { NexusSearchResult, NexusSearchModResult } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
 import { logMessage } from "../api/util";
-import { NexusUser } from "../types/users";
-import { Collection, CollectionsFilter } from "../types/GQLTypes";
-import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
-import { games, quicksearch, modInfo } from "../api/nexus-discord";
-import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
+import { CollectionsFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
+import { DiscordBotUser } from "../api/DiscordBotUser";
+import { IGame } from "../api/queries/v2-games";
+import { ICollection } from "../api/queries/v2";
+import { IMod } from "../api/queries/v2-modsbymodid";
+import { IUser } from "../api/queries/v2-finduser";
 
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
@@ -114,7 +116,7 @@ const discordInteraction: DiscordInteraction = {
 interface IModFieldResult {
     id: string;
     mod: NexusSearchModResult;
-    game: IGameInfo|undefined;
+    game: IGame|undefined;
 }
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
@@ -132,8 +134,17 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
 
-    const user: NexusUser = await getUserByDiscordId(interaction.user.id);
+    const user: DiscordBotUser|undefined = await getUserByDiscordId(interaction.user.id);
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;
+
+    try {
+        if (user) await user.NexusMods.Auth();
+        else throw new Error('No account link exists');
+    }
+    catch(err) {
+        logMessage('Search cancelled, no account link or invalid token', { err, user: user?.NexusModsUsername, discord: interaction.user.tag });
+        return interaction.editReply({ embeds: [searchCancelled()] });
+    }
 
     switch(searchType) {
         case 'MODS' : return searchMods(query, gameQuery, !showToAll, client, interaction, user, server);
@@ -144,10 +155,10 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     }
 }
 
-async function searchCollections(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: NexusUser, server: BotServer|null) {
+async function searchCollections(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
     logMessage('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
-    const allGames: IGameInfo[] = user ? await games(user, false).catch(() => []) : [];
+    const allGames: IGame[] = user ? await user.NexusMods.API.v2.Games().catch(() => []) : [];
     let gameIdFilter: number = server?.game_filter || 0;
 
     if (gameQuery !== '' && allGames.length) {
@@ -155,7 +166,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
         // Override the default server game filter. 
         const fuse = new Fuse(allGames, options);
 
-        const results: IGameInfo[] = fuse.search(gameQuery).map(r => r.item);
+        const results: IGame[] = fuse.search(gameQuery).map(r => r.item);
         if (results.length) {
             // logMessage('Found game in mod search', results[0].name);
             const closestMatch = results[0];
@@ -164,11 +175,10 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     }
 
 
-    const filterGame: IGameInfo|undefined = allGames.find(g => g.id === gameIdFilter);
+    const filterGame: IGame|undefined = allGames.find(g => g.id === gameIdFilter);
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
     try {
-        const gql = await NexusModsGQLClient.create(user);
         const filters: CollectionsFilter = {
             'generalSearch' : {
                 value: query,
@@ -176,12 +186,12 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             }
         }
         if (!!filterGame) filters.gameName ={ value: filterGame.name, op:'EQUALS' };
-        const results = await gql.collectionSearch(filters, 'endorsements_count', true);
+        const results = await user.NexusMods.API.v2.Collections(filters, 'endorsements_count', true);
         if (results.nodesCount === 0) {
             // No results
             const noResults: EmbedBuilder = new EmbedBuilder()
             .setTitle('Search complete')
-            .setDescription(`No results for "${query}".\nTry using the [full search](${results.nextURL}) on the website.`)
+            .setDescription(`No results for "${query}".\nTry using the [full search](${results.searchURL}) on the website.`)
             .setThumbnail(client.user?.avatarURL() || '')
             .setColor(0xda8e35);
 
@@ -190,7 +200,8 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
         else if (results.nodesCount === 1 && !!results.nodes?.[0]) {
             // One result only
             const res = results.nodes[0];
-            const info = await gql.collection(res.slug, res?.game.domainName, nsfw);
+            const info: ICollection|undefined = await user.NexusMods.API.v2.Collection(res.slug, res?.game.domainName, nsfw);
+            if (!info) throw new Error(`Could not retrieve collection data for ${res.game.domainName}\\${res.slug}`);
             const embed = collectionEmbed(client, info, nsfw);
             return postResult(interaction, embed, ephemeral);
         }
@@ -209,7 +220,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
                 )
             );
 
-            const createCollectionField = (c: Partial<Collection>, idx: number): APIEmbedField => {
+            const createCollectionField = (c: ICollection, idx: number): APIEmbedField => {
                 return {
                     name: `${numberEmoji[idx]} - ${c.name}`,
                     value: `Game: ${c.game?.name} - Author: [${c.user?.name}](https://nexusmods.com/users/${c.user?.memberId}) - [View](https://next.nexusmods.com/${c.game?.domainName}/collections/${c.slug})`,
@@ -223,7 +234,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             .setColor(0xda8e35)
             .setThumbnail(`https://staticdelivery.nexusmods.com/images/News/14778_tile_1667225117.jpg`)
             .setDescription(
-                `Showing the top **${choices.length}** collections for your query ([See all](${results.nextURL}))\n`+
+                `Showing the top **${choices.length}** collections for your query ([See all](${results.searchURL}))\n`+
                 `**Query:** "${query}"\n`+
                 `**Game:** ${filterGame?.name || '_Any_'}`
             )
@@ -238,12 +249,12 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
                 collector.stop('Collected');
                 await i.update({ components: [], fetchReply: true });
                 const id = i.customId;
-                const found: Partial<Collection> = choices.find(c => c.slug === id)!;
+                const found: Partial<ICollection> = choices.find(c => c.slug === id)!;
                 if (!found) {
                     interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
                     return;
                 }
-                const collection = await gql.collection(found.slug!, found.game?.domainName!, true).catch(() => undefined);
+                const collection = await  user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName!, true).catch(() => undefined);
                 postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral);
             });
 
@@ -258,10 +269,10 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     }
 }
 
-async function searchMods(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: NexusUser, server: BotServer|null) {
+async function searchMods(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
     logMessage('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
-    const allGames: IGameInfo[] = user ? await games(user, false).catch(() => []) : [];
+    const allGames: IGame[] = user ? await user.NexusMods.API.v2.Games().catch(() => []) : [];
     let gameIdFilter: number = server?.game_filter || 0;
 
     if (gameQuery !== '' && allGames.length) {
@@ -269,7 +280,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
         // Override the default server game filter. 
         const fuse = new Fuse(allGames, options);
 
-        const results: IGameInfo[] = fuse.search(gameQuery).map(r => r.item);
+        const results: IGame[] = fuse.search(gameQuery).map(r => r.item);
         if (results.length) {
             // logMessage('Found game in mod search', results[0].name);
             const closestMatch = results[0];
@@ -278,14 +289,14 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     }
 
 
-    const filterGame: IGameInfo|undefined = allGames.find(g => g.id === gameIdFilter);
+    const filterGame: IGame|undefined = allGames.find(g => g.id === gameIdFilter);
 
     // Need to escape brackets as this breaks Markdown on mobile
     const safeSearchURL = (input?: string) => input ? input.replace(/[()]/g, (c) => `%${c.charCodeAt(0).toString(16)}`): undefined;
 
     // Search for mods
     try {
-        const search: NexusSearchResult = await quicksearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
+        const search: NexusSearchResult = await user.NexusMods.API.v1.ModQuickSearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
         if (!search.results.length) {
             // No results!
             const noResults: EmbedBuilder = new EmbedBuilder()
@@ -299,8 +310,8 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
         else if (search.results.length === 1) {
             // Single result
             const res: NexusSearchModResult = search.results[0];
-            const mod: IModInfo|undefined  = user ? await modInfo(user, res.game_name, res.mod_id) : undefined;
-            const gameForMod: IGameInfo|undefined = filterGame || allGames.find(g => g.domain_name === res.game_name);
+            const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( { gameDomain: res.game_name, modId: res.mod_id } ))?.[0] : undefined;
+            const gameForMod: IGame|undefined = filterGame || allGames.find(g => g.domainName === res.game_name);
             const singleResult = singleModEmbed(client, res, mod, gameForMod);
             postResult(interaction, singleResult, ephemeral);
         }
@@ -308,7 +319,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             // Multiple results
             const top5 = search.results.slice(0,5);
             const fields: IModFieldResult[] = top5.map(
-                (res, idx) => ({ id: numberEmoji[idx], mod: res, game: allGames.find(g => g.domain_name === res.game_name) })
+                (res, idx) => ({ id: numberEmoji[idx], mod: res, game: allGames.find(g => g.domainName === res.game_name) })
             );
             // Create the button row.
             const buttons = new ActionRowBuilder<ButtonBuilder>()
@@ -347,7 +358,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
                     interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
                     return;
                 }
-                const mod = await modInfo(user, res.game_name, res.mod_id).catch(() => undefined);
+                const mod = (await user.NexusMods.API.v2.Mod({ gameDomain: res.game_name, modId: res.mod_id }).catch(() => undefined))?.[0];
                 postResult(interaction, singleModEmbed(client, res, mod, found?.game), ephemeral);
             });
 
@@ -366,21 +377,21 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
 }
 
-async function searchGames(query: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: NexusUser, server: BotServer|null) {
+async function searchGames(query: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
     logMessage('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
 
-    const allGames = await games(user, true).catch(() => []);
+    const allGames = await user.NexusMods.API.v2.Games().catch(() => []);
     const fuse = new Fuse(allGames, options);
 
-    const results: IGameInfo[] = fuse.search(query).map(r => r.item);
+    const results: IGame[] = fuse.search(query).map(r => r.item);
     if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral);
     else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral);
     else return postResult(interaction, multiGameResult(client, results, query), ephemeral);
 
 }
 
-async function searchUsers(query: string, ephemeral: boolean, client: Client, interaction: ChatInputCommandInteraction, user: NexusUser, server: BotServer|null) {
+async function searchUsers(query: string, ephemeral: boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
     logMessage('User search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
 
@@ -390,16 +401,15 @@ async function searchUsers(query: string, ephemeral: boolean, client: Client, in
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
-    const userResult = (u: { name: string, memberId: number, avatar: string, recognisedAuthor: boolean }) => new EmbedBuilder()
+    const userResult = (u: IUser) => new EmbedBuilder()
     .setAuthor({ name: u.name, url: `https://nexusmods.com/users/${u.memberId}` })
     .setDescription(`User ID: ${u.memberId}\n[View ${u.name}'s profile on Nexus Mods](https://nexusmods.com/users/${u.memberId})`)
     .setThumbnail(u.avatar)
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
-    const GQL = await NexusModsGQLClient.create(user);
     const searchTerm: string | number = isNaN(parseInt(query)) ? query : parseInt(query);
-    const foundUser: { name: string, memberId: number, avatar: string, recognisedAuthor: boolean } = await GQL.findUser(searchTerm);
+    const foundUser = await user.NexusMods.API.v2.FindUser(searchTerm);
     if (!foundUser) return postResult(interaction, noUserFound(), ephemeral);
     else return postResult(interaction, userResult(foundUser), ephemeral);
 }
@@ -412,7 +422,17 @@ function createModResultField(item: IModFieldResult): EmbedField {
     }
 }
 
-const singleModEmbed = (client: Client, res: NexusSearchModResult, mod: IModInfo|undefined, game?: IGameInfo): EmbedBuilder => {
+const searchCancelled = (): EmbedBuilder => {
+    const embed = new EmbedBuilder()
+    .setColor('DarkRed')
+    .setTitle('Search Cancelled')
+    .setDescription('You are not authorised to use this command. This means that either you have not linked your account, or your session has expired.')
+    .addFields({ name: 'How can I fix this?', value: '[Click here to re-authorise your account](https://discordbot.nexusmods.com/linked-role), then try again.' })
+
+    return embed;
+}
+
+const singleModEmbed = (client: Client, res: NexusSearchModResult, mod: IMod|undefined, game?: IGame): EmbedBuilder => {
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
@@ -420,25 +440,25 @@ const singleModEmbed = (client: Client, res: NexusSearchModResult, mod: IModInfo
 
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
-        .setURL(`https://nexusmods.com/${mod.domain_name}/mods/${mod.mod_id}`)
-        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${game.categories.find(c => c.category_id === mod.category_id)?.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/\<br \/\>/g, '\n')}`)
-        .setTimestamp(new Date(mod.updated_time))
-        .setImage(mod.picture_url || '')
-        .setAuthor({name: mod.user?.name || '', url: `https://nexusmods.com/users/${mod.user.member_id}` })
+        .setURL(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`)
+        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domainName})\n**Category:** ${mod.modCategory.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/\<br \/\>/g, '\n')}`)
+        .setTimestamp(new Date(mod.updatedAt))
+        .setImage(mod.pictureUrl || '')
+        .setAuthor({name: mod.uploader?.name || '', url: `https://nexusmods.com/users/${mod.uploader.memberId}` })
     }
     else {
         embed.setTitle(res.name)
         .setURL(`https://nexusmods.com/${res.url}`)
         .setAuthor({name: res.username || '', url: `https://nexusmods.com/users/${res.user_id}`})
         .setImage(`https://staticdelivery.nexusmods.com${res.image}`)
-        .setDescription(game ? `for [${game?.name}](https://nexusmods.com/${game.domain_name})` : '')
+        .setDescription(game ? `for [${game?.name}](https://nexusmods.com/${game.domainName})` : '')
         .addFields({ name: 'Get better results', value: 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.'})
     }
     
     return embed;
 }
 
-const collectionEmbed = (client: Client, res: Partial<Collection>, nsfw: boolean): EmbedBuilder => {
+const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): EmbedBuilder => {
     const successRatingIcon = (value: number, voteCount: number) => {
         if (voteCount < 3) return '⚪';
         else if (value >= 75) return '🟢';
@@ -460,7 +480,7 @@ const collectionEmbed = (client: Client, res: Partial<Collection>, nsfw: boolean
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
-    .setThumbnail(res.tileImage.thumbnailUrl || client.user?.avatarURL())
+    .setThumbnail(res.tileImage.thumbnailUrl || client.user?.avatarURL() || null)
     .setURL(url)
     .setTitle(res.name || 'Unknown Collection')
     .setDescription(res.summary || 'No summary')
@@ -493,7 +513,7 @@ const collectionEmbed = (client: Client, res: Partial<Collection>, nsfw: boolean
             inline: true
         },
         {
-            name: `${successRatingIcon(parseFloat(res.overallRating || '0'), res.overallRatingCount || 0)} Success Rating`,
+            name: `${successRatingIcon(parseFloat(res.overallRating.toString() || '0'), res.overallRatingCount || 0)} Success Rating`,
             value: `${res.overallRatingCount! >= 3 ? `${res.overallRating}%` : '_TBC_'}`,
             inline: true
         }
@@ -501,7 +521,7 @@ const collectionEmbed = (client: Client, res: Partial<Collection>, nsfw: boolean
     return embed;
 }
 
-const noGameResults = (client: Client, gameList: IGameInfo[], searchTerm: string): EmbedBuilder => {
+const noGameResults = (client: Client, gameList: IGame[], searchTerm: string): EmbedBuilder => {
     return new EmbedBuilder()
     .setTitle("Game Search Results")
     .setDescription(`I checked all ${gameList.length.toLocaleString()} games for "${searchTerm}" but couldn't find anything. Please check your spelling or try expanding any acronyms (SSE -> Skyrim Special Edition)`)
@@ -511,36 +531,41 @@ const noGameResults = (client: Client, gameList: IGameInfo[], searchTerm: string
     .addFields({ name:`Looking to upload a mod for "${searchTerm}"?`, value: `If you've made a mod for ${searchTerm} we'd love it if you shared it on Nexus Mods!\n[You can find out more about adding a mod for a new game here.](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`})
 }
 
-const oneGameResult = (client: Client, gameInfo: IGameInfo): EmbedBuilder => {
+const oneGameResult = (client: Client, gameInfo: IGame): EmbedBuilder => {
     const game = new EmbedBuilder()
     .setTitle(gameInfo.name)
     .setColor(0xda8e35)
-    .setURL((gameInfo.nexusmods_url ? gameInfo.nexusmods_url : "https://www.nexusmods.com") )
+    .setURL(`https://www.nexusmods.com/${gameInfo.domainName || ''}`)
     .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameInfo.id}.jpg`)
     .addFields([
         {
             name: 'Genre',
-            value: gameInfo.genre? gameInfo.genre : "Not specified",
+            value: (gameInfo as any).genre || "Not yet available on API v2",
             inline: true
         },
         {
             name: 'Mods',
-            value: Number(gameInfo.mods).toLocaleString(),
+            value: (gameInfo as any).modCount ? Number((gameInfo as any).modCount).toLocaleString() : 'Not yet available on API v2',
+            inline: true 
+        },
+        {
+            name: 'Collections',
+            value: Number(gameInfo.collectionCount ?? 0).toLocaleString(),
             inline: true 
         },
         {
             name: 'Downloads',
-            value: Number(gameInfo.downloads).toLocaleString(),
+            value: (gameInfo as any).downloadCount ? Number((gameInfo as any).downloadCount).toLocaleString() : 'Not yet available on API v2',
             inline: true 
         },
         {
             name: 'Endorsements',
-            value: Number((gameInfo as any).file_endorsements).toLocaleString(),
+            value: (gameInfo as any).endorsements ? Number((gameInfo as any).endorsments).toLocaleString() : 'Not yet available on API v2',
             inline: true 
         }
     ])
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
-    if (!gameInfo.approved_date || gameInfo.approved_date < 1) {
+    if (!gameInfo.approvedAt || gameInfo.approvedAt < new Date(1)) {
         game.addFields({ name: "Unapproved Game", value: `${gameInfo.name} is pending approval by Nexus Mods staff. Once a mod has been uploaded and reviewed the game will be approved.\n[How can I add a new game to Nexus Mods?](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`})
         .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_empty.png`);
     }
@@ -548,7 +573,7 @@ const oneGameResult = (client: Client, gameInfo: IGameInfo): EmbedBuilder => {
     return game;
 }
 
-const multiGameResult = (client: Client, results: IGameInfo[], query: string): EmbedBuilder => {
+const multiGameResult = (client: Client, results: IGame[], query: string): EmbedBuilder => {
     const displayable = results.slice(0, 5);
     
     return new EmbedBuilder()
@@ -557,10 +582,10 @@ const multiGameResult = (client: Client, results: IGameInfo[], query: string): E
     .setThumbnail(client.user?.avatarURL() || '')
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
-    .addFields(displayable.map((game: IGameInfo): EmbedField => {
+    .addFields(displayable.map((game: IGame): EmbedField => {
         return {
             name: game.name,
-            value: `**Genre:** ${game.genre ? game.genre : "Not specified"} | **Mods:** ${Number(game.mods).toLocaleString()}\n**Downloads**: ${Number(game.downloads).toLocaleString()} | **Endorsements**: ${Number((game as any).file_endorsements || 0).toLocaleString()}${game.nexusmods_url !== "http://www.nexusmods.com/" ? "\n"+game.nexusmods_url : "\n*Pending approval. [What does this mean?](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)*"}`,
+            value: `**Genre:** ${(game as any).genre || 'Not yet available on API v2'} | **Mods:** ${Number((game as any).modCount || 0).toLocaleString()}\n**Downloads**: ${Number((game as any).downloadCount || 0).toLocaleString()} | **Endorsements**: ${Number((game as any).file_endorsements || 0).toLocaleString()}${`\n http://www.nexusmods.com/${game.domainName || ''}`}`,
             inline: false
         }
     }));

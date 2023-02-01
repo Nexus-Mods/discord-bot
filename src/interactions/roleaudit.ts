@@ -1,8 +1,9 @@
-import { CommandInteraction, Client, User, Role, Interaction, Guild, Collection, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { CommandInteraction, Client, User, Guild, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
-import { getAllUsers, updateRoles, getServer, getLinksByServer, deleteServerLink } from '../api/bot-db';
+import { getAllUsers, updateRoles, getLinksByServer, deleteServerLink } from '../api/bot-db';
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { logMessage } from "../api/util";
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -39,14 +40,15 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         logMessage('Got guild members', guildMembers.size);
 
         for (const member of linkedMembers) {
+            const user = new DiscordBotUser(member);
             const discordUser: User | undefined = guildMembers.get(member.d_id)?.user;
             if (!discordUser) {
                 logMessage('Could not resolve guild member for ', member.name);
-                await deleteServerLink(client, member, undefined, guild);
+                await deleteServerLink(client, user, undefined, guild);
                 continue;
             }
             logMessage('Auditing roles', { nexus: member.name, discord: discordUser.tag, guild: guild.name });
-            await updateRoles(client, member, discordUser, guild);
+            await updateRoles(client, user, discordUser, guild);
         }
         logMessage('Auditing complete');
         return interaction.editReply(`Successfully audited roles on ${linkedMembers.length} users.`);

@@ -1,8 +1,8 @@
 import { DiscordInteraction } from "../types/DiscordTypes";
-import { NexusUser } from "../types/users";
-import { getUserByDiscordId, userEmbed } from '../api/bot-db';
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, CommandInteractionOption, Interaction, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { getUserByDiscordId } from '../api/bot-db';
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, CommandInteractionOption, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { logMessage } from '../api/util';
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -33,13 +33,13 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: !show}).catch(err => { throw err });;
     // Check if they are already linked.
-    let userData : NexusUser | undefined;
+    let userData : DiscordBotUser | undefined;
 
     try {
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         if (!userData) interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
         else {
-            const card: EmbedBuilder = await userEmbed(userData, client);
+            const card: EmbedBuilder = await userData.ProfileEmbed(client);
             interaction.followUp({ embeds: [card] });
         }
     }

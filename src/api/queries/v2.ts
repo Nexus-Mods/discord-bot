@@ -22,6 +22,7 @@ export interface ICollection {
     game: {
         id: number;
         domainName: string;
+        name: string;
     }
     user: {
         memberId: number;
@@ -31,6 +32,7 @@ export interface ICollection {
     tileImage: {
         url: string;
         altText: string;
+        thumbnailUrl: string;
     }
     updatedAt: Date;
 }

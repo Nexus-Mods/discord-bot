@@ -1,14 +1,15 @@
 import { 
     CommandInteraction, Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, 
-    Message, Interaction, ButtonStyle, SlashCommandBuilder, SelectMenuBuilder, 
+    Message, ButtonStyle, SlashCommandBuilder, SelectMenuBuilder, 
     SelectMenuOptionBuilder, 
     ChatInputCommandInteraction,
     MessageComponentInteraction
 } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
-import { NexusUser, NexusLinkedMod } from "../types/users";
+import { NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, deleteMod, updateAllRoles } from '../api/bot-db';
 import { logMessage } from '../api/util';
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -28,9 +29,9 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     // Get existing user data and mods.
     const discordId: string = interaction.user.id;
-    const user: NexusUser = await getUserByDiscordId(discordId);
+    const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
     if (!user) return interaction.editReply({ content: 'You do not have a Nexus Mods account linked to your profile. Use /link to get stared.' });
-    const mods: NexusLinkedMod[] = await getModsbyUser(user.id).catch(() => []);
+    const mods: NexusLinkedMod[] = await getModsbyUser(user.NexusModsId).catch(() => []);
 
     // If the user has no mods, we can exit here! 
     if (!mods.length) return interaction.editReply({ content: 'You do not have any mods linked to your profile.' });
@@ -102,21 +103,21 @@ async function removeMods (mods: NexusLinkedMod[]) {
     Promise.all(mods.map(async m => deleteMod(m)))
 }
 
-const selectEmbed = (client: Client, user: NexusUser): EmbedBuilder => {
+const selectEmbed = (client: Client, user: DiscordBotUser): EmbedBuilder => {
     return new EmbedBuilder()
     .setTitle('Select Mods to remove')
     .setDescription('Use the drop-down menu below to select which mods you wish to remove.')
-    .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
+    .setThumbnail(user.NexusModsAvatar || 'https://www.nexusmods.com/assets/images/default/avatar.png')
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
 }
 
-const completedEmbed = (client: Client, user: NexusUser, modsRemoved: NexusLinkedMod[]): EmbedBuilder => {
+const completedEmbed = (client: Client, user: DiscordBotUser, modsRemoved: NexusLinkedMod[]): EmbedBuilder => {
     const modsText: string = modsRemoved.map(m => `- [${m.name}](https://nexusmods.com/${m.path})`).join('\n');
     return new EmbedBuilder()
     .setTitle('Mods Removed')
     .setDescription('The following mods have been successfully removed from your Discord account:\n'+modsText)
-    .setThumbnail(user.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
+    .setThumbnail(user.NexusModsAvatar || 'https://www.nexusmods.com/assets/images/default/avatar.png')
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
 }

@@ -31,6 +31,7 @@ query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean,
             game {
               id
               domainName
+              name
             }
             user {
               memberId
@@ -40,6 +41,7 @@ query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean,
             tileImage {
               url
               altText
+              thumbnailUrl
             }
         }
         nodesFilter

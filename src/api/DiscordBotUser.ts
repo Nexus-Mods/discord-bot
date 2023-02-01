@@ -166,11 +166,12 @@ export class DiscordBotUser {
         }
     }
 
-    private async refreshUserData(): Promise<void> {
+    private async refreshUserData(): Promise<(keyof NexusUser)[]> {
+        let updated : (keyof NexusUser)[] = [];
         if (this.NexusModsAPIKey && this.NexusModsAuthType === 'APIKEY') {
             try {
                 const data = await this.NexusMods.API.v1.Validate();
-                await this.updateUserDataFromAPIKey(data);
+                updated = await this.updateUserDataFromAPIKey(data);
                 
             }
             catch(err) {
@@ -181,7 +182,7 @@ export class DiscordBotUser {
         else if (this.NexusModsOAuthTokens) {
             try {
                 const data = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens)
-                await this.updateUserDataFromOAuth(data);
+                updated = await this.updateUserDataFromOAuth(data);
             }
             catch(err) {
                 (err as Error).message = `Failed to refresh user data - ${(err as Error).message}`
@@ -211,39 +212,48 @@ export class DiscordBotUser {
         catch(err) {
             logMessage('Failed to update Discord role metadata', err, true);
         }
+
+        return updated;
     }
 
-    private async updateUserDataFromAPIKey(validatedKey: IValidateKeyResponse) {
+    private async updateUserDataFromAPIKey(validatedKey: IValidateKeyResponse): Promise<(keyof NexusUser)[]> {
+        const updatedFields: (keyof NexusUser)[] = [];
         const { name, is_premium, is_supporter } = validatedKey;
         let newData: Partial<NexusUser> = {};
         // Update saved username
         if (name != this.NexusModsUsername) {
             newData.name = name;
             this.NexusModsUsername = name;
+            updatedFields.push('name');
         }
         // Update saved Premium status
         if (is_premium && !this.NexusModsRoles.has('premium')) {
             newData.premium = is_premium;
             this.NexusModsRoles.add('premium');
+            updatedFields.push('premium');
         }
         else if (!is_premium && this.NexusModsRoles.has('premium')) {
             newData.premium = is_premium;
             this.NexusModsRoles.delete('premium');
+            updatedFields.push('premium');
         }
         // Update saved supporter status
         if ((!is_premium && is_supporter) && !this.NexusModsRoles.has('supporter')) {
             newData.supporter = is_supporter;
             this.NexusModsRoles.add('supporter');
+            updatedFields.push('supporter');
         }
         try {
             const modAuthor = await this.NexusMods.API.v2.IsModAuthor(this.NexusModsId);
             if (modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.add('modauthor');
+                updatedFields.push('modauthor');
             }
             else if (!modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.delete('modauthor');
+                updatedFields.push('modauthor');
             }
 
         }
@@ -260,24 +270,30 @@ export class DiscordBotUser {
         catch(err) {
             throw new Error('Failed to save user data to database.');
         }
+
+        return updatedFields;
     }
 
-    private async updateUserDataFromOAuth(userData: NexusUserData) {
+    private async updateUserDataFromOAuth(userData: NexusUserData): Promise<(keyof NexusUser)[]> {
+        const updatedFields: (keyof NexusUser)[] = [];
         const { name, avatar, membership_roles } = userData;
         let newData: Partial<NexusUser> = {};
         if (name != this.NexusModsUsername) {
             this.NexusModsUsername = name;
             newData.name = name;
+            updatedFields.push('name');
         }
 
         if (avatar != this.NexusModsAvatar) {
             this.NexusModsAvatar = avatar;
             newData.avatar_url = avatar;
+            updatedFields.push('avatar_url');
         }
 
         if (membership_roles.includes('supporter') && !this.NexusModsRoles.has('supporter')) {
             this.NexusModsRoles.add('supporter');
             newData.supporter = true;
+            updatedFields.push('supporter');
         }
 
         if (membership_roles.includes('premium') && !this.NexusModsRoles.has('premium')) {
@@ -285,10 +301,12 @@ export class DiscordBotUser {
             this.NexusModsRoles.delete('supporter');
             newData.premium = true;
             newData.supporter = false;
+            updatedFields.push('premium');
         }
         else if (!membership_roles.includes('premium') && this.NexusModsRoles.has('premium')) {
             this.NexusModsRoles.delete('premium');
             newData.premium = false;
+            updatedFields.push('premium');
         }
 
         try {
@@ -296,10 +314,12 @@ export class DiscordBotUser {
             if (modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.add('modauthor');
+                updatedFields.push('modauthor');
             }
             else if (!modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.delete('modauthor');
+                updatedFields.push('modauthor');
             }
 
         }
@@ -317,6 +337,8 @@ export class DiscordBotUser {
         catch(err) {
             throw new Error('Failed to save user data to database.');
         }
+
+        return updatedFields;
     }
 
     private async authoriseNexusMods(): Promise<void> {

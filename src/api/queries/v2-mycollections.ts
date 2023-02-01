@@ -39,6 +39,7 @@ query MyCollections {
         game {
           id
           domainName
+          name
         }
         user {
           memberId
@@ -48,6 +49,7 @@ query MyCollections {
         tileImage {
           url
           altText
+          thumbnailUrl
         }
       }
     }

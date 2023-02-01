@@ -23,8 +23,8 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
     const discordId = interaction.user.id;
-    const user = await getUserByDiscordId(discordId);
-    const botuser = new DiscordBotUser(user);
+    const botuser: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
+    if (!botuser) return interaction.editReply({ content: 'Error! No linked user!' });
     try {
         await botuser.NexusMods.Auth();
         logMessage('Nexus Mods Auth verfied.');
