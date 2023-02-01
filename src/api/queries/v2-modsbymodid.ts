@@ -1,4 +1,5 @@
 import { ModStatus } from "@nexusmods/nexus-api";
+import { GuildMember } from "discord.js";
 import { request, gql, ClientError } from "graphql-request";
 import { logMessage } from "../util";
 import { v2API } from './v2';
@@ -33,6 +34,9 @@ export interface IMod {
         domainName: string;
         name: string;
     }
+    // Added by feed manager
+    lastFileUpdate?: number;
+    authorDiscord?: GuildMember | null;
 }
 
 interface IModRequest {

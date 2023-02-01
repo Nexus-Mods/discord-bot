@@ -12,7 +12,7 @@ const main: DiscordEventInterface = {
         const nexusUser = await getUserByDiscordId(discordUser.id).catch(() => undefined);
         if (!discordUser || !nexusUser) return;
         
-        logMessage('Linked user has left the server, removing link', { guild: guild.name, nexus: nexusUser.name, discord: discordUser.tag });
+        logMessage('Linked user has left the server, removing link', { guild: guild.name, nexus: nexusUser.NexusModsUsername, discord: discordUser.tag });
         await deleteServerLink(client, nexusUser, discordUser, guild).catch(() => undefined);
     }
 }

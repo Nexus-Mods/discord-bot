@@ -1,20 +1,19 @@
 import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
-import { IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api';
+import { IUpdateEntry, IChangelogs } from '@nexusmods/nexus-api';
 import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { NexusUser } from '../types/users';
-import { validate, games, updatedMods, modChangelogs } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
 import { NexusAPIServerError } from '../types/util';
-import { NexusModsGQLClient } from '../api/NexusModsGQLClient';
-import * as GQLTypes from '../types/GQLTypes';
+import { DiscordBotUser } from '../api/DiscordBotUser';
+import { IGame } from '../api/queries/v2-games';
+import { IMod } from '../api/queries/v2-modsbymodid';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
 
 // Temporary storage for game data during the feed update.
-let allGames: IGameInfo[] = [];
+let allGames: IGame[] = [];
 
 export class GameFeedManager {
     private static instance: GameFeedManager;
@@ -112,7 +111,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
     // Gather all the setup information.
     const discordUser: User|null = await client.users.fetch(feed.owner)  //resolve(feed.owner);
-    const userData: NexusUser = await getUserByDiscordId(feed.owner)
+    const user: DiscordBotUser|undefined = await getUserByDiscordId(feed.owner)
         .catch(() => Promise.reject(`Unable to find user data for ${discordUser}`));
     const guild: Guild|null = client.guilds.resolve(feed.guild);
     const channel: TextChannel|null = guild ? (guild.channels.resolve(feed.channel) as TextChannel) : null;
@@ -124,13 +123,13 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     // logMessage(`Checking game feed #${feed._id} for updates (${feed.title}) in ${guild?.name}`);
 
     // If we can't reach the feed owner. 
-    if (!discordUser || !userData) {
+    if (!discordUser || !user) {
         webHook?.destroy();
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
-        logMessage(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${userData?.name || '???' }`);
-        if (channel) channel.send(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${userData?.name || '???' }`).catch(() => undefined);
-        return Promise.reject(`Deleted game update #${feed._id} (${feed.title}) due to missing guild or channel data. Discord user: ${discordUser} Nexus User: ${userData?.name || '???' }`);
+        logMessage(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${user?.NexusModsUsername || '???' }`);
+        if (channel) channel.send(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${user?.NexusModsUsername || '???' }`).catch(() => undefined);
+        return Promise.reject(`Deleted game update #${feed._id} (${feed.title}) due to missing guild or channel data. Discord user: ${discordUser} Nexus User: ${user?.NexusModsUsername || '???' }`);
     }
 
     // Check for relevant permissions.
@@ -151,49 +150,17 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         return Promise.reject(`Server ${guild?.name} or channel ${channel} could not be reached.`);
     }
 
-    // Validate the API key
+    // Check the user's Auth is still valid
     try {
-        if (!!userData.apikey) await validate(userData.apikey);
+        await user.NexusMods.Auth();
     }
     catch(err) {
         webHook?.destroy();
-        if ((err as NexusAPIServerError)?.code === 401) {
-            if (client.config.testing) return logMessage('Game feed delete skipped due to testing mode', { id: feed._id, err});
-            await deleteGameFeed(feed._id);
-            if (discordUser) discordUser.send(`Cancelled Game Feed for ${feed.title} in ${guild?.name} as your API key is invalid.`).catch(() => undefined);
-            return Promise.reject('User API ket invalid.');
-        }
-        else {
-            if (err as NexusAPIServerError) {
-                // Count up concurrent errors
-                const newErrorCount: number = feed.error_count + 1;
-                await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
-                if (newErrorCount != 18) return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}. Error count: ${newErrorCount}`)
-
-                // If the error count is over 18 (i.e. the feed has failed to update for 3 hours straight, report it to the user.)
-                const error = err as NexusAPIServerError;
-                const notifyEmbed = new EmbedBuilder()
-                .setColor('DarkOrange')
-                .setTitle('Error Updating Game Feed')
-                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${error.name} (${error.code}) - ${error.message}.\nThis may be a temporary issue. Retrying in 10 minutes.`);
-                await channel?.send({ embeds: [ notifyEmbed ] }).catch(undefined);
-            }
-            return Promise.reject(`An error occurred when validing API key for ${userData.name}: ${(err as NexusAPIServerError).message || err}, posting failure notice.`);
-        };
-    }
-
-    // Validate OAuth sesssion
-    let nexusGQL: NexusModsGQLClient | undefined = undefined;
-    try {
-        nexusGQL = await NexusModsGQLClient.create(userData);
-    }
-    catch(err) {
-        webHook?.destroy();
-        if ([400, 401].includes((err as any).code)) {
+        if ([400, 401].includes((err as NexusAPIServerError).code)) {
             // Add an error entry
             const newErrorCount: number = feed.error_count + 1;
             await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
-            logMessage('Error creating GQL Client for Gamefeed', { id: feed._id, err });
+            logMessage('Auth error for Gamefeed', { id: feed._id, err });
             if (newErrorCount === 1) {
                 const oAuthErrorEmbed = new EmbedBuilder()
                 .setColor('DarkOrange')
@@ -226,21 +193,21 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 );
                 
                 // Send to the user.
-                logMessage('Informing user of OAuth Error in GameFeed', { user: userData.name, discord: discordUser.tag, feed: feed._id });
+                logMessage('Informing user of OAuth Error in GameFeed', { user: user?.NexusModsUsername, discord: discordUser.tag, feed: feed._id });
                 await discordUser.send({ embeds: [oAuthErrorEmbed], components: [buttons] }).catch(() => undefined);
                 return;
             }
             else return;
             
         }
+
     }
-    if (!nexusGQL) return;
 
     // Get all the games if we need them.
-    if (!allGames.length) allGames = await games(userData, true);
+    if (!allGames.length) allGames = await user.NexusMods.API.v2.Games();
 
     // Get the data for the game we're checking.
-    const game: IGameInfo|undefined = allGames.find(g => g.domain_name === feed.domain);
+    const game: IGame|undefined = allGames.find(g => g.domainName === feed.domain);
 
     if (!game) {
         // logMessage(`Unable to retrieve game info for ${feed.title}`, { id: feed._id, guild: guild?.name }, true);
@@ -249,9 +216,9 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
     // Get the updated mods for this game.
     try {
-        const newMods: IUpdateEntry[] = await updatedMods(userData, feed.domain, '1w');
+        const newMods: IUpdateEntry[] = await user.NexusMods.API.v1.UpdatedMods(feed.domain, '1w');
         // Filter out the mods from before our saved timestamp.
-        const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() /1000);
+        const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() / 1000);
         const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
 
         // No mods to show
@@ -265,7 +232,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         // Using GQL for requests instead of doing it one at a time.
         // const nexusGQL = await NexusModsGQLClient.create(userData);
         const modsToCheck = filteredMods.map(m => ({ gameDomain: feed.domain, modId: m.mod_id }));
-        let modMeta: Partial<GQLTypes.FeedMod>[] = await nexusGQL.modInfo(modsToCheck);
+        let modMeta: IMod[] = await user.NexusMods.API.v2.ModsByModId(modsToCheck);
 
         // Add in the last file update time, as we'll need this and it isn't in GQL yet
         modMeta = modMeta.map(m => {
@@ -295,20 +262,20 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             if ((mod.adult && !feed.nsfw) || (!mod.adult && !feed.sfw)) continue;
 
             // If the mod author is in this server, get their Discord handle.
-            const authorData: NexusUser|undefined = await getUserByNexusModsName(mod.uploader?.name || '').catch(() => undefined);
-            (mod as GQLTypes.FeedMod).authorDiscord = guild && authorData ? guild.members.resolve(authorData?.d_id) : null;
+            const authorData: DiscordBotUser|undefined = await getUserByNexusModsName(mod.uploader?.name || '').catch(() => undefined);
+            mod.authorDiscord = guild && authorData ? guild.members.resolve(authorData?.DiscordId) : null;
 
             // Determine if this a new or updated mod and build the embed.
             const timeDiff: number = (new Date (mod.updatedAt || 0)?.getTime()) - (new Date (mod.createdAt || 0)?.getTime());
             const isNewMod: boolean = (timeDiff < timeNew && feed.show_new);
             if (isNewMod === true && feed.show_new) {
-                const embed: EmbedBuilder = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, true, undefined, feed.compact);
+                const embed: EmbedBuilder = createModEmbedGQL(client, mod, game, true, undefined, feed.compact);
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
             else if (isNewMod === false && feed.show_updates) {
-                const changelog: IChangelogs|undefined = await modChangelogs(userData, feed.domain, mod.modId || 0).catch(() => undefined);
-                const embed: EmbedBuilder = createModEmbedGQL(client, mod as GQLTypes.FeedMod, game, false, changelog, feed.compact)
+                const changelog: IChangelogs|undefined = await user.NexusMods.API.v1.ModChangelogs(feed.domain, mod.modId || 0).catch(() => undefined);
+                const embed: EmbedBuilder = createModEmbedGQL(client, mod, game, false, changelog, feed.compact)
                 modEmbeds.push(embed);
                 lastUpdate = updateTime;
             }
@@ -351,7 +318,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         webHook?.destroy();
         const error: string = (err as Error)?.message || (err as string);
         if (error.indexOf('Nexus Mods API responded with 429.') !== -1) {
-            logMessage('Failed to process game feed due to rate limiting', { name: userData.name, id: feed._id, guild: guild?.name });
+            logMessage('Failed to process game feed due to rate limiting', { name: user?.NexusModsUsername, id: feed._id, guild: guild?.name });
             return;
         }
         return Promise.reject(err);
@@ -362,14 +329,14 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
 
 
 function createModEmbedGQL(client: Client,
-    mod: GQLTypes.FeedMod, 
-    game: IGameInfo, 
+    mod: IMod, 
+    game: IGame, 
     newMod: boolean, 
     changeLog: IChangelogs|undefined, 
     compact: boolean): EmbedBuilder {
 const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
 const category: string = mod.modCategory.name || 'Unknown';
-const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.uploader.memberId}`;
+const uploaderProfile: string = `https://nexusmods.com/${game.domainName}/users/${mod.uploader.memberId}`;
 
 let post = new EmbedBuilder()
 .setAuthor({name:`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, iconURL: client.user?.avatarURL() || '' })

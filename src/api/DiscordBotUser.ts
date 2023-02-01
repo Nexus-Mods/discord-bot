@@ -119,6 +119,7 @@ export class DiscordBotUser {
         LinkedMods: () => getModsbyUser(this.NexusModsId),
         AddLinkedMod: (mod: NexusLinkedMod) => createMod(mod),
         DeleteLinkedMod: (mod: NexusLinkedMod) => deleteMod(mod),
+        Revoke: () => this.NexusModsAuthType === 'OAUTH' && !!this.NexusModsOAuthTokens ? NexusModsOAuth.revoke(this.NexusModsOAuthTokens) : null,
         API: {
             v1: {
                 Validate: async () => v1.validate(this.headers()),
@@ -370,8 +371,22 @@ export class DiscordBotUser {
     public Discord = {
         Auth: async () => true,
         ID: (): string => this.DiscordId,
-        User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId)
+        User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId),
+        Revoke: () => !!this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
+        BuildMetaData: () => this.getDiscordMetaData(),
+        GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens) : undefined,
+        PushMetaData: 
+        async (meta: { modauthor?: 1 | 0, premium?: 1 | 0, supporter?: 1 | 0 }) => 
+            this.DiscordOAuthTokens ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) : new Error('Not Authorised')
     }
+
+    private async getDiscordMetaData (): Promise< { modauthor: 1 | 0, premium: 1 | 0, supporter: 1 | 0 } > {
+        return {
+            modauthor: this.NexusModsRoles.has('modauthor')? 1 : 0,
+            premium: this.NexusModsRoles.has('premium') ? 1 : 0,
+            supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? 1 : 0,
+        };
+    } 
 }
 
 // const db = new DiscordBotUser({ d_id: '', id: 234, name: '', supporter: false, premium: false });

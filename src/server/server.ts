@@ -6,6 +6,7 @@ import { logMessage } from '../api/util';
 import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users';
 import { NexusUser } from '../types/users';
 import path from 'path';
+import { DiscordBotUser } from '../api/DiscordBotUser';
 
 export class AuthSite {
     private static instance: AuthSite;
@@ -155,7 +156,7 @@ export class AuthSite {
             logMessage('Could not find matching Discord Auth to pair accounts', req.url, true);
             return res.sendStatus(403);
         }
-        const existingUser: NexusUser = await getUserByDiscordId(discordData.id);
+        const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);
 
         try {
             const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
@@ -166,15 +167,13 @@ export class AuthSite {
                 logMessage('Existing Nexus Mods user lookup', nexusUser);
                 if (!!nexusUser) {
                     // If their Discord is linked to another account, remove that link. 
-                    logMessage('Deleting link to a different Discord account!', { user: nexusUser.name, discord: nexusUser.d_id });
+                    logMessage('Deleting link to a different Discord account!', { user: nexusUser.NexusModsUsername, discord: nexusUser.DiscordId });
                     try {
-                    if (!!nexusUser.nexus_access && !!nexusUser.nexus_refresh && !!nexusUser.nexus_expires) 
-                        await NexusModsOAuth.revoke({ access_token: nexusUser.nexus_access, refresh_token: nexusUser.nexus_refresh, expires_at: nexusUser.nexus_expires });
-                    if (!!nexusUser.discord_access && !!nexusUser.discord_refresh && !!nexusUser.discord_expires) 
-                        await DiscordOAuth.revoke({ access_token: nexusUser.discord_access, refresh_token: nexusUser.discord_refresh, expires_at: nexusUser.discord_expires });
+                        await nexusUser.Discord.Revoke();
+                        await nexusUser.NexusMods.Revoke();
                     }
                     catch(err) { logMessage('Error revoking tokens for alternate account', err, true); }
-                    await deleteUser(nexusUser.d_id);
+                    await deleteUser(nexusUser.DiscordId);
                 }
             }
 
@@ -239,9 +238,7 @@ export class AuthSite {
             const id = req.query['id'];
             if (!id) throw new Error('ID not sent');
             const user = await getUserByDiscordId(id as string);
-            if (!user.discord_access || !user.discord_expires || !user.discord_refresh) throw new Error('Invalid Discord OAuth Data');
-            const tokens = { access_token: user.discord_access, refresh_token: user.discord_refresh, expires_at: user.discord_expires };
-            const meta = await DiscordOAuth.getMetadata((id as string),tokens);
+            const meta = user ? user.Discord.GetRemoteMetaData() : {};
             res.send(JSON.stringify(meta, null, '</br>'));
             
         }
@@ -252,44 +249,20 @@ export class AuthSite {
         
     }
 
-    async updateDiscordMetadata(userId: string, user?: NexusUser) {
+    async updateDiscordMetadata(userId: string, user?: DiscordBotUser | undefined) {
         let metadata = {};
         if (!user) user = await getUserByDiscordId(userId);
         if (!user) throw new Error('No linked users for this Discord ID.');
-        if (!user.discord_access || !user.discord_refresh || !user.discord_expires) {
-            throw new Error('No Discord OAuth tokens for this user:'+user.name);
-        }
-        if (!user.nexus_access || !user.nexus_refresh || !user.nexus_expires) {
-            throw new Error('No Nexus Mods OAuth tokens for this user:'+user.name);
-        }
-        const tokens = { 
-            access_token: user.discord_access, 
-            refresh_token: user.discord_refresh, 
-            expires_at: user.discord_expires 
-        };
         try {
-            const nexusTokens = {
-                access_token: user.nexus_access,
-                refresh_token: user.nexus_refresh,
-                expires_at: user.nexus_expires
-            };
-            const accessTokens = await NexusModsOAuth.getAccessToken(nexusTokens);
-            const userData = await NexusModsOAuth.getUserData(accessTokens);
-            // The Discord Metadata API is super janky and accepts INTs but not True/False.
-            metadata = {
-                member: userData.membership_roles.includes('member') ? 1 : 0,
-                modauthor: userData.membership_roles.includes('modauthor')? 1 : 0,
-                premium: userData.membership_roles.includes('premium') ? 1 : 0,
-                supporter: (userData.membership_roles.includes('supporter') && !userData.membership_roles.includes('premium')) ? 1 : 0,
-            };
-
+            await user.NexusMods.Auth();
+            await user.NexusMods.Refresh();
+            metadata = await user.Discord.BuildMetaData();
         }
         catch(err) {
-            // (err as Error).message =  `Error updating role metadata: ${(err as Error).message}`;
             logMessage(`Error updating role metadata: [[${(err as Error).message}]]`, err, true);
         }
 
-        await DiscordOAuth.pushMetadata(userId, user.name, tokens, metadata);
+        await user.Discord.PushMetaData(metadata);
 
     }
 
@@ -300,31 +273,15 @@ export class AuthSite {
             const user = await getUserByDiscordId(id);
             if (!user) throw new Error(`No links exist for the Discord ID ${id}`);
             // Revoke Discord tokens
-            if (!!user.discord_access && !!user.discord_expires && !!user.discord_refresh) {
-                const discordTokens = { access_token: user.discord_access, refresh_token: user.discord_refresh, expires_at: user.discord_expires };
-                await DiscordOAuth.revoke(discordTokens);
-            }
-            else logMessage('No Discord Tokens to revoke', user.name);
+            await user.Discord.Revoke();
+
             // Revoke Nexus Mods tokens
-            if (!!user.nexus_access && !!user.nexus_expires && !!user.nexus_refresh) {
-                const nexusTokens = { access_token: user.nexus_access, refresh_token: user.nexus_refresh, expires_at: user.nexus_expires };
-                await NexusModsOAuth.revoke(nexusTokens);
-            }
-            else logMessage('No Nexus Mods Tokens to revoke', user.name);
+            await user.NexusMods.Revoke();
 
             // Delete from database
             await deleteUser(id);
-            // await updateUser(id, 
-            //     { 
-            //         nexus_access: undefined, 
-            //         nexus_expires: undefined, 
-            //         nexus_refresh: undefined, 
-            //         discord_access: undefined, 
-            //         discord_expires: undefined, 
-            //         discord_refresh: undefined 
-            // });
-            logMessage('Revoke successful for user', user.name);
-            // res.send('Revoke complete!');
+
+            logMessage('Revoke successful for user', user.NexusModsUsername);
             res.statusCode = 200;
             res.render('revoked', { pageTitle: 'Link Removed' });
         }
