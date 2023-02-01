@@ -369,7 +369,10 @@ export class DiscordBotUser {
     }
 
     public Discord = {
-        Auth: async () => true,
+        Auth: async () => {
+            if (this.DiscordOAuthTokens) return DiscordOAuth.getAccessToken(this.DiscordId, this.DiscordOAuthTokens)
+            else throw new Error('Discord not authorised');
+        },
         ID: (): string => this.DiscordId,
         User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId),
         Revoke: () => !!this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
