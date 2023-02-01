@@ -104,12 +104,11 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
 
     if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Error getting Discord access token, ENV VARS are undefined.');
 
-    // logMessage('CHECKING NEXUS MODS ACCESS TOKENS', { expires: new Date(tokens.expires_at), timestamp: tokens.expires_at});
+    // logMessage('CHECKING NEXUS MODS ACCESS TOKENS', { expires: new Date((tokens.expires_at)), timestamp: tokens.expires_at});
 
     // Tokens are valid for 6 hours from the point they are issued.
-    const expiryTime = typeof tokens.expires_at === 'string' ? parseInt(tokens.expires_at as string) : tokens.expires_at; 
-    if (Date.now() > expiryTime) {
-      logMessage('RENEWING NEXUS MODS ACCESS TOKENS', { expiryTime, timestamp: tokens.expires_at, timestampType: typeof tokens.expires_at });
+    if (Date.now() > tokens.expires_at) {
+      logMessage('RENEWING NEXUS MODS ACCESS TOKENS', { expires: new Date((tokens.expires_at)) });
       const url = 'https://users.nexusmods.com/oauth/token';
       const body = new URLSearchParams({
         client_id: NEXUS_OAUTH_ID,
@@ -135,6 +134,7 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
         throw err;
       }
     }
+    logMessage('Tokens are still valid', { expires: new Date((tokens.expires_at)) });
     return tokens;
 }
 

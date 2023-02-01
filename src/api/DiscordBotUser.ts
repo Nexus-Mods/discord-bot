@@ -8,6 +8,7 @@ import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
 import { getModsbyUser, createMod, deleteMod, userProfileEmbed } from './bot-db';
+import { IModsSort } from './queries/v2-mods';
 
 interface OAuthTokens {
     access_token: string;
@@ -145,11 +146,11 @@ export class DiscordBotUser {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
                 Game: async () => { throw new Error('Not Implemented') }, // TBC
                 Games: async () => v2.games(this.headers()),
-                Mod: async (mod: { gameDomain: string, modId: number }) => v2.mods(this.headers(), mod),
-                Mods: async () => { throw new Error('Not Implemented') },
+                Mod: async (mod: { gameDomain: string, modId: number }) => v2.modsById(this.headers(), mod),
+                Mods: async (query: string, gameId?: number, sort?: IModsSort ) => v2.mods(this.headers(), query, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
-                        v2.mods(this.headers(), mods),
+                        v2.modsById(this.headers(), mods),
                 MyCollections: async () => v2.myCollections(this.headers()),
                 Collections: 
                     async (filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean) => 
@@ -344,13 +345,13 @@ export class DiscordBotUser {
 
     private async authoriseNexusMods(): Promise<void> {
         if (this.NexusModsOAuthTokens) {
+            logMessage('Authorising tokens', { name: this.NexusModsUsername });
             const { access_token, refresh_token, expires_at } = await NexusModsOAuth.getAccessToken(this.NexusModsOAuthTokens);
-            this.NexusModsOAuthTokens = { access_token, refresh_token, expires_at: expires_at as number };
-            // const userData: NexusUserData = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens);
-            // ToDo: Need to update the tokens in the class and DB after this!
-            return this.saveTokens({ access_token, refresh_token, expires_at: expires_at as number });
+            this.NexusModsOAuthTokens = { access_token, refresh_token, expires_at };
+            return this.saveTokens(this.NexusModsOAuthTokens);
         }
         else if (this.NexusModsAPIKey) {
+            logMessage('Authorising API key', { name: this.NexusModsUsername });
             await this.NexusMods.API.v1.Validate();
             return;
         }

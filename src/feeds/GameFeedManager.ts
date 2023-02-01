@@ -7,7 +7,7 @@ import { logMessage } from '../api/util';
 import { NexusAPIServerError } from '../types/util';
 import { DiscordBotUser } from '../api/DiscordBotUser';
 import { IGame } from '../api/queries/v2-games';
-import { IMod } from '../api/queries/v2-modsbymodid';
+import { IMod } from '../api/queries/v2';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
@@ -91,6 +91,10 @@ export class GameFeedManager {
         const client: ClientExt = manager.client;
         if (!manager.GameFeeds.length) return logMessage('No game feeds, update check skipped');
         logMessage(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
+
+        // Group by game
+        const games = new Set(manager.GameFeeds.map(f => f.domain));
+        logMessage('Game Feeds for', games);
 
         // TODO! - Do the update for each feed.
         for (const feed of manager.GameFeeds) {
