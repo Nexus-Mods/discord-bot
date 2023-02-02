@@ -156,9 +156,9 @@ export class AuthSite {
             logMessage('Could not find matching Discord Auth to pair accounts', req.url, true);
             return res.sendStatus(403);
         }
-        const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);
 
         try {
+            const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);
             const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
             // logMessage('Got tokens for Nexus Mods', tokens);
             const userData = await NexusModsOAuth.getUserData(tokens);
