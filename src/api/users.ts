@@ -41,7 +41,16 @@ async function getUserByNexusModsName(username: string): Promise<DiscordBotUser|
         query('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             const user: NexusUser = result?.rows[0];
-            if (user) resolve(new DiscordBotUser(user));
+            if (user) {
+                try {
+                    const res = new DiscordBotUser(user);
+                    return resolve(res)
+                }
+                catch(err) {
+                    logMessage('Error in user lookup', { err, username, user }, true);
+                    return reject('USER LOOKUP FAILED.');
+                }
+            }
             else resolve(undefined);
         })
     });
@@ -59,7 +68,8 @@ async function getUserByNexusModsId(id: number): Promise<DiscordBotUser|undefine
 }
 
 async function createUser(user: NexusUser): Promise<DiscordBotUser> {
-    logMessage('Creating user', { name: user.name, auth: user.apikey || user.nexus_access })
+    logMessage('Creating user', { name: user.name, auth: !!user.apikey || !!user.nexus_access });
+    if (!user.apikey && !user.nexus_refresh) throw new Error('No auth information provided.');
     return new Promise(
         (resolve, reject) => {
         query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
@@ -72,6 +82,7 @@ async function createUser(user: NexusUser): Promise<DiscordBotUser> {
                 //if (error.code === "23505") return reject(`Error ${error.code} - The field ${error.constraint} is not unique.`);
             };
             const user: NexusUser = result?.rows[0];
+            logMessage('Created user', { user });
             return resolve(new DiscordBotUser(user));
         })
     });
