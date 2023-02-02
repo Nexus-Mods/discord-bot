@@ -179,6 +179,7 @@ export class AuthSite {
 
             // logMessage('Got Nexus Mods user data from tokens', {userData, discordData});
             // Work out the expiry time (6 hours at time of writing);
+            logMessage('Got tokens for Nexus Mods', tokens);
             const user: Partial<NexusUser> = {
                 id: parseInt(userData.sub),
                 name: userData.name,
@@ -194,6 +195,7 @@ export class AuthSite {
                 discord_refresh: discordData.tokens.refresh_token,
                 discord_expires: discordData.tokens.expires_at                
             }
+            logMessage('User data including tokens', user);
             // Store the tokens
             // logMessage('Pushing user data to database', { update: !!existingUser, name: user.name });
             if (!!user.nexus_access) throw new Error('No Token in new user data!');
