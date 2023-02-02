@@ -59,6 +59,7 @@ async function getUserByNexusModsId(id: number): Promise<DiscordBotUser|undefine
 }
 
 async function createUser(user: NexusUser): Promise<DiscordBotUser> {
+    logMessage('Creating user', { name: user.name, auth: user.apikey || user.nexus_access })
     return new Promise(
         (resolve, reject) => {
         query('INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, lastUpdate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',

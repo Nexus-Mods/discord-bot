@@ -213,7 +213,7 @@ export class AuthSite {
         }
         catch(err) {
             logMessage('Nexus Mods OAuth Error', err, true);
-            res.cookie('ErrorDetail', `Neuxs Mods OAuth Error: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.cookie('ErrorDetail', `Neuxs Mods OAuth Error: ${(err as Error).message || err}`, { maxAge: 1000 * 60 * 2, signed: true });
             res.redirect('/oauth-error');
         }
     }
