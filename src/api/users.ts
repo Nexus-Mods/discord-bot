@@ -20,7 +20,16 @@ async function getUserByDiscordId(discordId: Snowflake | string): Promise<Discor
         query('SELECT * FROM users WHERE d_id = $1', [discordId], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             const user: NexusUser = result?.rows[0];
-            if (user) resolve(new DiscordBotUser(user));
+            if (user) {
+                try {
+                    const res = new DiscordBotUser(user);
+                    return resolve(res)
+                }
+                catch(err) {
+                    logMessage('Error in user lookup', { err, discordId, user }, true);
+                    return reject('USER LOOKUP FAILED.');
+                }
+            }
             else resolve(undefined);
         })
     
