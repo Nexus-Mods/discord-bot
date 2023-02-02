@@ -351,7 +351,7 @@ export class DiscordBotUser {
             return this.saveTokens(this.NexusModsOAuthTokens);
         }
         else if (this.NexusModsAPIKey) {
-            logMessage('Authorising API key', { name: this.NexusModsUsername });
+            // logMessage('Authorising API key', { name: this.NexusModsUsername });
             await this.NexusMods.API.v1.Validate();
             return;
         }

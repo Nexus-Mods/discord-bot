@@ -94,7 +94,11 @@ export class GameFeedManager {
 
         // Group by game
         const games = new Set(manager.GameFeeds.map(f => f.domain));
-        logMessage('Game Feeds for', games);
+        const counts: { [key: string]: number } = [...games].reduce((prev, cur) => {
+            prev[cur] = manager.GameFeeds.filter((f) => f.domain === cur).length
+            return prev;
+        }, {} as any);
+        logMessage('Game Feeds for', counts);
 
         // TODO! - Do the update for each feed.
         for (const feed of manager.GameFeeds) {
