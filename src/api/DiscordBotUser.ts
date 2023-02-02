@@ -86,7 +86,7 @@ export class DiscordBotUser {
             this.NexusModsAPIKey = user.apikey;
             this.NexusModsAuthType = 'APIKEY';
         }
-        else throw new Error('Nexus Mods User does not have any auth options set: '+ JSON.stringify(user));
+        else throw new Error('Nexus Mods User does not have any auth options set: '+ JSON.stringify({ name: user.name, apikey: user.apikey, token: user.nexus_access }));
     }
 
     public ProfileEmbed = async (client: Client): Promise<EmbedBuilder> => userProfileEmbed(this, client);
