@@ -160,7 +160,7 @@ export class AuthSite {
         try {
             const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);
             const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
-            // logMessage('Got tokens for Nexus Mods', tokens);
+            logMessage('Got tokens for Nexus Mods', tokens);
             const userData = await NexusModsOAuth.getUserData(tokens);
             if (!existingUser) {
                 const nexusUser = await getUserByNexusModsId(parseInt(userData.sub));
