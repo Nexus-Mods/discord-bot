@@ -7,6 +7,8 @@ import { logMessage } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { games } from "../api/nexus-discord";
 import { APIRole } from "discord-api-types";
+import { DiscordBotUser } from "../api/DiscordBotUser";
+import { IGame } from "../api/queries/v2-games";
 
 interface BotServerChange {
     name: string;
@@ -126,9 +128,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     try {
         const server: BotServer = await getServer(guild)
         .catch((err) => { throw new Error('Could not retrieve server details'+err.message) }); 
-        const user: NexusUser|undefined = await getUserByDiscordId(discordId);
-        const gameList: IGameInfo[] = user ? await games(user) : [];
-        const filterGame: IGameInfo|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
+        const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
+        const gameList: IGame[] = user ? await user.NexusMods.API.v2.Games() : [];
+        const filterGame: IGame|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
 
         // Viewing the current settings
         if (!subComGroup && subCom === 'view') {
@@ -214,7 +216,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                 break;
                 case 'filter': {
                     const gameQuery: string | null = interaction.options.getString('game');
-                    let foundGame : IGameInfo | undefined;
+                    let foundGame : IGame | undefined;
                     if (!!gameQuery) {
                         foundGame = resolveFilter(gameList, gameQuery);
                         if (!foundGame) throw new Error(`Invalid Game: Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
@@ -269,10 +271,10 @@ const updateEmbed = (data: BotServerChange): EmbedBuilder => {
     .setDescription(`${data.name} updated from ${curVal || data.cur} to ${newVal || data.new}`);
 }
 
-function resolveFilter(games: IGameInfo[], term: string|null|undefined): IGameInfo|undefined {
+function resolveFilter(games: IGame[], term: string|null|undefined): IGame|undefined {
     logMessage('Resolve game', { term, total: games.length });
     if (!term || !games.length) return;
-    const game = games.find(g => g.name.toLowerCase() === term.toLowerCase() || g.domain_name.toLowerCase() === term.toLowerCase() || g.id === parseInt(term));
+    const game = games.find(g => g.name.toLowerCase() === term.toLowerCase() || g.domainName.toLowerCase() === term.toLowerCase() || g.id === parseInt(term));
     return game;
 }
 

@@ -1,8 +1,9 @@
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { NexusUser, NexusUserServerLink } from "../types/users";
-import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed } from '../api/bot-db';
+import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
 import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction } from "discord.js";
 import { logMessage, upgradeWarning } from "../api/util";
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 
 const discordInteraction: DiscordInteraction = {
@@ -48,7 +49,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: show}).catch(err => { throw err });
     // Check if they are already linked.
-    let userData : NexusUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
+    let userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
     if (!userData) {
         interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', embeds: [upgradeWarning()], ephemeral: true});
@@ -79,16 +80,17 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
         if (!foundUser) interaction.followUp({content: 'No members found for your query.', ephemeral: true});
         else {
+            const botUser = new DiscordBotUser(foundUser);
             // check the linked servers for the found user
-            const foundServers: NexusUserServerLink[] = await getLinksByUser(foundUser.id).catch(() => []);
+            const foundServers: NexusUserServerLink[] = await getLinksByUser(botUser.NexusModsId).catch(() => []);
 
             // check if we should return the result. If the found user isn't in the current server, reject the request.
             const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
-            const isMe: boolean = interaction.user.id === foundUser.d_id;
+            const isMe: boolean = interaction.user.id === botUser.DiscordId;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userEmbed(foundUser, client), upgradeWarning()], ephemeral: show });
+            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userProfileEmbed(botUser, client), upgradeWarning()], ephemeral: show });
             else {
-                logMessage('Whois not authorised', {requester: userData, target: foundUser, isAdmin, isMe, inGuild});
+                logMessage('Whois not authorised', {requester: userData, target: botUser, isAdmin, isMe, inGuild});
                 interaction.followUp({ embeds: [ notAllowed(client), upgradeWarning() ], ephemeral: true });
             };
         }

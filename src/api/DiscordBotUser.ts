@@ -8,6 +8,7 @@ import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
 import { getModsbyUser, createMod, deleteMod, userProfileEmbed } from './bot-db';
+import { IModsSort } from './queries/v2-mods';
 
 interface OAuthTokens {
     access_token: string;
@@ -119,6 +120,7 @@ export class DiscordBotUser {
         LinkedMods: () => getModsbyUser(this.NexusModsId),
         AddLinkedMod: (mod: NexusLinkedMod) => createMod(mod),
         DeleteLinkedMod: (mod: NexusLinkedMod) => deleteMod(mod),
+        Revoke: () => this.NexusModsAuthType === 'OAUTH' && !!this.NexusModsOAuthTokens ? NexusModsOAuth.revoke(this.NexusModsOAuthTokens) : null,
         API: {
             v1: {
                 Validate: async () => v1.validate(this.headers()),
@@ -144,11 +146,11 @@ export class DiscordBotUser {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
                 Game: async () => { throw new Error('Not Implemented') }, // TBC
                 Games: async () => v2.games(this.headers()),
-                Mod: async (mod: { gameDomain: string, modId: number }) => v2.mods(this.headers(), mod),
-                Mods: async () => { throw new Error('Not Implemented') },
+                Mod: async (mod: { gameDomain: string, modId: number }) => v2.modsById(this.headers(), mod),
+                Mods: async (query: string, gameId?: number, sort?: IModsSort ) => v2.mods(this.headers(), query, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
-                        v2.mods(this.headers(), mods),
+                        v2.modsById(this.headers(), mods),
                 MyCollections: async () => v2.myCollections(this.headers()),
                 Collections: 
                     async (filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean) => 
@@ -166,11 +168,12 @@ export class DiscordBotUser {
         }
     }
 
-    private async refreshUserData(): Promise<void> {
+    private async refreshUserData(): Promise<(keyof NexusUser)[]> {
+        let updated : (keyof NexusUser)[] = [];
         if (this.NexusModsAPIKey && this.NexusModsAuthType === 'APIKEY') {
             try {
                 const data = await this.NexusMods.API.v1.Validate();
-                await this.updateUserDataFromAPIKey(data);
+                updated = await this.updateUserDataFromAPIKey(data);
                 
             }
             catch(err) {
@@ -181,7 +184,7 @@ export class DiscordBotUser {
         else if (this.NexusModsOAuthTokens) {
             try {
                 const data = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens)
-                await this.updateUserDataFromOAuth(data);
+                updated = await this.updateUserDataFromOAuth(data);
             }
             catch(err) {
                 (err as Error).message = `Failed to refresh user data - ${(err as Error).message}`
@@ -211,39 +214,48 @@ export class DiscordBotUser {
         catch(err) {
             logMessage('Failed to update Discord role metadata', err, true);
         }
+
+        return updated;
     }
 
-    private async updateUserDataFromAPIKey(validatedKey: IValidateKeyResponse) {
+    private async updateUserDataFromAPIKey(validatedKey: IValidateKeyResponse): Promise<(keyof NexusUser)[]> {
+        const updatedFields: (keyof NexusUser)[] = [];
         const { name, is_premium, is_supporter } = validatedKey;
         let newData: Partial<NexusUser> = {};
         // Update saved username
         if (name != this.NexusModsUsername) {
             newData.name = name;
             this.NexusModsUsername = name;
+            updatedFields.push('name');
         }
         // Update saved Premium status
         if (is_premium && !this.NexusModsRoles.has('premium')) {
             newData.premium = is_premium;
             this.NexusModsRoles.add('premium');
+            updatedFields.push('premium');
         }
         else if (!is_premium && this.NexusModsRoles.has('premium')) {
             newData.premium = is_premium;
             this.NexusModsRoles.delete('premium');
+            updatedFields.push('premium');
         }
         // Update saved supporter status
         if ((!is_premium && is_supporter) && !this.NexusModsRoles.has('supporter')) {
             newData.supporter = is_supporter;
             this.NexusModsRoles.add('supporter');
+            updatedFields.push('supporter');
         }
         try {
             const modAuthor = await this.NexusMods.API.v2.IsModAuthor(this.NexusModsId);
             if (modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.add('modauthor');
+                updatedFields.push('modauthor');
             }
             else if (!modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.delete('modauthor');
+                updatedFields.push('modauthor');
             }
 
         }
@@ -260,24 +272,30 @@ export class DiscordBotUser {
         catch(err) {
             throw new Error('Failed to save user data to database.');
         }
+
+        return updatedFields;
     }
 
-    private async updateUserDataFromOAuth(userData: NexusUserData) {
+    private async updateUserDataFromOAuth(userData: NexusUserData): Promise<(keyof NexusUser)[]> {
+        const updatedFields: (keyof NexusUser)[] = [];
         const { name, avatar, membership_roles } = userData;
         let newData: Partial<NexusUser> = {};
         if (name != this.NexusModsUsername) {
             this.NexusModsUsername = name;
             newData.name = name;
+            updatedFields.push('name');
         }
 
         if (avatar != this.NexusModsAvatar) {
             this.NexusModsAvatar = avatar;
             newData.avatar_url = avatar;
+            updatedFields.push('avatar_url');
         }
 
         if (membership_roles.includes('supporter') && !this.NexusModsRoles.has('supporter')) {
             this.NexusModsRoles.add('supporter');
             newData.supporter = true;
+            updatedFields.push('supporter');
         }
 
         if (membership_roles.includes('premium') && !this.NexusModsRoles.has('premium')) {
@@ -285,10 +303,12 @@ export class DiscordBotUser {
             this.NexusModsRoles.delete('supporter');
             newData.premium = true;
             newData.supporter = false;
+            updatedFields.push('premium');
         }
         else if (!membership_roles.includes('premium') && this.NexusModsRoles.has('premium')) {
             this.NexusModsRoles.delete('premium');
             newData.premium = false;
+            updatedFields.push('premium');
         }
 
         try {
@@ -296,10 +316,12 @@ export class DiscordBotUser {
             if (modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.add('modauthor');
+                updatedFields.push('modauthor');
             }
             else if (!modAuthor && !this.NexusModsRoles.has('modauthor')) {
                 newData.modauthor = modAuthor;
                 this.NexusModsRoles.delete('modauthor');
+                updatedFields.push('modauthor');
             }
 
         }
@@ -317,17 +339,19 @@ export class DiscordBotUser {
         catch(err) {
             throw new Error('Failed to save user data to database.');
         }
+
+        return updatedFields;
     }
 
     private async authoriseNexusMods(): Promise<void> {
         if (this.NexusModsOAuthTokens) {
+            logMessage('Authorising tokens', { name: this.NexusModsUsername });
             const { access_token, refresh_token, expires_at } = await NexusModsOAuth.getAccessToken(this.NexusModsOAuthTokens);
-            this.NexusModsOAuthTokens = { access_token, refresh_token, expires_at: expires_at as number };
-            // const userData: NexusUserData = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens);
-            // ToDo: Need to update the tokens in the class and DB after this!
-            return this.saveTokens({ access_token, refresh_token, expires_at: expires_at as number });
+            this.NexusModsOAuthTokens = { access_token, refresh_token, expires_at };
+            return this.saveTokens(this.NexusModsOAuthTokens);
         }
         else if (this.NexusModsAPIKey) {
+            logMessage('Authorising API key', { name: this.NexusModsUsername });
             await this.NexusMods.API.v1.Validate();
             return;
         }
@@ -346,10 +370,27 @@ export class DiscordBotUser {
     }
 
     public Discord = {
-        Auth: async () => true,
+        Auth: async () => {
+            if (this.DiscordOAuthTokens) return DiscordOAuth.getAccessToken(this.DiscordId, this.DiscordOAuthTokens)
+            else throw new Error('Discord not authorised');
+        },
         ID: (): string => this.DiscordId,
-        User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId)
+        User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId),
+        Revoke: () => !!this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
+        BuildMetaData: () => this.getDiscordMetaData(),
+        GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens) : undefined,
+        PushMetaData: 
+        async (meta: { modauthor?: 1 | 0, premium?: 1 | 0, supporter?: 1 | 0 }) => 
+            this.DiscordOAuthTokens ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) : new Error('Not Authorised')
     }
+
+    private async getDiscordMetaData (): Promise< { modauthor: 1 | 0, premium: 1 | 0, supporter: 1 | 0 } > {
+        return {
+            modauthor: this.NexusModsRoles.has('modauthor')? 1 : 0,
+            premium: this.NexusModsRoles.has('premium') ? 1 : 0,
+            supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? 1 : 0,
+        };
+    } 
 }
 
 // const db = new DiscordBotUser({ d_id: '', id: 234, name: '', supporter: false, premium: false });

@@ -1,3 +1,6 @@
+import { ModStatus } from "@nexusmods/nexus-api";
+import { GuildMember } from "discord.js";
+
 export const v2API: string = 'https://api.nexusmods.com/v2/graphql';
 
 export interface ICollection {
@@ -22,6 +25,7 @@ export interface ICollection {
     game: {
         id: number;
         domainName: string;
+        name: string;
     }
     user: {
         memberId: number;
@@ -31,6 +35,7 @@ export interface ICollection {
     tileImage: {
         url: string;
         altText: string;
+        thumbnailUrl: string;
     }
     updatedAt: Date;
 }
@@ -40,4 +45,33 @@ export interface ICollectionSearchResult {
     nodesFilter: string;
     nodesCount: number;
     searchURL?: string;
+}
+
+export interface IMod {
+    uid: string;
+    modId: number;
+    name: string;
+    createdAt: Date;
+    updatedAt: Date;
+    summary: string;
+    status: ModStatus;
+    author: string;
+    uploader: {
+        name: string;
+        avatar: string;
+        memberId: number;
+    }
+    pictureUrl: string;
+    modCategory: {
+        name: string
+    };
+    adult: boolean;
+    version: string;
+    game: {
+        domainName: string;
+        name: string;
+    }
+    // Added by feed manager
+    lastFileUpdate?: number;
+    authorDiscord?: GuildMember | null;
 }

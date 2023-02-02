@@ -7,6 +7,7 @@ import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed,
 import { NexusUser } from "../types/users";
 import { GameFeed } from "../types/feeds";
 import { logMessage } from '../api/util';
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -100,7 +101,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         return logMessage('Permission to create gamefeed denied', { user: interaction.user.tag, guild: interaction.guild?.name });
     }
 
-    const userData: NexusUser = await getUserByDiscordId(discordId);
+    const userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
     // Pull the data we need from the user input
     const type: string | null = interaction.options.getSubcommandGroup();
     if (!type) return aboutFeeds(client, interaction);

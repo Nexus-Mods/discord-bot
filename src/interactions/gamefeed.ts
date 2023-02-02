@@ -4,13 +4,12 @@ import {
     ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
     SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction
 } from "discord.js";
-import { NexusUser } from "../types/users";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
-import { games } from '../api/nexus-discord';
 import { logMessage } from '../api/util';
-import { IGameInfo } from "@nexusmods/nexus-api";
 import { GameFeed } from "../types/feeds";
+import { DiscordBotUser } from "../api/DiscordBotUser";
+import { IGame } from "../api/queries/v2-games";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -65,7 +64,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         return logMessage('Permission to create gamefeed denied', { user: interaction.user.tag, guild: interaction.guild?.name });
     }
 
-    const userData: NexusUser = await getUserByDiscordId(discordId);
+    const userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
 
     const interactionSubCommand = interaction.options.getSubcommand();
 
@@ -78,7 +77,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     }
 }
 
-async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInteraction, user: NexusUser): Promise<void> {
+async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<void> {
     const aboutEmbed = new EmbedBuilder()
     .setTitle('Game Feeds')
     .setDescription("Using this feature you can create a feed in this channel which will periodically report new and updated mods posted for the specfied game."+
@@ -101,7 +100,7 @@ async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInter
     interaction.editReply({ content: null, embeds: [aboutEmbed] });
 }
 
-async function createFeed(client: Client, interaction: ChatInputCommandInteraction, user: NexusUser): Promise<any> {
+async function createFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<any> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     const query: string = interaction.options.getString('game') || '';
@@ -109,8 +108,8 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
 
     try {
         // Find the game we're looking for
-        const allGames: IGameInfo[] = await games(user);
-        const game: IGameInfo | undefined = allGames.find(g => [g.name.toLowerCase(), g.domain_name].includes(query));
+        const allGames = await user.NexusMods.API.v2.Games();
+        const game = allGames.find(g => [g.name.toLowerCase(), g.domainName].includes(query));
         // Game not found!
         if (!game) throw new Error(`No matching games for ${query}`);
 
@@ -168,7 +167,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
                 channel: (interaction.channel as any)?.id,
                 guild: interaction.guild?.id,
                 owner: interaction.user.id,
-                domain: game?.domain_name || '',
+                domain: game?.domainName || '',
                 title: game?.name || '',
                 nsfw,
                 sfw: true,
@@ -202,7 +201,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
     }
 }
 
-async function listFeeds(client: Client, interaction: CommandInteraction, user: NexusUser): Promise<void> {
+async function listFeeds(client: Client, interaction: CommandInteraction, user: DiscordBotUser|undefined): Promise<void> {
     const guildId = interaction.guildId;
     const feeds: GameFeed[] = guildId ? await getGameFeedsForServer(guildId) : [];
     const displayableFeeds = feeds.slice(0, 23);
@@ -226,7 +225,7 @@ async function listFeeds(client: Client, interaction: CommandInteraction, user: 
     interaction.editReply({ content: null, embeds: [embed] });
 }
 
-async function manageFeed(client: Client, interaction: ChatInputCommandInteraction, user: NexusUser): Promise<void> {
+async function manageFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<void> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     const feedId = interaction.options.getNumber('id');
@@ -458,7 +457,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
     }
 }
 
-const confirmEmbed = (client: Client, interaction: Interaction, game: IGameInfo, user: NexusUser, nsfw: boolean): EmbedBuilder => {
+const confirmEmbed = (client: Client, interaction: Interaction, game: IGame, user: DiscordBotUser, nsfw: boolean): EmbedBuilder => {
     return new EmbedBuilder()
     .setColor(0xda8e35)
     .setTitle(`Create game feed in #${(interaction.channel as any).name}?`)
@@ -466,12 +465,12 @@ const confirmEmbed = (client: Client, interaction: Interaction, game: IGameInfo,
     .setDescription(
         `New and updated mods for ${game.name} will be posted in ${interaction.channel?.toString()} periodically.\n`+
         `Adult content ${nsfw ? "will" : "will not"} be included.\n`+
-        `The API key for ${user.name} will be used.`
+        `The API key for ${user.NexusModsUsername} will be used.`
     )
     .setFooter({ text: `Nexus Mods API link`, iconURL: client.user?.avatarURL() || '' })
 }
 
-const successEmbed = (interaction: Interaction, feed: Partial<GameFeed>, game: IGameInfo, id: number): EmbedBuilder => {
+const successEmbed = (interaction: Interaction, feed: Partial<GameFeed>, game: IGame, id: number): EmbedBuilder => {
     return new EmbedBuilder()
     .setTitle(`Mods for ${feed.title} will be posted in this channel`)
     .setColor(0xda8e35)

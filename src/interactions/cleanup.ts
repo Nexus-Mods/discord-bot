@@ -6,6 +6,7 @@ import { NexusUser } from '../types/users';
 import { logMessage } from "../api/util";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { NexusAPIServerError } from "../types/util";
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -43,6 +44,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         await interaction.editReply('Cleaning up users');
         let cleanedUsers: NexusUser[] = [];
         for (const user of users) {
+            const userFull = new DiscordBotUser(user);
             const apiKey = user.apikey;
             try {
                 if (!!apiKey) await validate(apiKey);
@@ -53,7 +55,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                     // Invalid key.
                     const discordUser = await client.users.fetch(user.d_id);
                     if (!dryrun) await deleteUser(user.d_id);
-                    if (!dryrun) await deleteAllServerLinksByUser(client, user, discordUser);
+                    if (!dryrun) await deleteAllServerLinksByUser(client, userFull, discordUser);
                     logMessage('Deleting invalid API key for ', user.name);
                 }
                 else logMessage('Error checking apikey', err, true);

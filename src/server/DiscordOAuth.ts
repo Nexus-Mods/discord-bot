@@ -9,7 +9,7 @@ interface OAuthURL {
 interface OAuthTokens {
     access_token: string;
     token_type?: string;
-    expires_at: number | string;
+    expires_at: number;
     expires_in?: number;
     refresh_token: string;
     scope?: string;
@@ -39,10 +39,9 @@ interface DiscordUserData {
 }
 
 interface BotMetaData {
-  member?: '0' | '1';
-  modauthor?: '0' | '1';
-  premium?: '0' | '1';
-  supporter?: '0' | '1';
+  modauthor?: 0 | 1;
+  premium?: 0 | 1;
+  supporter?: 0 | 1;
 }
 
 export function getOAuthUrl(): OAuthURL {

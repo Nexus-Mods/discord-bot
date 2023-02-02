@@ -1,38 +1,11 @@
-import { ModStatus } from "@nexusmods/nexus-api";
 import { request, gql, ClientError } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API } from './v2';
+import { v2API, IMod } from './v2';
 
 export interface IResult {
     legacyModsByDomain: {
         nodes: IMod[];
     };
-}
-
-export interface IMod {
-    uid: string;
-    modId: number;
-    name: string;
-    createdAt: Date;
-    updatedAt: Date;
-    summary: string;
-    status: ModStatus;
-    author: string;
-    uploader: {
-        name: string;
-        avatar: string;
-        memberId: number;
-    }
-    pictureUrl: string;
-    modCategory: {
-        name: string
-    };
-    adult: boolean;
-    version: string;
-    game: {
-        domainName: string;
-        name: string;
-    }
 }
 
 interface IModRequest {

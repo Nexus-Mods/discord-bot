@@ -29,6 +29,7 @@ query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
         game {
             id
             domainName
+            name
         }
         user {
             memberId
@@ -38,6 +39,7 @@ query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
         tileImage {
             url
             altText
+            thumbnailUrl
         } 
     }
   }

@@ -3,6 +3,7 @@ import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, getLinksByUser, deleteAllServerLinksByUser, deleteUser, deleteServerLink } from '../api/bot-db';
 import { logMessage } from "../api/util";
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -34,7 +35,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         .setColor(0xda8e35)
         .setURL(`https://discordbot.nexusmods.com/revoke?id=${discordId}`)
         .setDescription('Unlinking your account will remove all roles granted by your Nexus Mods account and you will not be able to use all features of the bot anymore.')
-        .setThumbnail(userData.avatar_url || null)
+        .setThumbnail(userData.NexusModsAvatar || null)
         .setFooter({ text: 'Discord Bot - Nexus Mods', iconURL: client?.user?.avatarURL() || '' })];
 
         const unlinkButton = [new ActionRowBuilder<ButtonBuilder>()
@@ -70,12 +71,12 @@ async function oldAction(client: Client, baseInteraction: CommandInteraction): P
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     const global: boolean = interaction.options.get('global')?.value as boolean || false;
     // Check if they are already linked.
-    let userData : NexusUser | undefined;
+    let userData : DiscordBotUser | undefined;
     let userServers: NexusUserServerLink[] | undefined;
 
     try {
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
-        userServers = userData ? await getLinksByUser(userData?.id) : undefined;
+        userServers = userData ? await getLinksByUser(userData?.NexusModsId) : undefined;
     }
     catch(err) {
         console.error('Error checking if user exists in DB when linking', err);
@@ -106,7 +107,7 @@ async function oldAction(client: Client, baseInteraction: CommandInteraction): P
                 return;
             }
 
-            const userServers: NexusUserServerLink[] = await getLinksByUser(userData.id).catch(() => []);
+            const userServers: NexusUserServerLink[] = await getLinksByUser(userData.NexusModsId).catch(() => []);
             const linkExists: NexusUserServerLink|undefined = userServers.find(link => link.server_id === guildId);
             if (!linkExists) {
                 interaction.followUp('Your account is not linked in this server.');

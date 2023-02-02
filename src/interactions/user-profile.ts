@@ -1,8 +1,9 @@
 import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { getUserByDiscordId, userEmbed, getLinksByUser } from '../api/bot-db';
+import { getUserByDiscordId, userProfileEmbed, getLinksByUser, userEmbed } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { NexusUser, NexusUserServerLink } from "../types/users";
+import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new ContextMenuCommandBuilder()
@@ -23,13 +24,13 @@ async function action(client: Client, baseinteraction: CommandInteraction): Prom
     if (client.user?.id === interaction.targetId) return interaction.editReply({ content: 'That\'s me!', embeds: [await userEmbed(botUser(client), client)] });
 
     try {
-        const user: NexusUser = await getUserByDiscordId(interaction.targetId);
+        const user: DiscordBotUser|undefined = await getUserByDiscordId(interaction.targetId);
         if (!user) return interaction.editReply('No matching linked accounts.');
-        const linkedServers: NexusUserServerLink[] = await getLinksByUser(user.id).catch(() => []);
+        const linkedServers: NexusUserServerLink[] = await getLinksByUser(user.NexusModsId).catch(() => []);
         const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
         const inGuild: boolean = !!interaction.guild // !!linkedServers.find(link => link.server_id === interaction.guild?.id);
-        const isMe: boolean = interaction.user.id === user.d_id;
-        if (isAdmin || isMe || inGuild) return interaction.editReply({ embeds: [await userEmbed(user, client)] });
+        const isMe: boolean = interaction.user.id === user.DiscordId;
+        if (isAdmin || isMe || inGuild) return interaction.editReply({ embeds: [await userProfileEmbed(user, client)] });
             else {
                 logMessage('Profile view not authorised', {requester: interaction.user.tag, target: user, isAdmin, isMe, inGuild});
                 return interaction.editReply({ embeds: [ notAllowed(client) ] });
