@@ -196,6 +196,7 @@ export class AuthSite {
             }
             // Store the tokens
             // logMessage('Pushing user data to database', { update: !!existingUser, name: user.name });
+            if (!!user.nexus_access) throw new Error('No Token in new user data!');
             const updatedUser = !!existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id, updatedUser);
             logMessage('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });

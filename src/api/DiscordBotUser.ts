@@ -345,7 +345,7 @@ export class DiscordBotUser {
 
     private async authoriseNexusMods(): Promise<void> {
         if (this.NexusModsOAuthTokens) {
-            logMessage('Authorising tokens', { name: this.NexusModsUsername });
+            // logMessage('Authorising tokens', { name: this.NexusModsUsername });
             const { access_token, refresh_token, expires_at } = await NexusModsOAuth.getAccessToken(this.NexusModsOAuthTokens);
             this.NexusModsOAuthTokens = { access_token, refresh_token, expires_at };
             return this.saveTokens(this.NexusModsOAuthTokens);

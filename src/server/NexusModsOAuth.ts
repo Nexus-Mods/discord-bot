@@ -134,7 +134,7 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
         throw err;
       }
     }
-    logMessage('Tokens are still valid', { expires: new Date((tokens.expires_at)) });
+    // logMessage('Tokens are still valid', { expires: new Date((tokens.expires_at)) });
     return tokens;
 }
 
