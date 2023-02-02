@@ -43,7 +43,7 @@ async function getUserByNexusModsId(id: number): Promise<DiscordBotUser|undefine
         query('SELECT * FROM users WHERE id = $1', [id], (error: Error, result?: QueryResult) => {
             if (error) return reject(error);
             const user: NexusUser = result?.rows[0];
-            if (user) resolve(new DiscordBotUser(user));
+            if (user as NexusUser) resolve(new DiscordBotUser(user));
             else resolve(undefined);
         })
     });
