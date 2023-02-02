@@ -68,7 +68,7 @@ async function getUserByNexusModsId(id: number): Promise<DiscordBotUser|undefine
 }
 
 async function createUser(user: NexusUser): Promise<DiscordBotUser> {
-    logMessage('Creating user', { name: user.name, auth: !!user.apikey || !!user.nexus_access });
+    // logMessage('Creating user', { name: user.name, auth: !!user.apikey || !!user.nexus_access });
     if (!user.apikey && !user.nexus_refresh) throw new Error('No auth information provided.');
     return new Promise(
         (resolve, reject) => {
@@ -89,7 +89,7 @@ async function createUser(user: NexusUser): Promise<DiscordBotUser> {
                 //if (error.code === "23505") return reject(`Error ${error.code} - The field ${error.constraint} is not unique.`);
             };
             const user: NexusUser = result?.rows[0];
-            logMessage('Created user', { user });
+            // logMessage('Created user', { user });
             return resolve(new DiscordBotUser(user));
         })
     });
