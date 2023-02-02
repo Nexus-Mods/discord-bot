@@ -13,8 +13,7 @@ import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGame } from "../api/queries/v2-games";
-import { ICollection } from "../api/queries/v2";
-import { IMod } from "../api/queries/v2-modsbymodid";
+import { ICollection, IMod } from "../api/queries/v2";
 import { IUser } from "../api/queries/v2-finduser";
 
 
