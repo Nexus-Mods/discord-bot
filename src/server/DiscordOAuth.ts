@@ -132,9 +132,9 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
     });
     if (!response.ok) {
       if (response.status === 429) {
-        const resetEpoch = response.headers.get('X-RateLimit-Reset');
-        const resetTime = resetEpoch ? new Date((parseInt(resetEpoch) * 1000)) : undefined;
-        const errMsg = `Your are currently being rate limited by the Discord API ${resetTime ? `- please try again after: ${resetTime.toLocaleString('en-gb')}` : '' } [${response.status}].`;
+        const resetEpoch = response.headers.get('X-RateLimit-Reset-After');
+        // const resetTime = resetEpoch ? new Date((parseInt(resetEpoch) * 1000)) : undefined;
+        const errMsg = `Your are currently being rate limited by the Discord API ${resetEpoch ? `- please try again after: ${resetEpoch}` : '' } [${response.status}].`;
         throw new Error(errMsg);
       }
       throw new Error(`Error pushing Discord metadata: [${response.status}] ${response.statusText}.`);
