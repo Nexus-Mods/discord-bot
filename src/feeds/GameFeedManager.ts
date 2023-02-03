@@ -168,7 +168,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             // Add an error entry
             const newErrorCount: number = feed.error_count + 1;
             await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
-            logMessage('Auth error for Gamefeed', { id: feed._id, err, count: newErrorCount });
+            logMessage('Auth error for Gamefeed', { id: feed._id, err: (err as Error).message, count: newErrorCount, user: user.NexusModsUsername, discord: discordUser.tag });
             if (newErrorCount === 1) {
                 const oAuthErrorEmbed = new EmbedBuilder()
                 .setColor('DarkOrange')

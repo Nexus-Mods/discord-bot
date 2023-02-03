@@ -108,7 +108,7 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
 
     // Tokens are valid for 6 hours from the point they are issued.
     if (Date.now() > tokens.expires_at) {
-      logMessage('RENEWING NEXUS MODS ACCESS TOKENS', { expires: new Date((tokens.expires_at)) });
+      // logMessage('RENEWING NEXUS MODS ACCESS TOKENS', { expires: new Date((tokens.expires_at)) });
       const url = 'https://users.nexusmods.com/oauth/token';
       const body = new URLSearchParams({
         client_id: NEXUS_OAUTH_ID,
