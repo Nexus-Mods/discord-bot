@@ -380,15 +380,15 @@ export class DiscordBotUser {
         BuildMetaData: () => this.getDiscordMetaData(),
         GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens) : undefined,
         PushMetaData: 
-        async (meta: { modauthor?: 1 | 0, premium?: 1 | 0, supporter?: 1 | 0 }) => 
+        async (meta: { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0' }) => 
             this.DiscordOAuthTokens ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) : new Error('Not Authorised')
     }
 
-    private async getDiscordMetaData (): Promise< { modauthor: 1 | 0, premium: 1 | 0, supporter: 1 | 0 } > {
+    private async getDiscordMetaData (): Promise< { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0' } > {
         return {
-            modauthor: this.NexusModsRoles.has('modauthor')? 1 : 0,
-            premium: this.NexusModsRoles.has('premium') ? 1 : 0,
-            supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? 1 : 0,
+            modauthor: this.NexusModsRoles.has('modauthor')? '1' : '0',
+            premium: this.NexusModsRoles.has('premium') ? '1' : '0',
+            supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? '1' : '0',
         };
     } 
 }

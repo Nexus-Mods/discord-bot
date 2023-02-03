@@ -39,9 +39,9 @@ interface DiscordUserData {
 }
 
 interface BotMetaData {
-  modauthor?: 0 | 1;
-  premium?: 0 | 1;
-  supporter?: 0 | 1;
+  modauthor?: '0' | '1';
+  premium?: '0' | '1';
+  supporter?: '0' | '1';
 }
 
 export function getOAuthUrl(): OAuthURL {
@@ -153,11 +153,17 @@ const sleep = async (s: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, Math.ceil(s * 1000)));
 };
 
+interface IRemoteMetaData {
+  platform_name?: string;
+  platform_username?: string;
+  metadata: BotMetaData;
+}
+
 /**
  * Fetch the metadata currently pushed to Discord for the currently logged
  * in user, for this specific bot.
  */
-export async function getMetadata(userId: string, tokens: OAuthTokens): Promise<BotMetaData> {
+export async function getMetadata(userId: string, tokens: OAuthTokens): Promise<IRemoteMetaData> {
   // GET/PUT /users/@me/applications/:id/role-connection
   const { DISCORD_CLIENT_ID } = process.env;
   const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;

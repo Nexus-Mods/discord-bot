@@ -24,7 +24,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-interface MetaData { modauthor?: 1 | 0, premium?: 1 | 0, supporter?: 1 | 0 };
+interface MetaData { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0' };
 
 const updateMeta = (prev: MetaData, cur: MetaData): boolean => {
     for (const key of Object.keys(prev)) {
@@ -114,7 +114,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
                 const oldmeta = await userData.Discord.GetRemoteMetaData();
                 if (!oldmeta) throw new Error('No Discord tokens');
                 const meta = await userData.Discord.BuildMetaData();
-                if (updateMeta(oldmeta, meta)) {
+                if (updateMeta(oldmeta.metadata, meta)) {
                     await userData.Discord.PushMetaData(meta);
                     card.addFields({ name: 'Linked Roles', value: 'Updated successfully!'});
                 }
