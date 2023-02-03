@@ -133,10 +133,9 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
     if (!response.ok) {
       if (response.status === 429) {
         const rateLimitResetAfter = response.headers.get('X-RateLimit-Reset-After');
-        const rateLimitReset: Date = new Date(parseInt((response.headers.get('X-RateLimit-Reset')|| '0'))* 1000);
-        const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
-        const rateLimitLimit = response.headers.get('X-RateLimit-Limit');
-        logMessage('Discord rate limit hit', { rateLimitLimit, rateLimitRemaining, rateLimitReset, rateLimitResetAfter });
+        const headers: Record<string,string> = {};
+        response.headers.forEach((value, key) => { headers[key] = value });
+        logMessage('Discord rate limit hit', { headers });
         const errMsg = `Your are currently being rate limited by the Discord API ${rateLimitResetAfter ? `- please try again after: ${Math.ceil(parseInt(rateLimitResetAfter) / 60)} min(s)` : '' } [${response.status}].`;
         throw new Error(errMsg);
       }
