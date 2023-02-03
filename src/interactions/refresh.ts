@@ -94,7 +94,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     try {
         await userData.NexusMods.Auth();
         const newfields = await userData.NexusMods.Refresh();        
-        if (newfields.length > 1) {
+        if (newfields.length > 0) {
             const updatedFields: string[] = getFieldNames(newfields);
             card.addFields({ name: 'User Info', value: `Updated:\n ${updatedFields.join('\n')}`});
             updateRoles = true;
