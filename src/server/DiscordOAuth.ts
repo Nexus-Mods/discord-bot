@@ -133,9 +133,9 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
     if (!response.ok) {
       if (response.status === 429) {
         const rateLimitResetAfter = response.headers.get('X-RateLimit-Reset-After');
-        if (!retry && rateLimitResetAfter && parseInt(rateLimitResetAfter) < 10) {
+        if (!retry && rateLimitResetAfter && parseFloat(rateLimitResetAfter) < 10) {
           logMessage('Rate limited when updating metadata, retrying in ', rateLimitResetAfter);
-          await sleep(parseInt(rateLimitResetAfter || '10'));
+          await sleep(parseFloat(rateLimitResetAfter || '10'));
           return pushMetadata(userId, username, tokens, metadata, true);      
         }
         const resetSecs = rateLimitResetAfter ? (Math.ceil(parseInt(rateLimitResetAfter))) : 10;
@@ -149,7 +149,10 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
     }
 }
 
-const sleep = async (s: number): Promise<void> => { setTimeout(() => Promise.resolve(), s * 1000) };
+const sleep = async (s: number): Promise<void> => { 
+  logMessage(`Setting timeout for ${Math.ceil(s * 1000)}ms`);
+  return new Promise(resolve => setTimeout(resolve, Math.ceil(s * 1000)));
+};
 
 /**
  * Fetch the metadata currently pushed to Discord for the currently logged
