@@ -24,6 +24,18 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
+interface MetaData { modauthor?: 1 | 0, premium?: 1 | 0, supporter?: 1 | 0 };
+
+const updateMeta = (prev: MetaData, cur: MetaData): boolean => {
+    for (const key of Object.keys(prev)) {
+        if (prev[key as keyof MetaData] != cur[key as keyof MetaData]) {
+            logMessage('No match for metadata key', { key, prev, cur });
+            return true;
+        }
+    }
+    return false;
+};
+
 const replyCard = (client: Client, nexus: DiscordBotUser, discord: User): EmbedBuilder => {
     let result = new EmbedBuilder()
     .setTitle('Updating user data...')
@@ -98,6 +110,21 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             const updatedFields: string[] = getFieldNames(newfields);
             card.addFields({ name: 'User Info', value: `Updated:\n ${updatedFields.join('\n')}`});
             updateRoles = true;
+            try {
+                const oldmeta = await userData.Discord.GetRemoteMetaData();
+                if (!oldmeta) throw new Error('No Discord tokens');
+                const meta = await userData.Discord.BuildMetaData();
+                if (updateMeta(oldmeta, meta)) {
+                    await userData.Discord.PushMetaData(meta);
+                    card.addFields({ name: 'Linked Roles', value: 'Updated successfully!'});
+                }
+                else card.addFields({ name: 'Linked Roles', value: 'No changes required'});
+            }
+            catch(err) {
+                logMessage('Discord metadata update error', (err as Error).message, true);
+                if ((err as Error).message === 'No Discord tokens') card.addFields({ name: 'Linked Roles', value: 'If you would like to use linked roles, please [re-authorise here](https://discordbot.nexusmods.com/linked-role).'})
+                else card.addFields({ name: 'Linked Roles', value: 'Could not update metadata due to an unexpected error'});                
+            }
         }
         else {
             card.addFields({ name: 'User Info', value: `No changes required`});
