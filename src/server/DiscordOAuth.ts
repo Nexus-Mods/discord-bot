@@ -109,7 +109,7 @@ export async function getUserData(tokens: OAuthTokens): Promise<DiscordUserData>
  * Given metadata that matches the schema, push that data to Discord on behalf
  * of the current user.
  */
-export async function pushMetadata(userId: string, username: string, tokens: OAuthTokens, metadata: BotMetaData): Promise<void> {
+export async function pushMetadata(userId: string, username: string, tokens: OAuthTokens, metadata: BotMetaData, retry?: boolean): Promise<void> {
 
     const { DISCORD_CLIENT_ID } = process.env;
     if (!DISCORD_CLIENT_ID) throw new Error('Cannot push Discord metadata, ENVARS invalid');
@@ -133,6 +133,11 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
     if (!response.ok) {
       if (response.status === 429) {
         const rateLimitResetAfter = response.headers.get('X-RateLimit-Reset-After');
+        if (!retry && rateLimitResetAfter && parseInt(rateLimitResetAfter) < 10) {
+          logMessage('Rate limited when updating metadata, retrying in ', rateLimitResetAfter);
+          await sleep(parseInt(rateLimitResetAfter || '10'));
+          return pushMetadata(userId, username, tokens, metadata, true);      
+        }
         const resetSecs = rateLimitResetAfter ? (Math.ceil(parseInt(rateLimitResetAfter))) : 10;
         const headers: Record<string,string> = {};
         response.headers.forEach((value, key) => { headers[key] = value });
@@ -143,6 +148,8 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
       throw new Error(`Error pushing Discord metadata: [${response.status}] ${response.statusText}.`);
     }
 }
+
+const sleep = async (s: number): Promise<void> => { setTimeout(() => Promise.resolve(), s * 1000) };
 
 /**
  * Fetch the metadata currently pushed to Discord for the currently logged
