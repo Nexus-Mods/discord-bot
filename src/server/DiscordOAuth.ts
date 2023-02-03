@@ -142,7 +142,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
         const headers: Record<string,string> = {};
         response.headers.forEach((value, key) => { headers[key] = value });
         logMessage('Discord rate limit hit', { headers, body: await response.json() });
-        const errMsg = `The Discord API is currently rate limit metadata updates${resetSecs ? `- please try again after: ${resetSecs} second(s)` : '' } [${response.status}].`;
+        const errMsg = `The Discord API is currently rate limit metadata updates ${resetSecs ? `- please try again after: ${resetSecs} second(s)` : '' } [${response.status}].`;
         throw new Error(errMsg);
       }
       throw new Error(`Error pushing Discord metadata: [${response.status}] ${response.statusText}.`);
@@ -150,7 +150,6 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
 }
 
 const sleep = async (s: number): Promise<void> => { 
-  logMessage(`Setting timeout for ${Math.ceil(s * 1000)}ms`);
   return new Promise(resolve => setTimeout(resolve, Math.ceil(s * 1000)));
 };
 
