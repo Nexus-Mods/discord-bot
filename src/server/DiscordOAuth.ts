@@ -148,7 +148,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
  * Fetch the metadata currently pushed to Discord for the currently logged
  * in user, for this specific bot.
  */
-export async function getMetadata(userId: string, tokens: OAuthTokens) {
+export async function getMetadata(userId: string, tokens: OAuthTokens): Promise<BotMetaData> {
   // GET/PUT /users/@me/applications/:id/role-connection
   const { DISCORD_CLIENT_ID } = process.env;
   const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;

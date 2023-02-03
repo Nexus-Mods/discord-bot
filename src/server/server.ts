@@ -239,7 +239,7 @@ export class AuthSite {
             const id = req.query['id'];
             if (!id) throw new Error('ID not sent');
             const user = await getUserByDiscordId(id as string);
-            const meta = user ? user.Discord.GetRemoteMetaData() : {};
+            const meta = user ? await user.Discord.GetRemoteMetaData() : {};
             res.send(JSON.stringify(meta, null, '</br>'));
             
         }
