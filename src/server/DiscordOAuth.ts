@@ -136,7 +136,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
         const resetSecs = rateLimitResetAfter ? (Math.ceil(parseInt(rateLimitResetAfter))) : 10;
         const headers: Record<string,string> = {};
         response.headers.forEach((value, key) => { headers[key] = value });
-        logMessage('Discord rate limit hit', { headers, body: response.body });
+        logMessage('Discord rate limit hit', { headers, body: response.json() });
         const errMsg = `The Discord API is currently rate limit metadata updates${resetSecs ? `- please try again after: ${resetSecs} min(s)` : '' } [${response.status}].`;
         throw new Error(errMsg);
       }
