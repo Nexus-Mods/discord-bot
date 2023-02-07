@@ -109,7 +109,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
     try {
         // Find the game we're looking for
         const allGames = await user.NexusMods.API.v2.Games();
-        const game = allGames.find(g => [g.name.toLowerCase(), g.domainName].includes(query));
+        const game = allGames.find(g => [g.name.toLowerCase(), g.domainName].includes(query.toLowerCase()));
         // Game not found!
         if (!game) throw new Error(`No matching games for ${query}`);
 
