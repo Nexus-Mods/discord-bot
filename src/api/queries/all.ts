@@ -10,7 +10,7 @@ import { collectionsByUser } from './v2-collectionsbyuser';
 import { findUser, IUser } from './v2-finduser';
 import { ICollection, ICollectionSearchResult, IMod as IModResult } from './v2';
 
-import { Games as gamesJSON, ModDownloads } from './other';
+import { Games as gamesJSON, ModDownloads, SiteStats } from './other';
 
 export const v1 = {
     validate,
@@ -37,7 +37,8 @@ export const v2 = {
 
 export const other = {
     Games: gamesJSON,
-    ModDownloads
+    ModDownloads,
+    SiteStats
 }
 
 export { IModAuthorResult, IGameResult, IModResult, ICollection, ICollectionSearchResult, IUser };

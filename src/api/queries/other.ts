@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { ModDownloadInfo } from '../../types/util';
 import { logMessage } from '../util';
 
@@ -17,7 +17,20 @@ interface IGame {
     nexusmods_url: string;
 }
 
+interface ISiteStats {
+    games_count: number;
+    mods_count: number;
+    files_count: number;
+    authors_count: number;
+    users_count: number;
+    collections_count: number;
+    downloads_count: number;
+    unique_downloads_countt: number;
+    updated_at: Date;
+}
+
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
+const staticStatsList = 'https://data.nexusmods.com/file/nexus-data/site-stats.json';
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
 
 export async function Games(headers: Record<string, string>): Promise<IGame[]> {
@@ -35,6 +48,29 @@ export async function Games(headers: Record<string, string>): Promise<IGame[]> {
     catch(err) {
         logMessage('Error getting games list from static file', err, true);
         return [];
+    }
+}
+
+export async function SiteStats(headers: Record<string, string>): Promise<ISiteStats> {
+    try {
+        const stats: ISiteStats = await axios({
+            url: staticStatsList,
+            transformResponse: (res) => {
+                const parsed = JSON.parse(res);
+                if (typeof(parsed.updated_at) === 'string') parsed.updated_at = new Date(parsed.updated_at);
+                return (parsed as ISiteStats)
+            },
+            headers: { 
+                'Application-Name': headers['Application-Name'] , 
+                'Application-Version': headers['Application-Version'] 
+            },
+        });
+        return stats;
+    }
+    catch(err) {
+        logMessage('Error getting games list from static file', err, true);
+        (err as AxiosError).message = `Error getting site stats from static file: ${(err as AxiosError).message}`;
+        throw err;
     }
 }
 
