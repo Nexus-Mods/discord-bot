@@ -27,7 +27,7 @@ async function getUserByDiscordId(discordId: Snowflake | string): Promise<Discor
                 }
                 catch(err) {
                     logMessage('Error in user lookup', { err, discordId, user }, true);
-                    return reject('USER LOOKUP FAILED.');
+                    return reject('USER LOOKUP BY DISCORD ID FAILED.');
                 }
             }
             else resolve(undefined);
@@ -48,7 +48,7 @@ async function getUserByNexusModsName(username: string): Promise<DiscordBotUser|
                 }
                 catch(err) {
                     logMessage('Error in user lookup', { err, username, user }, true);
-                    return reject('USER LOOKUP FAILED.');
+                    return reject('USER LOOKUP BY NEXUS MODS USERNAME FAILED.');
                 }
             }
             else resolve(undefined);
