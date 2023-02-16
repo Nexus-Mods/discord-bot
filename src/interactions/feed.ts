@@ -118,17 +118,16 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     }
 }
 
-async function aboutFeeds(client: Client, interaction: ChatInputCommandInteraction): Promise<void> {
+async function aboutFeeds(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
     const aboutEmbed = new EmbedBuilder()
     .setTitle('About Feeds')
     .setDescription("Using this feature you can create a feed in this channel which will periodically post updates for the game, mod or collection of your choice."+
-    "\n\nTo set up the feed use the create command `/feed {type} create` command e.g. \"Stardew Valley\" or \"stardewvalley\"."+
-    "\n\nBy default adult content will only be included if the channel is marked NSFW in Discord."+
-    "\n\n*The feed will use the API key linked to your account.*")
+    "\n\nTo set up the feed use the create command `/feed {type} create` command."+
+    "\n\nBy default adult content will only be included if the channel is marked NSFW in Discord.")
     .addFields([
         {
             name: 'Editing or Cancelling Feeds',
-            value: 'To edit an existing feed, use `/feeds {type} manage id:` followed by the number reference of your feed e.g. /feed ames manage id:117.',
+            value: 'To edit an existing feed, use `/feeds {type} manage id:` followed by the number reference of your feed e.g. /feed {type} manage id:117.',
         },
         {
             name: 'Listing Active Game Feeds',
@@ -138,7 +137,7 @@ async function aboutFeeds(client: Client, interaction: ChatInputCommandInteracti
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
-    interaction.editReply({ content: null, embeds: [aboutEmbed] });
+    return interaction.editReply({ content: null, embeds: [aboutEmbed] });
 }
 
 async function collectionFeed(subCommand: string, variables: { id: number | null, url: string | null }, interaction: ChatInputCommandInteraction) {

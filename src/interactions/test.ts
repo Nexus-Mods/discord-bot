@@ -1,13 +1,14 @@
-import { ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
+import { customEmojis } from "../types/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('test')
-    .setDescription('Testing GQL.')
+    .setDescription('Testing Command.')
     .setDMPermission(false)
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     public: false,
@@ -62,7 +63,20 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
         const embed = await botuser.ProfileEmbed(client);
 
-        return interaction.editReply({ content: formatted, embeds: [embed] });
+        const button = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+            .setLabel('Collections')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji(customEmojis.collection)
+            .setCustomId('collections'),
+            new ButtonBuilder()
+            .setLabel('Mods')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji(customEmojis.mod)
+            .setCustomId('mods')
+        );
+
+        return interaction.editReply({ content: formatted, embeds: [embed], components: [button] });
     }
     catch(err) {
         return interaction.editReply({ content: 'Error! '+err });

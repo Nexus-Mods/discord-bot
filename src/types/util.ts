@@ -19,6 +19,14 @@ export interface InfoResult {
     author?: string;
 }
 
+// Custom Emojis from discord.gg/nexusmods that may be used by the bot.
+export const customEmojis = {
+    mod: '1075460802481504286',
+    collection: '1075460772378980362',
+    nexus: '1003658013476929567',
+    vortex: '495527799017439232'
+}
+
 export interface ModDownloadInfo {
     id: number,
     total_downloads: number,

@@ -1,6 +1,6 @@
 import { 
-    Snowflake, CommandInteraction, Collection, ChatInputCommandInteraction,
-    Client, ContextMenuCommandBuilder, MessageContextMenuCommandInteraction, SlashCommandBuilder,
+    Snowflake, CommandInteraction, Collection, 
+    Client, ContextMenuCommandBuilder, SlashCommandBuilder,
 } from "discord.js";
 import { GameFeedManager } from "../feeds/GameFeedManager";
 import { ModFeedManager } from "../feeds/ModFeedManager";
