@@ -49,7 +49,7 @@ query MyCollections {
         tileImage {
           url
           altText
-          thumbnailUrl
+          thumbnailUrl(size: small)
         }
       }
     }

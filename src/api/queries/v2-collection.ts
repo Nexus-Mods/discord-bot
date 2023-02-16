@@ -39,7 +39,7 @@ query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
         tileImage {
             url
             altText
-            thumbnailUrl
+            thumbnailUrl(size: small)
         } 
     }
   }

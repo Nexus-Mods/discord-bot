@@ -41,7 +41,7 @@ query getCollectionsByUser($filters: CollectionsUserFilter, $adult: Boolean!) {
             tileImage {
               url
               altText
-              thumbnailUrl
+              thumbnailUrl(size: small)
             }
         }
         nodesFilter
