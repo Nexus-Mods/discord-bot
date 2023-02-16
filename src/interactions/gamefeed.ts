@@ -229,7 +229,6 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     const feedId = interaction.options.getNumber('id');
-    const newMessage = interaction.options.getString('message')
 
     try {
         if (!feedId) throw new Error('Feed ID is invalid.');
@@ -311,7 +310,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
         }
 
         // Store the changes before applying them. 
-        let newData: Partial<GameFeed> = newMessage ? { message: newMessage } : {};
+        let newData: Partial<GameFeed> = {};
 
         // Update the embed/buttons
         await interaction.editReply(
@@ -392,7 +391,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     .setCustomId('message-text')
                     .setLabel('Message to attach to Game Feed annoucements')
                     .setPlaceholder('Enter a message to be posted with updates to this game feed.')
-                    .setValue(newData.message || feed.message)
+                    .setValue(feed.message ?? '')
                     .setStyle(TextInputStyle.Short);
 
                     const input = new ActionRowBuilder<ModalActionRowComponentBuilder>()
