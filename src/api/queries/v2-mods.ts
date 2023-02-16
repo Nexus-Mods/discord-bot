@@ -13,10 +13,10 @@ export interface IModResults {
 }
 
 export interface IModsSort {
-    relevance?: GQLTypes.BaseSortValue
-    name?: GQLTypes.BaseSortValue
-    downloads?: GQLTypes.BaseSortValue
-    endorsements?: GQLTypes.BaseSortValue
+    relevance?: { direction: GQLTypes.BaseSortValue }
+    name?: { direction: GQLTypes.BaseSortValue }
+    downloads?: { direction: GQLTypes.BaseSortValue }
+    endorsements?: { direction: GQLTypes.BaseSortValue }
 }
 
 interface IModsFilter {
@@ -63,7 +63,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, query: string, gameId?: number, sort: IModsSort = { endorsements: 'DESC' }): Promise<IModResults> {
+export async function mods(headers: Record<string,string>, query: string, gameId?: number, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter[] = [
         {

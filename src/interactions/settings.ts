@@ -1,11 +1,9 @@
 import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
-import { NexusUser } from "../types/users";
 import { BotServer } from "../types/servers";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
-import { games } from "../api/nexus-discord";
 import { APIRole } from "discord-api-types";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGame } from "../api/queries/v2-games";
@@ -75,7 +73,7 @@ const discordInteraction: DiscordInteraction = {
         )
         .addSubcommand(sc => 
             sc.setName('value')
-            .setDescription('Channels used by the bot.')
+            .setDescription('Additional options used by the bot.')
             .addStringOption(option =>
                 option.setName('key')
                 .setDescription('The key to update.')

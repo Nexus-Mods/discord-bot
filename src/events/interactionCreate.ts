@@ -44,9 +44,9 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
 
     const reply:InteractionReplyOptions  = { embeds: [unexpectedErrorEmbed(err, context)], ephemeral: true};
     if (ignoreErrors.includes(context.error.toString())) {
-        return logMessage('Unknown interaction error', { err, inter: interaction, ...context }, true);
+        return logMessage('Unknown interaction error', { err, inter: interaction.options, ...context }, true);
     }
-    else logMessage('Interaction action errored out', { interact: interaction, ...context }, true);
+    else logMessage('Interaction action errored out', { interact: interaction.options, ...context }, true);
 
     if (interaction.replied || interaction.deferred) {
         if (!interaction.ephemeral) await interaction.deleteReply()
