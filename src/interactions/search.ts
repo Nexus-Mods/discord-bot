@@ -3,7 +3,7 @@ import {
     ButtonBuilder, TextChannel, EmbedField, ButtonInteraction, ChatInputCommandInteraction, 
     SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField, 
 } from "discord.js";
-import { NexusSearchResult, NexusSearchModResult } from "../types/util";
+import { NexusSearchResult, NexusSearchModResult, customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
@@ -492,12 +492,12 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
             inline: true
         },
         {
-            name: '🔹 Mods',
+            name: `<:mod:${customEmojis.mod}> Mods`,
             value: `${(res.latestPublishedRevision.modCount || 0).toLocaleString()}`,
             inline: true
         },
         {
-            name: '💠 Revisions',
+            name: `<:collection:${customEmojis.collection}> Revisions`,
             value: `${res.latestPublishedRevision.revisionNumber || 1}`,
             inline: true
         },
@@ -515,6 +515,11 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
             name: `${successRatingIcon(parseFloat(res.overallRating.toString() || '0'), res.overallRatingCount || 0)} Success Rating`,
             value: `${res.overallRatingCount! >= 3 ? `${res.overallRating}%` : '_TBC_'}`,
             inline: true
+        },
+        {
+            name: `<:vortex:${customEmojis.vortex}> Add to Vortex`,
+            value: `<nxm://skyrimspecialedition/collections/${res.slug}/revisions/latest>`,
+            inline: false
         }
     );
     return embed;
