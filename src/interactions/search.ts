@@ -483,7 +483,7 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
     .setURL(url)
     .setTitle(res.name || 'Unknown Collection')
     .setDescription(res.summary || 'No summary')
-    .setTimestamp(new Date(res.updatedAt || 0))
+    .setTimestamp(new Date(parseInt(res.updatedAt as any) || 0))
     .setAuthor({ name: res.user?.name || '???', url: `https://nexusmods.com/users/${res.user?.memberId || 0}`, iconURL: res.user?.avatar })
     .addFields(
         {
