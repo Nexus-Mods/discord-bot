@@ -309,7 +309,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
         else if (search.results.length === 1) {
             // Single result
             const res: NexusSearchModResult = search.results[0];
-            const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( { gameDomain: res.game_name, modId: res.mod_id } ))?.[0] : undefined;
+            const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( res.game_name, res.mod_id ))?.[0] : undefined;
             const gameForMod: IGame|undefined = filterGame || allGames.find(g => g.domainName === res.game_name);
             const singleResult = singleModEmbed(client, res, mod, gameForMod);
             postResult(interaction, singleResult, ephemeral);
@@ -357,7 +357,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
                     interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
                     return;
                 }
-                const mod = (await user.NexusMods.API.v2.Mod({ gameDomain: res.game_name, modId: res.mod_id }).catch(() => undefined))?.[0];
+                const mod = (await user.NexusMods.API.v2.Mod(res.game_name, res.mod_id).catch(() => undefined))?.[0];
                 postResult(interaction, singleModEmbed(client, res, mod, found?.game), ephemeral);
             });
 

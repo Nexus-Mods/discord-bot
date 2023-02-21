@@ -68,6 +68,7 @@ export interface IMod {
     adult: boolean;
     version: string;
     game: {
+        id: number;
         domainName: string;
         name: string;
     }

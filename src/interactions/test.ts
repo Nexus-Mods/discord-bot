@@ -42,7 +42,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const v2test = {
             IsModAuthor: (await botuser.NexusMods.API.v2.IsModAuthor(1)) === true,
             Games: (await botuser.NexusMods.API.v2.Games()).length > 2000,
-            Mod: (await botuser.NexusMods.API.v2.Mod({ gameDomain: 'skyrim', modId: 3863 }))[0].name === 'SkyUI',
+            Mod: (await botuser.NexusMods.API.v2.Mod('skyrim', 3863))[0].name === 'SkyUI',
             ModsByModId: (await botuser.NexusMods.API.v2.ModsByModId([{ gameDomain: 'skyrim', modId: 3863 }])).length > 0,
             MyCollections: (await botuser.NexusMods.API.v2.MyCollections()).length > 0,
             Collections: (await botuser.NexusMods.API.v2.Collections({}, 'endorsements_count')).nodesCount > 0,

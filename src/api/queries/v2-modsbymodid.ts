@@ -37,6 +37,7 @@ query Mods($mods: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
         adult
         version
         game {
+          id
           domainName
           name
         }

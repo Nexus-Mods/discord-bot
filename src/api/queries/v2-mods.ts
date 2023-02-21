@@ -56,6 +56,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
         game {
           domainName
           name
+          id
         }
       }
       totalCount

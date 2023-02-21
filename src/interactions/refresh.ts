@@ -149,7 +149,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             let deletedMods: (Partial<IModInfo | NexusLinkedMod>)[] = [];
             // Map over all the mods
             const allMods = await Promise.all(mods.map(async (mod) => {
-                const info: IModInfo | undefined = await userData?.NexusMods.API.v1.Mod(mod.domain, mod.mod_id) ;
+                const info = (await userData?.NexusMods.API.v2.Mod(mod.domain, mod.mod_id))?.[0];
                 if (!info) return mod;
                 if (['removed', 'wastebinned'].includes(info.status)) {
                     // Mod has been deleted
@@ -157,7 +157,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
                     deletedMods.push(mod);
                     return mod;
                 }
-                const dls: ModDownloadInfo = { unique_downloads: info.mod_unique_downloads, total_downloads: info.mod_downloads } as ModDownloadInfo;
+                const dls: ModDownloadInfo = await userData?.NexusMods.API.Other.ModDownloads(info.game.id, mod.mod_id) as ModDownloadInfo || { unique_downloads: 0, total_downloads: 0 };
                 let newInfo: Partial<NexusLinkedMod> = {};
                 // Compare any changes
                 if (info.name && mod.name !== info.name) newInfo.name = info.name;
