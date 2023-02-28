@@ -35,25 +35,25 @@ const discordInteraction: DiscordInteraction = {
                 .setDescription('The domain name or title (must be exact). e.g. Stardew Valley or stardewvalley.') 
             )
         )
-        .addSubcommand(sc => 
-            sc.setName('role')
-            .setDescription('The roles assigned by the bot.')
-            .addStringOption(option =>
-                option.setName('type')
-                .setDescription('The role type to edit.')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'Mod Author', value: 'author' },
-                    { name: 'Linked to Nexus Mods', value: 'linked' },
-                    { name: 'Nexus Mods Premium', value: 'premium' },
-                    { name: 'Nexus Mods Supporter', value: 'supporter' },
-                )
-            )
-            .addRoleOption(option => 
-                option.setName('newrole')  
-                .setDescription('Role to use. To unset, leave this blank.')
-            )
-        )
+        // .addSubcommand(sc => 
+        //     sc.setName('role')
+        //     .setDescription('The roles assigned by the bot.')
+        //     .addStringOption(option =>
+        //         option.setName('type')
+        //         .setDescription('The role type to edit.')
+        //         .setRequired(true)
+        //         .addChoices(
+        //             { name: 'Mod Author', value: 'author' },
+        //             { name: 'Linked to Nexus Mods', value: 'linked' },
+        //             { name: 'Nexus Mods Premium', value: 'premium' },
+        //             { name: 'Nexus Mods Supporter', value: 'supporter' },
+        //         )
+        //     )
+        //     .addRoleOption(option => 
+        //         option.setName('newrole')  
+        //         .setDescription('Role to use. To unset, leave this blank.')
+        //     )
+        // )
         .addSubcommand(sc => 
             sc.setName('channel')
             .setDescription('Channels used by the bot.')
@@ -296,10 +296,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     .addFields([
         {
             name: 'Role Settings', 
-            value: 'Set roles for linked accounts, mod authors and Nexus Mods memberships.\n\n'+
-            `**Connected Accounts:** ${linkedRole?.toString() || '*Not set*'}\n`+
-            `**Mod Authors:** ${authorRole?.toString() || '*Not set*'} (Users with ${minDownloads.toLocaleString()}+ unique downloads)\n`+
-            `**Supporter/Premium:** ${supporterRole?.toString() || '*Not set*'}/${premiumRole?.toString() || '*Not set*'}`
+            value: 'These settings can now be managed using [Linked Roles](https://discord.com/blog/connected-accounts-functionality-boost-linked-roles) in Discord.'
         },
         {
             name: 'Channel Settings',
