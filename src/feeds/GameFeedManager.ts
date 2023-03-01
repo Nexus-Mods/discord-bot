@@ -341,7 +341,7 @@ async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: 
     // https://github.com/Vedinsoh/discord-auto-publisher/blob/main/src/crosspost/crosspost.ts#L13
     
     try {
-        const newsChannel = channel ? (channel as GuildBasedChannel) as NewsChannel : undefined;
+        const newsChannel = (channel as GuildBasedChannel).type === 5 ? (channel as GuildBasedChannel) as NewsChannel : undefined;
         if (!newsChannel || !messageId) return logMessage('Could not cross-post message for feed', { feedId: feed._id, channel: channel.name }, true);
         const latest = newsChannel.messages.resolve(messageId);
         if (!!latest?.crosspostable) throw new Error('Message is not cross-postable');
