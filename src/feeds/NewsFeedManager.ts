@@ -2,7 +2,7 @@ import { NewsArticle, SavedNewsData } from '../types/feeds';
 import { updateSavedNews, getSavedNews, getAllServers } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import Parser = require('rss-parser');
-import { EmbedBuilder, Guild, GuildChannel, Snowflake, ThreadChannel } from 'discord.js';
+import { EmbedBuilder, Guild, GuildChannel, Snowflake, TextChannel, ThreadChannel } from 'discord.js';
 import { BotServer } from '../types/servers';
 import { logMessage } from '../api/util';
 const parser = new Parser({
@@ -86,7 +86,13 @@ export class NewsFeedManager {
                 if (!guild) continue;
                 const channel: GuildChannel | ThreadChannel | null = channelId ? guild.channels.resolve(channelId) : null;
                 if (!channel) continue;
-                (channel as any).send({ embeds: [post] }).catch((err: any) => logMessage(`Failed to post news in ${guild?.name}.`, err, true));
+                try {
+                    const message = await (channel as TextChannel).send({ embeds: [post] });
+                    message.crosspostable && !domain ? await message.crosspost() : null;
+                }
+                catch(err) {
+                    logMessage(`Failed to post news in ${guild?.name}.`, err, true)
+                };
             }
 
             if (!domain) {
