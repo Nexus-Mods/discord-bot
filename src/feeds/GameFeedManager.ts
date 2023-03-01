@@ -344,6 +344,7 @@ async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: 
         const newsChannel = channel ? (channel as GuildBasedChannel) as NewsChannel : undefined;
         if (!newsChannel || !messageId) return logMessage('Could not cross-post message for feed', { feedId: feed._id, channel: channel.name }, true);
         const latest = newsChannel.messages.resolve(messageId);
+        if (!!latest?.crosspostable) throw new Error('Message is not cross-postable');
         await latest?.crosspost();
         logMessage('Cross-posting Message for Feed', { feedId: feed._id });
     }
