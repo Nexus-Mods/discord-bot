@@ -32,6 +32,7 @@ interface Feed {
     last_timestamp: Date;
     created: Date;
     error_count: number;
+    crosspost: boolean;
 }
 
 export interface NewsArticle {

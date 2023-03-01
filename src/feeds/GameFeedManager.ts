@@ -2,7 +2,7 @@ import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import { IUpdateEntry, IChangelogs } from '@nexusmods/nexus-api';
-import { User, Guild, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { User, Guild, Snowflake, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, NewsChannel, GuildBasedChannel } from 'discord.js';
 import { logMessage } from '../api/util';
 import { NexusAPIServerError } from '../types/util';
 import { DiscordBotUser } from '../api/DiscordBotUser';
@@ -305,8 +305,9 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         webHook?.on('error', (err: Error) => logMessage('Gamefeed Webhook error', { err, feed: feed._id }, true));
         
         try {
-            await webHook?.send({ embeds: modEmbeds, content: feed.message });
+            const message = await webHook?.send({ embeds: modEmbeds, content: feed.message });
             logMessage(`Posted ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
+            if (feed.crosspost === true && user.NexusModsRoles.has('premium')) await crossPost(feed, channel as GuildBasedChannel, message?.id);
             webHook?.destroy();
             // logMessage(`Webhook for ${feed.title} in ${guild?.name} (#${feed._id}) destroyed.`);
         }
@@ -333,6 +334,22 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     }
 
 
+}
+
+async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: Snowflake | undefined): Promise<void> {
+    // Auto-publish the message if it's an announcement channel. Only available to Premium users. 
+    // https://github.com/Vedinsoh/discord-auto-publisher/blob/main/src/crosspost/crosspost.ts#L13
+    
+    try {
+        const newsChannel = channel ? (channel as GuildBasedChannel) as NewsChannel : undefined;
+        if (!newsChannel || !messageId) return logMessage('Could not cross-post message for feed', { feedId: feed._id, channel: channel.name }, true);
+        const latest = newsChannel.messages.resolve(messageId);
+        await latest?.crosspost();
+        logMessage('Cross-posting Message for Feed', { feedId: feed._id });
+    }
+    catch(err) {
+        logMessage('Cross-posting Message for Feed failed', { feedId: feed._id, err: (err as Error).message }, true);
+    }
 }
 
 
