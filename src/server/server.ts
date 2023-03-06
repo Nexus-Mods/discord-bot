@@ -164,7 +164,7 @@ export class AuthSite {
             const userData = await NexusModsOAuth.getUserData(tokens);
             if (!existingUser) {
                 const nexusUser = await getUserByNexusModsId(parseInt(userData.sub));
-                logMessage('Existing Nexus Mods user lookup', nexusUser);
+                // logMessage('Existing Nexus Mods user lookup', nexusUser?.NexusModsUsername);
                 if (!!nexusUser) {
                     // If their Discord is linked to another account, remove that link. 
                     logMessage('Deleting link to a different Discord account!', { user: nexusUser.NexusModsUsername, discord: nexusUser.DiscordId });
