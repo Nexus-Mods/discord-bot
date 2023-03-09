@@ -147,7 +147,7 @@ export class DiscordBotUser {
                 Game: async () => { throw new Error('Not Implemented') }, // TBC
                 Games: async () => v2.games(this.headers()),
                 Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), [{ gameDomain, modId }]),
-                Mods: async (query: string, gameId?: number, sort?: IModsSort ) => v2.mods(this.headers(), query, gameId, sort),
+                Mods: async (query: string, includeAdult: boolean, gameId?: number, sort?: IModsSort ) => v2.mods(this.headers(), query, includeAdult, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
                         v2.modsById(this.headers(), mods),

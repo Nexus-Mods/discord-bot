@@ -8,6 +8,7 @@ import { quicksearch } from "../api/nexus-discord";
 import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGame } from "../api/queries/v2-games";
+import { IMod } from "../api/queries/v2";
 
 const modUrlExp = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i;
 
@@ -158,28 +159,28 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGame[], us
 async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGame[], user: DiscordBotUser): Promise<APIEmbedField | SearchError> {
 
     try {
-        const search: NexusSearchModResult[] = (await quicksearch(query, true).catch(() => { return { results: [] } } )).results;
-        const filteredResult: NexusSearchModResult[] = 
-            search.filter(mod => mod.user_id == user.NexusModsId && !mods.find(m => m.mod_id === mod.mod_id && m.domain === mod.game_name));
+        const search: IMod[] = (await user.NexusMods.API.v2.Mods(query, true).catch(() => { return { nodes: [] } } )).nodes;
+        const filteredResult: IMod[] = 
+            search.filter(mod => mod.uploader.memberId == user.NexusModsId && !mods.find(m => m.mod_id === mod.modId && m.domain === mod.game.domainName));
 
         if (!filteredResult.length) throw new Error(`No matching mods created by ${user.NexusModsUsername}`);
 
 
         const messages: string[] = await Promise.all(filteredResult.map(
-            async (res: NexusSearchModResult) => {
-                const game = games.find(g => g.id === res.game_id);
-                const modData = (await user.NexusMods.API.v2.Mod(game?.domainName!, res.mod_id))?.[0];
+            async (res: IMod) => {
+                const game = games.find(g => g.id === res.game.id);
+                const modData = (await user.NexusMods.API.v2.Mod(game?.domainName!, res.modId))?.[0];
                 const downloadData: ModDownloadInfo = await user.NexusMods.API.Other.ModDownloads(modData.game.id, modData.modId) as ModDownloadInfo ||
-                { unique_downloads: 0, total_downloads: 0, id: res.mod_id };
+                { unique_downloads: 0, total_downloads: 0, id: res.modId };
                 const newMod: NexusLinkedMod = {
                     name: res.name,
-                    domain: res.game_name,
-                    mod_id: res.mod_id,
+                    domain: res.game.domainName,
+                    mod_id: res.modId,
                     game: game?.name || '',
                     owner: user.NexusModsId,
                     unique_downloads: downloadData.unique_downloads,
                     total_downloads: downloadData.total_downloads,
-                    path: `${res.game_name}/mods/${res.mod_id}` 
+                    path: `${res.game.domainName}/mods/${res.modId}` 
                 }
 
                 mods.push(newMod);

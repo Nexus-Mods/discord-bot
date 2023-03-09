@@ -10,6 +10,8 @@ interface IResult {
 export interface IModResults {
     nodes: IMod[];
     totalCount: number;
+    // For backwards compatibility
+    fullSearchUrl?: string;
 }
 
 export interface IModsSort {
@@ -64,7 +66,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, searchTerm: string, gameId?: number, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
+export async function mods(headers: Record<string,string>, searchTerm: string, includeAdult: boolean, gameId?: number, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
         nameStemmed: {
@@ -82,6 +84,8 @@ export async function mods(headers: Record<string,string>, searchTerm: string, g
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
+        // Adult content filter is not available on the API yet, so we'll have to do it manually.
+        if (!includeAdult) result.mods.nodes = result.mods.nodes.filter(m => m.adult === false);
         return result.mods;
     }
     catch(err) {

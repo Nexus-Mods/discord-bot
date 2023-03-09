@@ -15,6 +15,7 @@ import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGame } from "../api/queries/v2-games";
 import { ICollection, IMod } from "../api/queries/v2";
 import { IUser } from "../api/queries/v2-finduser";
+import { IModResults } from "../api/queries/v2-mods";
 
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
@@ -114,7 +115,7 @@ const discordInteraction: DiscordInteraction = {
 
 interface IModFieldResult {
     id: string;
-    mod: NexusSearchModResult;
+    mod: IMod;
     game: IGame|undefined;
 }
 
@@ -295,37 +296,38 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
     // Search for mods
     try {
-        const search: NexusSearchResult = await user.NexusMods.API.v1.ModQuickSearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
-        if (!search.results.length) {
+        const search: IModResults = await user.NexusMods.API.v2.Mods(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
+        // const search: NexusSearchResult = await user.NexusMods.API.v1.ModQuickSearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
+        if (!search.nodes.length) {
             // No results!
             const noResults: EmbedBuilder = new EmbedBuilder()
             .setTitle('Search Results')
-            .setDescription(`No results for "${query}".\nTry using the [full search](${safeSearchURL(search.fullSearchURL)}) on the website.`)
+            .setDescription(`No results for "${query}".\nTry using the [full search](${safeSearchURL(search.fullSearchUrl)}) on the website.`)
             .setThumbnail(client.user?.avatarURL() || '')
             .setColor(0xda8e35);
 
             return interaction.editReply({ content: null, embeds:[noResults] });
         }
-        else if (search.results.length === 1) {
+        else if (search.nodes.length === 1) {
             // Single result
-            const res: NexusSearchModResult = search.results[0];
-            const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( res.game_name, res.mod_id ))?.[0] : undefined;
-            const gameForMod: IGame|undefined = filterGame || allGames.find(g => g.domainName === res.game_name);
-            const singleResult = singleModEmbed(client, res, mod, gameForMod);
+            const mod: IMod = search.nodes[0];
+            // const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( res.game_name, res.mod_id ))?.[0] : undefined;
+            const gameForMod: IGame|undefined = filterGame || allGames.find(g => g.domainName === mod.game.domainName);
+            const singleResult = singleModEmbed(client, mod, gameForMod);
             postResult(interaction, singleResult, ephemeral);
         }
         else {
             // Multiple results
-            const top5 = search.results.slice(0,5);
+            const top5 = search.nodes.slice(0,5);
             const fields: IModFieldResult[] = top5.map(
-                (res, idx) => ({ id: numberEmoji[idx], mod: res, game: allGames.find(g => g.domainName === res.game_name) })
+                (mod, idx) => ({ id: numberEmoji[idx], mod, game: allGames.find(g => g.domainName === mod.game.domainName) })
             );
             // Create the button row.
             const buttons = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 top5.map((r, idx) => {
                     return  new ButtonBuilder()
-                    .setCustomId(r.mod_id.toString())
+                    .setCustomId(r.modId.toString())
                     .setLabel(numberEmoji[idx])
                     .setStyle(ButtonStyle.Primary)
                 })
@@ -335,8 +337,8 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             .setColor(0xda8e35)
             .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameIdFilter}.jpg`)
             .setDescription(
-                `Showing ${search.total < 5 ? search.total : 5} of ${search.total} results ([See all](${search.fullSearchURL}))\n`+
-                `Query: "${query}" - Time: ${search.took}ms - Adult content: ${search.include_adult}\n`+
+                `Showing ${search.totalCount < 5 ? search.totalCount : 5} of ${search.totalCount} results ([See all](${search.fullSearchUrl || 'https://nexusmods.com/mods/'}))\n`+
+                `Query: "${query}" - Adult content: ${(interaction.channel as TextChannel)?.nsfw}\n`+
                 `${!!filterGame ? `Game: ${filterGame.name}` : null}`
             )
             .addFields(fields.map(createModResultField))
@@ -351,14 +353,13 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
                 collector.stop('Collected');
                 const reply = await i.update({ components: [], fetchReply: true });
                 const id = i.customId;
-                const found: IModFieldResult|undefined = fields.find(f => f.mod.mod_id.toString() === id);
-                const res = found?.mod;
-                if (!res) {
+                const found: IModFieldResult|undefined = fields.find(f => f.mod.modId.toString() === id);
+                const mod = found?.mod;
+                if (!mod) {
                     interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
                     return;
                 }
-                const mod = (await user.NexusMods.API.v2.Mod(res.game_name, res.mod_id).catch(() => undefined))?.[0];
-                postResult(interaction, singleModEmbed(client, res, mod, found?.game), ephemeral);
+                postResult(interaction, singleModEmbed(client, mod, found?.game), ephemeral);
             });
 
             collector.on('end', ic => {
@@ -416,7 +417,7 @@ async function searchUsers(query: string, ephemeral: boolean, client: Client, in
 function createModResultField(item: IModFieldResult): EmbedField {
     return {
         name: `${item.id} - ${item.mod.name}`,
-        value: `${item.game ? `Game: ${item.game.name} - ` : ''}Author: [${item.mod.username}](https://nexusmods.com/users/${item.mod.user_id}) - [View mod page](https://nexusmods.com/${item.mod.url})`,
+        value: `${item.game ? `Game: ${item.game.name} - ` : ''}Author: [${item.mod.uploader.name}](https://nexusmods.com/users/${item.mod.uploader.memberId}) - [View mod page](https://nexusmods.com/${item.mod.game.domainName}/mods/${item.mod.modId})`,
         inline: false
     }
 }
@@ -431,7 +432,7 @@ const searchCancelled = (): EmbedBuilder => {
     return embed;
 }
 
-const singleModEmbed = (client: Client, res: NexusSearchModResult, mod: IMod|undefined, game?: IGame): EmbedBuilder => {
+const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGame): EmbedBuilder => {
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
@@ -445,14 +446,15 @@ const singleModEmbed = (client: Client, res: NexusSearchModResult, mod: IMod|und
         .setImage(mod.pictureUrl || '')
         .setAuthor({name: mod.uploader?.name || '', url: `https://nexusmods.com/users/${mod.uploader.memberId}` })
     }
-    else {
-        embed.setTitle(res.name)
-        .setURL(`https://nexusmods.com/${res.url}`)
-        .setAuthor({name: res.username || '', url: `https://nexusmods.com/users/${res.user_id}`})
-        .setImage(`https://staticdelivery.nexusmods.com${res.image}`)
-        .setDescription(game ? `for [${game?.name}](https://nexusmods.com/${game.domainName})` : '')
-        .addFields({ name: 'Get better results', value: 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.'})
-    }
+    else embed.setTitle('Error getting mod info');
+    // else {
+    //     embed.setTitle(res.name)
+    //     .setURL(`https://nexusmods.com/${res.url}`)
+    //     .setAuthor({name: res.username || '', url: `https://nexusmods.com/users/${res.user_id}`})
+    //     .setImage(`https://staticdelivery.nexusmods.com${res.image}`)
+    //     .setDescription(game ? `for [${game?.name}](https://nexusmods.com/${game.domainName})` : '')
+    //     .addFields({ name: 'Get better results', value: 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.'})
+    // }
     
     return embed;
 }
