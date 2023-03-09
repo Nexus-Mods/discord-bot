@@ -1,6 +1,6 @@
 import { request, gql, ClientError } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API, IMod } from './v2';
+import { v2API, IMod, NexusGQLError } from './v2';
 import * as GQLTypes from '../../types/GQLTypes';
 
 interface IResult {
@@ -94,6 +94,7 @@ export async function mods(headers: Record<string,string>, query: string, gameId
         return result.mods;
     }
     catch(err) {
+        const error = new NexusGQLError(err as any, 'mods');
         logMessage('Error in mods v2 request', err, true);
         return { nodes: [], totalCount: 0 };
     }

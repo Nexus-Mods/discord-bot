@@ -1,5 +1,7 @@
 import { ModStatus } from "@nexusmods/nexus-api";
 import { GuildMember } from "discord.js";
+import { ClientError } from "graphql-request";
+
 
 export const v2API: string = 'https://api.nexusmods.com/v2/graphql';
 
@@ -75,4 +77,23 @@ export interface IMod {
     // Added by feed manager
     lastFileUpdate?: number;
     authorDiscord?: GuildMember | null;
+}
+
+export class NexusGQLError extends Error {
+    public code?: number;
+
+    constructor(clientError: ClientError, type: string) {
+        super();
+        if (!(clientError instanceof ClientError)) return clientError;
+        this.code = clientError.response.status;
+        if (clientError.response.error.startsWith('<!DOCTYPE html>')) {
+            this.message = 'Request blocked by Cloudflare';
+            this.name = 'Cloudflare Error';
+        }
+        else {
+            this.message = `GraphQL ${type} request failed. ${this.code ? ` Status: ${this.code}` : null} Message: ${clientError.message}`;
+            this.name = `Request failed ${type}`;
+        }
+    }
+
 }

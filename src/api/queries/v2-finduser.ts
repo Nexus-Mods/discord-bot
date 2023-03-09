@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API } from './v2';
+import { NexusGQLError, v2API } from './v2';
 
 export interface IResult {
     user?: IUser;
@@ -56,7 +56,8 @@ export async function findUser(headers: Record<string,string>, idOrName: number 
         return result.user || result.userByName;
     }
     catch(err) {
-        logMessage('Error in findUser v2 request', err, true);
+        const error = new NexusGQLError(err as any, 'findUser');
+        logMessage('Error in findUser v2 request', error, true);
         return undefined;
     }
 }

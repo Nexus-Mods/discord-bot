@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API } from './v2';
+import { NexusGQLError, v2API } from './v2';
 
 export interface IResult {
     user: {
@@ -26,7 +26,8 @@ export async function isModAuthor(headers: Record<string,string>, id: number): P
         return result.user?.recognizedAuthor;
     }
     catch(err) {
-        logMessage('Error in isModAuthor v2 request', err, true);
+        const error = new NexusGQLError(err as any, 'isModAuthor');
+        logMessage('Error in isModAuthor v2 request', error, true);
         return false;
     }
 }

@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API, ICollection } from './v2';
+import { v2API, ICollection, NexusGQLError } from './v2';
 
 interface IResult {
     myCollections: {
@@ -62,7 +62,8 @@ export async function myCollections(headers: Record<string,string>): Promise<ICo
         return result.myCollections.nodes;
     }
     catch(err) {
-        logMessage('Error in mycollections v2 request', {err}, true);
+      const error = new NexusGQLError(err as any, 'mycollections');
+        logMessage('Error in mycollections v2 request', error, true);
         return [];
     }
 }

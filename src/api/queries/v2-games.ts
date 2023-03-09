@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API } from './v2';
+import { NexusGQLError, v2API } from './v2';
 
 interface IResult {
     games: IGame[];
@@ -33,7 +33,8 @@ export async function games(headers: Record<string,string>): Promise<IGame[]> {
         return result.games;
     }
     catch(err) {
-        logMessage('Error in games v2 request', err, true);
+        const error = new NexusGQLError(err as any, 'games');
+        logMessage('Error in games v2 request', error, true);
         return [];
     }
 }

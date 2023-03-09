@@ -1,6 +1,6 @@
 import { request, gql, ClientError } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API, IMod } from './v2';
+import { v2API, IMod, NexusGQLError } from './v2';
 
 export interface IResult {
     legacyModsByDomain: {
@@ -67,7 +67,8 @@ export async function mods(headers: Record<string,string>, mods: IModRequest | I
             results = [...results, ...pageData];
         }
         catch(err) {
-            logMessage('Error fetching mod data', { err, auth: headers['apikey'] ? 'APIKEY' : 'OAUTH' }, true);
+            const error = new NexusGQLError(err as any, 'mods');
+            logMessage('Error fetching mod data', { error, auth: headers['apikey'] ? 'APIKEY' : 'OAUTH' }, true);
         }
     }
 

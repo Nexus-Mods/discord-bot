@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API, ICollectionSearchResult } from './v2';
+import { v2API, ICollectionSearchResult, NexusGQLError } from './v2';
 import * as GQLTypes from '../../types/GQLTypes';
 
 interface IResult {
@@ -63,7 +63,8 @@ export async function collectionsByUser(headers: Record<string,string>, id: numb
         return result.collections;
     }
     catch(err) {
-        logMessage('Error in collectionsbyUser v2 request', err, true);
+        const error = new NexusGQLError(err as any, 'collectionsbyUser');
+        logMessage('Error in collectionsbyUser v2 request', error, true);
         return { nodes: [], nodesCount: 0, nodesFilter: '' };
     }
 }
