@@ -64,19 +64,16 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, query: string, gameId?: number, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
+export async function mods(headers: Record<string,string>, searchTerm: string, gameId?: number, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
         nameStemmed: {
-            value: query,
+            value: searchTerm,
             op: 'WILDCARD'
         }
     };
 
-    if (gameId) filter.gameId = {
-            value: gameId.toString(),
-            op: 'EQUALS'
-    };
+    if (gameId) filter.gameId = { value: gameId.toString(), op: 'EQUALS' };
 
     const vars = {
         filter,
