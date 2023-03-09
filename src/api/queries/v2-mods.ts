@@ -21,7 +21,7 @@ export interface IModsSort {
 
 interface IModsFilter {
     filter?: IModsFilter[];
-    op: GQLTypes.FilterLogicalOperator;
+    op?: GQLTypes.FilterLogicalOperator;
     name?: GQLTypes.BaseFilterValue;
     nameStemmed?: GQLTypes.BaseFilterValue;
     gameId?: GQLTypes.BaseFilterValue; //This is the numerical ID for a game, not the domain. 
@@ -66,23 +66,17 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 
 export async function mods(headers: Record<string,string>, query: string, gameId?: number, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
-    const filter: IModsFilter[] = [
-        {
-            op: 'AND',
-            nameStemmed: {
-                value: query,
-                op: 'WILDCARD'
-            },
+    const filter: IModsFilter = {
+        nameStemmed: {
+            value: query,
+            op: 'WILDCARD'
         }
-    ];
+    };
 
-    if (gameId) filter.push({
-        op: 'AND',
-        gameId: {
+    if (gameId) filter.gameId = {
             value: gameId.toString(),
             op: 'EQUALS'
-        }
-    });
+    };
 
     const vars = {
         filter,
