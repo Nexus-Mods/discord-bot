@@ -95,7 +95,7 @@ export async function mods(headers: Record<string,string>, query: string, gameId
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'mods');
-        logMessage('Error in mods v2 request', err, true);
+        logMessage('Error in mods v2 request', error, true);
         return { nodes: [], totalCount: 0 };
     }
 }
