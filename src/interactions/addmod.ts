@@ -112,7 +112,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGame[], us
             throw new Error(`This mod is already linked to your account. Use \`/refresh\` to update the data.`);
         }
 
-        const modData: IModInfo|undefined = await user.NexusMods.API.v1.Mod(domain, modId).catch(() => undefined);
+        const modData: IMod|undefined = (await user.NexusMods.API.v2.Mod(domain, modId).catch(() => []))[0];
         if (!modData) throw new Error(`Mod ID #${modId} not found for ${game.name}`);
         
         modName = modData.name || `${domain}/mods/${modId}`;
@@ -127,11 +127,12 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGame[], us
             }
         }
 
-        if (modData.user.member_id != user.NexusModsId) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domainName}/mods/${modData.mod_id}) was uploaded by [${modData.user.name}](https://www.nexusmods.com/users/${modData.user.member_id}) so it cannot be added to your account.`);
+        if (modData.uploader.memberId != user.NexusModsId) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domainName}/mods/${modData.modId}) was uploaded by [${modData.uploader.name}](https://www.nexusmods.com/users/${modData.uploader.memberId}) so it cannot be added to your account.`);
 
         if (!modData.name) throw new Error(`[Mod #${modId}](${url}) for ${game.name} could not be added as it doesn't seem to have a title. Please try again in a few minutes.`);
         
-        const downloadData: ModDownloadInfo = { unique_downloads: modData.mod_unique_downloads, total_downloads: modData.mod_downloads, id: modId };
+        const downloadData: ModDownloadInfo = await user.NexusMods.API.Other.ModDownloads(game.id, modData.modId)
+            .catch(() => ({ unique_downloads: 0, total_downloads: 0, id: modId })) as ModDownloadInfo;
 
         const newMod: NexusLinkedMod = {
             name: modData.name,
