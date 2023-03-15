@@ -1,4 +1,4 @@
-import { Client, Collection, ApplicationCommandData, GatewayIntentBits, Routes, Snowflake, IntentsBitField } from 'discord.js';
+import { Client, Collection, ApplicationCommandData, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import * as fs from 'fs';
 import path from 'path';
@@ -99,9 +99,9 @@ export class DiscordBot {
         const interactionFiles: string[] = fs.readdirSync(path.join(__dirname, 'interactions'))
             .filter(i => i.toLowerCase().endsWith('.js'));6
 
-        let globalCommandsToSet : ApplicationCommandData[] = []; //Collect all global commands
+        let globalCommandsToSet : RESTPostAPIApplicationCommandsJSONBody[] = []; //Collect all global commands
         const commandsReg = await this.client.application?.commands.fetch(); // Collection of global commands that are already registerd.
-        let guildCommandsToSet : {[guild: string] : ApplicationCommandData[]} = {}; // Collect all guild-specific commands. 
+        let guildCommandsToSet : {[guild: string] : RESTPostAPIApplicationCommandsJSONBody[]} = {}; // Collect all guild-specific commands. 
         let allInteractions : DiscordInteraction[] = [];
 
         // TODO! - Get the commands list per-server from the database 
