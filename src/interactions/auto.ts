@@ -53,11 +53,13 @@ class GameCache {
 
     async getGames(): Promise<IGame[]> {
         if (this.dateStamp > Date.now()) {
+            logMessage('Using cache for games');
             return this.games;
         }
         else {
+            logMessage('Getting new games');
             const games = await other.Games({});
-            this.games = games;
+            this.games = games.sort((a, b) => a.downloads > b.downloads ? -1 : 1);
             this.dateStamp = Date.now() + 300000;
             return games;
         }
@@ -89,8 +91,7 @@ async function autocomplete(client: ClientExt, acInteraction: AutocompleteIntera
     const focused = acInteraction.options.getFocused();
     try {
         const games = await cache.getGames();
-        const filtered = games.sort((a, b) => a.downloads > b.downloads ? -1 : 1)
-            .filter(g => focused === '' || (g.name.toLowerCase().startsWith(focused.toLowerCase()) || g.domain_name.includes(focused.toLowerCase())));
+        const filtered = games.filter(g => focused === '' || (g.name.toLowerCase().startsWith(focused.toLowerCase()) || g.domain_name.includes(focused.toLowerCase())));
         await acInteraction.respond(
             filtered.map(g => ({ name: g.name, value: g.domain_name })).slice(0, 25)
         );
@@ -101,4 +102,4 @@ async function autocomplete(client: ClientExt, acInteraction: AutocompleteIntera
     }
 }
 
-export { discordInteraction }
+export { discordInteraction };
