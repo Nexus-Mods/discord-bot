@@ -35,7 +35,7 @@ const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_c
 
 export async function Games(headers: Record<string, string>): Promise<IGame[]> {
     try {
-        const gameList: IGame[] = await axios({
+        const gameList = await axios({
             url: staticGamesList,
             transformResponse: (res) => JSON.parse(res),
             headers: { 
@@ -43,7 +43,7 @@ export async function Games(headers: Record<string, string>): Promise<IGame[]> {
                 'Application-Version': headers['Application-Version'] 
             },
         });
-        return gameList;
+        return gameList.data as IGame[];
     }
     catch(err) {
         logMessage('Error getting games list from static file', err, true);

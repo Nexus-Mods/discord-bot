@@ -1,5 +1,5 @@
 import { 
-    InteractionReplyOptions, GuildChannel, CommandInteraction 
+    InteractionReplyOptions, GuildChannel, CommandInteraction, AutocompleteInteraction 
 } from 'discord.js';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
@@ -13,7 +13,9 @@ const main: DiscordEventInterface = {
     name: 'interactionCreate',
     once: false,
     async execute(client: ClientExt, interaction: CommandInteraction) {
-        if (!interaction || (!interaction.isChatInputCommand() && !interaction.isContextMenuCommand())) return; // Not an interaction we want to handle.
+        if (!interaction || (!interaction.isChatInputCommand() && !interaction.isContextMenuCommand() && !interaction.isAutocomplete())) return; // Not an interaction we want to handle.
+
+        if (interaction.isAutocomplete()) return handleAutoComplete(client, interaction);
 
         const interact: DiscordInteraction = client.interactions?.get(interaction.commandName);
         if (!interact) return logMessage('Invalid interaction requested', {name: interaction.commandName, i: client.interactions, commands: await interaction.guild?.commands.fetch()}, true);
@@ -26,8 +28,22 @@ const main: DiscordEventInterface = {
                 channelName: (interaction.channel as GuildChannel)?.name,
             }
             );
-            interact.action(client, interaction).catch(err => {sendUnexpectedError(interaction, (interaction as CommandInteraction), err)});
+            return interact.action(client, interaction).catch(err => {sendUnexpectedError(interaction, (interaction as CommandInteraction), err)});
         }
+    }
+}
+
+async function handleAutoComplete(client: ClientExt, interaction: AutocompleteInteraction) {
+    const command: DiscordInteraction = client.interactions?.get(interaction.commandName);
+    if (!command || !command.autocomplete) {
+        return logMessage('Invalid command or missing auto-complete', { name: interaction.commandName, autocomplete: !!command.autocomplete }, true);
+    }
+
+    try {
+        await command.autocomplete(client, interaction);
+    }
+    catch(err) {
+        logMessage('Failed to handle autocomplete', err, true);
     }
 }
 

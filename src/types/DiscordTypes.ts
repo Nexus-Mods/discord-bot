@@ -1,6 +1,6 @@
 import { 
     Snowflake, CommandInteraction, Collection, 
-    Client, ContextMenuCommandBuilder, SlashCommandBuilder,
+    Client, ContextMenuCommandBuilder, SlashCommandBuilder, AutocompleteInteraction,
 } from "discord.js";
 import { GameFeedManager } from "../feeds/GameFeedManager";
 import { ModFeedManager } from "../feeds/ModFeedManager";
@@ -33,6 +33,8 @@ interface DiscordInteraction {
     public: boolean;
     guilds?: Snowflake[];
     permissions?: PermissionsExt[];
+    // Optional for autocomplete commands
+    autocomplete?: (client: Client, interact: AutocompleteInteraction) => Promise<void>,
 }
 
 interface PermissionsExt {
