@@ -13,6 +13,7 @@ const discordInteraction: DiscordInteraction = {
         option.setName('game')
         .setDescription('Game to search for')
         .setAutocomplete(true)
+        .setRequired(true)
     )
     .setDMPermission(false)
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -76,11 +77,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     if (!botuser) return interaction.editReply({ content: 'Error! No linked user!' });
     try {
         const game = await botuser.NexusMods.API.v1.Game(selectedGame);
-        return interaction.editReply({ content: '```'+JSON.stringify(game)+'```' });
+        return interaction.editReply({ content: '```\n'+game.name+'\n```' });
     }
     catch(err) {
         logMessage('Error', { selectedGame, err}, true);
-        return interaction.editReply({ content: 'Error! '+err });
+        throw err;
     }
 }
 
@@ -88,13 +89,15 @@ async function autocomplete(client: ClientExt, acInteraction: AutocompleteIntera
     const focused = acInteraction.options.getFocused();
     try {
         const games = await cache.getGames();
-        const filtered = games.sort((a, b) => a.downloads > b.downloads ? 0 : 1).filter(g => g.name.toLowerCase().startsWith(focused.toLowerCase()) || g.domain_name.includes(focused.toLowerCase()));
+        const filtered = games.sort((a, b) => a.downloads > b.downloads ? -1 : 1)
+            .filter(g => focused === '' || (g.name.toLowerCase().startsWith(focused.toLowerCase()) || g.domain_name.includes(focused.toLowerCase())));
         await acInteraction.respond(
             filtered.map(g => ({ name: g.name, value: g.domain_name })).slice(0, 25)
         );
     }
     catch(err) {
         logMessage('Error autocompleting', {err}, true);
+        throw err;
     }
 }
 
