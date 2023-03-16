@@ -144,7 +144,7 @@ export class DiscordBotUser {
             },
             v2: {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
-                Game: async () => { throw new Error('Not Implemented') }, // TBC
+                Game: async (id: number) => v2.game(this.headers(), id),
                 Games: async () => v2.games(this.headers()),
                 Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), [{ gameDomain, modId }]),
                 Mods: async (query: string, includeAdult: boolean, gameId?: number, sort?: IModsSort ) => v2.mods(this.headers(), query, includeAdult, gameId, sort),
