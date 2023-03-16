@@ -2,7 +2,7 @@ import {
     CommandInteraction, Snowflake, EmbedBuilder, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
     ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction
+    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction, AutocompleteInteraction
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
@@ -10,6 +10,7 @@ import { logMessage } from '../api/util';
 import { GameFeed } from "../types/feeds";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGame } from "../api/queries/v2-games";
+import { other } from "../api/queries/all";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -27,6 +28,7 @@ const discordInteraction: DiscordInteraction = {
             option.setName('game')
             .setDescription('The game name or domain ID')
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand(subcommand => 
@@ -49,8 +51,48 @@ const discordInteraction: DiscordInteraction = {
     ) as SlashCommandBuilder,
     public: true,
     guilds: [],
-    action
+    action,
+    autocomplete,
 }
+
+interface IGameSimple {
+    approved_date: number;
+    collections: number;
+    domain_name: string;
+    downloads: number;
+    file_count: number;
+    forum_url: string;
+    genre: string;
+    id: number;
+    mods: number;
+    name: string;
+    name_lower: string;
+    nexusmods_url: string;
+}
+
+class GameCache {
+    public dateStamp: number;
+    public games: IGameSimple[];
+
+    constructor() {
+        this.dateStamp = -1;
+        this.games = [];
+    }
+
+    async getGames(): Promise<IGameSimple[]> {
+        if (this.dateStamp > Date.now()) {
+            return this.games;
+        }
+        else {
+            const games = await other.Games({});
+            this.games = games.sort((a, b) => a.downloads > b.downloads ? -1 : 1);
+            this.dateStamp = Date.now() + 300000;
+            return games;
+        }
+    }
+}
+
+const cache = new GameCache();
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
@@ -173,7 +215,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
                 sfw: true,
                 show_new: true,
                 show_updates: true,
-                webhook_id: (gameHook as any)?.id,
+                webhook_id: (gameHook as Webhook)?.id,
                 webhook_token: gameHook?.token || undefined
             }
 
@@ -485,6 +527,21 @@ async function rejectMessage(reason: string,  interaction: CommandInteraction) {
     .setDescription(reason)
 
     await interaction.editReply({ content: null, embeds: [rejectEmbed], components: [] });
+}
+
+async function autocomplete(client: Client, acInteraction: AutocompleteInteraction) {
+    const focused = acInteraction.options.getFocused();
+    try {
+        const games = await cache.getGames();
+        const filtered = games.filter(g => focused === '' || (g.name.toLowerCase().startsWith(focused.toLowerCase()) || g.domain_name.includes(focused.toLowerCase())));
+        await acInteraction.respond(
+            filtered.map(g => ({ name: g.name, value: g.domain_name })).slice(0, 25)
+        );
+    }
+    catch(err) {
+        logMessage('Error autocompleting', {err}, true);
+        throw err;
+    }
 }
 
 
