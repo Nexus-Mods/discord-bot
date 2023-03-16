@@ -5,6 +5,7 @@ import {
 import { GameFeedManager } from "../feeds/GameFeedManager";
 import { ModFeedManager } from "../feeds/ModFeedManager";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
+import { GameListCache } from "./util";
 
 interface ClientExt extends Client {
     config?: any;
@@ -14,6 +15,7 @@ interface ClientExt extends Client {
     modFeeds?: ModFeedManager;
     newsFeed?: NewsFeedManager;
     updateInteractions?: (force?: boolean) => Promise<void>
+    gamesList?: GameListCache;
 }
 
 interface DiscordEventInterface {
@@ -21,11 +23,6 @@ interface DiscordEventInterface {
     once: boolean;
     execute: (client: Client, ...args: any) => Promise<void> | void;
 }
-
-// export type DiscordInteractionType = 
-// | UserContextMenuCommandInteraction 
-// | MessageContextMenuCommandInteraction 
-// | CommandInteraction;
 
 interface DiscordInteraction {
     command: SlashCommandBuilder | ContextMenuCommandBuilder;

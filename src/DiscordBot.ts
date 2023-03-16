@@ -1,19 +1,10 @@
-import { Client, Collection, ApplicationCommandData, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import * as fs from 'fs';
 import path from 'path';
 import { logMessage } from './api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
-
-// const intents: GatewayIntentBits[] = [
-//     GatewayIntentBits.Guilds, 
-//     GatewayIntentBits.DirectMessages, 
-//     GatewayIntentBits.GuildMessages,
-//     GatewayIntentBits.GuildMembers,
-//     GatewayIntentBits.GuildWebhooks,
-//     GatewayIntentBits.GuildMessageReactions,
-//     GatewayIntentBits.GuildIntegrations
-// ];
+import { GameListCache } from './types/util';
 
 const intents: GatewayIntentBits[] = [
     IntentsBitField.Flags.Guilds, IntentsBitField.Flags.DirectMessages,
@@ -60,6 +51,13 @@ export class DiscordBot {
         catch(err) {
             logMessage('Failed to connect to Discord during bot setup', { error: (err as Error).message }, true);
             return process.exit();
+        }
+
+        try {
+            this.client.gamesList = await new GameListCache().init();
+        }
+        catch(err) {
+            logMessage('Could not pre-cache the games list', err, true);
         }
     }
 

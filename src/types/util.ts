@@ -4,6 +4,8 @@ import {
     GuildMember, APIEmbedField, 
     ActionRow, MessageActionRowComponent, EmbedBuilder
 } from "discord.js";
+import { other } from "../api/queries/all";
+import { logMessage } from "../api/util";
 
 export interface InfoResult {
     name: string;
@@ -140,3 +142,51 @@ export class NexusAPIServerError implements Error {
 
     }
 };
+
+interface IGameFromJSON {
+    approved_date: number;
+    collections: number;
+    domain_name: string;
+    downloads: number;
+    file_count: number;
+    forum_url: string;
+    genre: string;
+    id: number;
+    mods: number;
+    name: string;
+    name_lower: string;
+    nexusmods_url: string;
+}
+
+export class GameListCache {
+    public dateStamp: number;
+    public games: IGameFromJSON[];
+
+    constructor() {
+        this.dateStamp = -1;
+        this.games = [];
+    }
+
+    async init(): Promise<GameListCache> {
+        try {
+            await this.getGames();
+            return this;
+        }
+        catch(err) {
+            logMessage('Error initialisiing game cache', err, true);
+            throw err;
+        }
+    }
+
+    async getGames(): Promise<IGameFromJSON[]> {
+        if (this.dateStamp > Date.now()) {
+            return this.games;
+        }
+        else {
+            const games = await other.Games({});
+            this.games = games.sort((a, b) => a.downloads > b.downloads ? -1 : 1);
+            this.dateStamp = Date.now() + 300000;
+            return games;
+        }
+    }
+}
