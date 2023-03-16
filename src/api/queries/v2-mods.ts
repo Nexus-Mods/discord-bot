@@ -24,9 +24,9 @@ export interface IModsSort {
 interface IModsFilter {
     filter?: IModsFilter[];
     op?: GQLTypes.FilterLogicalOperator;
-    name?: GQLTypes.BaseFilterValue;
-    nameStemmed?: GQLTypes.BaseFilterValue;
-    gameId?: GQLTypes.BaseFilterValue; //This is the numerical ID for a game, not the domain. 
+    name?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    nameStemmed?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    gameId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[]; //This is the numerical ID for a game, not the domain. 
 }
 
 const query = gql`
@@ -66,7 +66,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, searchTerm: string, includeAdult: boolean, gameId?: number, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
+export async function mods(headers: Record<string,string>, searchTerm: string, includeAdult: boolean, gameIds?: number | number[], sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
         name: {
@@ -75,11 +75,15 @@ export async function mods(headers: Record<string,string>, searchTerm: string, i
         }
     };
 
-    if (gameId) filter.gameId = { value: gameId.toString(), op: 'EQUALS' };
+    if (!!gameIds && typeof gameIds === "number") filter.gameId = [{ value: gameIds.toString(), op: 'EQUALS' }];
+    else if (!!gameIds && Array.isArray(gameIds)) {
+        filter.filter = [{ gameId: gameIds.map(id => ({ value: id.toString(), op: 'EQUALS' })), op: 'OR' }];
+    }
 
     const vars = {
         filter,
-        sort
+        sort,
+        first: 10
     }
 
     try {
