@@ -174,7 +174,7 @@ export class GameListCache {
         }
         catch(err) {
             logMessage('Error initialisiing game cache', err, true);
-            throw err;
+            return this;
         }
     }
 
