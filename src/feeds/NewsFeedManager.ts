@@ -11,6 +11,13 @@ const parser = new Parser({
     }  
 });
 
+const parseFeed = async (url: string): Promise<Parser.Output<any>> => {
+    return new Promise(
+        (resolve, reject) => parser.parseURL(url, 
+            (err: Error, feed: Parser.Output<any>) => err ? reject(err) : resolve(feed))
+    );
+};
+
 const pollTime = (1000*60*60)*3; //3 hours
 
 export class NewsFeedManager {
@@ -43,10 +50,16 @@ export class NewsFeedManager {
         this.getSaved()
             .then((latest) => {
                 console.log(`${new Date().toLocaleString()} - Initialised news feed, checking every 3 hours.`);
-                this.checkNews();
-                this.LatestNews = latest;
+                try {
+                    // logMessage('Checking for news');
+                    this.checkNews();
+                    this.LatestNews = latest;
+                }
+                catch(err) {
+                    logMessage('Error fetching news', (err as Error).message, true);
+                }
             })
-            .catch((err) => console.error('Error in NewsFeedManager contructor', err));
+            .catch((err) => logMessage('Error in NewsFeedManager contructor', err, true));
     }
 
     private async getSaved(): Promise<{title: string, date: Date}> {
@@ -58,7 +71,7 @@ export class NewsFeedManager {
         const url = `https://www.nexusmods.com/${dom}rss/news`;
 
         try {
-            const allNews: any = await parser.parseURL(url);
+            const allNews: any = await parseFeed(url); //parser.parseURL(url, (err: Error, feed) => {});
             const latest: NewsArticle = allNews.items[0];
             const stored: SavedNewsData | undefined = NewsFeedManager.instance.LatestNews;
 
@@ -105,7 +118,7 @@ export class NewsFeedManager {
         catch(err) {
             logMessage('Error checking news', (err as Error) ? (err as Error).message : err);
             if ((err as Error) && (err as Error).message.includes('404')) return Promise.reject({ message: `404 Not Found - ${url}` });
-            return Promise.reject(err);
+            // return Promise.reject(err);
         }
         
 
