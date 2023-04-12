@@ -205,6 +205,15 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
                 await discordUser.send({ embeds: [oAuthErrorEmbed], components: [buttons] }).catch(() => undefined);
                 return;
             }
+            else if (newErrorCount >= 1000) {
+                logMessage('Game feed has failed to post over 1,000 times, deleting', { id: feed._id, user: user.NexusModsUsername, discord: discordUser.tag });
+                await deleteGameFeed(feed._id);
+                await channel?.send(
+                    `Game feed deleted due to repeated auth errors. ${discordUser.toString()} may need to re-link their Nexus Mods account to re-create this feed. (ID: ${feed._id}) \n\n`+
+                    `Last error message: \`${(err as Error).message ?? JSON.stringify(err)}\``
+                    );
+                return;
+            }
             else return;
             
         }
