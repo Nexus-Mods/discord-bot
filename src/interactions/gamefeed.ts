@@ -105,6 +105,18 @@ async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInter
 async function createFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<any> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
+    // Check the user's auth is valid.
+    try {
+        await user.NexusMods.Auth();
+    }
+    catch(err) {
+        return rejectMessage(
+            `There was a problem authorising your Nexus Mods account. Re-authorise at https://discordbot.nexusmods.com/linked-role`+
+            `\n\n${(err as Error).message}`, 
+            interaction
+        );
+    }
+
     const query: string = interaction.options.getString('game') || '';
     const nsfw: boolean = (interaction.channel as TextChannel)?.nsfw || false;
 
@@ -229,6 +241,18 @@ async function listFeeds(client: Client, interaction: CommandInteraction, user: 
 
 async function manageFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<void> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
+
+    // Check the user's auth is valid.
+    try {
+        await user.NexusMods.Auth();
+    }
+    catch(err) {
+        return rejectMessage(
+            `There was a problem authorising your Nexus Mods account. Re-authorise at https://discordbot.nexusmods.com/linked-role`+
+            `\n\n${(err as Error).message}`, 
+            interaction
+        );
+    }
 
     const feedId = interaction.options.getNumber('id');
 
