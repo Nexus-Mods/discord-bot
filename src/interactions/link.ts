@@ -30,8 +30,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     try {
         let userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
-        await userData?.NexusMods.Auth().catch(err => { userData = undefined });
-        const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = linkingEmbed(userData, discordId, client);
+        const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = await linkingEmbed(userData, discordId, client);
         return interaction.editReply(response).catch(undefined);
     }
     catch(err) {
@@ -41,7 +40,15 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
 }
 
-const linkingEmbed = (user: DiscordBotUser|undefined, discordId: string, client: Client): { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } => {
+const linkButton = (discordId: string) => new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+            .setLabel('Link Account')
+            .setStyle(ButtonStyle.Link)
+            .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
+        );
+
+const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, client: Client): Promise<{ embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] }> => {
     let components = [];
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
@@ -53,6 +60,16 @@ const linkingEmbed = (user: DiscordBotUser|undefined, discordId: string, client:
     ])
     .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
     if (!!user) {
+        try {
+            await user.NexusMods.Auth();
+            // logMessage('Authorisation success for /link', { user: user.NexusModsUsername, discord: user.DiscordId });
+        }
+        catch(err) {
+            logMessage('Authorisation failed for /link', { user: user.NexusModsUsername, discord: user.DiscordId, err });
+            embed.setTitle('Re-authorise your Discord account')
+            .setDescription('Your Nexus Mods authorisation has expired, use the button below to re-link');
+            return { embeds: [embed], components: [ linkButton(discordId) as ActionRowBuilder<ButtonBuilder> ] };
+        }
         embed.setTitle(`Your Discord account is linked with ${user.NexusModsUsername}`)
         .setDescription('With your account linked you can now use all the features of the Discord bot!')
         .setAuthor({ name: user.NexusModsUsername, url: `https://nexusmods.com/users/${user.NexusModsId}`, iconURL: user.NexusModsAvatar });
@@ -71,15 +88,8 @@ const linkingEmbed = (user: DiscordBotUser|undefined, discordId: string, client:
         embed.setTitle('Connect your Discord account')
         .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
         .setDescription(`Linking your account will allow you to use Game Feeds, Search and more!`)
-        
-        const linkButton = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-            .setLabel('Link Account')
-            .setStyle(ButtonStyle.Link)
-            .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
-        );
-        components.push(linkButton);
+
+        components.push(linkButton(discordId));
     }
 
     return { embeds : [embed], components: (components as ActionRowBuilder<ButtonBuilder>[] ) };
