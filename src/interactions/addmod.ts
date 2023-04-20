@@ -1,11 +1,9 @@
 import { Client, EmbedBuilder, APIEmbedField, SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction } from "discord.js";
-import { ModDownloadInfo, NexusSearchModResult } from "../types/util";
+import { ModDownloadInfo } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from '../api/bot-db';
 import { logMessage } from "../api/util";
-import { quicksearch } from "../api/nexus-discord";
-import { IGameInfo, IModInfo } from "@nexusmods/nexus-api";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGame } from "../api/queries/v2-games";
 import { IMod } from "../api/queries/v2";
@@ -42,6 +40,12 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const discordId: string = interaction.user.id;
     const user: DiscordBotUser | undefined = await getUserByDiscordId(discordId);
     if (!user) return interaction.editReply({ content: 'You do not have a Nexus Mods account linked to your profile. Use /link to get stared.' });
+    try { 
+        await user.NexusMods.Auth()
+    }
+    catch(err) {
+        return interaction.editReply({ content: 'There was a problem authorising your Nexus Mods account. Use /link to refresh your tokens.' });
+    }
     const mods = await getModsbyUser(user.NexusModsId).catch(() => []);
 
     // Get arguments
