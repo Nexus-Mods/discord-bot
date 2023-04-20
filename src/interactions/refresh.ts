@@ -179,7 +179,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             }));
 
             const displayable: string = updatedMods.reduce((prev, cur: any) => {
-                const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name}/mods/${cur?.mod_id})\n`;
+                const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name || cur.domainName}/mods/${cur?.mod_id})\n`;
                 if (newStr.length > 1024) return prev;
                 else prev = newStr;
                 return prev;
