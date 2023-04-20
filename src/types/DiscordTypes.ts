@@ -30,6 +30,8 @@ interface DiscordInteraction {
     public: boolean;
     guilds?: Snowflake[];
     permissions?: PermissionsExt[];
+    // Optional to add aliases
+    aliases?: string[];
     // Optional for autocomplete commands
     autocomplete?: (client: Client, interact: AutocompleteInteraction) => Promise<void>,
 }

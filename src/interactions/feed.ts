@@ -4,19 +4,21 @@ import {
 } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
-import { NexusUser } from "../types/users";
 import { GameFeed } from "../types/feeds";
 import { logMessage } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
+type FeedType = 'games' | 'mods' | 'collections';
+type InteractionType = 'create' | 'manage' | 'list' | 'about';
+
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
-    .setName('feeds')
+    .setName('feed')
     .setDescription('Create or manage a game, mod or collection feed in this server.')
     .setDMPermission(false)
     .addSubcommand(sc =>
         sc.setName('about')
-        .setDescription('Collection Feed Management.')
+        .setDescription('About Feeds.')
     )
     .addSubcommandGroup(scg => 
         scg.setName('collections')
@@ -84,9 +86,14 @@ const discordInteraction: DiscordInteraction = {
             )   
         )
     )
+    .addSubcommand(sc => 
+        sc.setName('list')
+        .setDescription('List all feeds for this server.')
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
     public: false,
     guilds: ['581095546291355649'],
+    aliases: [ 'modfeed', 'collectionfeed' ],
     action
 }
 
@@ -102,18 +109,33 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     }
 
     const userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
+
+    // Check the user's Authorisation
+    if (!userData) return interaction.editReply({ content: 'Please use /link to connect your Nexus Mods account before creating a feed.' });
+    try {
+        await userData.NexusMods.Auth();
+    }
+    catch(err) {
+        return interaction.editReply({ content: 'There was an issue authorising your Nexus Mods account, please use /link to update your token.' });
+    }
+
     // Pull the data we need from the user input
-    const type: string | null = interaction.options.getSubcommandGroup();
-    if (!type) return aboutFeeds(client, interaction);
-    const subCommand: string = interaction.options.getSubcommand(true);
+    const type: FeedType | null = interaction.options.getSubcommandGroup() as FeedType;
+    const subCommand: InteractionType = interaction.options.getSubcommand(true) as InteractionType;
+    if (!type) {
+        switch (subCommand) {
+            case 'about': return aboutFeeds(client, interaction);
+            case 'list': return listFeeds(client, interaction);
+        }
+    };
     const id: number | null = interaction.options.getNumber('id');
     const url: string | null = interaction.options.getString('url');
     const game: string | null = interaction.options.getString('game');
 
     switch(type) {
-        case 'collections' : return collectionFeed(subCommand, { id, url }, interaction);
-        case 'games' : return gameFeed(subCommand, { id, game }, interaction);
-        case 'mods' : return modFeed(subCommand, { id, url }, interaction);
+        case 'collections' : return subCommand === 'create' ? newCollectionFeed(url!, interaction) : manageFeed('collections', id!, interaction);
+        case 'games' : return subCommand === 'create' ? newGameFeed(game!, interaction) : manageFeed('games', id!, interaction);
+        case 'mods' : return subCommand === 'create' ? newModFeed(url!, interaction) : manageFeed('mods', id!, interaction);
         default: return interaction.editReply('Unknown SubCommandGroup!').catch(() => null);
     }
 }
@@ -140,16 +162,24 @@ async function aboutFeeds(client: Client, interaction: ChatInputCommandInteracti
     return interaction.editReply({ content: null, embeds: [aboutEmbed] });
 }
 
-async function collectionFeed(subCommand: string, variables: { id: number | null, url: string | null }, interaction: ChatInputCommandInteraction) {
+async function listFeeds(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
 
 }
 
-async function gameFeed(subCommand: string, variables: { id: number | null, game: string | null }, interaction: ChatInputCommandInteraction) {
+async function newCollectionFeed(url: string, interaction: ChatInputCommandInteraction) {
+    return interaction.editReply('Not yet implemented!');
+}
+
+async function newGameFeed(gameName: string , interaction: ChatInputCommandInteraction) {
     
 }
 
-async function modFeed(subCommand: string, variables: { id: number | null, url: string | null }, interaction: ChatInputCommandInteraction) {
+async function newModFeed(url: string, interaction: ChatInputCommandInteraction) {
+    return interaction.editReply('Not yet implemented!');
+}
 
+async function manageFeed(type: FeedType, id: number, interaction: ChatInputCommandInteraction) {
+    if (type !== 'games') return interaction.editReply('Not yet implemented!');
 }
 
 export { discordInteraction };

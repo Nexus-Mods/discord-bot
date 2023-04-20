@@ -119,6 +119,13 @@ export class DiscordBot {
                 }
             }
             this.client.interactions?.set(interaction.command.name, interaction);
+            // Set up aliases
+            if (interaction.aliases?.length) {
+                for (const alias of interaction.aliases) {
+                    logMessage('Adding alias', { alias, name: interaction.command.name });
+                    this.client.interactions?.set(alias, interaction);
+                }
+            }
         }
 
         // Now we have the commands organised, time to set them up. 
