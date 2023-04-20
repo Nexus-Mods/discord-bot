@@ -1,6 +1,6 @@
 import { 
     Client, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, Snowflake,
-    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction
+    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction, APIEmbedField
 } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
@@ -163,7 +163,27 @@ async function aboutFeeds(client: Client, interaction: ChatInputCommandInteracti
 }
 
 async function listFeeds(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
+    const guildId = interaction.guildId;
+    const feeds: GameFeed[] = guildId ? await getGameFeedsForServer(guildId) : [];
+    const displayableFeeds = feeds.slice(0, 23);
+    
+    const feedFieldData: APIEmbedField[] = displayableFeeds.map(f => {
+        return {
+            name: `${f.title} - (Feed ID: ${f._id})`,
+            value: `Created by ${interaction.guild?.members.resolve(f.owner)?.toString() || '*Unknown*'} in <#${f.channel}>\n`+
+            `**New Mods**: ${f.show_new ? 'Show' : 'Hide' } | **Updated Mods**: ${f.show_updates ? 'Show' : 'Hide' }\n`+
+            `**Adult Content**: ${f.nsfw ? 'Show' : 'Hide' } | **Non-Adult Content**: ${f.sfw ? 'Show' : 'Hide' }\n`
+        }
+    })
+    
+    const embed: EmbedBuilder = new EmbedBuilder()
+    .setTitle(`Game Feeds in ${interaction.guild?.name || 'this server'} (${feeds.length})`)
+    .setDescription('To edit an existing feed, use the `/gamefeed manage` command and include the number reference of your feed e.g. /gamefeed manage id:1.')
+    .setColor(0xda8e35)
+    .addFields(feedFieldData)
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
+    interaction.editReply({ content: null, embeds: [embed] });
 }
 
 async function newCollectionFeed(url: string, interaction: ChatInputCommandInteraction) {

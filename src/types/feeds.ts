@@ -8,8 +8,6 @@ export interface GameFeed extends Feed {
     sfw: boolean;
     show_new: boolean;
     show_updates: boolean;
-    compact: boolean;
-    message: string;
 }
 
 export interface ModFeed extends Feed {
@@ -18,11 +16,17 @@ export interface ModFeed extends Feed {
     title: string;
     latest_file_id: number;
     last_status: string;
-    compact: boolean;
-    message: string;
 }
 
-interface Feed {
+export interface CollectionFeed extends Feed {
+    domain: string;
+    slug: string;
+    title: string;
+    latest_revision: number;
+    last_status: string;
+}
+
+export interface Feed {
     _id: number;
     channel: Snowflake;
     guild: Snowflake;
@@ -33,6 +37,8 @@ interface Feed {
     created: Date;
     error_count: number;
     crosspost: boolean;
+    compact: boolean;
+    message: string;
 }
 
 export interface NewsArticle {
