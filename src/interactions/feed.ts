@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 import { DiscordInteraction, } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
-import { GameFeed } from "../types/feeds";
+import { GameFeed, Feed, ModFeed, CollectionFeed } from "../types/feeds";
 import { logMessage } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
@@ -164,21 +164,35 @@ async function aboutFeeds(client: Client, interaction: ChatInputCommandInteracti
 
 async function listFeeds(client: Client, interaction: ChatInputCommandInteraction): Promise<any> {
     const guildId = interaction.guildId;
-    const feeds: GameFeed[] = guildId ? await getGameFeedsForServer(guildId) : [];
+    const gameFeeds: GameFeed[] = guildId ? await getGameFeedsForServer(guildId) : [];
+    const modFeeds: ModFeed[] = []//guildId ? await getModFeedsForServer(guildId) : [];
+    const collectionFeeds: CollectionFeed[] = []//guildId ? await getModFeedsForServer(guildId) : [];
+    const feeds: Feed[] = [ ...gameFeeds, ...modFeeds, ...collectionFeeds ];
     const displayableFeeds = feeds.slice(0, 23);
     
     const feedFieldData: APIEmbedField[] = displayableFeeds.map(f => {
-        return {
-            name: `${f.title} - (Feed ID: ${f._id})`,
+        if (f.isGameFeed()) return {
+            name: `${f.title} - GAME - (Feed ID: ${f._id})`,
             value: `Created by ${interaction.guild?.members.resolve(f.owner)?.toString() || '*Unknown*'} in <#${f.channel}>\n`+
             `**New Mods**: ${f.show_new ? 'Show' : 'Hide' } | **Updated Mods**: ${f.show_updates ? 'Show' : 'Hide' }\n`+
             `**Adult Content**: ${f.nsfw ? 'Show' : 'Hide' } | **Non-Adult Content**: ${f.sfw ? 'Show' : 'Hide' }\n`
         }
+        else if (f.isModFeed()) return {
+            name: `${f.title} - MOD - (Feed ID: ${f._id})`,
+            value: `Created by ${interaction.guild?.members.resolve(f.owner)?.toString() || '*Unknown*'} in <#${f.channel}>\n`+
+            `[View Mod](https://nexusmods.com/${f.domain}/mods/${f.mod_id})' }\n`
+        }
+        else if (f.isCollectionFeed()) return {
+            name: `${f.title} - COLLECTION - (Feed ID: ${f._id})`,
+            value: `Created by ${interaction.guild?.members.resolve(f.owner)?.toString() || '*Unknown*'} in <#${f.channel}>\n`+
+            `[View Collection](https://next.nexusmods.com/${f.domain}/collections/${f.slug})' }\n`
+        }
+        else return { name: `${f.title} - Unknown - (Feed ID: ${f._id})`, value: 'Unknown feed type!' }
     })
     
     const embed: EmbedBuilder = new EmbedBuilder()
     .setTitle(`Game Feeds in ${interaction.guild?.name || 'this server'} (${feeds.length})`)
-    .setDescription('To edit an existing feed, use the `/gamefeed manage` command and include the number reference of your feed e.g. /gamefeed manage id:1.')
+    .setDescription('To edit an existing feed, use the `/feed` command and include the number reference of your feed e.g. /feed games manage id:1.')
     .setColor(0xda8e35)
     .addFields(feedFieldData)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });

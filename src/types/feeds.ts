@@ -3,7 +3,6 @@ import { Snowflake } from 'discord.js';
 
 export interface GameFeed extends Feed {
     domain: string;
-    title: string;
     nsfw: boolean;
     sfw: boolean;
     show_new: boolean;
@@ -13,7 +12,6 @@ export interface GameFeed extends Feed {
 export interface ModFeed extends Feed {
     domain: string;
     mod_id: number;
-    title: string;
     latest_file_id: number;
     last_status: string;
 }
@@ -21,13 +19,13 @@ export interface ModFeed extends Feed {
 export interface CollectionFeed extends Feed {
     domain: string;
     slug: string;
-    title: string;
     latest_revision: number;
     last_status: string;
 }
 
 export interface Feed {
     _id: number;
+    title: string;
     channel: Snowflake;
     guild: Snowflake;
     owner: Snowflake;
@@ -39,6 +37,9 @@ export interface Feed {
     crosspost: boolean;
     compact: boolean;
     message: string;
+    isGameFeed(): this is GameFeed;
+    isModFeed(): this is ModFeed;
+    isCollectionFeed(): this is CollectionFeed;
 }
 
 export interface NewsArticle {
