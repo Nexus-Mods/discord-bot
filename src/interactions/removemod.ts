@@ -31,6 +31,12 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const discordId: string = interaction.user.id;
     const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
     if (!user) return interaction.editReply({ content: 'You do not have a Nexus Mods account linked to your profile. Use /link to get stared.' });
+    try { 
+        await user.NexusMods.Auth()
+    }
+    catch(err) {
+        return interaction.editReply({ content: 'There was a problem authorising your Nexus Mods account. Use /link to refresh your tokens.' });
+    }
     const mods: NexusLinkedMod[] = await getModsbyUser(user.NexusModsId).catch(() => []);
 
     // If the user has no mods, we can exit here! 

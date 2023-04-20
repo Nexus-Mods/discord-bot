@@ -74,6 +74,12 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     try {
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         const nextUpdate = new Date( userData?.LastUpdated ? userData.LastUpdated.getTime() + cooldown : 0 );
+        try { 
+            await userData?.NexusMods.Auth()
+        }
+        catch(err) {
+            return interaction.editReply({ content: 'There was a problem authorising your Nexus Mods account. Use /link to refresh your tokens.' });
+        }
         if (!userData) {
             // logMessage('Editing reply, no user data');
             await interaction.editReply('You haven\'t linked your account yet. Use the /link command to get started.');
