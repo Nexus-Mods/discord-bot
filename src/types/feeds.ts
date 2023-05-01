@@ -7,6 +7,9 @@ export interface GameFeed extends Feed {
     sfw: boolean;
     show_new: boolean;
     show_updates: boolean;
+    // Added collections to the mix. 
+    // show_new_collections: boolean;
+    // show_updated_collections: boolean;
 }
 
 export interface ModFeed extends Feed {
