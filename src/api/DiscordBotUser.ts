@@ -194,14 +194,26 @@ export class DiscordBotUser {
             }
         }
 
+        // Get total collection downloads
+        let collectionDownloads = 0;
+        try {
+            const savedMeta = await this.Discord.GetRemoteMetaData();
+            const newTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
+            collectionDownloads = newTotals.uniqueDownloads ?? savedMeta?.metadata.collectionDownloads;
+        }
+        catch(err) {
+            logMessage('Error getting Collection download totals', { name: this.NexusModsUsername, err });
+        }
+
         // Update Discord Metadata
         try {
             if (this.DiscordOAuthTokens) {
-                const meta: Record<string, ('0' | '1')> = { 
+                const meta: Record<string, ('0' | '1' | number)> = { 
                     member: '1',
                     premium: this.NexusModsRoles.has('premium') ? '1' :'0', 
                     supporter: (!this.NexusModsRoles.has('premium') && this.NexusModsRoles.has('supporter')) ? '1' : '0', 
-                    modauthor: this.NexusModsRoles.has('modauthor') ? '1' : '0'
+                    modauthor: this.NexusModsRoles.has('modauthor') ? '1' : '0',
+                    collectionDownloads
                 };
 
                 await DiscordOAuth.pushMetadata(
@@ -383,17 +395,36 @@ export class DiscordBotUser {
         GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens) : undefined,
         PushMetaData: 
         async (meta: { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0' }) => 
-            this.DiscordOAuthTokens ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) : new Error('Not Authorised')
+            this.DiscordOAuthTokens 
+            ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) 
+            : new Error('Not Authorised')
     }
 
-    private async getDiscordMetaData (): Promise< { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0' } > {
+    private async getDiscordMetaData (): Promise< { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectionDownloads?: number } > {
+        let oldData;
+        
+        try {
+            oldData = await this.Discord.GetRemoteMetaData();
+        }
+        catch(err) {
+            logMessage('Could not fetch saved Discord metadata', { user: this.NexusModsUsername, err });
+        }
+
+        // Get collection downloads
+        let collectionDownloads = oldData?.metadata?.collectionDownloads ?? 0;
+        try {
+            const collectionTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
+            if (collectionDownloads > 0) collectionDownloads = collectionTotals.uniqueDownloads
+        }
+        catch(err) {
+            logMessage('Failed to get collection downloads to build Discord metadata', { user: this.NexusModsUsername, err });
+        }
+
         return {
             modauthor: this.NexusModsRoles.has('modauthor')? '1' : '0',
             premium: this.NexusModsRoles.has('premium') ? '1' : '0',
             supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? '1' : '0',
+            collectionDownloads,
         };
     } 
 }
-
-// const db = new DiscordBotUser({ d_id: '', id: 234, name: '', supporter: false, premium: false });
-// db.NexusMods.API.Other.Games()

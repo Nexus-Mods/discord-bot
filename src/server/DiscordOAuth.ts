@@ -42,6 +42,7 @@ interface BotMetaData {
   modauthor?: '0' | '1';
   premium?: '0' | '1';
   supporter?: '0' | '1';
+  collectionDownloads?: number;
 }
 
 export function getOAuthUrl(): OAuthURL {
