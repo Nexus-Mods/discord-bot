@@ -157,6 +157,7 @@ export class DiscordBotUser {
                         v2.collections(this.headers(), filters, sort, adultContent),
                 Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), slug, domain, adult),
                 CollectionsByUser: async (userId: number) => v2.collectionsByUser(this.headers(), userId),
+                CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), userId),
                 FindUser: async (query: string | number) => v2.findUser(this.headers(), query)
             },
             Other: {

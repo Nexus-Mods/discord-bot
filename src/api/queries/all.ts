@@ -8,6 +8,7 @@ import { myCollections } from './v2-mycollections';
 import { collections } from './v2-collections';
 import { collection } from './v2-collection';
 import { collectionsByUser } from './v2-collectionsbyuser';
+import { collectionsDownloadTotals } from './v2-collectionsdownloadtotals';
 import { findUser, IUser } from './v2-finduser';
 import { ICollection, ICollectionSearchResult, IMod as IModResult } from './v2';
 
@@ -34,6 +35,7 @@ export const v2 = {
     collections,
     collection,
     collectionsByUser,
+    collectionsDownloadTotals,
     findUser
 };
 
