@@ -73,9 +73,7 @@ export async function collectionsDownloadTotals(headers: Record<string,string>, 
         // Consolidate the stats.
         logMessage('Accumulating downloads for collections', { count: stats.length })
         const totals = stats.reduce((prev, cur) => {
-          prev.totalDownloads += cur.totalDownloads
-          prev.uniqueDownloads += prev.uniqueDownloads
-          logMessage('UDLs', { cur: cur.uniqueDownloads, acc: prev.uniqueDownloads })
+          prev = { totalDownloads: prev.totalDownloads + cur.totalDownloads, uniqueDownloads: prev.uniqueDownloads + cur.uniqueDownloads };
           return prev;
         }, { totalDownloads: 0, uniqueDownloads: 0 });
 
