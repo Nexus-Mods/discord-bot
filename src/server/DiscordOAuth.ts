@@ -42,7 +42,7 @@ export interface BotMetaData {
   modauthor?: '0' | '1';
   premium?: '0' | '1';
   supporter?: '0' | '1';
-  collectiondownloads?: string;
+  collectiondownloads?: number;
 }
 
 export function getOAuthUrl(): OAuthURL {
@@ -122,7 +122,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
       platform_username: username,
       metadata,
     };
-    // logMessage('Pushing metadata', { username, token: accessTokens.access_token });
+    logMessage('Pushing metadata', { metadata });
     const response = await fetch(url, {
       method: 'PUT',
       body: JSON.stringify(body),
