@@ -83,7 +83,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         .addFields(allResults.slice(0, 24));
 
         await interaction.editReply({ embeds: [ searchingEmbed ] });
-        if (addedMods.length) await updateAllRoles(client, user, interaction.user, false);
+        // if (addedMods.length) await updateAllRoles(client, user, interaction.user, false);
 
         return;
 

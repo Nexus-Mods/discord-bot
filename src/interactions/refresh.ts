@@ -200,9 +200,9 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     card.setTitle('Update complete');
     // logMessage('Editing reply, update complete');
     await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));
-    // Recheck roles, if we have changed something.
-    if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false);
-    else logMessage('User data has not changed, no role update needed', { user: interaction.user.tag });
+    // // Recheck roles, if we have changed something.
+    // if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false);
+    // else logMessage('User data has not changed, no role update needed', { user: interaction.user.tag });
 
 }
 
