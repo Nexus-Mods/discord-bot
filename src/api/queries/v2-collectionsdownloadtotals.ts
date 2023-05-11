@@ -71,13 +71,10 @@ export async function collectionsDownloadTotals(headers: Record<string,string>, 
           stats = [...stats, ...extraItems];
         }
         // Consolidate the stats.
-        logMessage('Accumulating downloads for collections', { count: stats.length })
         const totals = stats.reduce((prev, cur) => {
           prev = { totalDownloads: prev.totalDownloads + cur.totalDownloads, uniqueDownloads: prev.uniqueDownloads + cur.uniqueDownloads };
           return prev;
         }, { totalDownloads: 0, uniqueDownloads: 0 });
-
-        logMessage('Collection download totals', {totals, stats});
         return totals;
     }
     catch(err) {

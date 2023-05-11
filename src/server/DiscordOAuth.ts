@@ -122,7 +122,7 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
       platform_username: username,
       metadata,
     };
-    logMessage('Pushing metadata', { metadata });
+    // logMessage('Pushing metadata', { metadata });
     const response = await fetch(url, {
       method: 'PUT',
       body: JSON.stringify(body),
