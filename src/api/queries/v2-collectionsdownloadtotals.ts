@@ -78,6 +78,7 @@ export async function collectionsDownloadTotals(headers: Record<string,string>, 
           return prev;
         }, { totalDownloads: 0, uniqueDownloads: 0 });
 
+        logMessage('Collection download totals', {totals, stats});
         return totals;
     }
     catch(err) {
