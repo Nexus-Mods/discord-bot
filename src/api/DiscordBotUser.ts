@@ -195,11 +195,11 @@ export class DiscordBotUser {
         }
 
         // Get total collection downloads
-        let collectiondownloads = 0;
+        let collectiondownloads = '0';
         try {
             const savedMeta = await this.Discord.GetRemoteMetaData();
             const newTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
-            collectiondownloads = newTotals.uniqueDownloads ?? savedMeta?.metadata.collectiondownloads;
+            collectiondownloads = newTotals.uniqueDownloads.toString() ?? savedMeta?.metadata.collectiondownloads;
         }
         catch(err) {
             logMessage('Error getting Collection download totals', { name: this.NexusModsUsername, err });
@@ -208,8 +208,7 @@ export class DiscordBotUser {
         // Update Discord Metadata
         try {
             if (this.DiscordOAuthTokens) {
-                const meta: Record<string, ('0' | '1' | number)> = { 
-                    member: '1',
+                const meta: DiscordOAuth.BotMetaData = { 
                     premium: this.NexusModsRoles.has('premium') ? '1' :'0', 
                     supporter: (!this.NexusModsRoles.has('premium') && this.NexusModsRoles.has('supporter')) ? '1' : '0', 
                     modauthor: this.NexusModsRoles.has('modauthor') ? '1' : '0',
@@ -400,7 +399,7 @@ export class DiscordBotUser {
             : new Error('Not Authorised')
     }
 
-    private async getDiscordMetaData (): Promise< { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectiondownloads?: string } > {
+    private async getDiscordMetaData (): Promise<DiscordOAuth.BotMetaData> {
         let oldData;
         
         try {
