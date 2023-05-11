@@ -413,6 +413,7 @@ export class DiscordBotUser {
         let collectiondownloads = oldData?.metadata?.collectiondownloads ?? 0;
         try {
             const collectionTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
+            logMessage('Collection totals', { name: this.NexusModsUsername, collectionTotals })
             if (collectiondownloads > 0) collectiondownloads = collectionTotals.uniqueDownloads
         }
         catch(err) {
