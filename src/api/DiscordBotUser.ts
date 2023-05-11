@@ -195,11 +195,11 @@ export class DiscordBotUser {
         }
 
         // Get total collection downloads
-        let collectionDownloads = 0;
+        let collectiondownloads = 0;
         try {
             const savedMeta = await this.Discord.GetRemoteMetaData();
             const newTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
-            collectionDownloads = newTotals.uniqueDownloads ?? savedMeta?.metadata.collectionDownloads;
+            collectiondownloads = newTotals.uniqueDownloads ?? savedMeta?.metadata.collectiondownloads;
         }
         catch(err) {
             logMessage('Error getting Collection download totals', { name: this.NexusModsUsername, err });
@@ -213,7 +213,7 @@ export class DiscordBotUser {
                     premium: this.NexusModsRoles.has('premium') ? '1' :'0', 
                     supporter: (!this.NexusModsRoles.has('premium') && this.NexusModsRoles.has('supporter')) ? '1' : '0', 
                     modauthor: this.NexusModsRoles.has('modauthor') ? '1' : '0',
-                    collectionDownloads
+                    collectiondownloads
                 };
 
                 await DiscordOAuth.pushMetadata(
@@ -411,7 +411,7 @@ export class DiscordBotUser {
         }
 
         // Get collection downloads
-        let collectionDownloads = oldData?.metadata?.collectionDownloads ?? 0;
+        let collectionDownloads = oldData?.metadata?.collectiondownloads ?? 0;
         try {
             const collectionTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
             if (collectionDownloads > 0) collectionDownloads = collectionTotals.uniqueDownloads
