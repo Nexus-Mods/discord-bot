@@ -400,7 +400,7 @@ export class DiscordBotUser {
             : new Error('Not Authorised')
     }
 
-    private async getDiscordMetaData (): Promise< { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectionDownloads?: number } > {
+    private async getDiscordMetaData (): Promise< { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectiondownloads?: string } > {
         let oldData;
         
         try {
@@ -411,10 +411,10 @@ export class DiscordBotUser {
         }
 
         // Get collection downloads
-        let collectionDownloads = oldData?.metadata?.collectiondownloads ?? 0;
+        let collectiondownloads = oldData?.metadata?.collectiondownloads ?? '0';
         try {
             const collectionTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
-            if (collectionDownloads > 0) collectionDownloads = collectionTotals.uniqueDownloads
+            if (parseInt(collectiondownloads) > 0) collectiondownloads = collectionTotals.uniqueDownloads.toString()
         }
         catch(err) {
             logMessage('Failed to get collection downloads to build Discord metadata', { user: this.NexusModsUsername, err });
@@ -424,7 +424,7 @@ export class DiscordBotUser {
             modauthor: this.NexusModsRoles.has('modauthor')? '1' : '0',
             premium: this.NexusModsRoles.has('premium') ? '1' : '0',
             supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? '1' : '0',
-            collectionDownloads,
+            collectiondownloads,
         };
     } 
 }
