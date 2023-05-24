@@ -65,11 +65,11 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     .setThumbnail(client.user?.avatarURL() || '')
     .setDescription(`Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`)
     .addFields([
-        {
-            name: 'Minimum Permissions',
-            value: permissionsList,
-            inline: true
-        },
+        // {
+        //     name: 'Minimum Permissions',
+        //     value: permissionsList,
+        //     inline: true
+        // },
         {
             name: 'Stats',
             value: `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+
