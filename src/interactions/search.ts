@@ -159,7 +159,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     logMessage('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGame[] = user ? await user.NexusMods.API.v2.Games().catch(() => []) : [];
-    let gameIdFilter: number = server?.game_filter || 0;
+    let gameIdFilter: number = parseInt(server?.game_filter ?? '0') || 0;
 
     if (gameQuery !== '' && allGames.length) {
         // logMessage('Searching for game in mod search', gameQuery);
@@ -273,8 +273,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     logMessage('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGame[] = user ? await user.NexusMods.API.v2.Games().catch(() => []) : [];
-    let gameIdFilter: number = server?.game_filter || 0;
-    logMessage('Game ID filter', { id: server?.game_filter });
+    let gameIdFilter: number = parseInt(server?.game_filter || '0') || 0;
 
     if (gameQuery !== '' && allGames.length) {
         // logMessage('Searching for game in mod search', gameQuery);
