@@ -28,8 +28,8 @@ const options: Fuse.IFuseOptions<any> = {
     distance: 7,
     minMatchCharLength: 6,
     keys: [
-        {name: "name", weight: 0.6},
-        {name: "id", weight: 0.1},
+        {name: "name", weight: 0.1},
+        {name: "id", weight: 0.6},
         {name: "domain_name", weight: 0.3}
     ]
 }
@@ -274,6 +274,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
     const allGames: IGame[] = user ? await user.NexusMods.API.v2.Games().catch(() => []) : [];
     let gameIdFilter: number = server?.game_filter || 0;
+    logMessage('Game ID filter', { id: server?.game_filter });
 
     if (gameQuery !== '' && allGames.length) {
         // logMessage('Searching for game in mod search', gameQuery);

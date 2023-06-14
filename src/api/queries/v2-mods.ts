@@ -86,6 +86,8 @@ export async function mods(headers: Record<string,string>, searchTerm: string, i
         first: 10
     }
 
+    logMessage('v2 Mod search vars', vars);
+
     try {
         const result: IResult = await request(v2API, query, vars, headers);
         // Adult content filter is not available on the API yet, so we'll have to do it manually.
