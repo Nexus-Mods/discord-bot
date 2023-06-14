@@ -3,7 +3,7 @@ import {
     ButtonBuilder, TextChannel, EmbedField, ButtonInteraction, ChatInputCommandInteraction, 
     SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField, 
 } from "discord.js";
-import { NexusSearchResult, NexusSearchModResult, customEmojis } from "../types/util";
+import { customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
@@ -54,8 +54,8 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(false)
         )
         .addBooleanOption(hide => 
-            hide.setName('public')
-            .setDescription('Should the result only be shown to everyone? Default: FALSE')
+            hide.setName('private')
+            .setDescription('Should the result only be shown to just you? Default: FALSE')
             .setRequired(false)
         )
     )
@@ -73,8 +73,8 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(false)
         )
         .addBooleanOption(hide => 
-            hide.setName('public')
-            .setDescription('Should the result only be shown to everyone? Default: FALSE')
+            hide.setName('private')
+            .setDescription('Should the result only be shown to just you? Default: FALSE')
             .setRequired(false)
         )
     )
@@ -87,8 +87,8 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(true)
         )
         .addBooleanOption(hide => 
-            hide.setName('public')
-            .setDescription('Should the result only be shown to everyone? Default: FALSE')
+            hide.setName('private')
+            .setDescription('Should the result only be shown to just you? Default: FALSE')
             .setRequired(false)
         ) 
     )
@@ -101,8 +101,8 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(true)
         )
         .addBooleanOption(hide => 
-            hide.setName('public')
-            .setDescription('Should the result only be shown to everyone? Default: FALSE')
+            hide.setName('private')
+            .setDescription('Should the result only be shown to just you? Default: FALSE')
             .setRequired(false)
         )
     ) as SlashCommandBuilder,
@@ -127,7 +127,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     
     const query: string = interaction.options.getString('query') || '';
     const gameQuery : string = interaction.options.getString('game-query') || '';
-    const showToAll: boolean = interaction.options.getBoolean('public') || false;
+    const showToAll: boolean = interaction.options.getBoolean('private') || false;
 
     if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral: true });
 
@@ -147,10 +147,10 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     }
 
     switch(searchType) {
-        case 'MODS' : return searchMods(query, gameQuery, !showToAll, client, interaction, user, server);
-        case 'GAMES' : return searchGames(query, !showToAll, client, interaction, user, server);
-        case 'USERS' : return searchUsers(query, !showToAll, client, interaction, user, server);
-        case 'COLLECTIONS' : return searchCollections(query, gameQuery, !showToAll, client, interaction, user, server);
+        case 'MODS' : return searchMods(query, gameQuery, showToAll, client, interaction, user, server);
+        case 'GAMES' : return searchGames(query, showToAll, client, interaction, user, server);
+        case 'USERS' : return searchUsers(query, showToAll, client, interaction, user, server);
+        case 'COLLECTIONS' : return searchCollections(query, gameQuery, showToAll, client, interaction, user, server);
         default: return interaction.followUp('Search error: Invalid search type.');
     }
 }
