@@ -86,7 +86,7 @@ export async function mods(headers: Record<string,string>, searchTerm: string, i
         first: 10
     }
 
-    logMessage('v2 Mod search vars', vars);
+    logMessage('v2 Mod search vars', { vars, gameIds });
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
