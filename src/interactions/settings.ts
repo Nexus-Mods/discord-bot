@@ -223,7 +223,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                         name: 'Mod Search Filter',
                         cur: resolveFilter(gameList, server.game_filter?.toString()),
                         new: foundGame,
-                        data: { game_filter: foundGame?.id }
+                        data: { game_filter: foundGame?.id.toString() }
                     }
                 }
                 break;
