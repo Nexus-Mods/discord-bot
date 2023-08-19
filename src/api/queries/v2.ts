@@ -108,7 +108,7 @@ export class NexusGQLError extends Error {
         super();
         if (!(clientError instanceof ClientError)) return clientError;
         this.code = clientError.response.status;
-        if (clientError.response.error?.startsWith('<!DOCTYPE html>') || clientError.response.errors?.[0]?.message.startsWith('<!DOCTYPE html>') ) {
+        if (clientError.response.errors?.[0]?.message.startsWith('<!DOCTYPE html>') ) {
             this.message = 'Request blocked by Cloudflare';
             this.name = 'Cloudflare Error';
         }
