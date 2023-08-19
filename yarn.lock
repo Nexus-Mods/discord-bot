@@ -234,13 +234,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/caseless@npm:*":
-  version: 0.12.2
-  resolution: "@types/caseless@npm:0.12.2"
-  checksum: 430d15911184ad11e0a8aa21d1ec15fcc93b90b63570c37bf16ebd34457482bfc8de3f5eb6771e0ef986ce183270d4297823b0f492c346255967e78f7292388b
-  languageName: node
-  linkType: hard
-
 "@types/connect@npm:*":
   version: 3.4.35
   resolution: "@types/connect@npm:3.4.35"
@@ -315,13 +308,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/heapdump@npm:^0.3.1":
-  version: 0.3.1
-  resolution: "@types/heapdump@npm:0.3.1"
-  checksum: 12e931487172bfe5ab0654abee48f4ab52699ccebd079ac908d06bd1564cce04b37b445a158c21e09261f1479e9eb53014504270baa76aead67684c0168d772e
-  languageName: node
-  linkType: hard
-
 "@types/jsonwebtoken@npm:^9.0.2":
   version: 9.0.2
   resolution: "@types/jsonwebtoken@npm:9.0.2"
@@ -391,27 +377,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/request-promise-native@npm:^1.0.18":
-  version: 1.0.18
-  resolution: "@types/request-promise-native@npm:1.0.18"
-  dependencies:
-    "@types/request": "*"
-  checksum: e25ae495d18ccd147cbacd7c746dbe05e989e6dae83c6e2f8094ff1c4e43da5f55ed288c3ca724b1f20c9271dfb909b4f68c519d3edf6a91cc96f211d42548b1
-  languageName: node
-  linkType: hard
-
-"@types/request@npm:*":
-  version: 2.48.8
-  resolution: "@types/request@npm:2.48.8"
-  dependencies:
-    "@types/caseless": "*"
-    "@types/node": "*"
-    "@types/tough-cookie": "*"
-    form-data: ^2.5.0
-  checksum: 0b7754941e08205dce51635d894ec524df276d2b83ca13b9aab723f9281acecf1108841e9554494cb1cb60f6d6ddbb47ebea97392bcf2bf607f035b3a9b4af45
-  languageName: node
-  linkType: hard
-
 "@types/send@npm:*":
   version: 0.17.1
   resolution: "@types/send@npm:0.17.1"
@@ -429,13 +394,6 @@ __metadata:
     "@types/mime": "*"
     "@types/node": "*"
   checksum: b6ac93d471fb0f53ddcac1f9b67572a09cd62806f7db5855244b28f6f421139626f24799392566e97d1ffc61b12f9de7f30380c39fcae3c8a161fe161d44edf2
-  languageName: node
-  linkType: hard
-
-"@types/tough-cookie@npm:*":
-  version: 4.0.2
-  resolution: "@types/tough-cookie@npm:4.0.2"
-  checksum: e055556ffdaa39ad85ede0af192c93f93f986f4bd9e9426efdc2948e3e2632db3a4a584d4937dbf6d7620527419bc99e6182d3daf2b08685e710f2eda5291905
   languageName: node
   linkType: hard
 
@@ -1318,17 +1276,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"form-data@npm:^2.5.0":
-  version: 2.5.1
-  resolution: "form-data@npm:2.5.1"
-  dependencies:
-    asynckit: ^0.4.0
-    combined-stream: ^1.0.6
-    mime-types: ^2.1.12
-  checksum: 5134ada56cc246b293a1ac7678dba6830000603a3979cf83ff7b2f21f2e3725202237cfb89e32bcb38a1d35727efbd3c3a22e65b42321e8ade8eec01ce755d08
-  languageName: node
-  linkType: hard
-
 "form-data@npm:^4.0.0":
   version: 4.0.0
   resolution: "form-data@npm:4.0.0"
@@ -2009,12 +1956,10 @@ __metadata:
     "@types/cookie-parser": ^1.4.3
     "@types/dotenv": ^8.2.0
     "@types/express": ^4.17.17
-    "@types/heapdump": ^0.3.1
     "@types/jsonwebtoken": ^9.0.2
     "@types/nconf": ^0.10.3
     "@types/node": 20.5.1
     "@types/pg": ^8.10.2
-    "@types/request-promise-native": ^1.0.18
     axios: ^1.4.0
     cookie-parser: ^1.4.6
     copyfiles: ^2.4.1

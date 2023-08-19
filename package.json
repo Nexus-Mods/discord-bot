@@ -1,6 +1,6 @@
 {
   "name": "nexus-bot-typescript",
-  "version": "3.6.3",
+  "version": "3.6.4",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
@@ -14,7 +14,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "@types/heapdump": "^0.3.1",
     "copyfiles": "^2.4.1",
     "eslint": "^8.47.0",
     "typescript": "^5.1.6"
@@ -28,7 +27,6 @@
     "@types/nconf": "^0.10.3",
     "@types/node": "20.5.1",
     "@types/pg": "^8.10.2",
-    "@types/request-promise-native": "^1.0.18",
     "axios": "^1.4.0",
     "cookie-parser": "^1.4.6",
     "discord.js": "^14.13.0",

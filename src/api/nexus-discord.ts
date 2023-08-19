@@ -1,5 +1,4 @@
 //Commands for interacting with the Nexus Mods API. 
-// import requestPromise from 'request-promise-native'; //For making API requests
 import axios, { AxiosError } from 'axios'; // For interactiing with API v1 and quicksearch. 
 import { request, gql } from 'graphql-request'; // For interacting with API v2.
 import { NexusUser } from '../types/users';
