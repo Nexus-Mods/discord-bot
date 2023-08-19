@@ -37,8 +37,8 @@ query UserByName($username: String!) {
 `;
 
 export async function findUser(headers: Record<string,string>, idOrName: number | string): Promise<IUser | undefined> {
-    let vars;
-    let query = gql``;
+    let vars: Record<string, string | number>;
+    let query: string = ``;
 
     if (typeof(idOrName) === 'number') {
         query = idQuery;
