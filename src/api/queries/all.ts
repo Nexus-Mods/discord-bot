@@ -10,6 +10,7 @@ import { collection } from './v2-collection';
 import { collectionsByUser } from './v2-collectionsbyuser';
 import { collectionsDownloadTotals } from './v2-collectionsdownloadtotals';
 import { findUser, IUser } from './v2-finduser';
+import { updatedMods as updatedModsV2 } from './v2-updatedMods';
 import { ICollection, ICollectionSearchResult, IMod as IModResult } from './v2';
 
 import { Games as gamesJSON, ModDownloads, SiteStats } from './other';
@@ -31,6 +32,7 @@ export const v2 = {
     games,
     mods,
     modsById,
+    updatedMods: updatedModsV2,
     myCollections,
     collections,
     collection,

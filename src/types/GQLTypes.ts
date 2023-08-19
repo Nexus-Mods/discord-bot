@@ -149,7 +149,7 @@ interface Collection {
 
 /** COLLECTIONS SEARCH AND FILTERING */
 
-type FilterComparisonOperator = 'EQUALS' | 'NOT_EQUALS' | 'MATCHES' | 'WILDCARD';
+type FilterComparisonOperator = 'EQUALS' | 'NOT_EQUALS' | 'MATCHES' | 'WILDCARD' | 'GT' | 'GTE' | 'LT' | 'LTE';
 export type FilterLogicalOperator = 'AND' | 'OR';
 export type BaseSortValue = 'ASC' | 'DESC';
 

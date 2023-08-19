@@ -1,6 +1,7 @@
 import { ModStatus } from "@nexusmods/nexus-api";
 import { GuildMember } from "discord.js";
 import { ClientError } from "graphql-request";
+import * as GQLTypes from '../../types/GQLTypes';
 
 
 export const v2API: string = 'https://api.nexusmods.com/v2/graphql';
@@ -77,6 +78,27 @@ export interface IMod {
     // Added by feed manager
     lastFileUpdate?: number;
     authorDiscord?: GuildMember | null;
+}
+
+export interface IModsSort {
+    relevance?: { direction: GQLTypes.BaseSortValue }
+    name?: { direction: GQLTypes.BaseSortValue }
+    downloads?: { direction: GQLTypes.BaseSortValue }
+    endorsements?: { direction: GQLTypes.BaseSortValue }
+    random?: { seed: number }
+    createdAt?: { direction: GQLTypes.BaseSortValue }
+    updatedAt?: { direction: GQLTypes.BaseSortValue }
+}
+
+export interface IModsFilter {
+    filter?: IModsFilter[];
+    op?: GQLTypes.FilterLogicalOperator;
+    name?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    nameStemmed?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    gameId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[]; //This is the numerical ID for a game, not the domain. 
+    createdAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    updatedAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    hasUpdated?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
 }
 
 export class NexusGQLError extends Error {

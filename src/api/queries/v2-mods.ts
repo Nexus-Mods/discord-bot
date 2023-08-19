@@ -1,7 +1,6 @@
-import { request, gql, ClientError } from "graphql-request";
+import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API, IMod, NexusGQLError } from './v2';
-import * as GQLTypes from '../../types/GQLTypes';
+import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
 
 interface IResult {
     mods: IModResults;
@@ -12,21 +11,6 @@ export interface IModResults {
     totalCount: number;
     // For backwards compatibility
     fullSearchUrl?: string;
-}
-
-export interface IModsSort {
-    relevance?: { direction: GQLTypes.BaseSortValue }
-    name?: { direction: GQLTypes.BaseSortValue }
-    downloads?: { direction: GQLTypes.BaseSortValue }
-    endorsements?: { direction: GQLTypes.BaseSortValue }
-}
-
-interface IModsFilter {
-    filter?: IModsFilter[];
-    op?: GQLTypes.FilterLogicalOperator;
-    name?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    nameStemmed?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    gameId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[]; //This is the numerical ID for a game, not the domain. 
 }
 
 const query = gql`

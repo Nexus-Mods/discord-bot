@@ -8,7 +8,7 @@ import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
 import { getModsbyUser, createMod, deleteMod, userProfileEmbed } from './bot-db';
-import { IModsSort } from './queries/v2-mods';
+import { IModsSort } from './queries/v2';
 
 interface OAuthTokens {
     access_token: string;
@@ -148,6 +148,9 @@ export class DiscordBotUser {
                 Games: async () => v2.games(this.headers()),
                 Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), [{ gameDomain, modId }]),
                 Mods: async (query: string, includeAdult: boolean, gameId?: number, sort?: IModsSort ) => v2.mods(this.headers(), query, includeAdult, gameId, sort),
+                UpdatedMods: 
+                    async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
+                        v2.updatedMods(this.headers(), since, includeAdult, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
                         v2.modsById(this.headers(), mods),
