@@ -109,8 +109,8 @@ export async function getModAuthor(id: number): Promise<boolean> {
     const variables = { id };
     
     try {
-        const data = await request(nexusGraphAPI, query, variables, { ...v1headers(undefined, '') });
-        return data?.user?.recognizedAuthor;
+        const data: { user?: { name: string, recognizedAuthor: boolean } } = await request(nexusGraphAPI, query, variables, { ...v1headers(undefined, '') });
+        return data?.user?.recognizedAuthor ?? false;
     }
     catch(err) {
         logMessage('GraphQL request for mod author status failed', { error: (err as Error).message, userId: id }, true);

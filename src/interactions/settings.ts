@@ -1,10 +1,9 @@
-import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from "discord.js";
+import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits, APIRole } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { BotServer } from "../types/servers";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
-import { APIRole } from "discord-api-types";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGame } from "../api/queries/v2-games";
 
