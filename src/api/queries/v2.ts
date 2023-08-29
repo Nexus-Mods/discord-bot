@@ -98,7 +98,7 @@ export interface IModsFilter {
     gameId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[]; //This is the numerical ID for a game, not the domain. 
     createdAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
     updatedAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    hasUpdated?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    hasUpdated?: GQLTypes.BooleanFilterValue | GQLTypes.BooleanFilterValue[];
 }
 
 export class NexusGQLError extends Error {

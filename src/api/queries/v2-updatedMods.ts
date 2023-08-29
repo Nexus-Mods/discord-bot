@@ -19,13 +19,10 @@ export interface IUpdatedModResults {
 
 const query = gql`
 query getUpdatedMods($first: Int!, $filter: ModsFilter, $sort: [ModsSort!]) {
-    mods( filter: { 
-        hasUpdated: { op: EQUALS, value: "TRUE" }, 
-        updatedAt: { op: GT, value: "1692352735" }, 
-        gameId: { op: EQUALS, value: "1704" }  
-        } 
+    mods( 
+        filter: $filter 
         first: $first
-        sort: { updatedAt: { direction: DESC } }
+        sort: $sort
     ) {
         totalCount
         nodes {
@@ -58,16 +55,21 @@ query getUpdatedMods($first: Int!, $filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function updatedMods(headers: Record<string,string>, newSince: Date | number | string, includeAdult: boolean, gameIds?: number | number[], sort: IModsSort
-     = { updatedAt: { direction: 'ASC' }}): Promise<IUpdatedModResults> {
+export async function updatedMods(
+    headers: Record<string,string>, 
+    newSince: Date | number | string, 
+    includeAdult: boolean, 
+    gameIds?: number | number[], 
+    sort: IModsSort = { updatedAt: { direction: 'ASC' }}
+): Promise<IUpdatedModResults> {
 
     const sinceDate: number = Math.floor(new Date(newSince).getTime() / 1000)
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
-        // hasUpdated: {
-        //     value: 'TRUE',
-        //     op: 'EQUALS'
-        // }
+        hasUpdated: {
+            value: true,
+            op: 'EQUALS'
+        },
         updatedAt: {
             value: `${sinceDate}`,
             op: 'GT'

@@ -158,7 +158,7 @@ export interface BaseFilterValue {
     op: FilterComparisonOperator;
 }
 
-interface BooleanFilterValue {
+export interface BooleanFilterValue {
     value: boolean;
     op: FilterComparisonOperator;
 }

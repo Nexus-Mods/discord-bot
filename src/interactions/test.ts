@@ -44,6 +44,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             Games: (await botuser.NexusMods.API.v2.Games()).length > 2000,
             Mod: (await botuser.NexusMods.API.v2.Mod('skyrim', 3863))[0].name === 'SkyUI',
             Mods: (await botuser.NexusMods.API.v2.Mods('skyui', false)).totalCount > 0,
+            UpdatedMods: (await botuser.NexusMods.API.v2.UpdatedMods(new Date(0), true)).totalCount > 0,
             ModsByModId: (await botuser.NexusMods.API.v2.ModsByModId([{ gameDomain: 'skyrim', modId: 3863 }])).length > 0,
             MyCollections: (await botuser.NexusMods.API.v2.MyCollections()).length > 0,
             Collections: (await botuser.NexusMods.API.v2.Collections({}, 'endorsements_count')).nodesCount > 0,
