@@ -30,11 +30,14 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         logMessage('Nexus Mods Auth verfied.');
         
         const allUsers = await getAllUsers();
+        const pendingUsers = allUsers.filter(u => !u.avatar_url?.startsWith('https://avatars'));
+
+        await interaction.editReply({ content: `Updates required for ${pendingUsers.length} users` });
 
         let success = 0
         let failed = 0
 
-        for (const user of allUsers) {
+        for (const user of pendingUsers) {
             const avatar_url = `https://avatars.nexusmods.com/${user.id}/100`;
             try {
                 logMessage('Updating avatar for '+user.name, avatar_url);
@@ -49,7 +52,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
         const replyText = `Finished updating avatars.\n\nSuccess: ${success}/${allUsers.length}\nFailed: ${failed}/${allUsers.length}`
 
-        return interaction.editReply({ content: replyText });
+        return interaction.followUp({ content: replyText });
     }
     catch(err) {
         return interaction.editReply({ content: 'Error! '+err });
