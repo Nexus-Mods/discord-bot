@@ -29,8 +29,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         await botuser.NexusMods.Auth();
         logMessage('Nexus Mods Auth verfied.');
         
-        const allUsers = await getAllUsers();
-        const pendingUsers = allUsers.filter(u => !u.avatar_url?.startsWith('https://avatars'));
+        let allUsers = await getAllUsers();
+        const pendingUsers = allUsers.filter(u => !u.avatar_url?.startsWith('https://avatars')).map(u => ({ d_id: u.d_id, id: u.id }));
+        allUsers = []
 
         await interaction.editReply({ content: `Updates required for ${pendingUsers.length} users` });
 
@@ -40,7 +41,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         for (const user of pendingUsers) {
             const avatar_url = `https://avatars.nexusmods.com/${user.id}/100`;
             try {
-                logMessage('Updating avatar for '+user.name, avatar_url);
+                logMessage('Updating avatar for '+user.id, avatar_url);
                 await updateUser(user.d_id, { avatar_url });
                 success += 1
             }
@@ -50,7 +51,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             }            
         }
 
-        const replyText = `Finished updating avatars.\n\nSuccess: ${success}/${allUsers.length}\nFailed: ${failed}/${allUsers.length}`
+        const replyText = `Finished updating avatars.\n\nSuccess: ${success}/${pendingUsers.length}\nFailed: ${failed}/${pendingUsers.length}`
 
         return interaction.followUp({ content: replyText });
     }
