@@ -18,12 +18,12 @@ const pool = new Pool(poolConfig);
 
 export async function queryPromise(query: string, values: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
-        pool.connect((err: Error, client: PoolClient, release) => {
+        pool.connect((err?: Error, client?: PoolClient, release?) => {
             if (err) {
                 logMessage('Error acquiring client', { query, err: err.message }, true);
                 return reject(err);
             };
-            client.query(query, values, (err: Error, result: QueryResult) => {
+            client?.query(query, values, (err: Error, result: QueryResult) => {
                 if (err) {
                     logMessage('Error in query', { query, values, err }, true);
                     return reject(err);
@@ -37,14 +37,14 @@ export async function queryPromise(query: string, values: any[]): Promise<any> {
 }
 
 function doQuery(query: string, values: any[], callback: (err: Error, result?: QueryResult) => void) {
-    pool.connect((err: Error, client: PoolClient, release) => {
+    pool.connect((err?: Error, client?: PoolClient, release?) => {
         if (err) {
             logMessage('Error acquiring client', { query, err: err.message, poolConfig }, true);
-            release();
+            release?.();
             return callback(err);
         };
-        client.query(query, values, (err: Error, result: QueryResult) => {
-            release();
+        client?.query(query, values, (err: Error, result: QueryResult) => {
+            release?.();
             if (err) {
                 logMessage('Error in query', { query, values, err }, true);
                 return callback(err);
