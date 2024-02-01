@@ -29,10 +29,3 @@ export const discontinuedEmbed = (newCommand: string): EmbedBuilder => {
     .setColor('Grey')
     .setDescription(`This command has been retired, please use the slash command **${newCommand}** instead. [Help](https://discord.gg/nexusmods)`)
 }
-
-export const upgradeWarning = (): EmbedBuilder => {
-    return new EmbedBuilder()
-    .setTitle('Notice')
-    .setColor('LightGrey')
-    .setDescription('Due to on-going upgrade work, this bot command may not work as expected. Thank you for being patient.')
-}
