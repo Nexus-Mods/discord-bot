@@ -388,7 +388,7 @@ post.addFields({ name: 'Author', value: mod.author, inline: true})
 .addFields({ name: 'Uploader', value: `[${mod.uploader?.name}](${uploaderProfile})`, inline: true})
 if (mod.authorDiscord) post.addFields({ name: 'Discord', value: mod.authorDiscord.toString(), inline: true})
 if (!compact) post.addFields({ name: 'Category', value: category, inline: true })
-post.setTimestamp(new Date(mod.updatedAt))
+post.setTimestamp(new Date(mod.lastFileUpdate ? mod.lastFileUpdate * 1000 : mod.updatedAt))
 .setFooter({ text: `${game.name}  •  ${category}  • v${mod.version} `, iconURL: client?.user?.avatarURL() || '' });
 
 return post;
