@@ -101,7 +101,7 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(false)
         )
         .addNumberOption(no => 
-            no.setName('userID')
+            no.setName('id')
             .setDescription('Enter the user ID to look up.')
             .setRequired(false)
         )
@@ -133,7 +133,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const query: string = interaction.options.getString('query') || '';
     const gameQuery : string = interaction.options.getString('game-query') || '';
     const showToAll: boolean = interaction.options.getBoolean('private') || false;
-    const userId: number = interaction.options.getNumber('userId') || 0;
+    const userId: number = interaction.options.getNumber('id') || 0;
 
     if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral: true });
 
