@@ -409,7 +409,7 @@ async function searchUsers(query: string, ephemeral: boolean, client: Client, in
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
-    const searchTerm: string | number = isNaN(parseInt(query)) ? query : parseInt(query);
+    const searchTerm: string | number = query.match(/[^0-9])+/) ? query : parseInt(query);
     const foundUser = await user.NexusMods.API.v2.FindUser(searchTerm);
     if (!foundUser) return postResult(interaction, noUserFound(), ephemeral);
     else return postResult(interaction, userResult(foundUser), ephemeral);
