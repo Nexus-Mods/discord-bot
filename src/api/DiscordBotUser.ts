@@ -415,13 +415,16 @@ export class DiscordBotUser {
 
         // Get collection downloads
         let collectiondownloads = oldData?.metadata?.collectiondownloads ?? 0;
+        let moddownloads = 0// oldData?.metadata?.moddownloads ?? 0;
         try {
             const collectionTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
-            logMessage('Collection totals', { name: this.NexusModsUsername, collectionTotals })
             collectiondownloads = collectionTotals.uniqueDownloads;
+            const modTotals = await this.NexusMods.API.v2.FindUser(this.NexusModsId);
+            moddownloads = modTotals?.uniqueModDownloads ?? 0;
+            logMessage('Download totals', { name: this.NexusModsUsername, collectiondownloads, moddownloads })
         }
         catch(err) {
-            logMessage('Failed to get collection downloads to build Discord metadata', { user: this.NexusModsUsername, err });
+            logMessage('Failed to get collection/mod downloads to build Discord metadata', { user: this.NexusModsUsername, err });
         }
 
         return {
@@ -429,6 +432,7 @@ export class DiscordBotUser {
             premium: this.NexusModsRoles.has('premium') ? '1' : '0',
             supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? '1' : '0',
             collectiondownloads,
+            // moddownloads
         };
     } 
 }

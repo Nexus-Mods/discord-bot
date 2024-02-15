@@ -43,6 +43,7 @@ export interface BotMetaData {
   premium?: '0' | '1';
   supporter?: '0' | '1';
   collectiondownloads?: number;
+  // moddownloads?: number;
 }
 
 export function getOAuthUrl(): OAuthURL {

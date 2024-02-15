@@ -1,6 +1,6 @@
 import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { getUserByDiscordId, userProfileEmbed, getLinksByUser, userEmbed } from '../api/bot-db';
+import { getUserByDiscordId, userProfileEmbed, userEmbed } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordBotUser } from "../api/DiscordBotUser";
@@ -26,9 +26,8 @@ async function action(client: Client, baseinteraction: CommandInteraction): Prom
     try {
         const user: DiscordBotUser|undefined = await getUserByDiscordId(interaction.targetId);
         if (!user) return interaction.editReply('No matching linked accounts.');
-        const linkedServers: NexusUserServerLink[] = await getLinksByUser(user.NexusModsId).catch(() => []);
         const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
-        const inGuild: boolean = !!interaction.guild // !!linkedServers.find(link => link.server_id === interaction.guild?.id);
+        const inGuild: boolean = !!interaction.guild
         const isMe: boolean = interaction.user.id === user.DiscordId;
         if (isAdmin || isMe || inGuild) return interaction.editReply({ embeds: [await userProfileEmbed(user, client)] });
             else {
