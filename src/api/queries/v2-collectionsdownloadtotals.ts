@@ -51,7 +51,8 @@ query getTotalDownloadsForCollections($filters: CollectionsUserFilter, $offset: 
 export async function collectionsDownloadTotals(headers: Record<string,string>, id: number): Promise<ITotals> {
     // This query is using an outdated version of the API and requires specific headers
     if (headers['api-version'] !== '2023-09-05') {
-      throw new Error('API Version header must be set to 2023-09-05 for this request (Query is outdated!)')
+      headers['api-version'] = '2023-09-05'
+      logMessage('OUTDATED QUERY [COLLECTIONSDOWNLOADTOTALS] - API Version header must be set to 2023-09-05 for this request')
     }
 
     const variables = {

@@ -12,6 +12,7 @@ export interface IUser {
     memberId: number;
     avatar: string;
     recognizedAuthor: boolean;
+    uniqueModDownloads: number;
 }
 
 const idQuery = gql`
@@ -21,6 +22,7 @@ query UserById($id: Int!) {
         memberId
         avatar
         recognizedAuthor
+        uniqueModDownloads
     }
 }
 `;
@@ -32,6 +34,7 @@ query UserByName($username: String!) {
         memberId
         avatar
         recognizedAuthor
+        uniqueModDownloads
     }
 }
 `;

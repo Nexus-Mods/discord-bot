@@ -404,6 +404,7 @@ async function searchUsers(query: string, ephemeral: boolean, client: Client, in
     const userResult = (u: IUser) => new EmbedBuilder()
     .setAuthor({ name: u.name, url: `https://nexusmods.com/users/${u.memberId}` })
     .setDescription(`User ID: ${u.memberId}\n[View ${u.name}'s profile on Nexus Mods](https://nexusmods.com/users/${u.memberId})`)
+    .addFields([ { name: 'Total Unique Downloads', value: u.uniqueModDownloads.toLocaleString() } ])
     .setThumbnail(u.avatar)
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });

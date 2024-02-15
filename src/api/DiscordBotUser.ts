@@ -98,7 +98,7 @@ export class DiscordBotUser {
         let baseheader: Record<string, string> = {
             'Application-Name': 'Nexus Mods Discord Bot',
             'Application-Version': process.env.npm_package_version || '0.0.0',
-            'api-version': '2023-09-05'
+            // 'api-version': '2023-09-05'
         }
         
         if (!!this.NexusModsOAuthTokens?.access_token) baseheader['Authorization'] = `Bearer ${this.NexusModsOAuthTokens.access_token}`;
