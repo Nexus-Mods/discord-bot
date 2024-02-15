@@ -97,8 +97,13 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('Search for users on Nexus Mods') 
         .addStringOption(gameTitle => 
             gameTitle.setName('query')
-            .setDescription('Enter the username or user ID of to look up. Exact matches only.')
-            .setRequired(true)
+            .setDescription('Enter the username to look up. Exact matches only.')
+            .setRequired(false)
+        )
+        .addNumberOption(no => 
+            no.setName('userID')
+            .setDescription('Enter the user ID to look up.')
+            .setRequired(false)
         )
         .addBooleanOption(hide => 
             hide.setName('private')
@@ -128,6 +133,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const query: string = interaction.options.getString('query') || '';
     const gameQuery : string = interaction.options.getString('game-query') || '';
     const showToAll: boolean = interaction.options.getBoolean('private') || false;
+    const userId: number = interaction.options.getNumber('userId') || 0;
 
     if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral: true });
 
@@ -149,7 +155,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     switch(searchType) {
         case 'MODS' : return searchMods(query, gameQuery, showToAll, client, interaction, user, server);
         case 'GAMES' : return searchGames(query, showToAll, client, interaction, user, server);
-        case 'USERS' : return searchUsers(query, showToAll, client, interaction, user, server);
+        case 'USERS' : return searchUsers(query, userId, showToAll, client, interaction, user, server);
         case 'COLLECTIONS' : return searchCollections(query, gameQuery, showToAll, client, interaction, user, server);
         default: return interaction.followUp('Search error: Invalid search type.');
     }
@@ -391,13 +397,13 @@ async function searchGames(query: string, ephemeral:boolean, client: Client, int
 
 }
 
-async function searchUsers(query: string, ephemeral: boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
-    logMessage('User search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+async function searchUsers(query: string, userId: number, ephemeral: boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
+    logMessage('User search', {query, userId, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
 
     const noUserFound = () => new EmbedBuilder()
     .setTitle('No results found')
-    .setDescription(`No users found for ${query}. This feature only supports exact matches so please check your spelling.`)
+    .setDescription(`No users found for ${query ?? userId ?? 'NULL'}. This feature only supports exact matches so please check your spelling.`)
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
@@ -409,7 +415,8 @@ async function searchUsers(query: string, ephemeral: boolean, client: Client, in
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
-    const searchTerm: string | number = query.match(/[^0-9])+/) ? query : parseInt(query);
+    const searchTerm: string | number = query ?? userId;
+    if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, noUserFound(), ephemeral);
     const foundUser = await user.NexusMods.API.v2.FindUser(searchTerm);
     if (!foundUser) return postResult(interaction, noUserFound(), ephemeral);
     else return postResult(interaction, userResult(foundUser), ephemeral);
