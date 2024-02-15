@@ -397,7 +397,7 @@ export class DiscordBotUser {
         BuildMetaData: () => this.getDiscordMetaData(),
         GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens) : undefined,
         PushMetaData: 
-        async (meta: { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectiondownloads: number, moddownloads: number }) => 
+        async (meta: { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectiondownloads?: number, moddownloads?: number }) => 
             this.DiscordOAuthTokens 
             ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) 
             : new Error('Not Authorised')
