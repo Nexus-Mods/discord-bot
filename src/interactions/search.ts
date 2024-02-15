@@ -401,6 +401,12 @@ async function searchUsers(query: string, userId: number, ephemeral: boolean, cl
     logMessage('User search', {query, userId, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
 
+    const invalidSearch = () => new EmbedBuilder()
+    .setTitle('Invalid search')
+    .setDescription(`Please provide a username or ID.`)
+    .setColor(0xda8e35)
+    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+    
     const noUserFound = () => new EmbedBuilder()
     .setTitle('No results found')
     .setDescription(`No users found for ${query ?? userId ?? 'NULL'}. This feature only supports exact matches so please check your spelling.`)
@@ -416,9 +422,9 @@ async function searchUsers(query: string, userId: number, ephemeral: boolean, cl
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
     const searchTerm: string | number = query ?? userId;
-    if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, noUserFound(), ephemeral);
+    if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, invalidSearch(), true);
     const foundUser = await user.NexusMods.API.v2.FindUser(searchTerm);
-    if (!foundUser) return postResult(interaction, noUserFound(), ephemeral);
+    if (!foundUser) return postResult(interaction, noUserFound(), true);
     else return postResult(interaction, userResult(foundUser), ephemeral);
 }
 
