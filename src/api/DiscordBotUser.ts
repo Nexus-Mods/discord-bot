@@ -397,7 +397,7 @@ export class DiscordBotUser {
         BuildMetaData: () => this.getDiscordMetaData(),
         GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens) : undefined,
         PushMetaData: 
-        async (meta: { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0' }) => 
+        async (meta: { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectiondownloads: number, moddownloads: number }) => 
             this.DiscordOAuthTokens 
             ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) 
             : new Error('Not Authorised')
@@ -415,7 +415,7 @@ export class DiscordBotUser {
 
         // Get collection downloads
         let collectiondownloads = oldData?.metadata?.collectiondownloads ?? 0;
-        let moddownloads = 0// oldData?.metadata?.moddownloads ?? 0;
+        let moddownloads = oldData?.metadata?.moddownloads ?? 0;
         try {
             const collectionTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
             collectiondownloads = collectionTotals.uniqueDownloads;
@@ -432,7 +432,7 @@ export class DiscordBotUser {
             premium: this.NexusModsRoles.has('premium') ? '1' : '0',
             supporter: (this.NexusModsRoles.has('supporter') && !this.NexusModsRoles.has('premium')) ? '1' : '0',
             collectiondownloads,
-            // moddownloads
+            moddownloads
         };
     } 
 }
