@@ -419,7 +419,7 @@ async function searchUsers(query: string, userId: number, ephemeral: boolean, cl
     .addFields([ { name: 'Total Unique Mod Downloads', value: u.uniqueModDownloads.toLocaleString() } ])
     .setThumbnail(u.avatar)
     .setColor(0xda8e35)
-    .setFooter({ text: `Nexus Mods - Requested by {@${user.DiscordId}}`, iconURL: client.user?.avatarURL() || '' });
+    .setFooter({ text: `Nexus Mods - Requested by ${interaction.user.displayName}`, iconURL: client.user?.avatarURL() || '' });
 
     const searchTerm: string | number = query ?? userId;
     if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, invalidSearch(), true);
