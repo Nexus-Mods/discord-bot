@@ -13,7 +13,7 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('Make your card visible to all users?')
         .setRequired(false) 
     )
-    .setDMPermission(true),
+    .setDMPermission(true) as SlashCommandBuilder,
     public: true,
     guilds: [
         '581095546291355649'

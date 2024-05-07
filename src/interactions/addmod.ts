@@ -19,7 +19,7 @@ const discordInteraction: DiscordInteraction = {
       .setDescription('Add links or search terms for mods to add, comma separated.')
       .setRequired(true)
     )
-    .setDMPermission(true),
+    .setDMPermission(true) as SlashCommandBuilder,
     public: true,
     guilds: [
         '581095546291355649'

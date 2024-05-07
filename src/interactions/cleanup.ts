@@ -18,7 +18,7 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('Do not delete anything, only test.')
         .setRequired(true)
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) as SlashCommandBuilder,
     public: false,
     guilds: [
         '581095546291355649',

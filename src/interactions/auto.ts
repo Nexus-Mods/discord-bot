@@ -16,7 +16,7 @@ const discordInteraction: DiscordInteraction = {
         .setRequired(true)
     )
     .setDMPermission(false)
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) as SlashCommandBuilder,
     public: false,
     guilds: [
         '581095546291355649',

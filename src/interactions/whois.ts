@@ -25,7 +25,7 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('Should the result only be shown to you?')    
         .setRequired(false)
     )
-    .setDMPermission(false),
+    .setDMPermission(false) as SlashCommandBuilder,
     public: true,
     guilds: [
         '581095546291355649'

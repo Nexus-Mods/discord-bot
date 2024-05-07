@@ -22,7 +22,7 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('The user to ping in the reply. (Optional)')
         .setRequired(false)    
     )
-    .setDMPermission(true),
+    .setDMPermission(true) as SlashCommandBuilder,
     public: true,
     guilds: [],
     action

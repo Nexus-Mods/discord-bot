@@ -90,7 +90,7 @@ const discordInteraction: DiscordInteraction = {
         sc.setName('list')
         .setDescription('List all feeds for this server.')
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels) as SlashCommandBuilder,
     public: false,
     guilds: ['581095546291355649'],
     aliases: [ 'modfeed', 'collectionfeed' ],

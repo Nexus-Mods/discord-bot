@@ -17,7 +17,7 @@ const discordInteraction: DiscordInteraction = {
         .setRequired(false)
     )
     .setDMPermission(true)
-    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages) as SlashCommandBuilder,
     public: true,
     action
 }

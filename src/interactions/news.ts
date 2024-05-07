@@ -12,7 +12,7 @@ const discordInteraction: DiscordInteraction = {
         option.setName('domain')
         .setDescription('Domain to check, for game-specific news.')    
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
     public: false,
     guilds: [
         '581095546291355649',
