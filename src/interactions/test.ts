@@ -52,7 +52,8 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             CollectionsByUser: (await botuser.NexusMods.API.v2.CollectionsByUser(51448566)).nodesCount > 0,
             FindUserName: (await botuser.NexusMods.API.v2.FindUser('Janquel'))?.memberId === 51448566,
             CollectionDownloadTotals: (await botuser.NexusMods.API.v2.CollectionDownloadTotals(31179975))?.totalDownloads > 0,
-            FindUserID: (await botuser.NexusMods.API.v2.FindUser(51448566))?.name === 'Janquel'
+            FindUserID: (await botuser.NexusMods.API.v2.FindUser(51448566))?.name === 'Janquel',
+            LatestMods: (await botuser.NexusMods.API.v2.LatestMods(new Date(Date.now() - 10000))).totalCount > 0
         }
         
         logMessage('API tests complete', { v1test, v2test });

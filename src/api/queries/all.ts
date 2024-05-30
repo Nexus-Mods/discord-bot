@@ -11,6 +11,7 @@ import { collectionsByUser } from './v2-collectionsbyuser';
 import { collectionsDownloadTotals } from './v2-collectionsdownloadtotals';
 import { findUser, IUser } from './v2-finduser';
 import { updatedMods as updatedModsV2 } from './v2-updatedMods';
+import { latestMods } from './v2-latestmods';
 import { ICollection, ICollectionSearchResult, IMod as IModResult } from './v2';
 
 import { Games as gamesJSON, ModDownloads, SiteStats } from './other';
@@ -38,7 +39,8 @@ export const v2 = {
     collection,
     collectionsByUser,
     collectionsDownloadTotals,
-    findUser
+    findUser,
+    latestMods
 };
 
 export const other = {

@@ -91,7 +91,7 @@ export class DiscordBotUser {
 
     public ProfileEmbed = async (client: Client): Promise<EmbedBuilder> => userProfileEmbed(this, client);
 
-    private headers = (): (IRequestHeadersOAuth | IRequestHeadersAPIkey) => {
+    private headers = (noAuth?: boolean): (IRequestHeadersOAuth | IRequestHeadersAPIkey) => {
         if (!this.NexusModsAPIKey && !this.NexusModsOAuthTokens) 
             throw new Error('Invalid auth - headers could not be generated.');
         
@@ -100,6 +100,8 @@ export class DiscordBotUser {
             'Application-Version': process.env.npm_package_version || '0.0.0',
             // 'api-version': '2023-09-05'
         }
+
+        if (noAuth === true) return baseheader as IRequestHeadersAPIkey || baseheader as IRequestHeadersOAuth;
         
         if (!!this.NexusModsOAuthTokens?.access_token) baseheader['Authorization'] = `Bearer ${this.NexusModsOAuthTokens.access_token}`;
         else baseheader['apikey'] = this.NexusModsAPIKey!;
@@ -162,7 +164,8 @@ export class DiscordBotUser {
                 Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), slug, domain, adult),
                 CollectionsByUser: async (userId: number) => v2.collectionsByUser(this.headers(), userId),
                 CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), userId),
-                FindUser: async (query: string | number) => v2.findUser(this.headers(), query)
+                FindUser: async (query: string | number) => v2.findUser(this.headers(), query),
+                LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), since, gameIds, sort)
             },
             Other: {
                 // Games pulled from the static Games.json file.
