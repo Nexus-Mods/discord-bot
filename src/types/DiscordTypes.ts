@@ -6,6 +6,7 @@ import { GameFeedManager } from "../feeds/GameFeedManager";
 import { ModFeedManager } from "../feeds/ModFeedManager";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 import { GameListCache } from "./util";
+import { AutoModManager } from "../feeds/AutoModManager";
 
 interface ClientExt extends Client {
     config?: any;
@@ -14,6 +15,7 @@ interface ClientExt extends Client {
     gameFeeds?: GameFeedManager;
     modFeeds?: ModFeedManager;
     newsFeed?: NewsFeedManager;
+    automod?: AutoModManager;
     updateInteractions?: (force?: boolean) => Promise<void>
     gamesList?: GameListCache;
 }

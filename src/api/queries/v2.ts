@@ -54,15 +54,18 @@ export interface IMod {
     uid: string;
     modId: number;
     name: string;
-    createdAt: Date;
+    createdAt: string;
     updatedAt: Date;
     summary: string;
+    description: string;
     status: ModStatus;
     author: string;
     uploader: {
         name: string;
         avatar: string;
         memberId: number;
+        joined: string;
+        membershipRoles: string[];
     }
     pictureUrl: string;
     modCategory: {

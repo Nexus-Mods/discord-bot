@@ -1,8 +1,5 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { getUserByDiscordId } from '../api/bot-db';
-import { logMessage } from "../api/util";
-import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -22,41 +19,40 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
-    const discordId = interaction.user.id;
-    const botuser: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
-    if (!botuser) return interaction.editReply({ content: 'Error! No linked user!' });
-    try {
-        await botuser.NexusMods.Auth();
-        logMessage('Nexus Mods Auth verfied.');
 
-        const now = new Date()
-        const fiveMinsAgo = new Date(now.valueOf() - (60000 * 60))
+    const report = client.automod?.lastReport
 
-        // Quick test without params
-        const test1 = await botuser.NexusMods.API.v2.LatestMods(fiveMinsAgo)
+    if (!report) return interaction.editReply({ content: 'Report not available' })
 
-        // Quick test with game params
-        const test2 = await botuser.NexusMods.API.v2.LatestMods(fiveMinsAgo, [ 1704, 1151 ])
-        
-        
-        console.log({test1, test2})
+    const highConcern = report?.filter(r => r.flags.high.length > 0) || [];
+    const lowConcern = report?.filter(r => r.flags.low.length > 0 && r.flags.high.length === 0) || [];
+    const noConcern = report?.filter(r => r.flags.low.length === 0 && r.flags.high.length === 0) || [];
 
-        const embed1 = new EmbedBuilder()
-        .setTitle('All games')
-        .setDescription(test1.nodes.map(m => `- ${m.name} (${m.game?.name})`).join('\n') + ".")
-        .setFields([{ name: 'total', value: `count of ${test1.totalCount}` }])
+    const modToRow = (m: any) => `- [${m.mod.name}](https://nexusmods.com/${m.mod.game?.domainName}/mods/${m.mod.modId})`
 
-        const embed2 = new EmbedBuilder()
-        .setTitle('Skyrim and Fallout 4')
-        .setDescription(test2.nodes.map(m => `- ${m.name} (${m.game?.name})`).join('\n') + ".")
-        .setFields([{ name: 'total', value: `count of ${test2.totalCount}` }])
+    const highEmbed = new EmbedBuilder()
+    .setTitle('Automod report')
+    .addFields(
+        [
+            {
+                name: 'High Risk Mods',
+                value: `Mods with major flags\n`+(highConcern.map(modToRow).join('\n') || '_None_')
+            },
+            {
+                name: 'Low Risk Mods',
+                value: `Mods with minor flags\n`+(lowConcern.map(modToRow).join('\n') || '_None_')
+            },
+            {
+                name: 'Safe Mods',
+                value: `Mods with no flags\n`+(noConcern.map(modToRow).join('\n') || '_None_')
+            },
 
-        return interaction.editReply({ embeds: [embed1, embed2] })
-    }
-    catch(err) {
-        logMessage('Error', err, true)
-        return interaction.editReply({ content: 'Error! '+err });
-    }
+        ]
+    )
+    .setColor('DarkOrange')
+
+
+    return interaction.editReply({ embeds: [highEmbed] })
 }
 
 export { discordInteraction }

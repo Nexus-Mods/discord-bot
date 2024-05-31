@@ -2,8 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
 import { logMessage } from './util';
 
-interface ISlackMessage {
-    text: string;
+export interface ISlackMessage {
     blocks: (ISlackSectionBlock | ISlackHeaderBlock | ISlackDividerBlock)[]
 }
 
@@ -41,8 +40,7 @@ export async function PublishToSlack(data: ISlackMessage): Promise<Boolean> {
         await axios({
             method: 'POST',
             url: slackWebhook,
-            data,
-            transformResponse: (res) => JSON.parse(res),
+            data: JSON.stringify(data, null, 2),
             headers: { 
                 'Content-Type': 'application/json'
             },
@@ -66,8 +64,7 @@ export async function PublishToDiscord(data: RESTPostAPIWebhookWithTokenJSONBody
         await axios({
             method: 'POST',
             url: discordWebhook,
-            data,
-            transformResponse: (res) => JSON.parse(res),
+            data: JSON.stringify(data, null, 2),
             headers: { 
                 'Content-Type': 'application/json'
             },

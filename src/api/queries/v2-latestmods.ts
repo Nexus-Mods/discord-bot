@@ -31,6 +31,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
           name
           memberId
           joined
+          membershipRoles
         }
         pictureUrl
       }
@@ -40,11 +41,17 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 `;
 
 export async function latestMods(headers: Record<string,string>, startDate: Date, gameIds?: number | number[], sort: IModsSort = { createdAt: { direction: 'DESC' }}): Promise<IModResults> {
+    // logMessage('Got args for Latest Mods', { startDate, gameIds, sort });
+    
+    if (typeof startDate === 'string') {
+        startDate = new Date(startDate)
+    }
+    
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
         createdAt: {
             value: Math.floor(startDate.getTime() / 1000).toString(),
-            op: 'GTE'
+            op: 'GT'
         }
     };
 
@@ -61,7 +68,7 @@ export async function latestMods(headers: Record<string,string>, startDate: Date
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        // Adult content filter is not available on the API yet, so we'll have to do it manually.
+        // console.log(result.mods, filter)
         return result.mods;
     }
     catch(err) {

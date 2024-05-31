@@ -24,6 +24,9 @@ import { getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteSer
 // INFO MANAGEMENT 
 import { getAllInfos, createInfo, deleteInfo, displayInfo } from './infos';
 
+// AUTOMOD
+import { getAutomodRules, createAutomodRule } from './automod';
+
 export {
     getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
     getAllMods, getModsbyUser, createMod, deleteMod, updateMod, 
@@ -33,5 +36,6 @@ export {
     getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed,
     getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, 
     deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, updateRoles, updateAllRoles, modUniqueDLTotal,
-    getAllInfos, createInfo, deleteInfo, displayInfo
+    getAllInfos, createInfo, deleteInfo, displayInfo,
+    getAutomodRules, createAutomodRule
 };

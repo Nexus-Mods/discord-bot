@@ -190,3 +190,11 @@ export class GameListCache {
         }
     }
 }
+
+export interface IAutomodRule {
+    id: number;
+    type: 'low' | 'high';
+    filter: string;
+    added: Date;
+    reason: string;
+}

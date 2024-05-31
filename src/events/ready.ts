@@ -6,6 +6,7 @@ import { ModFeedManager } from '../feeds/ModFeedManager';
 import { NewsFeedManager } from '../feeds/NewsFeedManager';
 import { logMessage } from '../api/util';
 import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
+import { AutoModManager } from '../feeds/AutoModManager';
 
 // Prepare the online status embed for quick reuse.
 const onlineEmbed = new EmbedBuilder()
@@ -24,6 +25,7 @@ const main: DiscordEventInterface = {
             client.gameFeeds = GameFeedManager.getInstance(client);
             client.modFeeds = ModFeedManager.getInstance(client);
             client.newsFeed = NewsFeedManager.getInstance(client);
+            client.automod = AutoModManager.getInstance(client);
         }
         catch(err) {
             logMessage('Error starting up feeds', err, true);
