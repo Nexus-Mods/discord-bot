@@ -53,7 +53,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
     if (!process.env['DISCORD_WEBHOOK']) highEmbed.addFields({ name: 'Missing Discord Webhook', value: 'Discord Webhook ENV variable is not present.' })
     else if (!process.env['SLACK_WEBHOOK']) highEmbed.addFields({ name: 'Missing Slack Webhook', value: 'Slack Webhook ENV variable is not present.' })
-    else highEmbed.addFields({ name: 'Webhooks set up', value: 'All required webhooks are configurated.' })
+    else highEmbed.addFields({ name: 'Webhooks set up', value: 'All required webhooks are configured.' })
 
 
     return interaction.editReply({ embeds: [highEmbed] })
