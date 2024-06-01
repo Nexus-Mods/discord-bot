@@ -51,6 +51,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     )
     .setColor('DarkOrange')
 
+    if (!process.env['DISCORD_WEBHOOK']) highEmbed.addFields({ name: 'Missing Discord Webhook', value: 'Discord Webhook ENV variable is not present.' })
+    if (!process.env['SLACK_WEBHOOK']) highEmbed.addFields({ name: 'Missing Slack Webhook', value: 'Slack Webhook ENV variable is not present.' })
+
 
     return interaction.editReply({ embeds: [highEmbed] })
 }
