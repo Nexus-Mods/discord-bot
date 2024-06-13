@@ -102,14 +102,15 @@ export async function getModAuthor(id: number): Promise<boolean> {
         user(id: $id) {
             name
             recognizedAuthor
+            uniqueModDownloads
         }
     }`;
 
     const variables = { id };
     
     try {
-        const data: { user?: { name: string, recognizedAuthor: boolean } } = await request(nexusGraphAPI, query, variables, { ...v1headers(undefined, '') });
-        return data?.user?.recognizedAuthor ?? false;
+        const data: { user?: { name: string, recognizedAuthor: boolean, uniqueModDownloads: number } } = await request(nexusGraphAPI, query, variables, { ...v1headers(undefined, '') });
+        return data?.user?.recognizedAuthor ?? (data?.user?.uniqueModDownloads || 0) >= 1000 ?? false;
     }
     catch(err) {
         logMessage('GraphQL request for mod author status failed', { error: (err as Error).message, userId: id }, true);
