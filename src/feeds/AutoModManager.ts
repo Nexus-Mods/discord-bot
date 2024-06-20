@@ -215,6 +215,8 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
         }
     }
 
+    if (mod.uploader!.modCount <= 1) flags.low.push('First mod upload');
+
     // Check against automod rules
     let allText = `${mod.name}\n${mod.summary}\n${mod.description}`.toLowerCase();
     const urls = await analyseURLS(allText);

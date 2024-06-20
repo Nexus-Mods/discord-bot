@@ -66,6 +66,7 @@ export interface IMod {
         memberId: number;
         joined: string;
         membershipRoles: string[];
+        modCount: number;
     }
     pictureUrl: string;
     modCategory: {

@@ -32,6 +32,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
           memberId
           joined
           membershipRoles
+          modCount
         }
         pictureUrl
       }
