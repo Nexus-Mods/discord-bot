@@ -112,6 +112,7 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
         const modLink = `https://nexusmods.com/${input.mod.game?.domainName}/mods/${input.mod.modId}`;
         const userLink = `https://nexusmods.com/users/${input.mod.uploader?.memberId}`;
         const uploadTime = Math.floor(new Date(input.mod.createdAt?.toString() || 0).getTime()/ 1000);
+        const joinTime = Math.floor(new Date(input.mod.uploader?.joined?.toString() || 0).getTime()/ 1000);
 
         return {
             type: 'section',
@@ -119,6 +120,7 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
                 type: 'mrkdwn',
                 text: `<${modLink}|${input.mod.name}> uploaded by <${userLink}|${input.mod.uploader?.name}>\n`+
                 `<!date^${uploadTime}^Posted {time_secs} {date_short_pretty}|${input.mod.createdAt}>\n\n`+
+                `<!date^${joinTime}^ User Joined {time_sec} {date_short_pretty}|${input.mod.uploader?.joined}>\n\n`+
                 `*Flags:*\n${[...input.flags.high.map(f => `- ${f} [HIGH]`), ...input.flags.low.map(f => `- ${f} [LOW]`)].join('\n')}\n`+
                 `<https://www.nexusmods.com/admin/members/ban?ban_action=1&user_id=${userId}|Ban>  |  <https://www.nexusmods.com/admin/members/ipuse?uid=${userId}|IP History>`
             },
@@ -162,7 +164,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
         const userId = input.mod.uploader?.memberId
         const modLink = `https://nexusmods.com/${input.mod.game?.domainName}/mods/${input.mod.modId}`;
         const userLink = `https://nexusmods.com/users/${input.mod.uploader?.memberId}`;
-        const uploadTime = Math.floor(new Date(input.mod.createdAt?.toString() || 0).getTime()/ 1000);
+        const joinTime = Math.floor(new Date(input.mod.uploader?.joined?.toString() || 0).getTime()/ 1000);
 
         const embed = new EmbedBuilder()
         .setTitle(input.mod.name ?? '???')
@@ -177,7 +179,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
             },
             {
                 name: "Uploader",
-                value: `[${input.mod.uploader?.name}](${userLink}) - Joined <t:${uploadTime}:R>\n`+
+                value: `[${input.mod.uploader?.name}](${userLink}) - Joined <t:${joinTime}:R>\n`+
                 `[Ban](https://www.nexusmods.com/admin/members/ban?ban_action=1&user_id=${userId}) | [IP History](https://www.nexusmods.com/admin/members/ipuse?uid=${userId})`,
                 inline: true
             }
