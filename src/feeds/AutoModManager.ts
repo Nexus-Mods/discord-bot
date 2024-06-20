@@ -7,6 +7,7 @@ import { getUserByNexusModsId } from "../api/users";
 import { logMessage } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule } from "../types/util";
+const uu = require('url-unshort')();
 
 const pollTime: number = (1000*60*2); //2 mins
 
@@ -24,7 +25,7 @@ export class AutoModManager {
     private AutoModRules: IAutomodRule[] = [];
     private client: ClientExt;
     private updateTimer: NodeJS.Timeout;
-    private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 5))
+    private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReport: IModWithFlags[] = [];
 
     static getInstance(client: ClientExt): AutoModManager {
@@ -66,6 +67,7 @@ export class AutoModManager {
         try {
             const user = await getUserByNexusModsId(31179975);
             if (!user) throw new Error("User not found for automod");
+            await this.getRules();
             const newMods: IModResults = await user?.NexusMods.API.v2.LatestMods(this.lastCheck)
             if (!newMods.nodes.length) {
                 logMessage("Automod - Nothing for automod to check")
@@ -214,7 +216,9 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
     }
 
     // Check against automod rules
-    const allText = `${mod.name}\n${mod.summary}\n${mod.description}`.toLowerCase();
+    let allText = `${mod.name}\n${mod.summary}\n${mod.description}`.toLowerCase();
+    const urls = await analyseURLS(allText);
+    if (urls.length) urls.map(u => flags.high.push(`Shortened URL - ${u}`));
     rules.forEach(rule => {
         if (allText.includes(rule.filter.toLowerCase())) {
             flags[rule.type].push(rule.reason)
@@ -223,4 +227,36 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
 
     // return mod with flags
     return { mod, flags };
+}
+
+async function analyseURLS(text: string): Promise<string[]> {
+    const regEx = new RegExp(/\b(https?:\/\/.*?\.[a-z]{2,4}\/[^\s\[\]]*\b)/g);
+    const matches = text.match(regEx);
+    if (!matches) return [];
+    // logMessage("URLs in mod description", matches.toString());
+    const matchUrls: Set<string> = new Set(matches.filter(uri => !uri.toLowerCase().includes('nexusmods.com')));
+    if (!matchUrls.size) return [];
+    // logMessage("URLs to check in mod description", matchUrls);
+    const result: string[] = []
+    for (const url of matchUrls.values()) {
+        try {
+            const finalUrl = await uu.expand(url);
+            if (finalUrl) {
+                logMessage("Expanded URL", { url, finalUrl })
+                result.push(`${url} => ${finalUrl}`)
+            }
+            // else logMessage('Could not expand url', url)
+
+        }
+        catch(err) {
+            logMessage("Error expanding URL", { err, url }, true);
+        }
+    }
+    return result;
+}
+
+const safeUrls = ['nexusmods.com', 'youtube.com', 'discord.gg', 'youtu.be'];
+
+function isSafeUrl(input: string) {
+
 }
