@@ -122,7 +122,7 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
                 type: 'mrkdwn',
                 text: `<${modLink}|${input.mod.name}> uploaded by <${userLink}|${input.mod.uploader?.name}>\n`+
                 `<!date^${uploadTime}^Posted {time_secs} {date_short_pretty}|${input.mod.createdAt}>\n\n`+
-                `<!date^${joinTime}^ User Joined {time_sec} {date_short_pretty}|${input.mod.uploader?.joined}>\n\n`+
+                `<!date^${joinTime}^User Joined {time_secs} {date_short_pretty}|${input.mod.uploader?.joined}>\n\n`+
                 `*Flags:*\n${[...input.flags.high.map(f => `- ${f} [HIGH]`), ...input.flags.low.map(f => `- ${f} [LOW]`)].join('\n')}\n`+
                 `<https://www.nexusmods.com/admin/members/ban?ban_action=1&user_id=${userId}|Ban>  |  <https://www.nexusmods.com/admin/members/ipuse?uid=${userId}|IP History>`
             },
@@ -220,7 +220,10 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
     // Check against automod rules
     let allText = `${mod.name}\n${mod.summary}\n${mod.description}`.toLowerCase();
     const urls = await analyseURLS(allText);
-    if (urls.length) urls.map(u => flags.high.push(`Shortened URL - ${u}`));
+    if (urls.length) {
+        urls.map(u => flags.low.push(`Shortened URL - ${u}`));
+        allText = `${allText}\n\n${urls.map(u => u.toLowerCase()).join('\n')}`;
+    }
     rules.forEach(rule => {
         if (allText.includes(rule.filter.toLowerCase())) {
             flags[rule.type].push(rule.reason)
