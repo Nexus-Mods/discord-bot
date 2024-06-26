@@ -309,7 +309,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
         };
 
         // Added a webhook error catcher here as there seems to be a rare "unhandled error in webhook" crash that might be coming from here.
-        webHook?.on('error', (err: Error) => logMessage('Gamefeed Webhook error', { err, feed: feed._id }, true));
+        // webHook?.on('error', (err: Error) => logMessage('Gamefeed Webhook error', { err, feed: feed._id }, true));
         
         try {
             const message = await webHook?.send({ embeds: modEmbeds, content: feed.message });
