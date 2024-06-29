@@ -32,12 +32,16 @@ query getUpdatedMods($first: Int!, $filter: ModsFilter, $sort: [ModsSort!]) {
             createdAt
             updatedAt
             summary
+            description
             status
             author
             uploader {
                 name
                 avatar
                 memberId
+                joined
+                membershipRoles
+                modCount
             }
             pictureUrl
             modCategory {

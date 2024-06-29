@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
+import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -20,43 +21,61 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
 
-    const report = client.automod?.lastReport
+    const report = client.automod?.lastReports
+    const reportsMerged = report?.reduce((prev, cur) => {
+        if (cur.length) prev = [...prev, ...cur];
+        return prev;
+    }, [])
 
     if (!report) return interaction.editReply({ content: 'Report not available' })
 
-    const highConcern = report?.filter(r => r.flags.high.length > 0) || [];
-    const lowConcern = report?.filter(r => r.flags.low.length > 0 && r.flags.high.length === 0) || [];
-    const noConcern = report?.filter(r => r.flags.low.length === 0 && r.flags.high.length === 0) || [];
+    const highConcern = reportsMerged?.filter(r => r.flags.high.length > 0) || [];
+    const lowConcern = reportsMerged?.filter(r => r.flags.low.length > 0 && r.flags.high.length === 0) || [];
+    const noConcern = reportsMerged?.filter(r => r.flags.low.length === 0 && r.flags.high.length === 0) || [];
 
-    const modToRow = (m: any) => `- [${m.mod.name}](https://nexusmods.com/${m.mod.game?.domainName}/mods/${m.mod.modId})`
+    const modToRow = (m: any) => `- [${m.mod.name}](https://nexusmods.com/${m.mod.game?.domainName}/mods/${m.mod.modId})`;
 
-    const highEmbed = new EmbedBuilder()
+    const toEmbedField = (concerns: any[]): string => {
+        if (!concerns.length) return '_None_';
+        let result: string = '';
+        for (const concern of concerns) {
+            const row = modToRow(concern);
+            const newString = `${result}\n${row}`;
+            if (newString.length > 950) {
+                const remaining = (concerns.length - concerns.indexOf(concern))
+                return `${result}\n+${remaining} more`;
+            }
+            else result = newString;
+        }
+        return result;
+    }
+
+    const resultEmbed = new EmbedBuilder()
     .setTitle('Automod report')
     .addFields(
         [
             {
-                name: 'High Risk Mods',
-                value: `Mods with major flags\n`+(highConcern.map(modToRow).join('\n') || '_None_')
+                name: `High Risk Mods (${highConcern.length})`,
+                value: toEmbedField(highConcern)
             },
             {
-                name: 'Low Risk Mods',
-                value: `Mods with minor flags\n`+(lowConcern.map(modToRow).join('\n') || '_None_')
+                name: `Low Risk Mods (${lowConcern.length})`,
+                value: toEmbedField(lowConcern)
             },
             {
-                name: 'Safe Mods',
-                value: `Mods with no flags\n`+(noConcern.map(modToRow).join('\n') || '_None_')
+                name: `Safe Mods (${noConcern.length})`,
+                value: toEmbedField(noConcern)
             },
 
         ]
     )
     .setColor('DarkOrange')
 
-    if (!process.env['DISCORD_WEBHOOK']) highEmbed.addFields({ name: 'Missing Discord Webhook', value: 'Discord Webhook ENV variable is not present.' })
-    else if (!process.env['SLACK_WEBHOOK']) highEmbed.addFields({ name: 'Missing Slack Webhook', value: 'Slack Webhook ENV variable is not present.' })
-    else highEmbed.addFields({ name: 'Webhooks set up', value: 'All required webhooks are configured.' })
+    if (!process.env['DISCORD_WEBHOOK']) resultEmbed.addFields({ name: 'Missing Discord Webhook', value: 'Discord Webhook ENV variable is not present.' })
+    else if (!process.env['SLACK_WEBHOOK']) resultEmbed.addFields({ name: 'Missing Slack Webhook', value: 'Slack Webhook ENV variable is not present.' })
+    else resultEmbed.addFields({ name: 'Webhooks set up', value: 'All required webhooks are configured.' })
 
-
-    return interaction.editReply({ embeds: [highEmbed] })
+    return interaction.editReply({ embeds: [resultEmbed] })
 }
 
 export { discordInteraction }

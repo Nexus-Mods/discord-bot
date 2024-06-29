@@ -26,6 +26,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
         }
         modId
         createdAt
+        updatedAt
         description
         uploader {
           name

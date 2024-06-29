@@ -26,7 +26,7 @@ export class AutoModManager {
     private client: ClientExt;
     private updateTimer: NodeJS.Timeout;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
-    public lastReport: IModWithFlags[] = [];
+    public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
 
     static getInstance(client: ClientExt): AutoModManager {
         if (!AutoModManager.instance) {
@@ -34,6 +34,10 @@ export class AutoModManager {
         }
 
         return AutoModManager.instance;
+    }
+
+    private addToLastReports(mods: IModWithFlags[]) {
+        this.lastReports = [mods, ...this.lastReports].filter((v, i) => i <= 9);
     }
 
     private constructor(client: ClientExt) {
@@ -69,20 +73,22 @@ export class AutoModManager {
             if (!user) throw new Error("User not found for automod");
             await this.getRules();
             const newMods: IModResults = await user?.NexusMods.API.v2.LatestMods(this.lastCheck)
-            if (!newMods.nodes.length) {
+            const updatedMods: IModResults = await user?.NexusMods.API.v2.UpdatedMods(this.lastCheck, true);
+            const modsToCheck = [...newMods.nodes, ...updatedMods.nodes];
+            if (!modsToCheck.length) {
                 logMessage("Automod - Nothing for automod to check")
                 this.setLastCheck(new Date())
-                this.lastReport = [];
+                this.addToLastReports([]);
                 return;
             }
-            else logMessage(`Automod - Checking ${newMods.nodes.length} new mods.`)
-            this.setLastCheck(newMods.nodes[0].createdAt!)
+            else logMessage(`Automod - Checking ${modsToCheck.length} new and updated mods.`)
+            this.setLastCheck(newMods.nodes[0]?.createdAt ?? updatedMods.nodes[0].updatedAt!)
 
             let results: IModWithFlags[] = []
-            for (const mod of newMods.nodes) {
+            for (const mod of modsToCheck) {
                 results.push(await analyseMod(mod, this.AutoModRules))
             }
-            this.lastReport = results;
+            this.addToLastReports(results);
             const concerns = results.filter(m => (m.flags.high.length) !== 0);
             if (!concerns.length) {
                 logMessage('No mods with concerns found.')
