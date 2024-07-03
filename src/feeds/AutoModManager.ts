@@ -110,6 +110,22 @@ export class AutoModManager {
         }
     }
 
+    public async checkSingleMod(gameDomain: string, modId: number) {
+        const user = await getUserByNexusModsId(31179975);
+        if (!user) throw new Error("User not found for automod");
+        await this.getRules();
+        const modInfo = await user.NexusMods.API.v2.ModsByModId({gameDomain, modId});
+        const mod = modInfo[0];
+        if (!mod) throw new Error('Mod not found')
+        logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
+        const analysis = await analyseMod(mod, this.AutoModRules);
+        if (analysis.flags.high.length) {
+            await PublishToDiscord(flagsToDiscordEmbeds([analysis]))
+            await PublishToSlack(flagsToSlackMessage([analysis]))
+        }
+        else logMessage('No flags to report', analysis);
+    }
+
 
 }
 
