@@ -98,7 +98,7 @@ export class DiscordBot {
             .filter(i => i.toLowerCase().endsWith('.js'));6
 
         let globalCommandsToSet : RESTPostAPIApplicationCommandsJSONBody[] = []; //Collect all global commands
-        const commandsReg = await this.client.application?.commands.fetch(); // Collection of global commands that are already registerd.
+        const commandsReg = await this.client.application?.commands.fetch(); // Collection of global commands that are already registered.
         let guildCommandsToSet : {[guild: string] : RESTPostAPIApplicationCommandsJSONBody[]} = {}; // Collect all guild-specific commands. 
         let allInteractions : DiscordInteraction[] = [];
 

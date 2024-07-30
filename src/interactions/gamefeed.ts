@@ -9,7 +9,7 @@ import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed,
 import { logMessage } from '../api/util';
 import { GameFeed } from "../types/feeds";
 import { DiscordBotUser } from "../api/DiscordBotUser";
-import { IGame } from "../api/queries/v2-games";
+import { IGameStatic } from "../api/queries/other";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -44,7 +44,7 @@ const discordInteraction: DiscordInteraction = {
         )
         // .addStringOption(option => 
         //     option.setName('message')    
-        //     .setDescription('Message to attach to Game Feed annoucements.')
+        //     .setDescription('Message to attach to Game Feed announcements.')
         //     .setRequired(false)
         // )
     ) as SlashCommandBuilder,
@@ -122,8 +122,8 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
 
     try {
         // Find the game we're looking for
-        const allGames = await user.NexusMods.API.v2.Games();
-        const game = allGames.find(g => [g.name.toLowerCase(), g.domainName].includes(query.toLowerCase()));
+        const allGames = await user.NexusMods.API.Other.Games()//user.NexusMods.API.v2.Games();
+        const game = allGames.find(g => [g.name.toLowerCase(), g.domain_name].includes(query.toLowerCase()));
         // Game not found!
         if (!game) throw new Error(`No matching games for ${query}`);
 
@@ -181,7 +181,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
                 channel: (interaction.channel as any)?.id,
                 guild: interaction.guild?.id,
                 owner: interaction.user.id,
-                domain: game?.domainName || '',
+                domain: game?.domain_name || '',
                 title: game?.name || '',
                 nsfw,
                 sfw: true,
@@ -482,7 +482,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
     }
 }
 
-const confirmEmbed = (client: Client, interaction: Interaction, game: IGame, user: DiscordBotUser, nsfw: boolean): EmbedBuilder => {
+const confirmEmbed = (client: Client, interaction: Interaction, game: IGameStatic, user: DiscordBotUser, nsfw: boolean): EmbedBuilder => {
     return new EmbedBuilder()
     .setColor(0xda8e35)
     .setTitle(`Create game feed in #${(interaction.channel as any).name}?`)
@@ -495,7 +495,7 @@ const confirmEmbed = (client: Client, interaction: Interaction, game: IGame, use
     .setFooter({ text: `Nexus Mods API link`, iconURL: client.user?.avatarURL() || '' })
 }
 
-const successEmbed = (interaction: Interaction, feed: Partial<GameFeed>, game: IGame, id: number): EmbedBuilder => {
+const successEmbed = (interaction: Interaction, feed: Partial<GameFeed>, game: IGameStatic, id: number): EmbedBuilder => {
     return new EmbedBuilder()
     .setTitle(`Mods for ${feed.title} will be posted in this channel`)
     .setColor(0xda8e35)

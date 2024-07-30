@@ -6,7 +6,6 @@ import { User, Guild, Snowflake, TextChannel, WebhookClient, GuildMember, EmbedB
 import { logMessage } from '../api/util';
 import { NexusAPIServerError } from '../types/util';
 import { DiscordBotUser } from '../api/DiscordBotUser';
-import { IGame } from '../api/queries/v2-games';
 import { IMod } from '../api/queries/v2';
 import { IGameStatic } from '../api/queries/other';
 

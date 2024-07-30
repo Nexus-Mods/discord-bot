@@ -5,8 +5,8 @@ import { NexusLinkedMod } from "../types/users";
 import { getUserByDiscordId, getModsbyUser, createMod, updateAllRoles } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
-import { IGame } from "../api/queries/v2-games";
 import { IMod } from "../api/queries/v2";
+import { IGameStatic } from "../api/queries/other";
 
 const modUrlExp = /nexusmods.com\/([a-zA-Z0-9]+)\/mods\/([0-9]+)/i;
 
@@ -65,7 +65,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     await interaction.editReply({ embeds: [searchingEmbed] });
 
     try {
-        const gameList: IGame[] = await user.NexusMods.API.v2.Games();
+        const gameList: IGameStatic[] = await user.NexusMods.API.Other.Games();
 
         const urlResults: (APIEmbedField[] | SearchError[]) = await Promise.all(
             urlQueries.map((url: string) => urlCheck(url, mods, gameList, user))
@@ -97,14 +97,14 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
 }
 
-async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGame[], user: DiscordBotUser): Promise<APIEmbedField | SearchError> {
+async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameStatic[], user: DiscordBotUser): Promise<APIEmbedField | SearchError> {
     let modName: string|undefined = undefined;
 
     try {
         const matches: RegExpMatchArray|null = link.match(modUrlExp);
         if (!matches) throw new Error('Invalid URL');
         const domain: string = matches[1];
-        const game: IGame|undefined = games.find(g => g.domainName === domain);
+        const game: IGameStatic|undefined = games.find(g => g.domain_name === domain);
         if (!game) throw new Error(`${domain} does not appear to be a valid game.`);
         const modId: number = parseInt(matches[2]);
         if (Number.isNaN(modId)) throw new Error('Invalid Mod ID');
@@ -131,7 +131,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGame[], us
             }
         }
 
-        if (modData.uploader.memberId != user.NexusModsId) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domainName}/mods/${modData.modId}) was uploaded by [${modData.uploader.name}](https://www.nexusmods.com/users/${modData.uploader.memberId}) so it cannot be added to your account.`);
+        if (modData.uploader.memberId != user.NexusModsId) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domain_name}/mods/${modData.modId}) was uploaded by [${modData.uploader.name}](https://www.nexusmods.com/users/${modData.uploader.memberId}) so it cannot be added to your account.`);
 
         if (!modData.name) throw new Error(`[Mod #${modId}](${url}) for ${game.name} could not be added as it doesn't seem to have a title. Please try again in a few minutes.`);
         
@@ -161,7 +161,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGame[], us
 
 }
 
-async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGame[], user: DiscordBotUser): Promise<APIEmbedField | SearchError> {
+async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameStatic[], user: DiscordBotUser): Promise<APIEmbedField | SearchError> {
 
     try {
         const search: IMod[] = (await user.NexusMods.API.v2.Mods(query, true).catch(() => { return { nodes: [] } } )).nodes;
@@ -174,7 +174,7 @@ async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGame[
         const messages: string[] = await Promise.all(filteredResult.map(
             async (res: IMod) => {
                 const game = games.find(g => g.id === res.game.id);
-                const modData = (await user.NexusMods.API.v2.Mod(game?.domainName!, res.modId))?.[0];
+                const modData = (await user.NexusMods.API.v2.Mod(game?.domain_name!, res.modId))?.[0];
                 const downloadData: ModDownloadInfo = await user.NexusMods.API.Other.ModDownloads(modData.game.id, modData.modId) as ModDownloadInfo ||
                 { unique_downloads: 0, total_downloads: 0, id: res.modId };
                 const newMod: NexusLinkedMod = {

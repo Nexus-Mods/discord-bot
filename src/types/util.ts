@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { other } from "../api/queries/all";
 import { logMessage } from "../api/util";
+import { IGameStatic } from "../api/queries/other";
 
 export interface InfoResult {
     name: string;
@@ -143,24 +144,9 @@ export class NexusAPIServerError implements Error {
     }
 };
 
-interface IGameFromJSON {
-    approved_date: number;
-    collections: number;
-    domain_name: string;
-    downloads: number;
-    file_count: number;
-    forum_url: string;
-    genre: string;
-    id: number;
-    mods: number;
-    name: string;
-    name_lower: string;
-    nexusmods_url: string;
-}
-
 export class GameListCache {
     public dateStamp: number;
-    public games: IGameFromJSON[];
+    public games: IGameStatic[];
 
     constructor() {
         this.dateStamp = -1;
@@ -173,12 +159,12 @@ export class GameListCache {
             return this;
         }
         catch(err) {
-            logMessage('Error initialisiing game cache', err, true);
+            logMessage('Error initialising game cache', err, true);
             return this;
         }
     }
 
-    async getGames(): Promise<IGameFromJSON[]> {
+    async getGames(): Promise<IGameStatic[]> {
         if (this.dateStamp > Date.now()) {
             return this.games;
         }
