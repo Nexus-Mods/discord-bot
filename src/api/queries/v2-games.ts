@@ -28,6 +28,7 @@ query Games {
 `;
 
 export async function games(headers: Record<string,string>): Promise<IGame[]> {
+    throw new Error('Games query is no longer functional due to API updates (July 2024)')
     try {
         const result: IResult = await request(v2API, query, {}, headers);
         return result.games;

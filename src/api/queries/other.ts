@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { ModDownloadInfo } from '../../types/util';
 import { logMessage } from '../util';
 
-interface IGame {
+export interface IGameStatic {
     approved_date: number;
     collections: number;
     domain_name: string;
@@ -25,7 +25,7 @@ interface ISiteStats {
     users_count: number;
     collections_count: number;
     downloads_count: number;
-    unique_downloads_countt: number;
+    unique_downloads_count: number;
     updated_at: Date;
 }
 
@@ -33,7 +33,7 @@ const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
 const staticStatsList = 'https://data.nexusmods.com/file/nexus-data/site-stats.json';
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
 
-export async function Games(headers: Record<string, string>): Promise<IGame[]> {
+export async function Games(headers: Record<string, string>): Promise<IGameStatic[]> {
     try {
         const gameList = await axios({
             url: staticGamesList,
@@ -43,7 +43,7 @@ export async function Games(headers: Record<string, string>): Promise<IGame[]> {
                 'Application-Version': headers['Application-Version'] 
             },
         });
-        return gameList.data as IGame[];
+        return gameList.data as IGameStatic[];
     }
     catch(err) {
         logMessage('Error getting games list from static file', err, true);

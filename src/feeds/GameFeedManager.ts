@@ -8,12 +8,13 @@ import { NexusAPIServerError } from '../types/util';
 import { DiscordBotUser } from '../api/DiscordBotUser';
 import { IGame } from '../api/queries/v2-games';
 import { IMod } from '../api/queries/v2';
+import { IGameStatic } from '../api/queries/other';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
 
 // Temporary storage for game data during the feed update.
-let allGames: IGame[] = [];
+let allGames: IGameStatic[] = [];
 
 export class GameFeedManager {
     private static instance: GameFeedManager;
@@ -40,7 +41,7 @@ export class GameFeedManager {
                 logMessage(`Initialised with ${this.GameFeeds.length} game feeds, checking every ${pollTime/1000/60} minutes`);
                 this.updateFeeds().catch((err) => logMessage(`Error updating game feeds`, err, true));
             })
-            .catch((err) => logMessage('Error in GameFeedManager contructor', err, true));
+            .catch((err) => logMessage('Error in GameFeedManager constructor', err, true));
     }
 
     private async getFeeds(): Promise<GameFeed[]> {
@@ -172,8 +173,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             if (newErrorCount === 1) {
                 const oAuthErrorEmbed = new EmbedBuilder()
                 .setColor('DarkOrange')
-                .setTitle('Authorisation Error Updating Game Feed')
-                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${(err as Error).message}. You can re-authorise your account below.`)
+                .setTitle('Authorization Error Updating Game Feed')
+                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${(err as Error).message}. You can re-authorize your account below.`)
                 .addFields([
                     {
                         name: 'Feed ID',
@@ -221,10 +222,10 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     }
 
     // Get all the games if we need them.
-    if (!allGames.length) allGames = await user.NexusMods.API.v2.Games();
+    if (!allGames.length) allGames = await user.NexusMods.API.Other.Games()//user.NexusMods.API.v2.Games();
 
     // Get the data for the game we're checking.
-    const game: IGame|undefined = allGames.find(g => g.domainName === feed.domain);
+    const game: IGameStatic|undefined = allGames.find(g => g.domain_name === feed.domain);
 
     if (!game) {
         // logMessage(`Unable to retrieve game info for ${feed.title}`, { id: feed._id, guild: guild?.name }, true);
@@ -235,8 +236,8 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     try {
         const newMods: IUpdateEntry[] = await user.NexusMods.API.v1.UpdatedMods(feed.domain, '1w');
         // Filter out the mods from before our saved timestamp.
-        const lastUpdateEpoc = Math.floor(feed.last_timestamp.getTime() / 1000);
-        const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoc).sort(compareDates);
+        const lastUpdateEpoch = Math.floor(feed.last_timestamp.getTime() / 1000);
+        const filteredMods = newMods.filter(mod => mod.latest_file_update > lastUpdateEpoch).sort(compareDates);
 
         // No mods to show
         if (!filteredMods.length) return;
@@ -258,7 +259,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
             return m;
         });
 
-        // Interate through the mods and build embeds.
+        // Iterate through the mods and build embeds.
         for (const mod of modMeta) {
             // If we've been rate limited, there's no point in continuing here:
             if (rateLimited) break;
@@ -363,20 +364,20 @@ async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: 
 
 function createModEmbedGQL(client: Client,
     mod: IMod, 
-    game: IGame, 
+    game: IGameStatic, 
     newMod: boolean, 
     changeLog: IChangelogs|undefined, 
     compact: boolean): EmbedBuilder {
 const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
 const category: string = mod.modCategory.name || 'Unknown';
-const uploaderProfile: string = `https://nexusmods.com/${game.domainName}/users/${mod.uploader.memberId}`;
+const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.uploader.memberId}`;
 
 let post = new EmbedBuilder()
 .setAuthor({name:`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, iconURL: client.user?.avatarURL() || '' })
 .setTitle(mod.name || 'Name not found')
 .setColor(newMod ? 0xda8e35 : 0x57a5cc)
 .setURL(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`)
-.setDescription(sanitiseBreaks(mod.summary || 'No summary'))
+.setDescription(sanitizeBreaks(mod.summary || 'No summary'))
 .setImage(!compact? mod.pictureUrl || null : null)
 .setThumbnail(compact ? mod.pictureUrl || null : gameThumb)
 if (changeLog && Object.keys(changeLog).find(id => mod.version === id)) {
@@ -402,7 +403,7 @@ function compareDates(a: IUpdateEntry, b: IUpdateEntry): number {
     return 0;
 }
 
-function sanitiseBreaks(string: string): string {
+function sanitizeBreaks(string: string): string {
     while (string.indexOf("<br />") !== -1) {
         string = string.replace("<br />",'\n');
     };
