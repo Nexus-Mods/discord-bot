@@ -52,8 +52,10 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 
 export async function mods(headers: Record<string,string>, searchTerm: string, includeAdult: boolean, gameIds?: number | number[], sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
     // Force setting header version
-    headers['Api-Version'] = '2024-09-01'
-    logMessage('Forcing Api-version to 2024-09-01');
+    if (headers['api-version'] !== '2024-09-01') {
+        headers['api-version'] = '2024-09-01'
+        logMessage('OUTDATED QUERY [Mods] - API Version header must be set to 2024-09-01 for this request')
+    }
     
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
@@ -76,6 +78,7 @@ export async function mods(headers: Record<string,string>, searchTerm: string, i
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
+        logMessage('Mod search query', { vars })
         // Adult content filter is not available on the API yet, so we'll have to do it manually.
         if (!includeAdult) result.mods.nodes = result.mods.nodes.filter(m => m.adult === false);
         return result.mods;
