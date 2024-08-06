@@ -51,6 +51,10 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 `;
 
 export async function mods(headers: Record<string,string>, searchTerm: string, includeAdult: boolean, gameIds?: number | number[], sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
+    // Force setting header version
+    headers['Api-Version'] = '2024-09-01'
+    logMessage('Forcing Api-version to 2024-09-01');
+    
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
         name: {
@@ -67,7 +71,7 @@ export async function mods(headers: Record<string,string>, searchTerm: string, i
     const vars = {
         filter,
         sort,
-        first: 10
+        count: 10
     }
 
     try {
