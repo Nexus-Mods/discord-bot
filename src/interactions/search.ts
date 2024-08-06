@@ -303,6 +303,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     // Search for mods
     try {
         const search: IModResults = await user.NexusMods.API.v2.Mods(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
+        logMessage('Mod search results', search);
         // const search: NexusSearchResult = await user.NexusMods.API.v1.ModQuickSearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
         if (!search.nodes.length) {
             // No results!
