@@ -281,7 +281,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
     let gameIdFilter: number = parseInt(server?.game_filter || '0') || 0;
 
-    if (gameQuery !== '' && allGames.length) {
+    if (!['', undefined, null].includes(gameQuery) && allGames.length) {
         // logMessage('Searching for game in mod search', gameQuery);
         // Override the default server game filter. 
         const fuse = new Fuse(allGames, options);
@@ -303,7 +303,6 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     // Search for mods
     try {
         const search: IModResults = await user.NexusMods.API.v2.Mods(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
-        logMessage('Mod search results', search);
         // const search: NexusSearchResult = await user.NexusMods.API.v1.ModQuickSearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
         if (!search.nodes.length) {
             // No results!
