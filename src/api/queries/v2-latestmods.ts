@@ -43,7 +43,11 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 `;
 
 export async function latestMods(headers: Record<string,string>, startDate: Date, gameIds?: number | number[], sort: IModsSort = { createdAt: { direction: 'DESC' }}): Promise<IModResults> {
-    // logMessage('Got args for Latest Mods', { startDate, gameIds, sort });
+    // Force setting header version
+    if (headers['api-version'] !== '2024-09-01') {
+        headers['api-version'] = '2024-09-01'
+        logMessage('OUTDATED QUERY [Mods] - API Version header must be set to 2024-09-01 for this request')
+    }
     
     if (typeof startDate === 'string') {
         startDate = new Date(startDate)
@@ -65,7 +69,7 @@ export async function latestMods(headers: Record<string,string>, startDate: Date
     const vars = {
         filter,
         sort,
-        last: 50
+        count: 50
     }
 
     try {
