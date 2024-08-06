@@ -18,10 +18,10 @@ export interface IUpdatedModResults {
 }
 
 const query = gql`
-query getUpdatedMods($first: Int!, $filter: ModsFilter, $sort: [ModsSort!]) {
+query getUpdatedMods($count: Int!, $filter: ModsFilter, $sort: [ModsSort!]) {
     mods( 
         filter: $filter 
-        first: $first
+        count: $count
         sort: $sort
     ) {
         totalCount
