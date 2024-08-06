@@ -49,11 +49,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             MyCollections: (await botuser.NexusMods.API.v2.MyCollections()).length > 0,
             Collections: (await botuser.NexusMods.API.v2.Collections({}, 'endorsements_count')).nodesCount > 0,
             Collection: (await botuser.NexusMods.API.v2.Collection('pkcov7', 'skyrimspecialedition', true))?.slug === 'pkcov7',
-            CollectionsByUser: (await botuser.NexusMods.API.v2.CollectionsByUser(51448566)).nodesCount > 0,
+            CollectionsByUser: (await botuser.NexusMods.API.v2.CollectionsByUser(31179975)).nodesCount > 0,
             FindUserName: (await botuser.NexusMods.API.v2.FindUser('Janquel'))?.memberId === 51448566,
             CollectionDownloadTotals: (await botuser.NexusMods.API.v2.CollectionDownloadTotals(31179975))?.totalDownloads > 0,
             FindUserID: (await botuser.NexusMods.API.v2.FindUser(51448566))?.name === 'Janquel',
-            LatestMods: (await botuser.NexusMods.API.v2.LatestMods(new Date(Date.now() - 10000))).totalCount > 0
+            LatestMods: (await botuser.NexusMods.API.v2.LatestMods(new Date(1))).totalCount > 0
         }
         
         logMessage('API tests complete', { v1test, v2test });

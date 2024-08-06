@@ -66,6 +66,12 @@ export async function updatedMods(
     gameIds?: number | number[], 
     sort: IModsSort = { updatedAt: { direction: 'ASC' }}
 ): Promise<IUpdatedModResults> {
+    
+    // Force setting header version
+    if (headers['api-version'] !== '2024-09-01') {
+        headers['api-version'] = '2024-09-01'
+        logMessage('OUTDATED QUERY [Updated Mods] - API Version header must be set to 2024-09-01 for this request')
+    }
 
     const sinceDate: number = Math.floor(new Date(newSince).getTime() / 1000)
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
@@ -88,7 +94,7 @@ export async function updatedMods(
     const vars = {
         filter,
         sort,
-        first: 10
+        count: 10
     }
 
     try {
