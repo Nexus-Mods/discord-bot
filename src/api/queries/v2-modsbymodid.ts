@@ -23,6 +23,7 @@ query Mods($mods: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
         createdAt
         updatedAt
         summary
+        description
         status
         author
         uploader {
