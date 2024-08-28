@@ -1,12 +1,13 @@
-import { GameFeedManager } from '../feeds/GameFeedManager';
 import { EmbedBuilder, Guild, TextChannel, ActivityType, GuildBasedChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
-import { ModFeedManager } from '../feeds/ModFeedManager';
-import { NewsFeedManager } from '../feeds/NewsFeedManager';
 import { logMessage } from '../api/util';
 import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
-import { AutoModManager } from '../feeds/AutoModManager';
+
+import { NewsFeedManager } from '../feeds/NewsFeedManager';
+import { ModFeedManager } from '../feeds/ModFeedManager';
+import { GameFeedManager } from '../feeds/GameFeedManager';
+// import { AutoModManager } from '../feeds/AutoModManager';
 
 // Prepare the online status embed for quick reuse.
 const onlineEmbed = new EmbedBuilder()
@@ -17,7 +18,6 @@ const main: DiscordEventInterface = {
     name: 'ready',
     once: true,
     async execute(client: ClientExt) {
-        client.user?.setActivity({ name: 'for slash commands', type: ActivityType.Watching, url: 'https://discord.gg/nexusmods' });
         if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
 
         // Start up the feeds
@@ -25,7 +25,7 @@ const main: DiscordEventInterface = {
             client.gameFeeds = GameFeedManager.getInstance(client);
             client.modFeeds = ModFeedManager.getInstance(client);
             client.newsFeed = NewsFeedManager.getInstance(client);
-            client.automod = AutoModManager.getInstance(client);
+            // client.automod = AutoModManager.getInstance(client);
         }
         catch(err) {
             logMessage('Error starting up feeds', err, true);

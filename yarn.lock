@@ -43,7 +43,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@discordjs/rest@npm:^2.0.1, @discordjs/rest@npm:^2.3.0":
+"@discordjs/rest@npm:^2.3.0":
   version: 2.3.0
   resolution: "@discordjs/rest@npm:2.3.0"
   dependencies:
@@ -1009,7 +1009,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"discord.js@npm:^14.15.2":
+"discord.js@npm:^14.15.3":
   version: 14.15.3
   resolution: "discord.js@npm:14.15.3"
   dependencies:
@@ -2303,7 +2303,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "nexus-bot-typescript@workspace:."
   dependencies:
-    "@discordjs/rest": ^2.0.1
     "@nexusmods/nexus-api": ^1.1.5
     "@types/cookie-parser": ^1.4.3
     "@types/dotenv": ^8.2.0
@@ -2315,7 +2314,7 @@ __metadata:
     axios: ^1.6.0
     cookie-parser: ^1.4.6
     copyfiles: ^2.4.1
-    discord.js: ^14.15.2
+    discord.js: ^14.15.3
     dotenv: ^16.3.1
     ejs: ^3.1.10
     eslint: ^8.47.0

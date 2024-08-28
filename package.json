@@ -19,7 +19,6 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@discordjs/rest": "^2.0.1",
     "@nexusmods/nexus-api": "^1.1.5",
     "@types/cookie-parser": "^1.4.3",
     "@types/express": "^4.17.17",
@@ -29,7 +28,7 @@
     "@types/pg": "^8.10.2",
     "axios": "^1.6.0",
     "cookie-parser": "^1.4.6",
-    "discord.js": "^14.15.2",
+    "discord.js": "^14.15.3",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.10",
     "express": "^4.19.2",

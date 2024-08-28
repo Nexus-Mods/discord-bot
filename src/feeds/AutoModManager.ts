@@ -50,7 +50,7 @@ export class AutoModManager {
                 logMessage(`Automod started with ${this.AutoModRules.length} rules, checking every ${pollTime/1000/60} minutes. Last check ${this.lastCheck}`);
                 this.runAutomod().catch((err) => logMessage(`Error updating game feeds`, err, true));
             })
-            .catch((err) => logMessage('Error in AutomodManager contructor', err, true));
+            .catch((err) => logMessage('Error in AutomodManager constructor', err, true));
     }
 
     private async getRules() {
@@ -285,10 +285,4 @@ async function analyseURLS(text: string): Promise<string[]> {
         }
     }
     return result;
-}
-
-const safeUrls = ['nexusmods.com', 'youtube.com', 'discord.gg', 'youtu.be'];
-
-function isSafeUrl(input: string) {
-
 }
