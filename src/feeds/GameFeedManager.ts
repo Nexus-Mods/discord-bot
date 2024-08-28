@@ -5,12 +5,16 @@ import { IUpdateEntry, IChangelogs } from '@nexusmods/nexus-api';
 import { User, Guild, Snowflake, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, NewsChannel, GuildBasedChannel } from 'discord.js';
 import { logMessage } from '../api/util';
 import { NexusAPIServerError } from '../types/util';
-import { DiscordBotUser } from '../api/DiscordBotUser';
+import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IMod } from '../api/queries/v2';
 import { IGameStatic } from '../api/queries/other';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
+
+interface IGroupedFeeds {
+    [domain: string]: GameFeed[]
+}
 
 // Temporary storage for game data during the feed update.
 let allGames: IGameStatic[] = [];
@@ -19,6 +23,7 @@ export class GameFeedManager {
     private static instance: GameFeedManager;
 
     private GameFeeds: GameFeed[] = [];
+    private GameFeedsByGame: IGroupedFeeds = {};
     private client: ClientExt;
     private updateTimer: NodeJS.Timeout;
 
@@ -44,7 +49,15 @@ export class GameFeedManager {
     }
 
     private async getFeeds(): Promise<GameFeed[]> {
-        (GameFeedManager.instance || this).GameFeeds = await getAllGameFeeds();
+        const allFeeds = await getAllGameFeeds();
+        const domains: Set<string> = new Set(allFeeds.map(f => f.domain));
+        const byGame = [...domains].reduce((prev: IGroupedFeeds, cur: string) => {
+            (prev as any)[cur] = allFeeds.filter(f => f.domain === cur);
+            return prev;
+        }, {});
+        
+        (GameFeedManager.instance || this).GameFeeds = allFeeds;
+        (GameFeedManager.instance || this).GameFeedsByGame = byGame;
         return (GameFeedManager.instance || this).GameFeeds;
     }
 
@@ -92,13 +105,32 @@ export class GameFeedManager {
         if (!manager.GameFeeds.length) return logMessage('No game feeds, update check skipped');
         logMessage(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
 
+        const games = await client.gamesList?.getGames();
+
         // Group by game
-        const games = new Set(manager.GameFeeds.map(f => f.domain));
-        const counts: { [key: string]: number } = [...games].reduce((prev, cur) => {
-            prev[cur] = manager.GameFeeds.filter((f) => f.domain === cur).length
-            return prev;
-        }, {} as any);
-        logMessage('Game Feeds for', counts);
+        // const games = new Set(manager.GameFeeds.map(f => f.domain));
+        // const counts: { [key: string]: number } = [...games].reduce((prev, cur) => {
+        //     prev[cur] = manager.GameFeeds.filter((f) => f.domain === cur).length
+        //     return prev;
+        // }, {} as any);
+
+        for (const domain of Object.keys(manager.GameFeedsByGame)) {
+            const feeds = manager.GameFeedsByGame[domain];
+            logMessage(`UpdateFeeds(): Checking ${feeds.length} feeds for ${domain}`);
+            // Sort oldest first
+            const sortedFeeds = feeds.sort((a,b) => a.last_timestamp.getTime() > b.last_timestamp.getTime() ? 1 : -1);
+            // Get the game info
+            const game = games?.find(g => g.domain_name === domain);
+            if (!game) {
+                logMessage("No game found for ", domain);
+                continue;
+            }
+            const fakeUser = new DiscordBotUser(DummyNexusModsUser);
+            const newestMods = await fakeUser.NexusMods.API.v2.LatestMods(sortedFeeds[0].last_timestamp, game.id);
+            const updatedMods = await fakeUser.NexusMods.API.v2.UpdatedMods(sortedFeeds[0].last_timestamp, true, game.id);
+            console.log('Mods detected for '+domain, { new: newestMods.nodes.map(m => m.name), updated: updatedMods.nodes.map(m => m.name) });
+        }
+
 
         // TODO! - Do the update for each feed.
         for (const feed of manager.GameFeeds) {

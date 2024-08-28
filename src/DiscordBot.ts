@@ -51,13 +51,6 @@ export class DiscordBot {
             logMessage('Failed to connect to Discord during bot setup', { error: (err as Error).message }, true);
             return process.exit();
         }
-
-        try {
-            this.client.gamesList = await new GameListCache().init();
-        }
-        catch(err) {
-            logMessage('Could not pre-cache the games list', err, true);
-        }
     }
 
     public async setupInteractions(force?: boolean): Promise<void> {

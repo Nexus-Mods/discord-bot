@@ -40,6 +40,14 @@ interface IRequestHeadersAPIkey extends Record<string, string> {
     'apikey': string;
 }
 
+export const DummyNexusModsUser: NexusUser = {
+    d_id: 'none',
+    id: -1,
+    name: 'DummyUser',
+    supporter: false,
+    premium: false
+}
+
 
 export class DiscordBotUser {
     private NexusModsAuthType: NexusModsAuthTypes = 'OAUTH';
@@ -86,22 +94,23 @@ export class DiscordBotUser {
             this.NexusModsAPIKey = user.apikey;
             this.NexusModsAuthType = 'APIKEY';
         }
+        else if (user.id == -1) return;
         else throw new Error('Nexus Mods User does not have any auth options set: '+ JSON.stringify({ name: user.name, apikey: user.apikey, token: user.nexus_access }));
     }
 
     public ProfileEmbed = async (client: Client): Promise<EmbedBuilder> => userProfileEmbed(this, client);
 
     private headers = (noAuth?: boolean): (IRequestHeadersOAuth | IRequestHeadersAPIkey) => {
-        if (!this.NexusModsAPIKey && !this.NexusModsOAuthTokens) 
-            throw new Error('Invalid auth - headers could not be generated.');
-        
         let baseheader: Record<string, string> = {
             'Application-Name': 'Nexus Mods Discord Bot',
             'Application-Version': process.env.npm_package_version || '0.0.0',
             // 'api-version': '2023-09-05'
         }
 
-        if (noAuth === true) return baseheader as IRequestHeadersAPIkey || baseheader as IRequestHeadersOAuth;
+        if (noAuth === true || this.NexusModsId === -1) return baseheader as IRequestHeadersAPIkey || baseheader as IRequestHeadersOAuth;
+
+        if (!this.NexusModsAPIKey && !this.NexusModsOAuthTokens) 
+            throw new Error('Invalid auth - headers could not be generated.');
         
         if (!!this.NexusModsOAuthTokens?.access_token) baseheader['Authorization'] = `Bearer ${this.NexusModsOAuthTokens.access_token}`;
         else baseheader['apikey'] = this.NexusModsAPIKey!;

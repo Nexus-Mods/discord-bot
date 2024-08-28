@@ -8,6 +8,7 @@ import { NewsFeedManager } from '../feeds/NewsFeedManager';
 import { ModFeedManager } from '../feeds/ModFeedManager';
 import { GameFeedManager } from '../feeds/GameFeedManager';
 import { AutoModManager } from '../feeds/AutoModManager';
+import { GameListCache } from '../types/util';
 
 // Prepare the online status embed for quick reuse.
 const onlineEmbed = new EmbedBuilder()
@@ -19,6 +20,14 @@ const main: DiscordEventInterface = {
     once: true,
     async execute(client: ClientExt) {
         if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
+
+        // Pre-cache games list
+        try {
+            client.gamesList = await new GameListCache().init();
+        }
+        catch(err) {
+            logMessage('Could not pre-cache the games list', err, true);
+        }
 
         // Start up the feeds
         try {

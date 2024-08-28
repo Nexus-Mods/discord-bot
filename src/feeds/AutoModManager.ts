@@ -233,7 +233,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
     }
     else {
         if (new Date(mod.uploader!.joined).getTime() >= anHourAgo.getTime()) {
-            logMessage('New uploader', { user: mod.uploader, name: mod.name, anHourAgo, joined: new Date(mod.uploader!.joined) })
+            // zlogMessage('New uploader', { user: mod.uploader, name: mod.name, anHourAgo, joined: new Date(mod.uploader!.joined) })
             flags.low.push('New account');
         }
     }

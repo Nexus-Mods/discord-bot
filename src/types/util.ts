@@ -165,7 +165,7 @@ export class GameListCache {
     }
 
     async getGames(): Promise<IGameStatic[]> {
-        if (this.dateStamp > Date.now()) {
+        if (this.games.length && this.dateStamp > Date.now()) {
             return this.games;
         }
         else {
