@@ -238,7 +238,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
         }
     }
 
-    if (mod.uploader!.modCount <= 1) {
+    if (mod.uploader!.modCount <= 1 && flags.low.includes('New account')) {
         if ((mod.description ?? '').length < 150) {
             flags.high.push('First upload, short description. Probable spam.')
         }
