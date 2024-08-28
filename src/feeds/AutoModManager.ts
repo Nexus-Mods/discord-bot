@@ -7,6 +7,7 @@ import { getUserByNexusModsId } from "../api/users";
 import { logMessage } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule } from "../types/util";
+import { tall } from 'tall';
 // const uu = require('url-unshort')();
 
 const pollTime: number = (1000*60*2); //2 mins
@@ -262,28 +263,27 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
 }
 
 async function analyseURLS(text: string): Promise<string[]> {
-    return []
-    // const regEx = new RegExp(/\b(https?:\/\/.*?\.[a-z]{2,4}\/[^\s\[\]]*\b)/g);
-    // const matches = text.match(regEx);
-    // if (!matches) return [];
-    // // logMessage("URLs in mod description", matches.toString());
-    // const matchUrls: Set<string> = new Set(matches.filter(uri => !uri.toLowerCase().includes('nexusmods.com')));
-    // if (!matchUrls.size) return [];
-    // // logMessage("URLs to check in mod description", matchUrls);
-    // const result: string[] = []
-    // for (const url of matchUrls.values()) {
-    //     try {
-    //         const finalUrl = await uu.expand(url);
-    //         if (finalUrl) {
-    //             logMessage("Expanded URL", { url, finalUrl })
-    //             result.push(`${url} => ${finalUrl}`)
-    //         }
-    //         // else logMessage('Could not expand url', url)
+    const regEx = new RegExp(/\b(https?:\/\/.*?\.[a-z]{2,4}\/[^\s\[\]]*\b)/g);
+    const matches = text.match(regEx);
+    if (!matches) return [];
+    // logMessage("URLs in mod description", matches.toString());
+    const matchUrls: Set<string> = new Set(matches.filter(uri => !uri.toLowerCase().includes('nexusmods.com')));
+    if (!matchUrls.size) return [];
+    // logMessage("URLs to check in mod description", matchUrls);
+    const result: string[] = []
+    for (const url of matchUrls.values()) {
+        try {
+            const finalUrl = await tall(url);
+            if (finalUrl) {
+                logMessage("Expanded URL", { url, finalUrl })
+                result.push(`${url} => ${finalUrl}`)
+            }
+            // else logMessage('Could not expand url', url)
 
-    //     }
-    //     catch(err) {
-    //         logMessage("Error expanding URL", { err, url }, true);
-    //     }
-    // }
-    // return result;
+        }
+        catch(err) {
+            logMessage("Error expanding URL", { err, url }, true);
+        }
+    }
+    return result;
 }

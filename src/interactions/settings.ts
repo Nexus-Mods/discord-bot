@@ -276,16 +276,11 @@ function resolveFilter(games: IGameStatic[], term: string|null|undefined): IGame
 }
 
 const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameName?: string): Promise<EmbedBuilder> => {
-    const linkedRole: Role|null = server.role_linked ? guild.roles.resolve(server.role_linked) : null;
-    const premiumRole: Role|null = server.role_premium ? guild.roles.resolve(server.role_premium) : null;
-    const supporterRole: Role|null = server.role_supporter ? guild.roles.resolve(server.role_supporter) : null;
-    const authorRole: Role|null = server.role_author ? guild.roles.resolve(server.role_author) : null;
     const botChannel: ThreadChannel | GuildChannel|null = server.channel_bot ? guild.channels.resolve(server.channel_bot) : null;
     const nexusChannel: ThreadChannel | GuildChannel|null = server.channel_nexus ? guild.channels.resolve(server.channel_nexus) : null;
     const logChannel: ThreadChannel | GuildChannel|null = server.channel_log ? guild.channels.resolve(server.channel_log) : null;
     const newsChannel: ThreadChannel|GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
     const owner: GuildMember = await guild.fetchOwner();
-    const minDownloads: Number = server.author_min_downloads ? parseInt(server.author_min_downloads) : 1000;
 
     const embed = new EmbedBuilder()
     .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })
