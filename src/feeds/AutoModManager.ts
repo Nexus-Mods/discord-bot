@@ -273,9 +273,9 @@ async function analyseURLS(text: string): Promise<string[]> {
     const result: string[] = []
     for (const url of matchUrls.values()) {
         try {
-            const finalUrl = await tall(url);
+            const finalUrl = await tall(url, { timeout: 5 });
             if (finalUrl) {
-                logMessage("Expanded URL", { url, finalUrl })
+                if (finalUrl !== url) logMessage("Expanded URL", { url, finalUrl })
                 result.push(`${url} => ${finalUrl}`)
             }
             // else logMessage('Could not expand url', url)

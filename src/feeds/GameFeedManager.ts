@@ -93,12 +93,12 @@ export class GameFeedManager {
         logMessage(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
 
         // Group by game
-        // const games = new Set(manager.GameFeeds.map(f => f.domain));
-        // const counts: { [key: string]: number } = [...games].reduce((prev, cur) => {
-        //     prev[cur] = manager.GameFeeds.filter((f) => f.domain === cur).length
-        //     return prev;
-        // }, {} as any);
-        // logMessage('Game Feeds for', counts);
+        const games = new Set(manager.GameFeeds.map(f => f.domain));
+        const counts: { [key: string]: number } = [...games].reduce((prev, cur) => {
+            prev[cur] = manager.GameFeeds.filter((f) => f.domain === cur).length
+            return prev;
+        }, {} as any);
+        logMessage('Game Feeds for', counts);
 
         // TODO! - Do the update for each feed.
         for (const feed of manager.GameFeeds) {
@@ -221,7 +221,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<v
     }
 
     // Get all the games if we need them.
-    if (!allGames.length) allGames = await user.NexusMods.API.Other.Games()//user.NexusMods.API.v2.Games();
+    if (!allGames.length) allGames = await user.NexusMods.API.Other.Games()
 
     // Get the data for the game we're checking.
     const game: IGameStatic|undefined = allGames.find(g => g.domain_name === feed.domain);
