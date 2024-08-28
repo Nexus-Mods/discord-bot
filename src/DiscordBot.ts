@@ -75,11 +75,16 @@ export class DiscordBot {
         try {
             const events: string[] = fs.readdirSync(path.join(__dirname, 'events'));
             events.filter(e => e.endsWith('.js')).forEach((file) => {
-                const event: DiscordEventInterface = require(path.join(__dirname, 'events', file)).default;
-                const eventName: string = file.split(".")[0];
-                if (!event.execute) return;
-                if (event.once) this.client.once(eventName, event.execute.bind(null, this.client));
-                else this.client.on(eventName, event.execute.bind(null, this.client));
+                try {
+                    const event: DiscordEventInterface = require(path.join(__dirname, 'events', file)).default;
+                    const eventName: string = file.split(".")[0];
+                    if (!event.execute) return;
+                    if (event.once) this.client.once(eventName, event.execute.bind(null, this.client));
+                    else this.client.on(eventName, event.execute.bind(null, this.client));
+                }
+                catch(err) {
+                    logMessage('Failed to register event '+file, err);
+                }
             });
             logMessage('Registered to receive events:', events.map(e => path.basename(e, '.js')).join(', '));
         }
