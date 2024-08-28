@@ -43,7 +43,7 @@ const main: DiscordEventInterface = {
                 // Check the server still exists (i.e. we are a member)
                 const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
                 if (!guild) {
-                    logMessage(`Deleting non-existant server: ${server.id}`);
+                    logMessage(`Deleting non-existent server: ${server.id}`);
                     await deleteServer(server.id).catch((err) => logMessage('Could not delete server', err, true));
                     continue;
                 }
