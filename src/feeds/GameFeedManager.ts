@@ -8,6 +8,8 @@ import { NexusAPIServerError } from '../types/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IMod } from '../api/queries/v2';
 import { IGameStatic } from '../api/queries/other';
+import { IModResults } from '../api/queries/v2-latestmods';
+import { IUpdatedModResults } from '../api/queries/v2-updatedMods';
 
 const pollTime: number = (1000*60*10); //10 mins
 const timeNew: number = 900 //How long after publishing a mod is "New" (15mins)
@@ -129,22 +131,150 @@ export class GameFeedManager {
             const newestMods = await fakeUser.NexusMods.API.v2.LatestMods(sortedFeeds[0].last_timestamp, game.id);
             const updatedMods = await fakeUser.NexusMods.API.v2.UpdatedMods(sortedFeeds[0].last_timestamp, true, game.id);
             console.log('Mods detected for '+domain, { new: newestMods.nodes.map(m => m.name), updated: updatedMods.nodes.map(m => m.name) });
+            for (const feed of feeds) {
+                try {
+                    await checkForGameUpdatesNew(client, feed, game, { new: newestMods, updated: updatedMods });
+                }
+                catch(err) {
+                    logMessage(`UpdateFeeds(): Error checking game feed ${feed._id} for ${domain}`, err, true);
+                }
+            }
         }
 
 
         // TODO! - Do the update for each feed.
-        for (const feed of manager.GameFeeds) {
-            try {
-                await checkForGameUpdates(client, feed);
-            }
-            catch(err) {
-                logMessage(`UpdateFeeds(): Error checking game feed ${feed._id}`, err, true);
-            }
-        }
+        // for (const feed of manager.GameFeeds) {
+        //     try {
+        //         await checkForGameUpdates(client, feed);
+        //     }
+        //     catch(err) {
+        //         logMessage(`UpdateFeeds(): Error checking game feed ${feed._id}`, err, true);
+        //     }
+        // }
 
         logMessage('Finished checking game feeds.');
         allGames = [];
     }
+}
+
+async function checkForGameUpdatesNew(client: ClientExt, feed: GameFeed, game: IGameStatic, mods: { new: IModResults, updated: IUpdatedModResults }) {
+    // Gather all the setup information.
+    const discordUser: User|null = await client.users.fetch(feed.owner)
+    const user: DiscordBotUser|undefined = await getUserByDiscordId(feed.owner)
+        .catch(() => Promise.reject(`Unable to find user data for ${discordUser}`));
+    const guild: Guild|null = client.guilds.resolve(feed.guild);
+    const channel: TextChannel|null = guild ? (guild.channels.resolve(feed.channel) as TextChannel) : null;
+    let webHook: WebhookClient | undefined = undefined;
+    if (feed.webhook_id && feed.webhook_token) webHook = new WebhookClient({id: feed.webhook_id, token: feed.webhook_token});
+    const botMember: GuildMember|null = guild ? guild?.members?.me : null;
+    const botPerms: Readonly<PermissionsBitField>|null|undefined = botMember ? channel?.permissionsFor(botMember) : null;
+
+    // If we can't reach the feed owner. 
+    if (!discordUser || !user) {
+        webHook?.destroy();
+        if (client.config.testing) return;
+        await deleteGameFeed(feed._id);
+        logMessage(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${user?.NexusModsUsername || '???' }`);
+        if (channel) channel.send(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${user?.NexusModsUsername || '???' }`).catch(() => undefined);
+        return Promise.reject(`Deleted game update #${feed._id} (${feed.title}) due to missing guild or channel data. Discord user: ${discordUser} Nexus User: ${user?.NexusModsUsername || '???' }`);
+    }
+
+    // Check for relevant permissions.
+    if (botPerms && !botPerms.has('SendMessages', true)) {
+        webHook?.destroy();
+        if (client.config.testing) return;
+        await deleteGameFeed(feed._id);
+        if (discordUser) discordUser.send(`I'm not able to post ${feed.title} updates to ${channel || 'unknown channel'} in ${guild || 'unknown guild'} anymore as I do not seem to have permission to post there. The feed has been cancelled.`).catch(() => undefined);
+        return Promise.reject(`Can't process game update #${feed._id} (${feed.title}) due to missing permissions. Deleted feed.`);
+    }
+
+    // Check if the channel or guild is missing.
+    if (discordUser && (!guild || !channel)) {
+        webHook?.destroy();
+        if (client.config.testing) return;
+        await deleteGameFeed(feed._id);
+        discordUser.send(`I'm not able to post ${feed.title} updates to ${channel || 'missing channel'} in ${guild?.name || 'missing guild'} anymore as the channel or server could not be found. Game feed cancelled.`).catch(() => undefined);
+        return Promise.reject(`Server ${guild?.name} or channel ${channel} could not be reached.`);
+    }
+
+    // Check the user's Auth is still valid
+    try {
+        await user.NexusMods.Auth();
+    }
+    catch(err) {
+        webHook?.destroy();
+        if ([400, 401].includes((err as NexusAPIServerError).code)) {
+            // Add an error entry
+            const newErrorCount: number = feed.error_count + 1;
+            await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
+            logMessage('Auth error for Gamefeed', { id: feed._id, err: (err as Error).message, count: newErrorCount, user: user.NexusModsUsername, discord: discordUser.tag });
+            if (newErrorCount === 1) {
+                const oAuthErrorEmbed = new EmbedBuilder()
+                .setColor('DarkOrange')
+                .setTitle('Authorization Error Updating Game Feed')
+                .setDescription(`This Game Feed could not be updated. The Nexus Mods API responded with ${(err as Error).message}. You can re-authorize your account below.`)
+                .addFields([
+                    {
+                        name: 'Feed ID',
+                        value: `#${feed._id}`,
+                        inline: true
+                    },
+                    {
+                        name: 'Game',
+                        value: feed.title,
+                        inline: true
+                    },
+                    {
+                        name: 'Channel',
+                        value: `<#${channel?.id}> (${channel?.name}) - ${guild?.name}`,
+                        inline: true
+                    },
+                ]);
+
+                const buttons = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    new ButtonBuilder()
+                    .setLabel('Re-link accounts')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL('https://discordbot.nexusmods.com/linked-role')
+                );
+                
+                // Send to the user.
+                logMessage('Informing user of OAuth Error in GameFeed', { user: user?.NexusModsUsername, discord: discordUser.tag, feed: feed._id });
+                await discordUser.send({ embeds: [oAuthErrorEmbed], components: [buttons] }).catch(() => undefined);
+                return;
+            }
+            else if (newErrorCount >= 1000) {
+                logMessage('Game feed has failed to post over 1,000 times, deleting', { id: feed._id, user: user.NexusModsUsername, discord: discordUser.tag });
+                await deleteGameFeed(feed._id);
+                await channel?.send(
+                    `Game feed deleted due to repeated auth errors. ${discordUser.toString()} may need to re-link their Nexus Mods account to re-create this feed. (ID: ${feed._id}) \n\n`+
+                    `Last error message: \`${(err as Error).message ?? JSON.stringify(err)}\``
+                    );
+                return;
+            }
+            else return;
+            
+        }
+
+    }
+
+    // Get the relevant mods for this game.
+    let modsToPost: Partial<IMod>[] = []
+    if (feed.show_new) modsToPost = [...modsToPost, ...mods.new.nodes];
+    if (feed.show_updates) modsToPost = [...modsToPost, ...mods.updated.nodes];
+    // Filter duplicates
+    modsToPost = [...new Set(modsToPost.map(m => m.uid))].map(uid => modsToPost.find(m => m.uid === uid)).filter(m => m !== undefined);
+    // Sort the mods
+    modsToPost = modsToPost.sort((a,b) => a.updatedAt! > b.updatedAt! ? -1 : 1)
+    // Filter out NSFW if applicable
+    if (!feed.nsfw) modsToPost.filter(m => m.adult === false);
+    // Trim the mods
+    if (modsToPost.length > 10) {
+        modsToPost = modsToPost.slice(0, 9);
+    }
+    logMessage(`Posted ${modsToPost.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`, modsToPost.map(m => m.name));
+
 }
 
 async function checkForGameUpdates(client: ClientExt, feed: GameFeed): Promise<void> {
