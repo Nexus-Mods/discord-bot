@@ -1,13 +1,53 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
+import { createAutomodRule, deleteAutomodRule } from "../api/bot-db";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('automod')
     .setDescription('Automatic Moderator Command.')
     .setDMPermission(false)
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommandGroup(sgc => 
+        sgc.setName('rules')
+        .setDescription('Manage Automod rules.')
+        .addSubcommand(sc => 
+            sc.setName('add')
+            .setDescription('Add a new filter to the Automod.')
+            .addStringOption(o => 
+                o.setName('level')
+                .setDescription('Level of trigger. High priority triggers alert moderators.')
+                .setRequired(true)
+                .setChoices([{ name: 'High', value: 'high' }, { name: 'Low', value: 'low' }])
+            )
+            .addStringOption(o =>
+                o.setName('filter')
+                .setDescription('The phase to look for in mods.')
+                .setRequired(true)
+            )
+            .addStringOption(o =>
+                o.setName('note')
+                .setDescription('The note to show on the mod report.')
+                .setRequired(true)
+                .setMinLength(5)
+            )
+        )
+        .addSubcommand(sc =>
+            sc.setName('list')
+            .setDescription('List existing Automod rules.')
+        )
+        .addSubcommand(sc =>
+            sc.setName('remove')
+            .setDescription('Remove a filter from the Automod.')
+            .addIntegerOption(o =>
+                o.setName('id')
+                .setDescription('The rule ID to delete.')
+                .setMinValue(1)
+                .setRequired(true)
+            )
+        )
+    ) as SlashCommandBuilder,
     public: false,
     guilds: [
         '581095546291355649',
@@ -20,6 +60,17 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
+
+    // Subgroup handling
+    if (interaction.options.getSubcommandGroup() != null) {
+        const command = interaction.options.getSubcommand(true);
+        switch (command) {
+            case 'add': return addRule(client, interaction);
+            case 'list': return listRules(client, interaction);
+            case 'remove': return removeRule(client, interaction);
+            default: throw new Error('Subcommand not implemented: '+command)
+        }
+    }
 
     const report = client.automod?.lastReports
     const reportsMerged = report?.reduce((prev, cur) => {
@@ -76,6 +127,71 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     else resultEmbed.addFields({ name: 'Webhooks set up', value: 'All required webhooks are configured.' })
 
     return interaction.editReply({ embeds: [resultEmbed] })
+}
+
+async function addRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    // Get the options passed to the command
+    const level: 'low' | 'high' = interaction.options.getString('level', true) as 'low' | 'high';
+    const filter: string = interaction.options.getString('filter', true);
+    const note: string = interaction.options.getString('note', true);
+    let id = -1 // Update this once created.
+
+    logMessage('Adding automod rule', { level, filter, note });
+
+    try {
+        id = await createAutomodRule(level, filter, note);
+        logMessage('Added new rule with ID', id);
+    }
+    catch(err) {
+        logMessage('Failed to add automod rule', err);
+        throw new Error('Failed to create rule: '+(err as Error).message)
+    }
+
+    const success = new EmbedBuilder()
+    .setTitle('Rule Created')
+    .setDescription(`**ID:** ${id}\n**Level:** ${level.toUpperCase()}\n**Filter:** ${filter}\n**Note:** ${note}`)
+    .setThumbnail(client.user?.avatarURL() || '')
+    .setColor(0xda8e35);
+
+    client.automod?.clearRuleCache();
+
+    return interaction.editReply({ content: null, embeds: [success] });
+}
+
+async function listRules(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    const rules = await client.automod?.retrieveRules() ?? [];
+
+    const header = `| ID | Type | Filter | Added | Note |\n`
+    +`| --- | --- | --- | --- | --- |\n`
+
+    const body = rules.map(r => `| ${r.id} | ${r.type} | ${r.filter} | ${r.added.toLocaleString()} | ${r.reason} `);
+
+    const messageText = header+body.join('\n');
+
+    return interaction.editReply(`# Automod Rules\n\`\`\`${messageText}\`\`\``);
+}
+
+async function removeRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    const id: number = interaction.options.getInteger('id', true);
+
+    const rules = await client.automod?.retrieveRules() ?? [];
+
+    const ruleToRemove = rules.find(r => r.id == id);
+    logMessage("Attempting to delete automod rule", { id , ruleToRemove, rules });
+
+    if (!ruleToRemove) {
+        return interaction.editReply('Nothing to delete. No rule with ID '+id)
+    }
+
+    try {
+        await deleteAutomodRule(id);
+    }
+    catch(err) {
+        throw new Error('Failed to delete automod rule: '+(err as Error).message);
+    }
+
+    client.automod?.clearRuleCache();
+    return interaction.editReply({ content: `Rule Deleted\n\`\`\`${JSON.stringify(ruleToRemove, null, 2)}\`\`\``})
 }
 
 export { discordInteraction }
