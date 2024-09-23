@@ -124,11 +124,17 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameStatic
         /* eslint-disable strict-boolean-expressions */
         if (modData.status !== "published") {
             switch(modData.status) {
-                case('not_published'): throw new Error(`[Mod #${modId}](${url}) for ${game.name} is not published. Please publish it before adding it to your account.`);
-                case('hidden'): throw new Error(`[Mod #${modId}](${url}) for ${game.name} is hidden. Please unhide it before adding it to your account.`);
-                case('under_moderation'): throw new Error(`[Mod #${modId}](${url}) for ${game.name} has been locked by a moderator. Please contact the Nexus Mods team for further information.`);
-                case('wastebinned' || 'removed'): throw new Error(`[Mod #${modId}](${url}) for ${game.name} has been deleted and cannot be added to your account.`);
-                default: throw new Error(`[Mod #${modId}](${url}) for ${game.name} has a status of ${modData.status} and cannot be added to your account.`)
+                case('not_published'):
+                    throw new Error(`[Mod #${modId}](${url}) for ${game.name} is not published. Please publish it before adding it to your account.`);
+                case('hidden'):
+                    throw new Error(`[Mod #${modId}](${url}) for ${game.name} is hidden. Please unhide it before adding it to your account.`);
+                case('under_moderation'):
+                    throw new Error(`[Mod #${modId}](${url}) for ${game.name} has been locked by a moderator. Please contact the Nexus Mods team for further information.`);
+                case('wastebinned'):
+                case('removed'):
+                    throw new Error(`[Mod #${modId}](${url}) for ${game.name} has been deleted and cannot be added to your account.`);
+                default:
+                    throw new Error(`[Mod #${modId}](${url}) for ${game.name} has a status of ${modData.status} and cannot be added to your account.`)
             }
         }
         /* eslint-enable strict-boolean-expressions */

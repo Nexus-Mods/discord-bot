@@ -63,7 +63,7 @@ export async function collections(headers: Record<string,string>, filters: GQLTy
         const baseURL = 'https://next.nexusmods.com/search-results/collections?';
         const urlParams = new URLSearchParams();
         urlParams.append('sortBy', variables.sortBy);
-        urlParams.append('adultContent', variables.filters.adultContent?.value === true ? '1' : '0' || '0');
+        urlParams.append('adultContent', variables.filters.adultContent?.value === true ? '1' : '0');
         if (variables.filters.generalSearch) urlParams.append('keyword', variables.filters.generalSearch.value);
         if (variables.filters.gameName) urlParams.append('gameName', variables.filters.gameName.value);
         return `${baseURL}${urlParams.toString()}`;
