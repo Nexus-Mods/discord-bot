@@ -56,6 +56,8 @@ export async function collections(headers: Record<string,string>, filters: GQLTy
     headers['api-version'] = '2023-09-05'
     logMessage('OUTDATED QUERY [COLLECTIONS] - API Version header must be set to 2023-09-05 for this request')
   }
+
+  /* eslint-disable strict-boolean-expressions */
   
   const websiteLink = (): string => {
         const baseURL = 'https://next.nexusmods.com/search-results/collections?';
@@ -70,9 +72,11 @@ export async function collections(headers: Record<string,string>, filters: GQLTy
     const variables = {
         filters,
         sortBy: sort || 'endorsements_count',
-        adultContent: adultContent || false,
+        adultContent: adultContent ?? false,
         count: 5
     };
+
+    /* eslint-disable strict-boolean-expressions */
     
     try {
         const result: IResult = await request(v2API, query, variables, headers);

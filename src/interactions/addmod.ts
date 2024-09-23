@@ -121,6 +121,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameStatic
         
         modName = modData.name || `${domain}/mods/${modId}`;
 
+        /* eslint-disable strict-boolean-expressions */
         if (modData.status !== "published") {
             switch(modData.status) {
                 case('not_published'): throw new Error(`[Mod #${modId}](${url}) for ${game.name} is not published. Please publish it before adding it to your account.`);
@@ -130,6 +131,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameStatic
                 default: throw new Error(`[Mod #${modId}](${url}) for ${game.name} has a status of ${modData.status} and cannot be added to your account.`)
             }
         }
+        /* eslint-enable strict-boolean-expressions */
 
         if (modData.uploader.memberId != user.NexusModsId) throw new Error (`[${modData.name || `Mod #${modId}`}](https://www.nexusmods.com/${game.domain_name}/mods/${modData.modId}) was uploaded by [${modData.uploader.name}](https://www.nexusmods.com/users/${modData.uploader.memberId}) so it cannot be added to your account.`);
 
