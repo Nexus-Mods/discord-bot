@@ -54,12 +54,21 @@ export class AutoModManager {
             .catch((err) => logMessage('Error in AutomodManager constructor', err, true));
     }
 
+    public async retrieveRules(): Promise<IAutomodRule[]> {
+        return this.AutoModRules;
+    }
+
+    public clearRuleCache(): void {
+        this.getRules();
+    }
+
     private async getRules() {
         try {
             this.AutoModRules = await getAutomodRules()
         }
         catch(err) {
             logMessage("Error getting automod rules", err, true)
+            throw new Error('Could not get Automod rules: '+(err as Error).message)
         }
     }
 
