@@ -28,7 +28,7 @@
     "@types/pg": "^8.10.2",
     "axios": "^1.6.0",
     "cookie-parser": "^1.4.6",
-    "discord.js": "^14.15.3",
+    "discord.js": "latest",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.10",
     "express": "^4.19.2",

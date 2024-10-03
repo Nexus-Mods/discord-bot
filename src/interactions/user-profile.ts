@@ -1,4 +1,4 @@
-import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction } from "discord.js";
+import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction, ContextMenuCommandType } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId, userProfileEmbed, userEmbed } from '../api/bot-db';
 import { logMessage } from "../api/util";
@@ -8,7 +8,7 @@ import { DiscordBotUser } from "../api/DiscordBotUser";
 const discordInteraction: DiscordInteraction = {
     command: new ContextMenuCommandBuilder()
     .setName('Profile - Nexus Mods')
-    .setType(ApplicationCommandType.User),
+    .setType(ApplicationCommandType.User as ContextMenuCommandType),
     public: true,
     guilds: [ '581095546291355649' ],
     action
