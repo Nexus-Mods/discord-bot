@@ -8,9 +8,8 @@ import { logMessage } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule } from "../types/util";
 import { tall } from 'tall';
-// const uu = require('url-unshort')();
 
-const pollTime: number = (1000*60*2); //2 mins
+const pollTime: number = (1000*60*1); //1 mins
 
 interface IModWithFlags {
     mod: Partial<IMod>
