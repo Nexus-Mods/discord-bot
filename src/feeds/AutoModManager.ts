@@ -283,8 +283,10 @@ async function analyseURLS(text: string): Promise<string[]> {
         try {
             const finalUrl = await tall(url, { timeout: 5 });
             if (finalUrl) {
-                if (finalUrl !== url) logMessage("Expanded URL", { url, finalUrl })
-                result.push(`${url} => ${finalUrl}`)
+                if (finalUrl !== url) {
+                    logMessage("Expanded URL", { url, finalUrl })
+                    result.push(`${url} => ${finalUrl}`)
+                }
             }
             // else logMessage('Could not expand url', url)
 
