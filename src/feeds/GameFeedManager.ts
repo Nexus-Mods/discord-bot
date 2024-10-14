@@ -3,7 +3,7 @@ import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserBy
 import { ClientExt } from "../types/DiscordTypes";
 import { IUpdateEntry, IChangelogs } from '@nexusmods/nexus-api';
 import { User, Guild, Snowflake, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, NewsChannel, GuildBasedChannel } from 'discord.js';
-import { logMessage } from '../api/util';
+import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { NexusAPIServerError } from '../types/util';
 import { DiscordBotUser } from '../api/DiscordBotUser';
 import { IMod } from '../api/queries/v2';
@@ -369,13 +369,13 @@ function createModEmbedGQL(client: Client,
     compact: boolean): EmbedBuilder {
 const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
 const category: string = mod.modCategory.name || 'Unknown';
-const uploaderProfile: string = `https://nexusmods.com/${game.domain_name}/users/${mod.uploader.memberId}`;
+const uploaderProfile: string = nexusModsTrackingUrl(`https://nexusmods.com/${game.domain_name}/users/${mod.uploader.memberId}`, 'gamefeed');
 
 let post = new EmbedBuilder()
 .setAuthor({name:`${newMod ? 'New Mod Upload' : 'Updated Mod'} (${game.name})`, iconURL: client.user?.avatarURL() || '' })
 .setTitle(mod.name || 'Name not found')
 .setColor(newMod ? 0xda8e35 : 0x57a5cc)
-.setURL(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`)
+.setURL(nexusModsTrackingUrl(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'gamefeed'))
 .setDescription(sanitizeBreaks(mod.summary || 'No summary'))
 .setImage(!compact? mod.pictureUrl || null : null)
 .setThumbnail(compact ? mod.pictureUrl || null : gameThumb)

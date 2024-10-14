@@ -7,7 +7,7 @@ import { customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
-import { logMessage } from "../api/util";
+import { logMessage, nexusModsTrackingUrl } from "../api/util";
 import { CollectionsFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
@@ -454,7 +454,7 @@ const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGameStatic)
 
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
-        .setURL(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`)
+        .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'search'))
         .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${mod.modCategory.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/\<br \/\>/g, '\n')}`)
         .setTimestamp(new Date(mod.updatedAt))
         .setImage(mod.pictureUrl || '')

@@ -3,7 +3,7 @@ import { QueryResult } from 'pg';
 import { NexusUser, NexusLinkedMod } from '../types/users';
 import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
 import { getModsbyUser } from './bot-db';
-import { logMessage } from './util';
+import { logMessage, nexusModsTrackingUrl } from './util';
 import { DiscordBotUser } from './DiscordBotUser';
 
 async function getAllUsers(): Promise<NexusUser[]> {
@@ -183,7 +183,7 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
     .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || undefined})
     .addFields({ 
         name:  "Nexus Mods", 
-        value: `[${user.NexusModsUsername}](https://nexusmods.com/users/${user.NexusModsId})\n${roleToShow}`, 
+        value: `[${user.NexusModsUsername}](${nexusModsTrackingUrl(`https://nexusmods.com/users/${user.NexusModsId}`, 'profile')})\n${roleToShow}`, 
         inline: true
     })
     .addFields({ name: "Discord", value: `${discordUser.toString()}\n${discordUser.tag}`, inline: true})
@@ -192,7 +192,7 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
     .setTimestamp(user.LastUpdated)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || ''});
     if (mods && mods.length) {
-        let modData = mods.sort(modsort).map( mod => `[${mod.name}](https://nexusmods.com/${mod.path}) - ${mod.game}`);
+        let modData = mods.sort(modsort).map( mod => `[${mod.name}](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.path}`, 'profile')}) - ${mod.game}`);
         if (modData.length > 5) modData = modData.slice(0,4); //Only show a maximum of 5.
         embed.addFields({ name: `My Mods - ${totalDownloads(mods).toLocaleString()} downloads for ${mods.length} mod(s).`, value: `${modData.join("\n")}\n-----\n[**See all of ${user.NexusModsUsername}'s content at Nexus Mods.**](https://www.nexusmods.com/users/${user.NexusModsId}?tab=user+files)`})
     }

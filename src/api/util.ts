@@ -29,3 +29,12 @@ export const discontinuedEmbed = (newCommand: string): EmbedBuilder => {
     .setColor('Grey')
     .setDescription(`This command has been retired, please use the slash command **${newCommand}** instead. [Help](https://discord.gg/nexusmods)`)
 }
+
+export const nexusModsTrackingUrl = (url: string, tag?: string): string => {
+    const campaign = 'DiscordBot';
+    const params = new URLSearchParams();
+    params.append('mtm_campaign', campaign);
+    if (tag) params.append('mtm_kwd', tag);
+    
+    return new URL(`${url}?${params.toString()}`).toString();
+}
