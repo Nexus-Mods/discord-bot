@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, Permissi
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
 import { createAutomodRule, deleteAutomodRule } from "../api/bot-db";
+import { IAutomodRule } from "../types/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -47,6 +48,10 @@ const discordInteraction: DiscordInteraction = {
                 .setRequired(true)
             )
         )
+        .addSubcommand(sc =>
+            sc.setName('report')
+            .setDescription('See the last few mods checked by the automod.')
+        )
     ) as SlashCommandBuilder,
     public: false,
     guilds: [
@@ -68,10 +73,105 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             case 'add': return addRule(client, interaction);
             case 'list': return listRules(client, interaction);
             case 'remove': return removeRule(client, interaction);
+            case 'report': return showReport(client,interaction);
             default: throw new Error('Subcommand not implemented: '+command)
         }
     }
+}
 
+async function addRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    // Get the options passed to the command
+    const level: 'low' | 'high' = interaction.options.getString('level', true) as 'low' | 'high';
+    const filter: string = interaction.options.getString('filter', true);
+    const note: string = interaction.options.getString('note', true);
+    let id = -1 // Update this once created.
+
+    logMessage('Adding automod rule', { level, filter, note });
+
+    try {
+        id = await createAutomodRule(level, filter, note);
+        logMessage('Added new rule with ID', id);
+    }
+    catch(err) {
+        logMessage('Failed to add automod rule', err);
+        throw new Error('Failed to create rule: '+(err as Error).message)
+    }
+
+    const success = new EmbedBuilder()
+    .setTitle('Rule Created')
+    .setDescription(`**ID:** ${id}\n**Level:** ${level.toUpperCase()}\n**Filter:** ${filter}\n**Note:** ${note}`)
+    .setThumbnail(client.user?.avatarURL() || '')
+    .setColor(0xda8e35);
+
+    client.automod?.clearRuleCache();
+
+    return interaction.editReply({ content: null, embeds: [success] });
+}
+
+async function listRules(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    const rules = await client.automod?.retrieveRules() ?? [];
+
+    // Cut up the array into pages for Discord's character limit.
+    const rulePages = new Array<IAutomodRule[]>()
+    let currentPage = [];
+
+    for (const rule of rules) {
+        console.log('Handling rule', rule.filter)
+        currentPage.push(rule);
+        if (currentPage.length === 10) {
+            rulePages.push([...currentPage]);
+            currentPage = [];
+        }
+    }
+
+    rulePages.push(currentPage);
+    // End pagination.
+
+    const header = `| ID | Type | Filter | Added | Note |\n`
+    +`| --- | --- | --- | --- | --- |\n`
+
+    const body = rulePages[0].map(r => `| ${r.id} | ${r.type} | ${r.filter} | ${r.added.toLocaleString()} | ${r.reason} `);
+
+    const messageText = header+body.join('\n');
+
+    await interaction.editReply(`# Automod Rules\n\`\`\`${messageText}\`\`\``);
+
+    if (rulePages.length > 1) {
+        // Post extra pages
+        rulePages.map(async (page, index) => {
+            if (index === 0) return;
+            const pageMessage = `\`\`\`${header}${page.map(r => `| ${r.id} | ${r.type} | ${r.filter} | ${r.added.toLocaleString()} | ${r.reason} `).join('\n')}\`\`\``;
+            await interaction.followUp({content: pageMessage, ephemeral: true});
+            return;
+        });
+    }
+
+}
+
+async function removeRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    const id: number = interaction.options.getInteger('id', true);
+
+    const rules = await client.automod?.retrieveRules() ?? [];
+
+    const ruleToRemove = rules.find(r => r.id == id);
+    logMessage("Attempting to delete automod rule", { id , ruleToRemove, rules });
+
+    if (!ruleToRemove) {
+        return interaction.editReply('Nothing to delete. No rule with ID '+id)
+    }
+
+    try {
+        await deleteAutomodRule(id);
+    }
+    catch(err) {
+        throw new Error('Failed to delete automod rule: '+(err as Error).message);
+    }
+
+    client.automod?.clearRuleCache();
+    return interaction.editReply({ content: `Rule Deleted\n\`\`\`${JSON.stringify(ruleToRemove, null, 2)}\`\`\``})
+}
+
+async function showReport(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
     const report = client.automod?.lastReports
     const reportsMerged = report?.reduce((prev, cur) => {
         if (cur.length) prev = [...prev, ...cur];
@@ -127,71 +227,6 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     else resultEmbed.addFields({ name: 'Webhooks set up', value: 'All required webhooks are configured.' })
 
     return interaction.editReply({ embeds: [resultEmbed] })
-}
-
-async function addRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
-    // Get the options passed to the command
-    const level: 'low' | 'high' = interaction.options.getString('level', true) as 'low' | 'high';
-    const filter: string = interaction.options.getString('filter', true);
-    const note: string = interaction.options.getString('note', true);
-    let id = -1 // Update this once created.
-
-    logMessage('Adding automod rule', { level, filter, note });
-
-    try {
-        id = await createAutomodRule(level, filter, note);
-        logMessage('Added new rule with ID', id);
-    }
-    catch(err) {
-        logMessage('Failed to add automod rule', err);
-        throw new Error('Failed to create rule: '+(err as Error).message)
-    }
-
-    const success = new EmbedBuilder()
-    .setTitle('Rule Created')
-    .setDescription(`**ID:** ${id}\n**Level:** ${level.toUpperCase()}\n**Filter:** ${filter}\n**Note:** ${note}`)
-    .setThumbnail(client.user?.avatarURL() || '')
-    .setColor(0xda8e35);
-
-    client.automod?.clearRuleCache();
-
-    return interaction.editReply({ content: null, embeds: [success] });
-}
-
-async function listRules(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
-    const rules = await client.automod?.retrieveRules() ?? [];
-
-    const header = `| ID | Type | Filter | Added | Note |\n`
-    +`| --- | --- | --- | --- | --- |\n`
-
-    const body = rules.map(r => `| ${r.id} | ${r.type} | ${r.filter} | ${r.added.toLocaleString()} | ${r.reason} `);
-
-    const messageText = header+body.join('\n');
-
-    return interaction.editReply(`# Automod Rules\n\`\`\`${messageText}\`\`\``);
-}
-
-async function removeRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
-    const id: number = interaction.options.getInteger('id', true);
-
-    const rules = await client.automod?.retrieveRules() ?? [];
-
-    const ruleToRemove = rules.find(r => r.id == id);
-    logMessage("Attempting to delete automod rule", { id , ruleToRemove, rules });
-
-    if (!ruleToRemove) {
-        return interaction.editReply('Nothing to delete. No rule with ID '+id)
-    }
-
-    try {
-        await deleteAutomodRule(id);
-    }
-    catch(err) {
-        throw new Error('Failed to delete automod rule: '+(err as Error).message);
-    }
-
-    client.automod?.clearRuleCache();
-    return interaction.editReply({ content: `Rule Deleted\n\`\`\`${JSON.stringify(ruleToRemove, null, 2)}\`\`\``})
 }
 
 export { discordInteraction }

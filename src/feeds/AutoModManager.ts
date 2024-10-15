@@ -78,7 +78,7 @@ export class AutoModManager {
 
     private async runAutomod() {
         try {
-            const user = await getUserByNexusModsId(31179975);
+            const user = await getUserByNexusModsId(-1);
             if (!user) throw new Error("User not found for automod");
             await this.getRules();
             const newMods: IModResults = await user?.NexusMods.API.v2.LatestMods(this.lastCheck)
