@@ -8,6 +8,7 @@ import { logMessage } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule } from "../types/util";
 import { tall } from 'tall';
+import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 
 const pollTime: number = (1000*60*1); //1 mins
 
@@ -78,7 +79,7 @@ export class AutoModManager {
 
     private async runAutomod() {
         try {
-            const user = await getUserByNexusModsId(-1);
+            const user = new DiscordBotUser(DummyNexusModsUser);
             if (!user) throw new Error("User not found for automod");
             await this.getRules();
             const newMods: IModResults = await user?.NexusMods.API.v2.LatestMods(this.lastCheck)
@@ -241,7 +242,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
     }
     else {
         if (new Date(mod.uploader!.joined).getTime() >= anHourAgo.getTime()) {
-            logMessage('New uploader', { user: mod.uploader, name: mod.name, anHourAgo, joined: new Date(mod.uploader!.joined) })
+            // logMessage('New uploader', { user: mod.uploader, name: mod.name, anHourAgo, joined: new Date(mod.uploader!.joined) })
             flags.low.push('New account');
         }
     }
