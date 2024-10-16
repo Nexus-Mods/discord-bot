@@ -10,6 +10,10 @@ const discordInteraction: DiscordInteraction = {
     .setDescription('Automatic Moderator Command.')
     .setDMPermission(false)
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand(sc =>
+        sc.setName('report')
+        .setDescription('See the last few mods checked by the automod.')
+    )
     .addSubcommandGroup(sgc => 
         sgc.setName('rules')
         .setDescription('Manage Automod rules.')
@@ -47,10 +51,6 @@ const discordInteraction: DiscordInteraction = {
                 .setMinValue(1)
                 .setRequired(true)
             )
-        )
-        .addSubcommand(sc =>
-            sc.setName('report')
-            .setDescription('See the last few mods checked by the automod.')
         )
     ) as SlashCommandBuilder,
     public: false,
