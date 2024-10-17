@@ -4,7 +4,7 @@ import { ClientExt } from "../types/DiscordTypes";
 import Parser = require('rss-parser');
 import { EmbedBuilder, Guild, GuildChannel, Snowflake, TextChannel, ThreadChannel } from 'discord.js';
 import { BotServer } from '../types/servers';
-import { logMessage } from '../api/util';
+import { logMessage, nexusModsTrackingUrl } from '../api/util';
 const parser = new Parser({
     customFields: {
         item:['nexusmods:plain_description'],
@@ -135,7 +135,7 @@ export class NewsFeedManager {
 function buildEmbed(client: ClientExt, news: NewsArticle): EmbedBuilder {
     const embed = new EmbedBuilder()
     .setTitle(decodeURI(news.title).replace(/\&amp;/g,'&'))
-    .setURL(news.link)
+    .setURL(nexusModsTrackingUrl(news.link, 'newsfeed'))
     .setImage(news.enclosure?.url)
     .setDescription(`${decodeURI(news["nexusmods:plain_description"].substr(0, 250))}...`)
     .setFooter({text: `${news.categories.toString()} - ${news.author}`, iconURL: client.user?.avatarURL() || undefined })
