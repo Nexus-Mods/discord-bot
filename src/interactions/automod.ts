@@ -118,7 +118,7 @@ async function listRules(client: ClientExt, interaction: ChatInputCommandInterac
     for (const rule of rules) {
         console.log('Handling rule', rule.filter)
         currentPage.push(rule);
-        if (currentPage.length === 10) {
+        if (currentPage.length === 15) {
             rulePages.push([...currentPage]);
             currentPage = [];
         }
