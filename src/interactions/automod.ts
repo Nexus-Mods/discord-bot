@@ -66,17 +66,21 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true });
 
-    // Subgroup handling
-    if (interaction.options.getSubcommandGroup() != null) {
-        const command = interaction.options.getSubcommand(true);
+    // Get Subgroup and group
+    const commandGroup = interaction.options.getSubcommandGroup();
+    const command = interaction.options.getSubcommand(true);
+
+    // Handle command
+    if (commandGroup === 'rules') {
         switch (command) {
             case 'add': return addRule(client, interaction);
             case 'list': return listRules(client, interaction);
             case 'remove': return removeRule(client, interaction);
-            case 'report': return showReport(client,interaction);
             default: throw new Error('Subcommand not implemented: '+command)
         }
     }
+    else if (commandGroup === undefined && command === 'report') return showReport(client, interaction);
+    else throw new Error(`Unrecognised command - Group: ${commandGroup} Command: ${command}`);
 }
 
 async function addRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
@@ -177,6 +181,7 @@ async function showReport(client: ClientExt, interaction: ChatInputCommandIntera
         if (cur.length) prev = [...prev, ...cur];
         return prev;
     }, [])
+    logMessage('Generating automod report', { reportCount: reportsMerged?.length });
 
     if (!report) return interaction.editReply({ content: 'Report not available' })
 
