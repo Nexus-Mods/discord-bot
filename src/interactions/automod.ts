@@ -79,7 +79,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             default: throw new Error('Subcommand not implemented: '+command)
         }
     }
-    else if (commandGroup === undefined && command === 'report') return showReport(client, interaction);
+    else if (commandGroup === null && command === 'report') return showReport(client, interaction);
     else throw new Error(`Unrecognised command - Group: ${commandGroup} Command: ${command}`);
 }
 
