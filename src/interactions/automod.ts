@@ -9,7 +9,7 @@ const discordInteraction: DiscordInteraction = {
     .setName('automod')
     .setDescription('Automatic Moderator Command.')
     .setDMPermission(false)
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    // .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(sc =>
         sc.setName('report')
         .setDescription('See the last few mods checked by the automod.')
@@ -84,6 +84,10 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 }
 
 async function addRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    // Is an admin?
+    const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) return interaction.editReply({ content: 'Adding rules is only available to admins.' })
+
     // Get the options passed to the command
     const level: 'low' | 'high' = interaction.options.getString('level', true) as 'low' | 'high';
     const filter: string = interaction.options.getString('filter', true);
@@ -153,6 +157,10 @@ async function listRules(client: ClientExt, interaction: ChatInputCommandInterac
 }
 
 async function removeRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    // Is an admin?
+    const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) return interaction.editReply({ content: 'Adding rules is only available to admins.' })
+
     const id: number = interaction.options.getInteger('id', true);
 
     const rules = await client.automod?.retrieveRules() ?? [];
