@@ -1,4 +1,4 @@
-import { APIEmbed, EmbedBuilder, RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
+import { APIEmbed, EmbedBuilder, flatten, RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
 import { getAutomodRules } from "../api/automod";
 import { ISlackMessage, PublishToDiscord, PublishToSlack } from "../api/moderationWebhooks";
 import { IMod } from "../api/queries/v2";
@@ -9,6 +9,7 @@ import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule } from "../types/util";
 import { tall } from 'tall';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
+import axios from "axios";
 
 const pollTime: number = (1000*60*1); //1 mins
 
@@ -79,11 +80,11 @@ export class AutoModManager {
 
     private async runAutomod() {
         try {
-            const user = new DiscordBotUser(DummyNexusModsUser);
-            if (!user) throw new Error("User not found for automod");
+            const dummyUser = new DiscordBotUser(DummyNexusModsUser);
+            if (!dummyUser) throw new Error("User not found for automod");
             await this.getRules();
-            const newMods: IModResults = await user?.NexusMods.API.v2.LatestMods(this.lastCheck)
-            const updatedMods: IModResults = await user?.NexusMods.API.v2.UpdatedMods(this.lastCheck, true);
+            const newMods: IModResults = await dummyUser?.NexusMods.API.v2.LatestMods(this.lastCheck)
+            const updatedMods: IModResults = await dummyUser?.NexusMods.API.v2.UpdatedMods(this.lastCheck, true);
             const modsToCheck = [...newMods.nodes, ...updatedMods.nodes];
             if (!modsToCheck.length) {
                 logMessage("Automod - Nothing for automod to check")
@@ -94,9 +95,11 @@ export class AutoModManager {
             else logMessage(`Automod - Checking ${modsToCheck.length} new and updated mods.`)
             this.setLastCheck(newMods.nodes[0]?.createdAt ?? updatedMods.nodes[0].updatedAt!)
 
+            const user = await getUserByNexusModsId(31179975) ?? dummyUser;
+
             let results: IModWithFlags[] = []
             for (const mod of modsToCheck) {
-                results.push(await analyseMod(mod, this.AutoModRules))
+                results.push(await analyseMod(mod, this.AutoModRules, user))
             }
             this.addToLastReports(results);
             const concerns = results.filter(m => (m.flags.high.length) !== 0);
@@ -121,14 +124,15 @@ export class AutoModManager {
     }
 
     public async checkSingleMod(gameDomain: string, modId: number) {
-        const user = await getUserByNexusModsId(31179975);
+        // NOT YET IN USE!
+        const user: DiscordBotUser | undefined = await getUserByNexusModsId(31179975);
         if (!user) throw new Error("User not found for automod");
         await this.getRules();
         const modInfo = await user.NexusMods.API.v2.ModsByModId({gameDomain, modId});
         const mod = modInfo[0];
         if (!mod) throw new Error('Mod not found')
         logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
-        const analysis = await analyseMod(mod, this.AutoModRules);
+        const analysis = await analyseMod(mod, this.AutoModRules, user);
         if (analysis.flags.high.length) {
             await PublishToDiscord(flagsToDiscordEmbeds([analysis]))
             await PublishToSlack(flagsToSlackMessage([analysis]))
@@ -230,7 +234,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
     }
 }
 
-async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IModWithFlags> {
+async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], user: DiscordBotUser): Promise<IModWithFlags> {
     let flags: {high: string[], low: string[]} = { high: [], low: [] };    
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60))
@@ -252,6 +256,15 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[]): Promise<IM
             flags.high.push('First upload, short description. Probable spam.')
         }
         flags.low.push('First mod upload')
+
+        try {
+            const previewCheck = await checkFilePreview(mod, user)
+            if (previewCheck.flags.high.length) flags.high.push(...previewCheck.flags.high)
+            if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
+        }
+        catch(err) {
+            logMessage(`Failed to check content preview for ${mod.name} for ${mod.game?.name}`, err, true);
+        }
     };
 
     // Check against automod rules
@@ -297,4 +310,84 @@ async function analyseURLS(text: string): Promise<string[]> {
         }
     }
     return result;
+}
+
+interface IPreviewDirectory {
+    name: string;
+    path: string;
+    type: 'directory';
+    children: (IPreviewDirectory | IPreviewFile)[];
+}
+
+interface IPreviewFile {
+    name: string;
+    path: string;
+    type: 'file';
+    size: string;
+}
+
+const nonPlayableExtensions: string[] = [
+    "jpg", "jpeg", "png", "gif", "bmp", 
+    "tiff", "tif", "webp", "svg", "ico", "heic", 
+    "txt", "csv", "log", "md", "json", 
+    "xml", "html", "htm", "yml", "yaml", 
+    "ini", "rtf", "tex", "docx", "odt", 
+    "pdf"
+];
+
+async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser): Promise<IModWithFlags> {
+    const flags: { high: string[], low: string[] } = { high: [], low: [] };
+    const modFiles = await user.NexusMods.API.v1.ModFiles(mod.game!.domainName!, mod.modId!);
+    const latestFile = modFiles.files.sort((a, b) => a.uploaded_timestamp > b.uploaded_timestamp ? 1 : -1)[0];
+    logMessage(`Checking file preview for ${latestFile.name} on ${mod.name} for ${mod.game?.name}`);
+
+    // Check the content preview
+    try {
+        const request = await axios({
+            url: latestFile.content_preview_link,
+            transformResponse: (res) => JSON.parse(res),
+            validateStatus: () => true,
+        });
+        // No content preview (there's always a link, but it's not always valid!)
+        if (request.status == 404) flags.low.push('No content preview for latest file.')
+        else {
+            const allFiles: string[] = (request.data.children as Array<any>).reduce((prev, cur) => {
+                if (cur.type === 'file') prev.push(cur.name);
+                else if (cur.type === 'directory') {
+                    const flattened = flattenDirectory(cur);
+                    prev = [...prev, ...flattened]
+                }
+                return prev;
+            }, []);
+
+            // Check if it's exclusively non-playable files
+            const playableFiles = allFiles.filter(file => {
+                const extension: string | undefined = file.split('.').pop()?.toLowerCase();
+                if (extension === file || !extension) return false;
+                if (nonPlayableExtensions.includes(extension)) return false;
+                return true;
+            });
+
+            if (playableFiles.length === 0) {
+                flags.high.push("Does not contain any playable files. Likely spam");
+            }
+            
+        }
+
+    }
+    catch(err) {
+        logMessage('Could not process file preview', err, true);
+    }
+
+    
+    return { mod, flags };
+}
+
+function flattenDirectory(input: IPreviewDirectory): string[] {
+    const files = input.children.filter(c => c.type === 'file').map(c => c.name);
+    const subFolders = input.children.filter(c => c.type === 'directory');
+    for (const subFolder of subFolders) {
+        files.push(...flattenDirectory(subFolder));
+    }
+    return files;
 }
