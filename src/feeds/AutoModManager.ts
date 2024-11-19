@@ -344,8 +344,8 @@ interface IPreviewFile {
 const nonPlayableExtensions: string[] = [
     "jpg", "jpeg", "png", "gif", "bmp", 
     "tiff", "tif", "webp", "svg", "ico", "heic", 
-    "txt", "csv", "log", "md", "json", 
-    "xml", "html", "htm", "yml", "yaml", 
+    "txt", "csv", "log", "md", 
+    "html", "htm", "yml", "yaml", 
     "ini", "rtf", "tex", "docx", "odt", 
     "pdf"
 ];
