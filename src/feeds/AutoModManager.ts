@@ -292,7 +292,7 @@ async function analyseURLS(text: string): Promise<string[]> {
     const matches = text.match(regEx);
     if (!matches) return [];
     // logMessage("URLs in mod description", matches.toString());
-    const matchUrls: Set<string> = new Set(matches.filter(uri => !uri.toLowerCase().includes('nexusmods.com')));
+    const matchUrls: Set<string> = new Set(matches.filter(filterUrls));
     if (!matchUrls.size) return [];
     // logMessage("URLs to check in mod description", matchUrls);
     const result: string[] = []
@@ -313,6 +313,18 @@ async function analyseURLS(text: string): Promise<string[]> {
         }
     }
     return result;
+}
+
+function filterUrls(uri: string): boolean {
+    if (uri.toLowerCase().includes('nexusmods.com')) return false;
+    const ext = uri.split('.').pop()?.toLowerCase()
+
+    const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", 
+    "tiff", "tif", "webp", "svg", "ico", "heic"];
+
+    if (!ext || imageExts.includes(ext)) return false
+
+    return true;
 }
 
 interface IPreviewDirectory {
