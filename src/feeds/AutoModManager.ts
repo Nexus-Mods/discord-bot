@@ -343,11 +343,9 @@ interface IPreviewFile {
 
 const nonPlayableExtensions: string[] = [
     "jpg", "jpeg", "png", "gif", "bmp", 
-    "tiff", "tif", "webp", "svg", "ico", "heic", 
-    "txt", "csv", "log", "md", 
-    "html", "htm", "yml", "yaml", 
-    "ini", "rtf", "tex", "docx", "odt", 
-    "pdf"
+    "tiff", "tif", "webp", "svg", "heic", 
+    "txt", "csv", "log", "md", "html", "htm", 
+    "rtf", "tex", "docx", "odt", "pdf"
 ];
 
 async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser): Promise<IModWithFlags> {
