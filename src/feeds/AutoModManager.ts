@@ -9,7 +9,7 @@ import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule } from "../types/util";
 import { tall } from 'tall';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 
 const pollTime: number = (1000*60*1); //1 mins
 
@@ -240,16 +240,13 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], user: Disco
     const anHourAgo = new Date(now.valueOf() - (60000 * 60))
 
     // Check the user
-    if (mod.uploader!.membershipRoles.length > 1) {
-        // logMessage("Mod Uploaded by a Supporter or Premium user", {mod: mod.name, user: mod.uploader?.name, created: new Date(mod.createdAt || 0)})
-        return { mod, flags };
-    }
-    else {
-        if (new Date(mod.uploader!.joined).getTime() >= anHourAgo.getTime()) {
-            // logMessage('New uploader', { user: mod.uploader, name: mod.name, anHourAgo, joined: new Date(mod.uploader!.joined) })
-            flags.low.push('New account');
-        }
-    }
+    // if (mod.uploader!.membershipRoles.length > 1) {
+    //     // logMessage("Mod Uploaded by a Supporter or Premium user", {mod: mod.name, user: mod.uploader?.name, created: new Date(mod.createdAt || 0)})
+    //     return { mod, flags };
+    // }
+    // else 
+    
+    if (new Date(mod.uploader!.joined).getTime() >= anHourAgo.getTime()) flags.low.push('New account');
 
     if (mod.uploader!.modCount <= 1 && flags.low.includes('New account')) {
         if ((mod.description ?? '').length < 150) {
@@ -356,22 +353,16 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser): Promi
 
     // Check the content preview
     try {
-        const request = await axios({
+        const request: AxiosResponse<IPreviewDirectory, any> = await axios({
             url: latestFile.content_preview_link,
             transformResponse: (res) => JSON.parse(res),
             validateStatus: () => true,
         });
         // No content preview (there's always a link, but it's not always valid!)
-        if (request.status == 404) flags.low.push('No content preview for latest file.')
+        if (request.status === 404) flags.low.push('No content preview for latest file.')
+        else if (request.status !== 200) flags.low.push(`Failed to get content preview. HTTP ERROR ${request.status}`);
         else {
-            const allFiles: string[] = (request.data.children as Array<any>).reduce((prev, cur) => {
-                if (cur.type === 'file') prev.push(cur.name);
-                else if (cur.type === 'directory') {
-                    const flattened = flattenDirectory(cur);
-                    prev = [...prev, ...flattened]
-                }
-                return prev;
-            }, []);
+            const allFiles: string[] = flattenDirectory(request.data);
 
             // Check if it's exclusively non-playable files
             const playableFiles = allFiles.filter(file => {
@@ -382,7 +373,7 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser): Promi
             });
 
             if (playableFiles.length === 0) {
-                flags.high.push("Does not contain any playable files. Likely spam");
+                flags.high.push("Does not contain any playable files. Likely spam.");
             }
             
         }
