@@ -228,7 +228,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
     }
     
     return {
-        content: "# Mod Spam Detected\n<@&1308814010602487839> <@&520360132631199744>", //@here removed
+        content: "# Mod Spam Detected\n@here", //role pings <@&1308814010602487839> <@&520360132631199744>
         username: "Automod",
         embeds: data.map(modEmbeds)
     }
