@@ -14,7 +14,7 @@ interface IModRequest {
 }
 
 const query = gql`
-query Mods($mods: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
+query DiscordBotModsByDomain($mods: [CompositeDomainWithIdInput!]!, $count: Int!, $offset: Int!) {
     legacyModsByDomain(ids: $mods, count: $count, offset: $offset) {
       nodes {
         uid
