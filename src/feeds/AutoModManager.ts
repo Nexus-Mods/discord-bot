@@ -39,7 +39,7 @@ export class AutoModManager {
     }
 
     private addToLastReports(mods: IModWithFlags[]) {
-        this.lastReports = [mods, ...this.lastReports].filter((v, i) => i <= 9);
+        this.lastReports = [mods, ...this.lastReports.filter((v, i) => i <= 9)];
     }
 
     private constructor(client: ClientExt) {
@@ -102,16 +102,17 @@ export class AutoModManager {
                 results.push(await analyseMod(mod, this.AutoModRules, user))
             }
             this.addToLastReports(results);
-            const concerns = results.filter(m => (m.flags.high.length) !== 0);
-            if (!concerns.length) {
+            // const concerns = results.filter(m => (m.flags.high.length) !== 0);
+            // if (!concerns.length) {
+            if (!results.length) {
                 logMessage('No mods with concerns found.')
                 return;
             }
             else {
                 try {
-                    logMessage('Reporting mods:', concerns.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
-                    await PublishToSlack(flagsToSlackMessage(concerns));
-                    await PublishToDiscord(flagsToDiscordEmbeds(concerns))
+                    logMessage('Reporting mods:', results.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
+                    await PublishToSlack(flagsToSlackMessage(results));
+                    await PublishToDiscord(flagsToDiscordEmbeds(results));
                 }
                 catch(err) {
                     logMessage('Error posting automod to Discord or Slack', err, true)
@@ -159,6 +160,7 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
                 text: `<${modLink}|${input.mod.name}> uploaded by <${userLink}|${input.mod.uploader?.name}>\n`+
                 `<!date^${uploadTime}^Posted {time_secs} {date_short_pretty}|${input.mod.createdAt}>\n\n`+
                 `<!date^${joinTime}^User Joined {time_secs} {date_short_pretty}|${input.mod.uploader?.joined}>\n\n`+
+                `*Game:* ${input.mod.game?.name ?? 'Unknown Game'}`+
                 `*Flags:*\n${[...input.flags.high.map(f => `- ${f} [HIGH]`), ...input.flags.low.map(f => `- ${f} [LOW]`)].join('\n')}\n`+
                 `<https://www.nexusmods.com/admin/members/ban?ban_action=1&user_id=${userId}|Ban>  |  <https://www.nexusmods.com/admin/members/ipuse?uid=${userId}|IP History>`
             },
@@ -170,13 +172,16 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
         }
     })
 
+    // Are there any concerns that require a ping?
+    const pingable: boolean = data.filter(m => (m.flags.high.length) > 0).length > 0;
+
     return { 
         blocks: [
             {
                 type: 'header',
                 text: {
                     type: 'plain_text',
-                    text: 'Mod spam detected'
+                    text: pingable ? 'Mod spam detected' : 'Automod report'
                 }
             },
             {
@@ -186,13 +191,13 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
             {
                 type: 'divider'
             },
-            {
+            pingable ? {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
                     text: 'FAO <!subteam^SC2Q2J1DF>'
                 }
-            }
+            } : { type: 'divider' }
         ]
     }
 }
@@ -226,9 +231,12 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
 
         return embed.toJSON()
     }
+
+    // Are there any concerns that require a ping?
+    const pingable: boolean = data.filter(m => (m.flags.high.length) > 0).length > 0;
     
     return {
-        content: "# Mod Spam Detected\n@here", //role pings <@&1308814010602487839> <@&520360132631199744>
+        content: pingable ? "# Mod Spam Detected\n@here" : "# Automod Detections", //role pings <@&1308814010602487839> <@&520360132631199744>
         username: "Automod",
         embeds: data.map(modEmbeds)
     }
