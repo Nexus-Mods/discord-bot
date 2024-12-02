@@ -103,16 +103,16 @@ export class AutoModManager {
             }
             this.addToLastReports(results);
             // const concerns = results.filter(m => (m.flags.high.length) !== 0);
-            // if (!concerns.length) {
-            if (!results.length) {
+            const concerns = results.filter(m => (m.flags.high.length) > 0 || (m.flags.low.length) > 0);
+            if (!concerns.length) {
                 logMessage('No mods with concerns found.')
                 return;
             }
             else {
                 try {
-                    logMessage('Reporting mods:', results.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
-                    await PublishToSlack(flagsToSlackMessage(results));
-                    await PublishToDiscord(flagsToDiscordEmbeds(results));
+                    logMessage('Reporting mods:', concerns.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
+                    await PublishToSlack(flagsToSlackMessage(concerns));
+                    await PublishToDiscord(flagsToDiscordEmbeds(concerns));
                 }
                 catch(err) {
                     logMessage('Error posting automod to Discord or Slack', err, true)
