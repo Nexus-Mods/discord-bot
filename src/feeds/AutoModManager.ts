@@ -214,7 +214,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
         .setURL(modLink)
         .setTimestamp(new Date(input.mod.createdAt!))
         .setThumbnail(input.mod.pictureUrl ?? null)
-        .setColor(input.flags.high.length > 0 ? 'DarkRed' : 'DarkOrange')
+        .setColor(input.flags.high.length > 0 ? 'DarkRed' : 'Yellow')
         .setFields([
             {
                 name: "Flags",
