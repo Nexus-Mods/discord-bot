@@ -160,7 +160,7 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
                 text: `<${modLink}|${input.mod.name}> uploaded by <${userLink}|${input.mod.uploader?.name}>\n`+
                 `<!date^${uploadTime}^Posted {time_secs} {date_short_pretty}|${input.mod.createdAt}>\n\n`+
                 `<!date^${joinTime}^User Joined {time_secs} {date_short_pretty}|${input.mod.uploader?.joined}>\n\n`+
-                `*Game:* ${input.mod.game?.name ?? 'Unknown Game'}`+
+                `*Game:* ${input.mod.game?.name ?? 'Unknown Game'}\n\n`+
                 `*Flags:*\n${[...input.flags.high.map(f => `- ${f} [HIGH]`), ...input.flags.low.map(f => `- ${f} [LOW]`)].join('\n')}\n`+
                 `<https://www.nexusmods.com/admin/members/ban?ban_action=1&user_id=${userId}|Ban>  |  <https://www.nexusmods.com/admin/members/ipuse?uid=${userId}|IP History>`
             },
