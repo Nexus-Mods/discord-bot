@@ -174,6 +174,7 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
 
     // Are there any concerns that require a ping?
     const pingable: boolean = data.filter(m => (m.flags.high.length) > 0).length > 0;
+    if (!pingable) return { blocks: [] };
 
     return { 
         blocks: [

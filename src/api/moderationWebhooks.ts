@@ -36,6 +36,8 @@ export async function PublishToSlack(data: ISlackMessage): Promise<Boolean> {
 
     if (!slackWebhook) throw new Error('Slack webhook is not provided!');
 
+    if (data.blocks.length === 0) return true;
+
     try {
         await axios({
             method: 'POST',
