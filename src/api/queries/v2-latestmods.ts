@@ -18,6 +18,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
         sort: $sort
     ) {
       nodes {
+        uid
         name
         summary
         game {

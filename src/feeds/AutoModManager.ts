@@ -29,6 +29,7 @@ export class AutoModManager {
     private updateTimer: NodeJS.Timeout;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
+    public recentUids: Set<string> = new Set<string>(); // A list of recently checked Uids
 
     static getInstance(client: ClientExt): AutoModManager {
         if (!AutoModManager.instance) {
@@ -40,6 +41,11 @@ export class AutoModManager {
 
     private addToLastReports(mods: IModWithFlags[]) {
         this.lastReports = [mods, ...this.lastReports.filter((v, i) => i <= 9)];
+        this.recentUids = this.lastReports.reduce((prev, cur) => {
+            const uids: string[] = cur.map(c => c.mod.uid!);
+            prev = new Set<string>([...prev, ...uids]);
+            return prev;
+        }, new Set<string>());
     }
 
     private constructor(client: ClientExt) {
@@ -85,7 +91,7 @@ export class AutoModManager {
             await this.getRules();
             const newMods: IModResults = await dummyUser?.NexusMods.API.v2.LatestMods(this.lastCheck)
             const updatedMods: IModResults = await dummyUser?.NexusMods.API.v2.UpdatedMods(this.lastCheck, true);
-            const modsToCheck = [...newMods.nodes, ...updatedMods.nodes];
+            const modsToCheck = [...newMods.nodes, ...updatedMods.nodes].filter(mod => !this.recentUids.has(mod.uid!));
             if (!modsToCheck.length) {
                 logMessage("Automod - Nothing for automod to check")
                 this.setLastCheck(new Date())
@@ -235,11 +241,14 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
 
     // Are there any concerns that require a ping?
     const pingable: boolean = data.filter(m => (m.flags.high.length) > 0).length > 0;
+
+    // Sort any high priority pings to the bottom
+    const ordered: IModWithFlags[] = data.sort((a, b) => a.flags.high.length > b.flags.high.length ? -1 : 1);
     
     return {
         content: pingable ? "# Mod Spam Detected\n@here" : "# Automod Detections", //role pings <@&1308814010602487839> <@&520360132631199744>
         username: "Automod",
-        embeds: data.map(modEmbeds)
+        embeds: ordered.map(modEmbeds)
     }
 }
 
@@ -247,13 +256,6 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], user: Disco
     let flags: {high: string[], low: string[]} = { high: [], low: [] };    
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60))
-
-    // Check the user
-    // if (mod.uploader!.membershipRoles.length > 1) {
-    //     // logMessage("Mod Uploaded by a Supporter or Premium user", {mod: mod.name, user: mod.uploader?.name, created: new Date(mod.createdAt || 0)})
-    //     return { mod, flags };
-    // }
-    // else 
     
     if (new Date(mod.uploader!.joined).getTime() >= anHourAgo.getTime()) flags.low.push('New account');
 
