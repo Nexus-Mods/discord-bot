@@ -18,7 +18,7 @@ const parseFeed = async (url: string): Promise<Parser.Output<any>> => {
     );
 };
 
-const pollTime = (1000*60*60)*3; //3 hours
+const pollTime = (1000*60*60)*1; //1 hour
 
 export class NewsFeedManager {
     private static instance: NewsFeedManager;
