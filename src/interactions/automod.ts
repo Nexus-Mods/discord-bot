@@ -241,7 +241,7 @@ async function showReport(client: ClientExt, interaction: ChatInputCommandIntera
 
     const uidEmbed = new EmbedBuilder()
     .setTitle('Checked UIDs')
-    .setDescription('UIDs checked over the last few minutes\n\n'+[...client.automod!.recentUids].join('\n'))
+    .setDescription('UIDs checked over the last few minutes\n\n```'+[...client.automod!.recentUids].join('\n')+'```')
     .setColor("Blue")
 
     return interaction.editReply({ embeds: [resultEmbed, uidEmbed] })
