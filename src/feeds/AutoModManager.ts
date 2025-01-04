@@ -353,7 +353,7 @@ const nonPlayableExtensions: string[] = [
     "jpg", "jpeg", "png", "gif", "bmp", 
     "tiff", "tif", "webp", "svg", "heic", 
     "txt", "csv", "log", "md", "html", "htm", 
-    "rtf", "tex", "docx", "odt", "pdf"
+    "rtf", "tex", "docx", "odt", "pdf", "url"
 ];
 
 async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser): Promise<IModWithFlags> {
