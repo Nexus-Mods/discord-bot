@@ -1,6 +1,6 @@
 import query from './dbConnect';
 import { QueryResult } from 'pg';
-import { IAutomodRule } from "../types/util";
+import { IAutomodRule, IBadFileRule } from "../types/util";
 
 async function getAutomodRules(): Promise<IAutomodRule[]> {
     return new Promise((resolve, reject) => {
@@ -32,4 +32,24 @@ async function deleteAutomodRule(id: number): Promise<void> {
     })
 }
 
-export { getAutomodRules, createAutomodRule, deleteAutomodRule };
+async function getBadFiles(): Promise<IBadFileRule[]> {
+    return new Promise((resolve, reject) => {
+        query('SELECT * FROM automod_badfiles ORDER BY id ASC', [], 
+        (error: Error, results?: QueryResult) => {
+            if (error) reject(error);
+            resolve(results?.rows || []);
+        });
+    });
+}
+
+async function addBadFile(type: 'low' | 'high', func: string, test: string, flagMessage: string) {
+    return new Promise((resolve, reject) => {
+        query('INSERT INTO automod_badfiles (type, test, "flagMessage", "funcName") VALUES ($1, $2, $3, $4) RETURNING id', [type, test.toLowerCase(), flagMessage, func], 
+        (error, results?: QueryResult) => {
+            if (error) reject(error);
+            resolve(results?.rows[0].id)
+        })
+    })    
+}
+
+export { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile };

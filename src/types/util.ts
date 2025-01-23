@@ -184,3 +184,11 @@ export interface IAutomodRule {
     added: Date;
     reason: string;
 }
+
+export interface IBadFileRule {
+    id: number;
+    type: 'low' | 'high';
+    funcName: 'includes' | 'startsWith' | 'endsWith' | 'match';
+    test: string;
+    flagMessage: string;
+}

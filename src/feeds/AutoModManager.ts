@@ -1,12 +1,12 @@
-import { APIEmbed, EmbedBuilder, flatten, RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
-import { getAutomodRules } from "../api/automod";
+import { APIEmbed, EmbedBuilder, RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
+import { getAutomodRules, getBadFiles } from "../api/automod";
 import { ISlackMessage, PublishToDiscord, PublishToSlack } from "../api/moderationWebhooks";
 import { IMod } from "../api/queries/v2";
 import { IModResults } from "../api/queries/v2-latestmods";
 import { getUserByNexusModsId } from "../api/users";
 import { logMessage } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
-import { IAutomodRule } from "../types/util";
+import { IAutomodRule, IBadFileRule } from "../types/util";
 import { tall } from 'tall';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 import axios, { AxiosResponse } from "axios";
@@ -21,10 +21,13 @@ interface IModWithFlags {
     }
 }
 
+
+
 export class AutoModManager {
     private static instance: AutoModManager;
 
     private AutoModRules: IAutomodRule[] = [];
+    private BadFiles: IBadFileRule[] = [];
     private client: ClientExt;
     private updateTimer: NodeJS.Timeout;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
@@ -71,7 +74,8 @@ export class AutoModManager {
 
     private async getRules() {
         try {
-            this.AutoModRules = await getAutomodRules()
+            this.AutoModRules = await getAutomodRules();
+            this.BadFiles = await getBadFiles();
         }
         catch(err) {
             logMessage("Error getting automod rules", err, true)
@@ -105,7 +109,7 @@ export class AutoModManager {
 
             let results: IModWithFlags[] = []
             for (const mod of modsToCheck) {
-                results.push(await analyseMod(mod, this.AutoModRules, user))
+                results.push(await analyseMod(mod, this.AutoModRules, this.BadFiles, user))
             }
             this.addToLastReports(results);
             // const concerns = results.filter(m => (m.flags.high.length) !== 0);
@@ -139,7 +143,7 @@ export class AutoModManager {
         const mod = modInfo[0];
         if (!mod) throw new Error('Mod not found')
         logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
-        const analysis = await analyseMod(mod, this.AutoModRules, user);
+        const analysis = await analyseMod(mod, this.AutoModRules, this.BadFiles, user);
         if (analysis.flags.high.length) {
             await PublishToDiscord(flagsToDiscordEmbeds([analysis]))
             await PublishToSlack(flagsToSlackMessage([analysis]))
@@ -252,7 +256,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
     }
 }
 
-async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], user: DiscordBotUser): Promise<IModWithFlags> {
+async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: IBadFileRule[], user: DiscordBotUser): Promise<IModWithFlags> {
     let flags: {high: string[], low: string[]} = { high: [], low: [] };    
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60))
@@ -269,7 +273,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], user: Disco
     // Check the content preview for first mod uploads
     if (mod.uploader!.modCount <= 1) {
         try {
-            const previewCheck = await checkFilePreview(mod, user)
+            const previewCheck = await checkFilePreview(mod, user, badFiles)
             if (previewCheck.flags.high.length) flags.high.push(...previewCheck.flags.high)
             if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
         }
@@ -356,7 +360,7 @@ const nonPlayableExtensions: string[] = [
     "rtf", "tex", "docx", "odt", "pdf", "url"
 ];
 
-async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser): Promise<IModWithFlags> {
+async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFiles: IBadFileRule[]): Promise<IModWithFlags> {
     const flags: { high: string[], low: string[] } = { high: [], low: [] };
     const modFiles = await user.NexusMods.API.v1.ModFiles(mod.game!.domainName!, mod.modId!);
     const latestFile = modFiles.files.sort((a, b) => a.uploaded_timestamp > b.uploaded_timestamp ? 1 : -1)[0];
@@ -374,6 +378,11 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser): Promi
         else if (request.status !== 200) flags.low.push(`Failed to get content preview. HTTP ERROR ${request.status}`);
         else {
             const allFiles: string[] = flattenDirectory(request.data);
+
+            // Check known bad files
+            const fileFlags = checkKnownBadFiles(allFiles, badFiles);
+            if (fileFlags.high) flags.high.push(...fileFlags.high)
+            if (fileFlags.low) flags.low.push(...fileFlags.low)
 
             // Check if it's exclusively non-playable files
             const playableFiles = allFiles.filter(file => {
@@ -405,4 +414,18 @@ function flattenDirectory(input: IPreviewDirectory): string[] {
         files.push(...flattenDirectory(subFolder));
     }
     return files;
+}
+
+function checkKnownBadFiles(flattenedFiles: string[], badFiles: IBadFileRule[]): { low: string[], high: string[] } {
+    const flags = { low: new Array<string>(), high: new Array<string>() };
+
+    for (const badFileRule of badFiles) {
+        let result = null;
+        if (badFileRule.funcName === 'match') result = flattenedFiles.find(f => f.toLowerCase().match(badFileRule.test) !== null);
+        else result = flattenedFiles.find(f => f.toLowerCase()[badFileRule.funcName](badFileRule.test))
+        // If we found something!
+        if (result) flags[badFileRule.type].push(`${badFileRule.flagMessage} -- Rule: ${badFileRule.test}, Func: ${badFileRule.funcName}`);
+    }
+
+    return flags;
 }
