@@ -393,7 +393,7 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFil
             });
 
             if (playableFiles.length === 0) {
-                flags.high.push("Does not contain any playable files. Likely spam.");
+                flags.low.push("Does not contain any playable files. Likely spam.");
             }
             
         }
