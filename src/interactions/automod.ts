@@ -1,8 +1,8 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
-import { createAutomodRule, deleteAutomodRule } from "../api/bot-db";
-import { IAutomodRule } from "../types/util";
+import { createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile } from "../api/bot-db";
+import { IAutomodRule, IBadFileRule } from "../types/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -13,6 +13,57 @@ const discordInteraction: DiscordInteraction = {
     .addSubcommand(sc =>
         sc.setName('report')
         .setDescription('See the last few mods checked by the automod.')
+    )
+    .addSubcommandGroup(sgc => 
+        sgc.setName('filerules')
+        .setDescription('Manage Automod file rules')
+        .addSubcommand(sc => 
+            sc.setName('add')
+            .setDescription('Add a new file rule')
+            .addStringOption(o => 
+                o.setName('level')
+                .setDescription('Level of trigger. High priority triggers alert moderators.')
+                .setRequired(true)
+                .setChoices([{ name: 'High', value: 'high' }, { name: 'Low', value: 'low' }])
+            )
+            .addStringOption(o =>
+                o.setName('filter')
+                .setDescription('String or regex to run the check against')
+                .setRequired(true)
+            )
+            .addStringOption(o =>
+                o.setName('function')
+                .setDescription('Function to use for matching')
+                .setRequired(true)
+                .setChoices([
+                    {
+                        name: 'includes',
+                        value: 'includes'
+                    },
+                    {
+                        name: 'startsWith',
+                        value: 'startsWith'
+                    },
+                    {
+                        name: 'endsWith',
+                        value: 'endsWith'
+                    },
+                    {
+                        name: 'match',
+                        value: 'match'
+                    }
+                ])
+            )
+            .addStringOption(o =>
+                o.setName('message')
+                .setDescription('Message to show when triggered')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(sc => 
+            sc.setName('list')
+            .setDescription('List available file rules.')
+        )
     )
     .addSubcommandGroup(sgc => 
         sgc.setName('rules')
@@ -40,7 +91,7 @@ const discordInteraction: DiscordInteraction = {
         )
         .addSubcommand(sc =>
             sc.setName('list')
-            .setDescription('List existing Automod rules.')
+            .setDescription('List existing Automod rules and file.')
         )
         .addSubcommand(sc =>
             sc.setName('remove')
@@ -76,6 +127,14 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             case 'add': return addRule(client, interaction);
             case 'list': return listRules(client, interaction);
             case 'remove': return removeRule(client, interaction);
+            default: throw new Error('Subcommand not implemented: '+command)
+        }
+    }
+    else if (commandGroup === 'filerules') {
+        switch (command) {
+            case 'add': return addFileRule(client, interaction);
+            case 'list': return listFileRules(client, interaction);
+            // case 'remove': return removeFileRule(client, interaction);
             default: throw new Error('Subcommand not implemented: '+command)
         }
     }
@@ -132,7 +191,7 @@ async function listRules(client: ClientExt, interaction: ChatInputCommandInterac
         }
     }
 
-    rulePages.push(currentPage);
+    if (currentPage.length) rulePages.push(currentPage);
     // End pagination.
 
     const header = `| ID | Type | Filter | Added | Note |\n`
@@ -181,6 +240,79 @@ async function removeRule(client: ClientExt, interaction: ChatInputCommandIntera
 
     client.automod?.clearRuleCache();
     return interaction.editReply({ content: `Rule Deleted\n\`\`\`${JSON.stringify(ruleToRemove, null, 2)}\`\`\``})
+}
+
+async function addFileRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    // Is an admin?
+    const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) return interaction.editReply({ content: 'Adding file rules is only available to admins.' })
+
+    // Get the options passed to the command
+    const level: 'low' | 'high' = interaction.options.getString('level', true) as 'low' | 'high';
+    const filter: string = interaction.options.getString('filter', true);
+    const functionName: string = interaction.options.getString('function', true);
+    const note: string = interaction.options.getString('message', true);
+    let id = -1 // Update this once created.
+
+    logMessage('Adding automod file rule', { level, filter, functionName, note });
+
+    try {
+        id = await addBadFile(level, functionName, filter, note);
+        logMessage('Added new file rule with ID', id);
+    }
+    catch(err) {
+        logMessage('Failed to add automod rule file', err);
+        throw new Error('Failed to create file rule: '+(err as Error).message)
+    }
+
+    const success = new EmbedBuilder()
+    .setTitle('File Rule Created')
+    .setDescription(`**ID:** ${id}\n**Level:** ${level.toUpperCase()}\n**Filter:** ${filter}\n**Function: ${functionName}\n**Note:** ${note}`)
+    .setThumbnail(client.user?.avatarURL() || '')
+    .setColor(0xda8e35);
+
+    client.automod?.clearRuleCache();
+
+    return interaction.editReply({ content: null, embeds: [success] });
+}
+
+async function listFileRules(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+    const rules = await client.automod?.retrieveFileRules() ?? [];
+
+    // Cut up the array into pages for Discord's character limit.
+    const rulePages = new Array<IBadFileRule[]>()
+    let currentPage = [];
+
+    for (const rule of rules) {
+        console.log('Handling rule', rule.test)
+        currentPage.push(rule);
+        if (currentPage.length === 15) {
+            rulePages.push([...currentPage]);
+            currentPage = [];
+        }
+    }
+
+    if (currentPage.length) rulePages.push(currentPage);
+    // End pagination.
+
+    const header = `| ID | Type | Filter | Function | Note |\n`
+    +`| --- | --- | --- | --- | --- |\n`
+
+    const body = rulePages[0].map(r => `| ${r.id} | ${r.type} | ${r.test} | ${r.funcName} | ${r.flagMessage} `);
+
+    const messageText = header+body.join('\n');
+
+    await interaction.editReply(`# Automod Rules\n\`\`\`${messageText}\`\`\``);
+
+    if (rulePages.length > 1) {
+        // Post extra pages
+        rulePages.map(async (page, index) => {
+            if (index === 0) return;
+            const pageMessage = `\`\`\`${header}${page.map(r => `| ${r.id} | ${r.type} | ${r.test} | ${r.funcName} | ${r.flagMessage} `).join('\n')}\`\`\``;
+            await interaction.followUp({content: pageMessage, ephemeral: true});
+            return;
+        });
+    }
 }
 
 async function showReport(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {

@@ -42,7 +42,7 @@ async function getBadFiles(): Promise<IBadFileRule[]> {
     });
 }
 
-async function addBadFile(type: 'low' | 'high', func: string, test: string, flagMessage: string) {
+async function addBadFile(type: 'low' | 'high', func: string, test: string, flagMessage: string): Promise<number> {
     return new Promise((resolve, reject) => {
         query('INSERT INTO automod_badfiles (type, test, "flagMessage", "funcName") VALUES ($1, $2, $3, $4) RETURNING id', [type, test.toLowerCase(), flagMessage, func], 
         (error, results?: QueryResult) => {

@@ -68,6 +68,10 @@ export class AutoModManager {
         return this.AutoModRules;
     }
 
+    public async retrieveFileRules(): Promise<IBadFileRule[]> {
+        return this.BadFiles;
+    }
+
     public clearRuleCache(): void {
         this.getRules();
     }
