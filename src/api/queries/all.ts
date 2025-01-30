@@ -14,7 +14,7 @@ import { updatedMods as updatedModsV2 } from './v2-updatedMods';
 import { latestMods } from './v2-latestmods';
 import { ICollection, ICollectionSearchResult, IMod as IModResult } from './v2';
 
-import { Games as gamesJSON, ModDownloads, SiteStats } from './other';
+import { Games as gamesJSON, ModDownloads, SiteStats, WebsiteStatus } from './other';
 
 export const v1 = {
     validate,
@@ -46,7 +46,8 @@ export const v2 = {
 export const other = {
     Games: gamesJSON,
     ModDownloads,
-    SiteStats
+    SiteStats,
+    WebsiteStatus
 }
 
 export { IModAuthorResult, IGameResult, IModResult, ICollection, ICollectionSearchResult, IUser };

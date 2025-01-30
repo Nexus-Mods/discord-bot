@@ -192,3 +192,65 @@ export interface IBadFileRule {
     test: string;
     flagMessage: string;
 }
+
+export type StatusPageResponse<T> = T extends true ? IStatusPageFullResponse : IStatusPageQuickResponse;
+
+interface IStatusPageQuickResponse {
+    page: {
+        id: string;
+        name: string;
+        url: string;
+        time_zone: string;
+        updated_at: string;
+    }
+    status: {
+        indicator: string;
+        description: string;
+    }
+}
+
+interface IStatusPageFullResponse extends IStatusPageQuickResponse {
+    components: IStatusPageComponent[];
+    incidents: IStatusPageIncident[];
+    scheduled_maintenances: IStatusPageIncident[];
+}
+
+interface IStatusPageComponent {
+    id: string;
+    name: string;
+    status: 'operational' | string;
+    created_at: string;
+    updated_at: string;
+    position: number;
+    description: string;
+    showcase: boolean;
+    start_date: string;
+    group_id: string | null;
+    page_id: string;
+    group: boolean;
+    only_show_if_degraded: boolean;
+}
+
+interface IStatusPageIncident {
+    created_at: string;
+    id: string;
+    impact: 'critical' | 'minor' | 'none' | string;
+    incident_updates: IStatusPageIncidentUpdate[];
+    monitoring_at: string | null;
+    name: string;
+    page_id: string;
+    resolved_at: string | null;
+    shortlink: string;
+    status: 'identified' | string;
+    updated_at: string;
+}
+
+interface IStatusPageIncidentUpdate {
+    body: string;
+    created_at: string;
+    display_at: string;
+    id: string;
+    incident_id: string;
+    status: 'identified' | 'scheduled' | 'in_progress' | string;
+    updated_at: string;
+}

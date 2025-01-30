@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { ModDownloadInfo } from '../../types/util';
+import { StatusPageResponse, ModDownloadInfo } from '../../types/util';
 import { logMessage } from '../util';
 
 export interface IGameStatic {
@@ -32,6 +32,8 @@ interface ISiteStats {
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
 const staticStatsList = 'https://data.nexusmods.com/file/nexus-data/site-stats.json';
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
+const nexusModsStatus: string = 'https://nexusmods.statuspage.io/api/v2/status.json';
+const nexusModsFullStatus: string = 'https://nexusmods.statuspage.io/api/v2/summary.json';
 
 export async function Games(headers: Record<string, string>): Promise<IGameStatic[]> {
     try {
@@ -162,5 +164,20 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
     }
     catch(err) {
         return Promise.reject(`Could not retrieve download data for Game (${gameId}) ${modId} \n ${err}`);
+    }
+}
+
+export async function WebsiteStatus<B>(headers: Record<string, string>, full: B): Promise <StatusPageResponse<B>> {
+    try {
+        const response = await axios({
+            url: full ? nexusModsFullStatus : nexusModsStatus,
+            transformResponse: (res) => JSON.parse(res),
+            headers,
+        });
+        return response.data as StatusPageResponse<B>;
+    }
+    catch(err) {
+        logMessage('Error fetching Nexus Mods status page data', err, true);
+        throw err;
     }
 }
