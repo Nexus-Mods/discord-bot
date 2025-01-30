@@ -167,14 +167,14 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
     }
 }
 
-export async function WebsiteStatus<B>(headers: Record<string, string>, full: B): Promise <StatusPageResponse<B>> {
+export async function WebsiteStatus<B extends boolean>(headers: Record<string, string>, full: B): Promise <StatusPageResponse<B>> {
     try {
         const response = await axios({
             url: full ? nexusModsFullStatus : nexusModsStatus,
             transformResponse: (res) => JSON.parse(res),
             headers,
         });
-        return response.data as StatusPageResponse<B>;
+        return response.data;
     }
     catch(err) {
         logMessage('Error fetching Nexus Mods status page data', err, true);

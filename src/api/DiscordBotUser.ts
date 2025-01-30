@@ -183,7 +183,7 @@ export class DiscordBotUser {
                 // Mod stats from the static CSV files.
                 ModDownloads: async (gameId: number, modId?: number) => other.ModDownloads(gameId, modId),
                 SiteStats: async () => other.SiteStats(this.headers()),
-                WebsiteStatus: async (full: boolean) => other.WebsiteStatus(this.headers(), full),
+                WebsiteStatus: async (full: boolean = false) => other.WebsiteStatus(this.headers(), full),
             }     
         }
     }

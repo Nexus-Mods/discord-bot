@@ -193,7 +193,7 @@ export interface IBadFileRule {
     flagMessage: string;
 }
 
-export type StatusPageResponse<T> = T extends true ? IStatusPageFullResponse : IStatusPageQuickResponse;
+export type StatusPageResponse<T extends boolean> = T extends true ? IStatusPageFullResponse : IStatusPageQuickResponse;
 
 interface IStatusPageQuickResponse {
     page: {
@@ -209,7 +209,7 @@ interface IStatusPageQuickResponse {
     }
 }
 
-interface IStatusPageFullResponse extends IStatusPageQuickResponse {
+export interface IStatusPageFullResponse extends IStatusPageQuickResponse {
     components: IStatusPageComponent[];
     incidents: IStatusPageIncident[];
     scheduled_maintenances: IStatusPageIncident[];
