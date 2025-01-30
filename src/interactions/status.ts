@@ -42,3 +42,5 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         throw err;
     }
 }
+
+export { discordInteraction };
