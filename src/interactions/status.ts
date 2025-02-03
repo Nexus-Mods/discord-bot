@@ -31,8 +31,8 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         .setDescription(statusPage.status.description)
         .addFields(
             statusPage.components.map(c => ({
-                name: c.name,
-                value: c.description,
+                name: c.name ?? `_No Name ${c.id}_`,
+                value: c.description ?? '_No description_',
                 inline: false,
             }))
         );
