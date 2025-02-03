@@ -28,13 +28,14 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const statusPage: IStatusPageFullResponse = await botuser.NexusMods.API.Other.WebsiteStatus(true) as IStatusPageFullResponse;
         const embed = new EmbedBuilder()
         .setTitle('Nexus Mods Status - '+statusPage.status.description)
+        .setColor("DarkBlue")
         .setDescription(`
-            **Incidents**\n
-            ${statusPage.incidents.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n')}\n\n
-            **Planned Maintainece
-            ${statusPage.scheduled_maintenances.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n')}
+            ## Incidents\n
+            ${statusPage.incidents.length ? statusPage.incidents.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n'): 'None'}\n
+            ## Planned Maintainece
+            ${statusPage.scheduled_maintenances.length ? statusPage.scheduled_maintenances.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n'): 'None'}
         `);
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({ embeds: [embed], content: `\`\`\`json\n${JSON.stringify(statusPage, null, 2)}\`\`\`` });
     }
     catch(err) {
         throw err;
