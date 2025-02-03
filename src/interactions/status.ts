@@ -29,18 +29,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const embed = new EmbedBuilder()
         .setTitle('Nexus Mods Status - '+statusPage.status.description)
         .setDescription(`
-            **Components**\n
-            ${statusPage.components.map(c => `${c.name}\n${c.description}`).join('\n')}
             **Incidents**\n
-            ${statusPage.incidents.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n')}
-        `)
-        .addFields(
-            statusPage.components.map(c => ({
-                name: c.name ?? `_No Name ${c.id}_`,
-                value: c.description ?? '_No description_',
-                inline: false,
-            }))
-        );
+            ${statusPage.incidents.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n')}\n\n
+            **Planned Maintainece
+            ${statusPage.scheduled_maintenances.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n')}
+        `);
         return interaction.editReply({ embeds: [embed] });
     }
     catch(err) {
