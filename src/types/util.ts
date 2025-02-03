@@ -195,6 +195,11 @@ export interface IBadFileRule {
 
 export type StatusPageResponse<T extends boolean> = T extends true ? IStatusPageFullResponse : IStatusPageQuickResponse;
 
+type StatusPageComponentStatus = 'operational' | 'partial_outage' | string;
+type StatusPageIncidentStatus = 'identified' | 'investigating' | 'scheduled' | 'in_progress' | string;
+type StatusPageImpact = 'major' | 'critical' | 'minor' | 'none' | string;
+type StatusPageIndicator = 'minor' | string;
+
 interface IStatusPageQuickResponse {
     page: {
         id: string;
@@ -204,7 +209,7 @@ interface IStatusPageQuickResponse {
         updated_at: string;
     }
     status: {
-        indicator: string;
+        indicator: StatusPageIndicator;
         description: string;
     }
 }
@@ -214,10 +219,6 @@ export interface IStatusPageFullResponse extends IStatusPageQuickResponse {
     incidents: IStatusPageIncident[];
     scheduled_maintenances: IStatusPageIncident[];
 }
-
-type StatusPageComponentStatus = 'operational' | 'partial_outage' | string;
-type StatusPageIncidentStatus = 'identified' | 'investigating' | 'scheduled' | 'in_progress' | string;
-type StatusPageImpact = 'major' | 'critical' | 'minor' | 'none' | string;
 
 interface IStatusPageComponent {
     id: string;
