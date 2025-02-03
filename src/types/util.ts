@@ -215,10 +215,14 @@ export interface IStatusPageFullResponse extends IStatusPageQuickResponse {
     scheduled_maintenances: IStatusPageIncident[];
 }
 
+type StatusPageComponentStatus = 'operational' | 'partial_outage' | string;
+type StatusPageIncidentStatus = 'identified' | 'investigating' | 'scheduled' | 'in_progress' | string;
+type StatusPageImpact = 'major' | 'critical' | 'minor' | 'none' | string;
+
 interface IStatusPageComponent {
     id: string;
     name: string;
-    status: 'operational' | string;
+    status: StatusPageComponentStatus;
     created_at: string;
     updated_at: string;
     position: number;
@@ -232,25 +236,32 @@ interface IStatusPageComponent {
 }
 
 interface IStatusPageIncident {
-    created_at: string;
     id: string;
-    impact: 'critical' | 'minor' | 'none' | string;
-    incident_updates: IStatusPageIncidentUpdate[];
-    monitoring_at: string | null;
     name: string;
-    page_id: string;
-    resolved_at: string | null;
-    shortlink: string;
-    status: 'identified' | string;
+    status: StatusPageIncidentStatus;
+    created_at: string;
     updated_at: string;
+    monitoring_at: string | null;
+    resolved_at: string | null;
+    impact: StatusPageImpact;
+    shortlink: string;   
+    started_at: string;
+    page_id: string;
+    incident_updates: IStatusPageIncidentUpdate[];
 }
 
 interface IStatusPageIncidentUpdate {
-    body: string;
-    created_at: string;
-    display_at: string;
     id: string;
+    status: StatusPageIncidentStatus;
+    body: string;
     incident_id: string;
-    status: 'identified' | 'scheduled' | 'in_progress' | string;
+    created_at: string;
     updated_at: string;
+    display_at: string;    
+    affected_components: {
+        code: string;
+        name: string;
+        old_status: string;
+        new_status: string;
+    }[]
 }

@@ -35,7 +35,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             ## Planned Maintainece
             ${statusPage.scheduled_maintenances.length ? statusPage.scheduled_maintenances.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n'): 'None'}
         `);
-        return interaction.editReply({ embeds: [embed], content: `\`\`\`json\n${JSON.stringify(statusPage, null, 2)}\`\`\`` });
+        return interaction.editReply({ embeds: [embed] });
     }
     catch(err) {
         throw err;
