@@ -275,7 +275,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
     };
 
     // Check the content preview for first mod uploads
-    if (mod.uploader!.modCount <= 1) {
+    // if (mod.uploader!.modCount <= 1) {
         try {
             const previewCheck = await checkFilePreview(mod, user, badFiles)
             if (previewCheck.flags.high.length) flags.high.push(...previewCheck.flags.high)
@@ -284,7 +284,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
         catch(err) {
             logMessage(`Failed to check content preview for ${mod.name} for ${mod.game?.name}`, err, true);
         }
-    }
+    // }
 
     // Check against automod rules
     let allText = `${mod.name}\n${mod.summary}\n${mod.description}`.toLowerCase();
