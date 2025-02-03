@@ -27,8 +27,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     try {
         const statusPage: IStatusPageFullResponse = await botuser.NexusMods.API.Other.WebsiteStatus(true) as IStatusPageFullResponse;
         const embed = new EmbedBuilder()
-        .setTitle('Nexus Mods Status - '+statusPage.status.indicator)
-        .setDescription(statusPage.status.description)
+        .setTitle('Nexus Mods Status - '+statusPage.status.description)
+        .setDescription(`
+            **Components**\n
+            ${statusPage.components.map(c => `${c.name}\n${c.description}`).join('\n')}
+            **Incidents**\n
+            ${statusPage.incidents.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n')}
+        `)
         .addFields(
             statusPage.components.map(c => ({
                 name: c.name ?? `_No Name ${c.id}_`,

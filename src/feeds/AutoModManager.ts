@@ -325,6 +325,7 @@ async function analyseURLS(text: string): Promise<string[]> {
 
         }
         catch(err) {
+            if ((err as Error).message !== 'socket hang up') continue;
             logMessage("Error expanding URL", { err, url }, true);
         }
     }
