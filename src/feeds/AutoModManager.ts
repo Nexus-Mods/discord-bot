@@ -380,8 +380,7 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFil
         });
         // No content preview (there's always a link, but it's not always valid!)
         // if (request.status === 404) flags.low.push('No content preview for latest file.')
-        if (![404, 200].includes(request.status)) flags.low.push(`Failed to get content preview. HTTP ERROR ${request.status}`);
-        else {
+        if (request.status === 200) {
             const allFiles: string[] = flattenDirectory(request.data);
 
             // Check known bad files
@@ -402,6 +401,7 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFil
             }
             
         }
+        else if (![404, 200].includes(request.status)) flags.low.push(`Failed to get content preview. HTTP ERROR ${request.status}`);
 
     }
     catch(err) {
