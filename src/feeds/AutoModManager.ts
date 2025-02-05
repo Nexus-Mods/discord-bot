@@ -379,8 +379,8 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFil
             validateStatus: () => true,
         });
         // No content preview (there's always a link, but it's not always valid!)
-        if (request.status === 404) flags.low.push('No content preview for latest file.')
-        else if (request.status !== 200) flags.low.push(`Failed to get content preview. HTTP ERROR ${request.status}`);
+        // if (request.status === 404) flags.low.push('No content preview for latest file.')
+        if (![404, 200].includes(request.status)) flags.low.push(`Failed to get content preview. HTTP ERROR ${request.status}`);
         else {
             const allFiles: string[] = flattenDirectory(request.data);
 
