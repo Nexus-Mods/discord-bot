@@ -297,7 +297,6 @@ export class AuthSite {
     }
 
     async beaconTest(req: express.Request, res: express.Response) {
-        logMessage('Loading beacon test')
         res.render('beacon', { pageTitle: 'Beacon Test Page', loadBeacon: true });
     }
 }
