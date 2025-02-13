@@ -60,6 +60,8 @@ export class AuthSite {
         this.app.get('/show-metadata', this.showMetaData.bind(this));
         
         this.app.get('/revoke', this.revokeAccess.bind(this));
+        
+        this.app.get('/beacon', this.beaconTest.bind(this));
 
         this.app.get('*', (req, res) => res.redirect('/'));
 
@@ -292,5 +294,10 @@ export class AuthSite {
             res.redirect('/unlink-error');
         }
         
+    }
+
+    async beaconTest(req: express.Request, res: express.Response) {
+        logMessage('Loading beacon test')
+        res.render('beacon', { pageTitle: 'Beacon Test Page', loadBeacon: true });
     }
 }
