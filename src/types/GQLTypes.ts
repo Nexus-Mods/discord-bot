@@ -164,7 +164,7 @@ export interface BooleanFilterValue {
 }
 
 type CollectionsSortBy = 'listed_at' | 'endorsements_count' | 'latest_published_revision_rating' | 
-    'total_downloads'| 'published_at'| 'name.keyword'| 'created_at'| 'updated_at'| 'recent_rating'| 'overall_rating';
+    'total_downloads'| 'published_at'| 'name'| 'created_at'| 'updated_at'| 'recent_rating'| 'overall_rating';
 
 interface CollectionsFilter {
     filter?: CollectionsFilter;
