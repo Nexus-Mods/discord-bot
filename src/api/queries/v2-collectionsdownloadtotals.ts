@@ -3,7 +3,7 @@ import { logMessage } from "../util";
 import { v2API, NexusGQLError } from './v2';
 
 interface IResult {
-    collections: {
+    collectionsV2: {
       nodes: IDownloadStats[];
       nodesCount: number;
     };
@@ -25,14 +25,15 @@ interface ITotals {
 }
 
 const query = gql`
-query getTotalDownloadsForCollections($filters: CollectionsUserFilter, $offset: Int!) {
-  collections(
+query getTotalDownloadsForCollections($filters: CollectionsSearchFilter, $offset: Int!) {
+  collectionsV2(
       filter: $filters, 
       viewAdultContent: true, 
-      viewUnlisted: true, 
       count: 20, 
       offset: $offset, 
-      sortBy: "total_downloads"
+      sort: {
+        downloads: { direction: DESC }
+      }
   ) {
       nodes {
           slug
@@ -49,12 +50,6 @@ query getTotalDownloadsForCollections($filters: CollectionsUserFilter, $offset: 
 `;
 
 export async function collectionsDownloadTotals(headers: Record<string,string>, id: number): Promise<ITotals> {
-    // This query is using an outdated version of the API and requires specific headers
-    if (headers['api-version'] !== '2023-09-05') {
-      headers['api-version'] = '2023-09-05'
-      logMessage('OUTDATED QUERY [COLLECTIONSDOWNLOADTOTALS] - API Version header must be set to 2023-09-05 for this request')
-    }
-
     const variables = {
         filters : {
           userId: [ { value: id.toString() } ]
@@ -65,15 +60,15 @@ export async function collectionsDownloadTotals(headers: Record<string,string>, 
     try {
         let totalRequested = 20;
         const result: IResult = await request(v2API, query, variables, headers);
-        let stats = result.collections.nodes;
-        const total = result.collections.nodesCount;
+        let stats = result.collectionsV2.nodes;
+        const total = result.collectionsV2.nodesCount;
         while (total > stats.length) {
           // Fetch additional pages
           logMessage('Fetching additional collections page', { id, total, totalRequested });
           variables.offset += 20;
           totalRequested += 20;
           const extraPage: IResult = await request(v2API, query, variables, headers);
-          const extraItems = extraPage.collections.nodes;
+          const extraItems = extraPage.collectionsV2.nodes;
           stats = [...stats, ...extraItems];
         }
         // Consolidate the stats.

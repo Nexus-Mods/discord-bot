@@ -1,16 +1,23 @@
-import { request, gql } from "graphql-request";
+import { request, gql, Variables } from "graphql-request";
 import { logMessage } from "../util";
 import { v2API, ICollectionSearchResult, NexusGQLError } from './v2';
 import * as GQLTypes from '../../types/GQLTypes';
 
 interface IResult {
-  collections: ICollectionSearchResult;
+  collectionsV2: ICollectionSearchResult;
+}
+
+interface IQueryVariables extends Variables {
+  filters: GQLTypes.CollectionsUserFilter;
+  adultContent: boolean;
+  count: number;
+  sortBy: GQLTypes.CollectionsSortBy
 }
 
 const query = gql`
-query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean, $count: Int, $sortBy: String) {
-    collections(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sortBy) {
-        nodes {
+query searchCollections($filters: CollectionsSearchFilter, $adultContent: Boolean, $count: Int, $sortBy: String) {
+  collectionsV2(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sortBy) {
+    nodes {
             id
             slug
             name
@@ -18,13 +25,13 @@ query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean,
             category {
               name
             }
-            adultContent
             overallRating
             overallRatingCount
             endorsements
             totalDownloads
             draftRevisionNumber
             latestPublishedRevision {
+              adultContent
               fileSize
               modCount
             }
@@ -48,44 +55,36 @@ query searchCollections($filters: CollectionsUserFilter, $adultContent: Boolean,
         nodesCount
     }
   }
+
+}
 `;
 
-export async function collections(headers: Record<string,string>, filters: GQLTypes.CollectionsFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean): Promise<ICollectionSearchResult> {
-  // This query is using an outdated version of the API and requires specific headers
-  if (headers['api-version'] !== '2023-09-05') {
-    headers['api-version'] = '2023-09-05'
-    logMessage('OUTDATED QUERY [COLLECTIONS] - API Version header must be set to 2023-09-05 for this request')
-  }
-
-  /* eslint-disable strict-boolean-expressions */
-  
-  const websiteLink = (): string => {
-        const baseURL = 'https://next.nexusmods.com/search-results/collections?';
-        const urlParams = new URLSearchParams();
-        urlParams.append('sortBy', variables.sortBy);
-        urlParams.append('adultContent', variables.filters.adultContent?.value === true ? '1' : '0');
-        if (variables.filters.generalSearch) urlParams.append('keyword', variables.filters.generalSearch.value);
-        if (variables.filters.gameName) urlParams.append('gameName', variables.filters.gameName.value);
-        return `${baseURL}${urlParams.toString()}`;
-    }
-
-    const variables = {
+export async function collections(headers: Record<string,string>, filters: GQLTypes.CollectionsUserFilter, sortBy: GQLTypes.CollectionsSortBy = 'endorsements_count', adultContent: boolean = false): Promise<ICollectionSearchResult> {
+    const variables: IQueryVariables = {
         filters,
-        sortBy: sort || 'endorsements_count',
-        adultContent: adultContent ?? false,
+        sortBy,
+        adultContent,
         count: 5
     };
-
-    /* eslint-disable strict-boolean-expressions */
     
     try {
         const result: IResult = await request(v2API, query, variables, headers);
-        result.collections.searchURL = websiteLink();
-        return result.collections;
+        result.collectionsV2.searchURL = websiteLink(variables);
+        return result.collectionsV2;
     }
     catch(err) {
       const error = new NexusGQLError(err as any, 'collections');
       logMessage('Error in collections v2 request', error, true);
-      return { nodes: [], nodesCount: 0, nodesFilter: '', searchURL: websiteLink() };
+      return { nodes: [], nodesCount: 0, nodesFilter: '', searchURL: websiteLink(variables) };
     }
+}
+
+const websiteLink = (variables: IQueryVariables): string => {
+  const baseURL = 'https://next.nexusmods.com/search-results/collections?';
+  const urlParams = new URLSearchParams();
+  urlParams.append('sortBy', variables.sortBy);
+  urlParams.append('adultContent', variables.filters.adultContent?.value === true ? '1' : '0');
+  if (variables.filters.generalSearch) urlParams.append('keyword', variables.filters.generalSearch.value);
+  if (variables.filters.gameName) urlParams.append('gameName', variables.filters.gameName.value);
+  return `${baseURL}${urlParams.toString()}`;
 }

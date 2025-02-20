@@ -8,7 +8,7 @@ import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
 import { logMessage, nexusModsTrackingUrl } from "../api/util";
-import { CollectionsFilter } from "../types/GQLTypes";
+import { CollectionsUserFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
 import { DiscordBotUser } from "../api/DiscordBotUser";
@@ -185,7 +185,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
     try {
-        const filters: CollectionsFilter = {
+        const filters: CollectionsUserFilter = {
             'generalSearch' : {
                 value: query,
                 op: 'MATCHES'
@@ -483,7 +483,7 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
 
     const url = `https://next.nexusmods.com/${res.game?.domainName}/collections/${res.slug}`;
 
-    if (!nsfw && res.adultContent) {
+    if (!nsfw && res.latestPublishedRevision.adultContent) {
         const nsfwEmbed = new EmbedBuilder()
         .setColor('DarkRed')
         .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })

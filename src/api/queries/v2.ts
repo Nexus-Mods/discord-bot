@@ -14,7 +14,6 @@ export interface ICollection {
     category: {
         name: string;
     };
-    adultContent: boolean;
     overallRating: number;
     overallRatingCount: number;
     endorsements: number;
@@ -24,6 +23,7 @@ export interface ICollection {
         fileSize: number;
         modCount: number;
         revisionNumber: number;
+        adultContent: boolean;
     }
     game: {
         id: number;

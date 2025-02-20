@@ -166,11 +166,14 @@ export interface BooleanFilterValue {
 type CollectionsSortBy = 'listed_at' | 'endorsements_count' | 'latest_published_revision_rating' | 
     'total_downloads'| 'published_at'| 'name'| 'created_at'| 'updated_at'| 'recent_rating'| 'overall_rating';
 
-interface CollectionsFilter {
-    filter?: CollectionsFilter;
+interface CollectionsUserFilter {
+    filter?: CollectionsUserFilter[];
     op?: FilterLogicalOperator;
+    userId?: BaseFilterValue;
     name?: BaseFilterValue;
     collectionRating?: BaseFilterValue;
+    createdAt?: BaseFilterValue;
+    updatedAt?: BaseFilterValue;
     collectionStatus?: BaseFilterValue;
     gameId?: BaseFilterValue;
     gameDomain?: BaseFilterValue;
@@ -196,4 +199,4 @@ interface CollectionPage {
     nextURL?: string; //URL to browser the results on the website.
 }
 
-export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, CollectionsFilter, CollectionsSortBy };
+export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, CollectionsUserFilter, CollectionsSortBy };

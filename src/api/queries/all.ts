@@ -7,7 +7,6 @@ import { mods } from './v2-mods';
 import { myCollections } from './v2-mycollections';
 import { collections } from './v2-collections';
 import { collection } from './v2-collection';
-import { collectionsByUser } from './v2-collectionsbyuser';
 import { collectionsDownloadTotals } from './v2-collectionsdownloadtotals';
 import { findUser, IUser } from './v2-finduser';
 import { updatedMods as updatedModsV2 } from './v2-updatedMods';
@@ -37,7 +36,6 @@ export const v2 = {
     myCollections,
     collections,
     collection,
-    collectionsByUser,
     collectionsDownloadTotals,
     findUser,
     latestMods
