@@ -169,7 +169,7 @@ export class DiscordBotUser {
                         v2.modsById(this.headers(), mods),
                 MyCollections: async () => v2.myCollections(this.headers()),
                 Collections: 
-                    async (filters: GQLTypes.CollectionsUserFilter, sort: GQLTypes.CollectionsSortBy, adultContent?: boolean) => 
+                    async (filters: GQLTypes.CollectionsUserFilter, sort: GQLTypes.CollectionsSort, adultContent?: boolean) => 
                         v2.collections(this.headers(), filters, sort, adultContent),
                 Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), slug, domain, adult),
                 CollectionsByUser: async (userId: number) => v2.collections(this.headers(), { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),

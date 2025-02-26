@@ -47,7 +47,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             UpdatedMods: (await botuser.NexusMods.API.v2.UpdatedMods(new Date(0), true)).totalCount > 0,
             ModsByModId: (await botuser.NexusMods.API.v2.ModsByModId([{ gameDomain: 'skyrim', modId: 3863 }])).length > 0,
             MyCollections: (await botuser.NexusMods.API.v2.MyCollections()).length > 0,
-            Collections: (await botuser.NexusMods.API.v2.Collections({}, 'endorsements_count')).nodesCount > 0,
+            Collections: (await botuser.NexusMods.API.v2.Collections({}, { endorsements: { direction: 'DESC' }})).nodesCount > 0,
             Collection: (await botuser.NexusMods.API.v2.Collection('pkcov7', 'skyrimspecialedition', true))?.slug === 'pkcov7',
             CollectionsByUser: (await botuser.NexusMods.API.v2.CollectionsByUser(31179975)).nodesCount > 0,
             FindUserName: (await botuser.NexusMods.API.v2.FindUser('Janquel'))?.memberId === 51448566,

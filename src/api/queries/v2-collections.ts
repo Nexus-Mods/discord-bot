@@ -9,9 +9,8 @@ interface IResult {
 
 interface IQueryVariables extends Variables {
   filters: GQLTypes.CollectionsUserFilter;
-  adultContent: boolean;
   count: number;
-  sortBy: GQLTypes.CollectionsSortBy
+  sort: GQLTypes.CollectionsSort
 }
 
 const query = gql`
@@ -59,10 +58,15 @@ query searchCollections($filters: CollectionsSearchFilter, $adultContent: Boolea
 }
 `;
 
-export async function collections(headers: Record<string,string>, filters: GQLTypes.CollectionsUserFilter, sortBy: GQLTypes.CollectionsSortBy = 'endorsements_count', adultContent: boolean = false): Promise<ICollectionSearchResult> {
+export async function collections(headers: Record<string,string>, filters: GQLTypes.CollectionsUserFilter, sort: GQLTypes.CollectionsSort = {endorsements: { direction: 'DESC' }}, adultContent: boolean = false): Promise<ICollectionSearchResult> {
     const variables: IQueryVariables = {
-        filters,
-        sortBy,
+        filters: {
+          adultContent: {
+            value: adultContent,
+            op: 'EQUALS'
+          }
+        },
+        sort,
         adultContent,
         count: 5
     };
@@ -82,7 +86,6 @@ export async function collections(headers: Record<string,string>, filters: GQLTy
 const websiteLink = (variables: IQueryVariables): string => {
   const baseURL = 'https://next.nexusmods.com/search-results/collections?';
   const urlParams = new URLSearchParams();
-  urlParams.append('sortBy', variables.sortBy);
   urlParams.append('adultContent', variables.filters.adultContent?.value === true ? '1' : '0');
   if (variables.filters.generalSearch) urlParams.append('keyword', variables.filters.generalSearch.value);
   if (variables.filters.gameName) urlParams.append('gameName', variables.filters.gameName.value);

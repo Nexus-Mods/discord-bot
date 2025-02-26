@@ -151,7 +151,10 @@ interface Collection {
 
 type FilterComparisonOperator = 'EQUALS' | 'NOT_EQUALS' | 'MATCHES' | 'WILDCARD' | 'GT' | 'GTE' | 'LT' | 'LTE';
 export type FilterLogicalOperator = 'AND' | 'OR';
-export type BaseSortValue = 'ASC' | 'DESC';
+
+export interface BaseSortValue {
+    direction: 'ASC' | 'DESC'
+}
 
 export interface BaseFilterValue {
     value: string;
@@ -163,8 +166,14 @@ export interface BooleanFilterValue {
     op: FilterComparisonOperator;
 }
 
-type CollectionsSortBy = 'listed_at' | 'endorsements_count' | 'latest_published_revision_rating' | 
-    'total_downloads'| 'published_at'| 'name'| 'created_at'| 'updated_at'| 'recent_rating'| 'overall_rating';
+interface CollectionsSort {
+    relevance?: BaseSortValue;
+    createdAt?: BaseSortValue;
+    updatedAt?: BaseSortValue;
+    endorsements?: BaseSortValue;
+    downloads?: BaseSortValue;
+    rating?: BaseSortValue;
+}
 
 interface CollectionsUserFilter {
     filter?: CollectionsUserFilter[];
@@ -199,4 +208,4 @@ interface CollectionPage {
     nextURL?: string; //URL to browser the results on the website.
 }
 
-export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, CollectionsUserFilter, CollectionsSortBy };
+export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, CollectionsUserFilter, CollectionsSort };

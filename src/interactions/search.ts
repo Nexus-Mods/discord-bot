@@ -192,7 +192,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             }
         }
         if (!!filterGame) filters.gameName ={ value: filterGame.name, op:'EQUALS' };
-        const results = await user.NexusMods.API.v2.Collections(filters, 'endorsements_count', true);
+        const results = await user.NexusMods.API.v2.Collections(filters, { endorsements: { direction: 'DESC' } }, true);
         if (results.nodesCount === 0) {
             // No results
             const noResults: EmbedBuilder = new EmbedBuilder()

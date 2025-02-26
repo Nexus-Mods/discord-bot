@@ -85,13 +85,13 @@ export interface IMod {
 }
 
 export interface IModsSort {
-    relevance?: { direction: GQLTypes.BaseSortValue }
-    name?: { direction: GQLTypes.BaseSortValue }
-    downloads?: { direction: GQLTypes.BaseSortValue }
-    endorsements?: { direction: GQLTypes.BaseSortValue }
+    relevance?: GQLTypes.BaseSortValue
+    name?: GQLTypes.BaseSortValue
+    downloads?: GQLTypes.BaseSortValue 
+    endorsements?: GQLTypes.BaseSortValue
     random?: { seed: number }
-    createdAt?: { direction: GQLTypes.BaseSortValue }
-    updatedAt?: { direction: GQLTypes.BaseSortValue }
+    createdAt?: GQLTypes.BaseSortValue
+    updatedAt?: GQLTypes.BaseSortValue
 }
 
 export interface IModsFilter {
