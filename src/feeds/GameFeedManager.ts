@@ -368,9 +368,8 @@ function createModEmbedGQL(client: Client,
     changeLog: IChangelogs|undefined, 
     compact: boolean): EmbedBuilder {
 
-if (!game || !mod || !mod.modCategory) logMessage(`Missing data game: ${game?.name}, mod: ${mod?.name}, category: ${mod?.modCategory?.name}`);
 const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`;
-const category: string = mod.modCategory.name || 'Unknown';
+const category: string = mod.modCategory?.name || 'Unknown';
 const uploaderProfile: string = nexusModsTrackingUrl(`https://nexusmods.com/${game.domain_name}/users/${mod.uploader.memberId}`, 'gamefeed');
 
 let post = new EmbedBuilder()
