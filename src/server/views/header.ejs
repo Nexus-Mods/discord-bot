@@ -35,6 +35,7 @@
     <meta name="theme-color" content="#da8e35" />
     <% if (locals?.loadBeacon) { %>
     <script type="text/javascript">!function(e,t,n){function a(){var e=t.getElementsByTagName("script")[0],n=t.createElement("script");n.type="text/javascript",n.async=!0,n.src="https://beacon-v2.helpscout.net",e.parentNode.insertBefore(n,e)}if(e.Beacon=n=function(t,n,a){e.Beacon.readyQueue.push({method:t,options:n,data:a})},n.readyQueue=[],"complete"===t.readyState)return a();e.attachEvent?e.attachEvent("onload",a):e.addEventListener("load",a,!1)}(window,document,window.Beacon||function(){});</script> <script type="text/javascript">window.Beacon('init', 'b097f060-4054-430c-a285-f25a86f8b0c6')</script>
+    <script type="text/javascript">window.Beacon('identify', { name: "Pickysaurus", email: "mike.watling@nexusmods.com"})</script>
     <% } %>
   </head>
   <body>
