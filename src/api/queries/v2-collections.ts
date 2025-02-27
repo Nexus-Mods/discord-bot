@@ -14,62 +14,62 @@ interface IQueryVariables extends Variables {
 }
 
 const query = gql`
-query searchCollections($filters: CollectionsSearchFilter, $adultContent: Boolean, $count: Int, $sortBy: String) {
-  collectionsV2(filter: $filters, viewAdultContent: $adultContent, count: $count, sortBy: $sortBy) {
+query searchCollections(
+  $filters: CollectionsSearchFilter, 
+  $count: Int, 
+  $sort: [CollectionsSearchSort!]
+) {
+  collectionsV2(filter: $filters, count: $count, sort: $sort) {
     nodes {
-            id
-            slug
-            name
-            summary
-            category {
-              name
-            }
-            overallRating
-            overallRatingCount
-            endorsements
-            totalDownloads
-            draftRevisionNumber
-            latestPublishedRevision {
-              adultContent
-              fileSize
-              modCount
-            }
-            game {
-              id
-              domainName
-              name
-            }
-            user {
-              memberId
-              avatar
-              name
-            }
-            tileImage {
-              url
-              altText
-              thumbnailUrl(size: small)
-            }
-        }
-        nodesFilter
-        nodesCount
+      id
+      slug
+      name
+      summary
+      category {
+        name
+      }
+      overallRating
+      overallRatingCount
+      endorsements
+      totalDownloads
+      draftRevisionNumber
+      latestPublishedRevision {
+        adultContent
+        fileSize
+        modCount
+      }
+      game {
+        id
+        domainName
+        name
+      }
+      user {
+        memberId
+        avatar
+        name
+      }
+      tileImage {
+        url
+        altText
+        thumbnailUrl(size: small)
+      }
     }
+    nodesCount 
+    nodesFilter
   }
-
 }
 `;
 
 export async function collections(headers: Record<string,string>, filters: GQLTypes.CollectionsUserFilter, sort: GQLTypes.CollectionsSort = {endorsements: { direction: 'DESC' }}, adultContent: boolean = false): Promise<ICollectionSearchResult> {
     const variables: IQueryVariables = {
-        filters: {
-          adultContent: {
-            value: adultContent,
-            op: 'EQUALS'
-          }
-        },
+        filters: {},
         sort,
         adultContent,
         count: 5
     };
+
+    // Only specify adult content if we explictly don't want to see it.
+    if (adultContent === false) variables.filters.adultContent = { value: adultContent, op: 'EQUALS' };
     
     try {
         const result: IResult = await request(v2API, query, variables, headers);

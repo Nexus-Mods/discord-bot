@@ -1,6 +1,7 @@
-import { request, gql } from "graphql-request";
+import { request, gql, Variables } from "graphql-request";
 import { logMessage } from "../util";
 import { v2API, NexusGQLError } from './v2';
+import * as GQLTypes from '../../types/GQLTypes';
 
 interface IResult {
     collectionsV2: {
@@ -19,40 +20,52 @@ interface IDownloadStats {
     }
 };
 
+interface IQueryVariables extends Variables {
+  filters: GQLTypes.CollectionsUserFilter;
+  offset: number;
+  sort: GQLTypes.CollectionsSort
+}
+
 interface ITotals {
   totalDownloads: number;
   uniqueDownloads: number;
 }
 
 const query = gql`
-query getTotalDownloadsForCollections($filters: CollectionsSearchFilter, $offset: Int!) {
+query getTotalDownloadsForCollections(
+  $filters: CollectionsSearchFilter, 
+  $offset: Int!,
+  $sort: [CollectionsSearchSort!]
+) {
   collectionsV2(
-      filter: $filters, 
-      viewAdultContent: true, 
-      count: 20, 
-      offset: $offset, 
-      sort: {
-        downloads: { direction: DESC }
-      }
+    filter: $filters,
+    count: 20, 
+    offset: $offset, 
+    sort: $sort
   ) {
-      nodes {
-          slug
-          name
-          totalDownloads
-          uniqueDownloads
-          game {
-            domainName
-          }
+    nodes {
+      slug
+      name
+      totalDownloads
+      uniqueDownloads
+      game {
+        domainName
+        name
       }
-      nodesCount
+    }
+    nodesCount 
+    nodesFilter
   }
 }
 `;
 
 export async function collectionsDownloadTotals(headers: Record<string,string>, id: number): Promise<ITotals> {
-    const variables = {
+    const variables: IQueryVariables = {
         filters : {
-          userId: [ { value: id.toString() } ]
+          userId:  { value: id.toString(), op: 'EQUALS' }
+        },
+        sort: {
+          downloads: { direction: 'DESC' }
         },
         offset: 0,
     };

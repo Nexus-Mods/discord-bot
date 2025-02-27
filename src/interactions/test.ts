@@ -55,6 +55,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             FindUserID: (await botuser.NexusMods.API.v2.FindUser(51448566))?.name === 'Janquel',
             LatestMods: (await botuser.NexusMods.API.v2.LatestMods(new Date(1))).totalCount > 0
         }
+
+        const otherTest = {
+            Games: (await botuser.NexusMods.API.Other.Games()).length > 1,
+            WebsiteStatus: !!(await botuser.NexusMods.API.Other.WebsiteStatus()),
+        }
         
         logMessage('API tests complete', { v1test, v2test });
 
@@ -63,7 +68,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                 return prev + `${cur[0]}: ${cur[1] ? '✅' : '⚠️' }\n`
             }, '');
 
-        const formatted = `**V1 Tests**\n${format(v1test)}\n\n**V2 Tests**\n${format(v2test)}`;
+        const formatted = `## V1 Tests\n${format(v1test)}\n## V2 Tests\n${format(v2test)}\n## Other\n${format(otherTest)}`;
 
         const embed = await botuser.ProfileEmbed(client);
 
