@@ -1,7 +1,7 @@
-import { CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, Interaction, EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, ButtonStyle, ComponentType, SlashCommandBuilder } from "discord.js";
+import { CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, Interaction, EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, ButtonStyle, ComponentType, SlashCommandBuilder, TextInputBuilder, TextInputStyle, ModalActionRowComponentBuilder, ModalBuilder, EmbedData } from "discord.js";
 import { InfoResult, PostableInfo } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
-import { getAllInfos, displayInfo, createInfo } from '../api/bot-db';
+import { getAllInfos, displayInfo, createInfo, addTip } from '../api/bot-db';
 import { logMessage } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
@@ -21,6 +21,10 @@ const discordInteraction: DiscordInteraction = {
             .setDescription('The JSON data to use, must be a single line.')
             .setRequired(true)
         )
+    )
+    .addSubcommand(sc =>
+        sc.setName('add')
+        .setDescription('Add a new tip using a JSON block (BETA)')
     )
     .addSubcommand(sc =>
         sc.setName('update')
@@ -52,7 +56,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-type SubCommandType = 'tojson' | 'create' | 'update';
+type SubCommandType = 'tojson' | 'create' | 'update' | 'add';
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
@@ -63,11 +67,119 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const infos: InfoResult[] = await getAllInfos().catch(() => []);
 
     switch(subCommand) {
+        case 'add' : return addNewTip(client, interaction, infos);
         case 'tojson': return tipJSON(client, interaction, infos);
         case 'create': return createTip(interaction);
         case 'update': return updateTip(client, interaction, infos);
         default: return interaction.editReply('Error!');
     }
+}
+
+async function addNewTip(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
+    const nameInput = new TextInputBuilder()
+    .setCustomId('name-input')
+    .setLabel('Short Code')
+    .setPlaceholder('e.g. downloadhelp')
+    .setStyle(TextInputStyle.Short)
+    .setMaxLength(60);
+
+    const titleInput = new TextInputBuilder()
+    .setCustomId('title-input')
+    .setLabel('Title Code')
+    .setPlaceholder('e.g. Download Help')
+    .setStyle(TextInputStyle.Short)
+    .setMaxLength(120);
+
+    const messageInput = new TextInputBuilder()
+    .setCustomId('message-input')
+    .setLabel('Message to send (non-embed)')
+    .setPlaceholder('e.g. Download Help')
+    .setStyle(TextInputStyle.Short)
+    .setMaxLength(120);
+
+    const jsonInput = new TextInputBuilder()
+    .setCustomId('json-input')
+    .setLabel('Embed JSON Input - Tip: Use an online editor!')
+    .setPlaceholder('')
+    .setStyle(TextInputStyle.Paragraph);
+
+    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(nameInput, titleInput);
+
+    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(jsonInput, messageInput);
+
+    const modal = new ModalBuilder()
+    .setTitle('Add a new tip')
+    .setCustomId('tip-edit-modal')
+    .addComponents(row1, row2)
+
+    await interaction.showModal(modal);
+    const submit = await interaction.awaitModalSubmit({ time: 60_000 });
+    await submit.deferReply();
+    const newTitle = submit.fields.getTextInputValue('title-input');
+    const newName = submit.fields.getTextInputValue('name-input');
+    const newMesage = submit.fields.getTextInputValue('message-input');
+    const newJson = submit.fields.getTextInputValue('json-input');
+
+    let embedJSON: EmbedData | undefined = undefined;
+    let newEmbed: EmbedBuilder | undefined = undefined;
+
+    if (newJson?.length) {
+        try {
+            embedJSON = JSON.parse(newJson) as EmbedData;
+            delete embedJSON.footer;
+            delete embedJSON.timestamp;
+            delete embedJSON.color;
+            newEmbed = new EmbedBuilder(embedJSON);
+            // Apply overrides
+            delete embedJSON.footer;
+            delete embedJSON.timestamp;
+            delete embedJSON.color;
+            newEmbed.setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+            .setTimestamp(new Date())
+            .setColor(0xda8e35);
+        }
+        catch {
+            logMessage('Invalid JSON submitted');
+            return interaction.editReply({ content: 'Error - Invalid JSON for embed', embeds: [] });
+        }
+    }
+
+    await interaction.editReply({ content: newMesage ?? null, embeds: newEmbed ? [ newEmbed ] : [] });
+
+    const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
+        new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+            new ButtonBuilder({
+                label: `Add ${name}`,
+                style: ButtonStyle.Primary,
+                customId: 'confirm'
+            }),
+            new ButtonBuilder({
+                label: 'Cancel',
+                style: ButtonStyle.Secondary,
+                customId: 'cancel'
+            })
+        )
+    ];
+
+    const message: Message = await interaction.followUp({ content: `Save this embed? \n Title: ${newTitle}, Code: ${newName}`, components: yesNoButtons });
+    const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
+    collector.on('collect', async (i: ButtonInteraction) => {
+        collector.stop(); 
+        if (i.customId === 'confirm') {
+            try {
+                await i.deferUpdate();
+                const id = await addTip(newName, interaction.user.displayName, newTitle, JSON.stringify(embedJSON), newMesage)
+                await message.edit({ content: `Info created: ${newName} ID:  ${id}` });
+            }
+            catch(err) {
+                await message.edit({ content: 'Failed to insert new tip: '+(err as Error).message })
+            }
+        };
+    })
+    collector.on('end', () => { message.edit({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
 }
 
 async function tipJSON(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
