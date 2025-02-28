@@ -1,6 +1,6 @@
 import { queryPromise } from './dbConnect';
 
-interface ITip {
+export interface ITip {
     id: number;
     code: string;
     title: string;

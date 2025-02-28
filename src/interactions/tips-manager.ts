@@ -3,6 +3,7 @@ import { InfoResult, PostableInfo } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getAllInfos, displayInfo, createInfo, addTip } from '../api/bot-db';
 import { logMessage } from "../api/util";
+import { ITip } from "../api/tips";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -76,47 +77,9 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 }
 
 async function addNewTip(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
-    const nameInput = new TextInputBuilder()
-    .setCustomId('name-input')
-    .setLabel('Short Code')
-    .setPlaceholder('e.g. downloadhelp')
-    .setStyle(TextInputStyle.Short)
-    .setMaxLength(60);
 
-    const titleInput = new TextInputBuilder()
-    .setCustomId('title-input')
-    .setLabel('Title Code')
-    .setPlaceholder('e.g. Download Help')
-    .setStyle(TextInputStyle.Short)
-    .setMaxLength(120);
-
-    const messageInput = new TextInputBuilder()
-    .setCustomId('message-input')
-    .setLabel('Message to send (non-embed)')
-    .setPlaceholder('e.g. Download Help')
-    .setStyle(TextInputStyle.Short)
-    .setMaxLength(120);
-
-    const jsonInput = new TextInputBuilder()
-    .setCustomId('json-input')
-    .setLabel('Embed JSON Input - Tip: Use an online editor!')
-    .setPlaceholder('')
-    .setStyle(TextInputStyle.Paragraph);
-
-    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
-    .addComponents(nameInput, titleInput);
-
-    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
-    .addComponents(jsonInput, messageInput);
-
-    const modal = new ModalBuilder()
-    .setTitle('Add a new tip')
-    .setCustomId('tip-edit-modal')
-    .addComponents(row1, row2)
-
-    await interaction.showModal(modal);
+    await interaction.showModal(tipModal());
     const submit = await interaction.awaitModalSubmit({ time: 60_000 });
-    await submit.deferReply();
     const newTitle = submit.fields.getTextInputValue('title-input');
     const newName = submit.fields.getTextInputValue('name-input');
     const newMesage = submit.fields.getTextInputValue('message-input');
@@ -180,6 +143,52 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
         };
     })
     collector.on('end', () => { message.edit({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
+}
+
+function tipModal(existingTip?: ITip): ModalBuilder {
+    const nameInput = new TextInputBuilder()
+    .setCustomId('name-input')
+    .setLabel('Short Code')
+    .setPlaceholder('e.g. downloadhelp')
+    .setStyle(TextInputStyle.Short)
+    .setMaxLength(60);
+    if (existingTip?.code) nameInput.setValue(existingTip.code);
+
+    const titleInput = new TextInputBuilder()
+    .setCustomId('title-input')
+    .setLabel('Title Code')
+    .setPlaceholder('e.g. Download Help')
+    .setStyle(TextInputStyle.Short)
+    .setMaxLength(120);
+    if (existingTip?.title) titleInput.setValue(existingTip.title);
+
+    const messageInput = new TextInputBuilder()
+    .setCustomId('message-input')
+    .setLabel('Message to send (non-embed)')
+    .setPlaceholder('e.g. Download Help')
+    .setStyle(TextInputStyle.Short)
+    .setMaxLength(120);
+    if (existingTip?.message) messageInput.setValue(existingTip.message);
+
+    const jsonInput = new TextInputBuilder()
+    .setCustomId('json-input')
+    .setLabel('Embed JSON Input - Tip: Use an online editor!')
+    .setPlaceholder('')
+    .setStyle(TextInputStyle.Paragraph);
+    if (existingTip?.embed) jsonInput.setValue(existingTip.embed);
+
+    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(nameInput, titleInput);
+
+    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(jsonInput, messageInput);
+
+    const modal = new ModalBuilder()
+    .setTitle('Add a new tip')
+    .setCustomId('tip-edit-modal')
+    .addComponents(row1, row2);
+
+    return modal;
 }
 
 async function tipJSON(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
