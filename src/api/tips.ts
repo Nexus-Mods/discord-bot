@@ -2,7 +2,7 @@ import { queryPromise } from './dbConnect';
 
 export interface ITip {
     id: number;
-    code: string;
+    prompt: string;
     title: string;
     embed: string | null;
     message: string | null;
@@ -23,11 +23,11 @@ async function getAllTips(): Promise<ITip[]> {
 
 }
 
-async function addTip(code: string, author: string, title: string, embed?: string, message?: string): Promise<{id: number, code: string}> {
+async function addTip(prompt: string, author: string, title: string, embed?: string, message?: string): Promise<{id: number, code: string}> {
     try {
         const data = await queryPromise(
-            'INSERT INTO tips (code, title, embed, message, author) VALUES ($1 , $2, $3, $4, $5) RETURNING id',
-            [code, title, embed, message, author]
+            'INSERT INTO tips (prompt, title, embed, message, author) VALUES ($1 , $2, $3, $4, $5) RETURNING id',
+            [prompt, title, embed, message, author]
         );
         return data.rows[0];
     }

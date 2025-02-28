@@ -39,7 +39,7 @@ export async function queryPromise(query: string, values: any[]): Promise<QueryR
 function doQuery(query: string, values: any[], callback: (err: Error, result?: QueryResult) => void) {
     pool.connect((err?: Error, client?: PoolClient, release?) => {
         if (err) {
-            logMessage('Error acquiring client', { query, err: err.message, poolConfig }, true);
+            logMessage('Error acquiring client', { query, err: err.message }, true);
             release?.();
             return callback(err);
         };

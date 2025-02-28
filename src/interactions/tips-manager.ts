@@ -1,7 +1,12 @@
-import { CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, Interaction, EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, ButtonStyle, ComponentType, SlashCommandBuilder, TextInputBuilder, TextInputStyle, ModalActionRowComponentBuilder, ModalBuilder, EmbedData } from "discord.js";
+import { 
+    CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, 
+    EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, 
+    ButtonStyle, ComponentType, SlashCommandBuilder, TextInputBuilder, TextInputStyle, 
+    ModalActionRowComponentBuilder, ModalBuilder, EmbedData, MessageFlags 
+} from "discord.js";
 import { InfoResult, PostableInfo } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
-import { getAllInfos, displayInfo, createInfo, addTip } from '../api/bot-db';
+import { getAllInfos, displayInfo, createInfo, addTip, getAllTips } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { ITip } from "../api/tips";
 
@@ -25,7 +30,7 @@ const discordInteraction: DiscordInteraction = {
     )
     .addSubcommand(sc =>
         sc.setName('add')
-        .setDescription('Add a new tip using a JSON block (BETA)')
+        .setDescription('Add a new tip')
     )
     .addSubcommand(sc =>
         sc.setName('update')
@@ -63,12 +68,11 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const subCommand: SubCommandType = interaction.options.getSubcommand(true) as SubCommandType;
 
-    await interaction.deferReply({ ephemeral: true });
-
     const infos: InfoResult[] = await getAllInfos().catch(() => []);
+    const tips: ITip[] = await getAllTips().catch(() => []);
 
     switch(subCommand) {
-        case 'add' : return addNewTip(client, interaction, infos);
+        case 'add' : return addNewTip(client, interaction, tips);
         case 'tojson': return tipJSON(client, interaction, infos);
         case 'create': return createTip(interaction);
         case 'update': return updateTip(client, interaction, infos);
@@ -76,12 +80,18 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     }
 }
 
-async function addNewTip(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
+async function addNewTip(client: Client, interaction: ChatInputCommandInteraction, tips: ITip[]) {   
 
     await interaction.showModal(tipModal());
-    const submit = await interaction.awaitModalSubmit({ time: 60_000 });
+    const submit = await interaction.awaitModalSubmit({ time: 90_000 });
+
+    const newPrompt = submit.fields.getTextInputValue('prompt-input');
+
+    const existingTip: ITip | undefined = tips.find(t => t.prompt.toLowerCase() === newPrompt.toLowerCase())
+
+    if (existingTip) return submit.reply(`The prompt ${prompt} is already assigned to another tip (${existingTip.title}).`);
+
     const newTitle = submit.fields.getTextInputValue('title-input');
-    const newName = submit.fields.getTextInputValue('name-input');
     const newMesage = submit.fields.getTextInputValue('message-input');
     const newJson = submit.fields.getTextInputValue('json-input');
 
@@ -105,17 +115,17 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
         }
         catch {
             logMessage('Invalid JSON submitted');
-            return interaction.editReply({ content: 'Error - Invalid JSON for embed', embeds: [] });
+            return submit.reply({ content: 'Error - Invalid JSON for embed', embeds: [] });
         }
     }
 
-    await interaction.editReply({ content: newMesage ?? null, embeds: newEmbed ? [ newEmbed ] : [] });
+    await submit.reply({ content: newMesage ?? null, embeds: newEmbed ? [ newEmbed ] : [], flags: MessageFlags.Ephemeral });
 
     const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
         new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
             new ButtonBuilder({
-                label: `Add ${name}`,
+                label: `Save Tip`,
                 style: ButtonStyle.Primary,
                 customId: 'confirm'
             }),
@@ -127,15 +137,15 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
         )
     ];
 
-    const message: Message = await interaction.followUp({ content: `Save this embed? \n Title: ${newTitle}, Code: ${newName}`, components: yesNoButtons });
+    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${newTitle}"? \n-# Prompt: ${newPrompt}`, components: yesNoButtons });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
     collector.on('collect', async (i: ButtonInteraction) => {
         collector.stop(); 
         if (i.customId === 'confirm') {
             try {
                 await i.deferUpdate();
-                const id = await addTip(newName, interaction.user.displayName, newTitle, JSON.stringify(embedJSON), newMesage)
-                await message.edit({ content: `Info created: ${newName} ID:  ${id}` });
+                const id = await addTip(newPrompt, interaction.user.displayName, newTitle, JSON.stringify(embedJSON), newMesage)
+                await message.edit({ content: `Info created. Prompt: ${newPrompt} ID: ${id}\n-# Use \`/tips prompt:${newPrompt}\` to view it.`, embeds: [] });
             }
             catch(err) {
                 await message.edit({ content: 'Failed to insert new tip: '+(err as Error).message })
@@ -146,17 +156,17 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
 }
 
 function tipModal(existingTip?: ITip): ModalBuilder {
-    const nameInput = new TextInputBuilder()
-    .setCustomId('name-input')
-    .setLabel('Short Code')
-    .setPlaceholder('e.g. downloadhelp')
+    const promptInput = new TextInputBuilder()
+    .setCustomId('prompt-input')
+    .setLabel('Prompt')
+    .setPlaceholder('e.g. dlhelp')
     .setStyle(TextInputStyle.Short)
     .setMaxLength(60);
-    if (existingTip?.code) nameInput.setValue(existingTip.code);
+    if (existingTip?.prompt) promptInput.setValue(existingTip.prompt);
 
     const titleInput = new TextInputBuilder()
     .setCustomId('title-input')
-    .setLabel('Title Code')
+    .setLabel('Title')
     .setPlaceholder('e.g. Download Help')
     .setStyle(TextInputStyle.Short)
     .setMaxLength(120);
@@ -167,6 +177,7 @@ function tipModal(existingTip?: ITip): ModalBuilder {
     .setLabel('Message to send (non-embed)')
     .setPlaceholder('e.g. Download Help')
     .setStyle(TextInputStyle.Short)
+    .setRequired(false)
     .setMaxLength(120);
     if (existingTip?.message) messageInput.setValue(existingTip.message);
 
@@ -174,19 +185,26 @@ function tipModal(existingTip?: ITip): ModalBuilder {
     .setCustomId('json-input')
     .setLabel('Embed JSON Input - Tip: Use an online editor!')
     .setPlaceholder('')
+    .setRequired(false)
     .setStyle(TextInputStyle.Paragraph);
     if (existingTip?.embed) jsonInput.setValue(existingTip.embed);
 
     const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
-    .addComponents(nameInput, titleInput);
+    .addComponents(promptInput);
 
     const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
-    .addComponents(jsonInput, messageInput);
+    .addComponents(titleInput);
+
+    const row3 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(jsonInput);
+
+    const row4 = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(messageInput);
 
     const modal = new ModalBuilder()
     .setTitle('Add a new tip')
     .setCustomId('tip-edit-modal')
-    .addComponents(row1, row2);
+    .addComponents(row1, row2, row3, row4);
 
     return modal;
 }
