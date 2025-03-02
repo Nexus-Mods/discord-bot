@@ -28,7 +28,7 @@ import { getAllInfos, createInfo, deleteInfo, displayInfo } from './infos';
 import { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile  } from './automod';
 
 // TIPS
-import { getAllTips, addTip, deleteTip } from './tips';
+import { getAllTips, addTip, deleteTip, editTip, setApprovedTip } from './tips';
 
 export {
     getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
@@ -42,5 +42,5 @@ export {
     getAllInfos, createInfo, deleteInfo, displayInfo,
     getAutomodRules, createAutomodRule, deleteAutomodRule,
     getBadFiles, addBadFile,
-    getAllTips, addTip, deleteTip
+    getAllTips, addTip, deleteTip, editTip, setApprovedTip
 };

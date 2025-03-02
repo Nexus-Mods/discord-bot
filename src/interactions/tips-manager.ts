@@ -2,11 +2,14 @@ import {
     CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, 
     EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, 
     ButtonStyle, ComponentType, SlashCommandBuilder, TextInputBuilder, TextInputStyle, 
-    ModalActionRowComponentBuilder, ModalBuilder, EmbedData, MessageFlags 
+    ModalActionRowComponentBuilder, ModalBuilder, EmbedData, MessageFlags, 
+    ModalSubmitInteraction,
+    CacheType,
+    InteractionReplyOptions
 } from "discord.js";
 import { InfoResult, PostableInfo } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
-import { getAllInfos, displayInfo, createInfo, addTip, getAllTips } from '../api/bot-db';
+import { getAllInfos, displayInfo, createInfo, addTip, getAllTips, editTip } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { ITip } from "../api/tips";
 
@@ -14,6 +17,19 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('tips-manager')
     .setDescription('Manage tips.')
+    .addSubcommand(sc =>
+        sc.setName('add')
+        .setDescription('Add a new tip')
+    )
+    .addSubcommand(sc =>
+        sc.setName('edit')
+        .setDescription('Add an existing tip')
+        .addStringOption(option =>
+            option.setName('prompt')
+            .setDescription('The prompt of the tip to edit')
+            .setRequired(true)
+        )
+    )
     .addSubcommand(sc =>
         sc.setName('create')
         .setDescription('Add a new tip by pasting in JSON data')
@@ -27,10 +43,6 @@ const discordInteraction: DiscordInteraction = {
             .setDescription('The JSON data to use, must be a single line.')
             .setRequired(true)
         )
-    )
-    .addSubcommand(sc =>
-        sc.setName('add')
-        .setDescription('Add a new tip')
     )
     .addSubcommand(sc =>
         sc.setName('update')
@@ -62,7 +74,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-type SubCommandType = 'tojson' | 'create' | 'update' | 'add';
+type SubCommandType = 'tojson' | 'create' | 'update' | 'add' | 'edit';
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
@@ -73,12 +85,29 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     switch(subCommand) {
         case 'add' : return addNewTip(client, interaction, tips);
+        case 'edit': return editExistingTip(client, interaction, tips);
         case 'tojson': return tipJSON(client, interaction, infos);
-        case 'create': return createTip(interaction);
-        case 'update': return updateTip(client, interaction, infos);
+        // case 'create': return createTip(interaction);
+        // case 'update': return updateTip(client, interaction, infos);
         default: return interaction.editReply('Error!');
     }
 }
+
+const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
+    new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+        new ButtonBuilder({
+            label: `Save Tip`,
+            style: ButtonStyle.Primary,
+            customId: 'confirm'
+        }),
+        new ButtonBuilder({
+            label: 'Cancel',
+            style: ButtonStyle.Secondary,
+            customId: 'cancel'
+        })
+    )
+];
 
 async function addNewTip(client: Client, interaction: ChatInputCommandInteraction, tips: ITip[]) {   
 
@@ -91,64 +120,92 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
 
     if (existingTip) return submit.reply(`The prompt ${prompt} is already assigned to another tip (${existingTip.title}).`);
 
-    const newTitle = submit.fields.getTextInputValue('title-input');
-    const newMesage = submit.fields.getTextInputValue('message-input');
-    const newJson = submit.fields.getTextInputValue('json-input');
-
-    let embedJSON: EmbedData | undefined = undefined;
-    let newEmbed: EmbedBuilder | undefined = undefined;
-
-    if (newJson?.length) {
-        try {
-            embedJSON = JSON.parse(newJson) as EmbedData;
-            delete embedJSON.footer;
-            delete embedJSON.timestamp;
-            delete embedJSON.color;
-            newEmbed = new EmbedBuilder(embedJSON);
-            // Apply overrides
-            delete embedJSON.footer;
-            delete embedJSON.timestamp;
-            delete embedJSON.color;
-            newEmbed.setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+    let newEmbed: EmbedBuilder | null = null;
+    let newMessage: string | undefined = undefined;
+    let temp: {tip: Partial<ITip>, embedData?: EmbedData};
+    
+    try {
+        temp = validateModalResponse(submit);
+        if (temp.embedData) {
+            newEmbed = new EmbedBuilder(temp.embedData)
+            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
             .setTimestamp(new Date())
             .setColor(0xda8e35);
         }
-        catch {
-            logMessage('Invalid JSON submitted');
-            return submit.reply({ content: 'Error - Invalid JSON for embed', embeds: [] });
-        }
+        if (temp.tip.message) newMessage = temp.tip.message;
+
     }
+    catch(err) {
+        return submit.reply({ content: 'Error creating tip - '+(err as Error)?.message, embeds: [] });
+    }
+    
+    const exampleReplyPayload: InteractionReplyOptions = { embeds: [], flags: MessageFlags.Ephemeral };
+    if (newMessage) exampleReplyPayload.content = newMessage;
+    if (newEmbed) exampleReplyPayload.embeds = [newEmbed];
+    await submit.reply(exampleReplyPayload);
 
-    await submit.reply({ content: newMesage ?? null, embeds: newEmbed ? [ newEmbed ] : [], flags: MessageFlags.Ephemeral });
-
-    const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
-        new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-            new ButtonBuilder({
-                label: `Save Tip`,
-                style: ButtonStyle.Primary,
-                customId: 'confirm'
-            }),
-            new ButtonBuilder({
-                label: 'Cancel',
-                style: ButtonStyle.Secondary,
-                customId: 'cancel'
-            })
-        )
-    ];
-
-    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${newTitle}"? \n-# Prompt: ${newPrompt}`, components: yesNoButtons });
+    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
     collector.on('collect', async (i: ButtonInteraction) => {
         collector.stop(); 
         if (i.customId === 'confirm') {
             try {
                 await i.deferUpdate();
-                const id = await addTip(newPrompt, interaction.user.displayName, newTitle, JSON.stringify(embedJSON), newMesage)
-                await message.edit({ content: `Info created. Prompt: ${newPrompt} ID: ${id}\n-# Use \`/tips prompt:${newPrompt}\` to view it.`, embeds: [] });
+                const confirm = await addTip(newPrompt, interaction.user.displayName, temp.tip.title!, JSON.stringify(temp.embedData), newMessage);
+                await message.edit({ content: `Tip created. Prompt: ${confirm.prompt} ID: ${confirm.id}\n-# Use \`/tips prompt:${newPrompt}\` to view it.`, embeds: [] });
             }
             catch(err) {
                 await message.edit({ content: 'Failed to insert new tip: '+(err as Error).message })
+            }
+        };
+    })
+    collector.on('end', () => { message.edit({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
+}
+
+async function editExistingTip(client: Client, interaction: ChatInputCommandInteraction, tips: ITip[]) {
+    const prompt: string = interaction.options.getString('prompt', true);
+    const existingTip = tips.find(t => t.prompt === prompt.toLowerCase());
+    if (!existingTip) return interaction.reply(`No tip found for ${prompt}.`);
+
+    let newEmbed: EmbedBuilder | null = null;
+    let newMessage: string | undefined = undefined;
+    let temp: {tip: Partial<ITip>, embedData?: EmbedData};
+
+    await interaction.showModal(tipModal(existingTip));
+    const submit = await interaction.awaitModalSubmit({ time: 90_000 });
+    
+    try {
+        temp = validateModalResponse(submit);
+        if (temp.embedData) {
+            newEmbed = new EmbedBuilder(temp.embedData)
+            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+            .setTimestamp(new Date())
+            .setColor(0xda8e35);
+        }
+        newMessage = temp.tip.message ?? undefined;
+
+    }
+    catch(err) {
+        return submit.reply({ content: 'Error updating tip - '+(err as Error)?.message, embeds: [] });
+    }
+
+    const exampleReplyPayload: InteractionReplyOptions = { embeds: [], flags: MessageFlags.Ephemeral };
+    if (newMessage) exampleReplyPayload.content = newMessage;
+    if (newEmbed) exampleReplyPayload.embeds = [newEmbed];
+    await submit.reply(exampleReplyPayload);
+    
+    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
+    const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
+    collector.on('collect', async (i: ButtonInteraction) => {
+        collector.stop(); 
+        if (i.customId === 'confirm') {
+            try {
+                await i.deferUpdate();
+                await editTip(prompt, interaction.user.displayName, temp.tip.title!, JSON.stringify(temp.embedData), newMessage);
+                await message.edit({ content: `Tip updated. Prompt: ${prompt} ID: ${existingTip.id}\n-# Use \`/tips prompt:${prompt}\` to view it.`, embeds: [] });
+            }
+            catch(err) {
+                await message.edit({ content: 'Failed to update tip: '+(err as Error).message })
             }
         };
     })
@@ -209,7 +266,45 @@ function tipModal(existingTip?: ITip): ModalBuilder {
     return modal;
 }
 
+function validateModalResponse(submit: ModalSubmitInteraction<CacheType>): {tip: Partial<ITip>, embedData?: EmbedData} {
+    const prompt = submit.fields.getTextInputValue('prompt-input');
+    const title = submit.fields.getTextInputValue('title-input');
+    const message = submit.fields.getTextInputValue('message-input');
+    const json = submit.fields.getTextInputValue('json-input');
+
+    if (!message && !json) throw new Error('A message or embed JSON must be provided!');
+
+    let embed: EmbedData | undefined = undefined;
+
+    if (json?.length) {
+        try {
+            embed = JSON.parse(json) as EmbedData;
+            // Apply overrides
+            delete embed.footer;
+            delete embed.timestamp;
+            delete embed.color;
+        }
+        catch {
+            logMessage('Invalid JSON submitted');
+            throw new Error('Invalid JSON for embed')
+        }
+    }
+
+    return { 
+        tip: 
+        {
+            prompt,
+            title,
+            message,
+            embed: json?.length ? JSON.stringify(embed) : null,
+        },
+        embedData: embed,
+    }
+    
+}
+
 async function tipJSON(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
+    await interaction.deferReply();
     const code: string = interaction.options.getString('code', true);
 
     const tipToShow: InfoResult|undefined = infos.find(i => i.name === code.toLowerCase());
@@ -223,76 +318,76 @@ async function tipJSON(client: Client, interaction: ChatInputCommandInteraction,
     else return interaction.editReply({ content: `\`\`\`json\n${JSON.stringify(output, null, 2)}\`\`\``, embeds: output.embeds, });
 }
 
-async function createTip(interaction: ChatInputCommandInteraction) {
-    const userJson: string = interaction.options.getString('json', true);
-    const name: string = interaction.options.getString('code', true);
+// async function createTip(interaction: ChatInputCommandInteraction) {
+//     const userJson: string = interaction.options.getString('json', true);
+//     const name: string = interaction.options.getString('code', true);
 
-    const components: ActionRowBuilder<ButtonBuilder>[] = [
-        new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-            new ButtonBuilder({
-                label: `Add ${name}`,
-                style: ButtonStyle.Primary,
-                customId: 'confirm'
-            }),
-            new ButtonBuilder({
-                label: 'Cancel',
-                style: ButtonStyle.Secondary,
-                customId: 'cancel'
-            })
-        )
-    ];
+//     const components: ActionRowBuilder<ButtonBuilder>[] = [
+//         new ActionRowBuilder<ButtonBuilder>()
+//         .addComponents(
+//             new ButtonBuilder({
+//                 label: `Add ${name}`,
+//                 style: ButtonStyle.Primary,
+//                 customId: 'confirm'
+//             }),
+//             new ButtonBuilder({
+//                 label: 'Cancel',
+//                 style: ButtonStyle.Secondary,
+//                 customId: 'cancel'
+//             })
+//         )
+//     ];
 
-    try {
-        const messageContent = JSON.parse(userJson);
-        const content = messageContent.content && messageContent.content.length ? messageContent.content : null;
-        const embeds = messageContent.embed ? [new EmbedBuilder(messageContent.embed)] : [];
-        const message: Message = await interaction.fetchReply() as Message;
-        await interaction.editReply({ content, embeds, components });
-        const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
-        collector.on('collect', async (i: ButtonInteraction) => {
-            collector.stop(); 
-            if (i.customId === 'confirm') {
-                try {
-                    await i.deferUpdate();
-                    const infoToStore = covertToInfoResult(name, content, messageContent.embed);
-                    await createInfo(infoToStore);
-                    await interaction.editReply({ content: `Info created: ${name}` });
-                }
-                catch(err) {
-                    await interaction.editReply({ content: 'Failed to insert new tip: '+(err as Error).message })
-                }
-            };
-        })
-        collector.on('end', () => { interaction.editReply({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
+//     try {
+//         const messageContent = JSON.parse(userJson);
+//         const content = messageContent.content && messageContent.content.length ? messageContent.content : null;
+//         const embeds = messageContent.embed ? [new EmbedBuilder(messageContent.embed)] : [];
+//         const message: Message = await interaction.fetchReply() as Message;
+//         await interaction.editReply({ content, embeds, components });
+//         const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
+//         collector.on('collect', async (i: ButtonInteraction) => {
+//             collector.stop(); 
+//             if (i.customId === 'confirm') {
+//                 try {
+//                     await i.deferUpdate();
+//                     const infoToStore = covertToInfoResult(name, content, messageContent.embed);
+//                     await createInfo(infoToStore);
+//                     await interaction.editReply({ content: `Info created: ${name}` });
+//                 }
+//                 catch(err) {
+//                     await interaction.editReply({ content: 'Failed to insert new tip: '+(err as Error).message })
+//                 }
+//             };
+//         })
+//         collector.on('end', () => { interaction.editReply({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
 
-    }
-    catch(err) {
-        return interaction.editReply(`Error parsing JSON: ${(err as Error).message}`);
-    }
-}
+//     }
+//     catch(err) {
+//         return interaction.editReply(`Error parsing JSON: ${(err as Error).message}`);
+//     }
+// }
 
-function covertToInfoResult(name: string, message: string|null, embed: any): InfoResult {
-    const author: string = (embed?.footer?.text as string)?.substring(embed.footer.text.indexOf('by ') + 3) || 'Nexus Mods';
+// function covertToInfoResult(name: string, message: string|null, embed: any): InfoResult {
+//     const author: string = (embed?.footer?.text as string)?.substring(embed.footer.text.indexOf('by ') + 3) || 'Nexus Mods';
 
-    const checkValue = (input: string|undefined|null) => !!input ? input : undefined;
+//     const checkValue = (input: string|undefined|null) => !!input ? input : undefined;
 
-    return {
-        name,
-        message: checkValue(message),
-        title: checkValue(embed?.title),
-        description: checkValue(embed?.description),
-        url: checkValue(embed?.url),
-        thumbnail: checkValue(embed?.thumbnail?.url),
-        image: checkValue(embed?.image),
-        fields: embed?.fields,
-        approved: true,
-        author
-    }
-}
+//     return {
+//         name,
+//         message: checkValue(message),
+//         title: checkValue(embed?.title),
+//         description: checkValue(embed?.description),
+//         url: checkValue(embed?.url),
+//         thumbnail: checkValue(embed?.thumbnail?.url),
+//         image: checkValue(embed?.image),
+//         fields: embed?.fields,
+//         approved: true,
+//         author
+//     }
+// }
 
-async function updateTip(client: Client, interaction: CommandInteraction, infos: InfoResult[]) {
-    return interaction.editReply('Work in progress!');    
-}
+// async function updateTip(client: Client, interaction: CommandInteraction, infos: InfoResult[]) {
+//     return interaction.editReply('Work in progress!');    
+// }
 
 export { discordInteraction };
