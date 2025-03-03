@@ -1,14 +1,14 @@
 import { 
-    CommandInteraction, ActionRowBuilder, SelectMenuBuilder, Client, EmbedBuilder, 
-    Message, InteractionCollector, ButtonBuilder, User, SlashCommandBuilder, 
-    ChatInputCommandInteraction, ButtonStyle, SelectMenuOptionBuilder, 
+    CommandInteraction, Client, EmbedBuilder, 
+    User, SlashCommandBuilder, 
+    ChatInputCommandInteraction, 
     AutocompleteInteraction,
     EmbedData,
-    InteractionReplyOptions
+    InteractionReplyOptions,
+    InteractionEditReplyOptions
 } from "discord.js";
-import { InfoResult, PostableInfo } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
-import { getAllInfos, displayInfo, getAllTips } from '../api/bot-db';
+import { getAllTips } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { ITip } from "../api/tips";
 
@@ -88,7 +88,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     if (!tipCache) tipCache = new TipCache();
     const tips: ITip[] = await tipCache.getTips().catch(() => []);
-    let replyMessage: InteractionReplyOptions = {};
+    let replyMessage: InteractionEditReplyOptions = {};
 
     if (!tips.length) return interaction.editReply('No tips available.');
 
@@ -96,7 +96,6 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         const tip: ITip | undefined = tips.find(t => t.prompt.toLowerCase() === message.toLowerCase());
         if (!!tip) {
             await interaction.editReply({ content: 'Tip posted!', embeds: [], components: [] });
-            const postable: InteractionReplyOptions = { embeds: [] };
             replyMessage.content = 
                 `${user ? `${user.toString()}\n` : null}`+
                 `${tip.message || null}`+
@@ -106,18 +105,11 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
                 const embedToShow = embedBulderWithOverrides(embedData, interaction);
                 replyMessage.embeds = [ embedToShow ]
             }
-            else (postable.content)
-            return interaction.editReply(postable);
+            return interaction.editReply(replyMessage);
         }
         else replyMessage.content = `No results found for ${message}`;
     }
 
-}
-
-async function displaySelected(client: Client, selected: InfoResult, interaction: CommandInteraction, user: User | null): Promise<any> {
-    logMessage('Posting interaction', { selected: selected.name });
-    const postable: PostableInfo = displayInfo(client, selected, user);
-    return interaction.followUp(postable);
 }
 
 function embedBulderWithOverrides(data: EmbedData, interaction: ChatInputCommandInteraction): EmbedBuilder {
@@ -128,11 +120,11 @@ function embedBulderWithOverrides(data: EmbedData, interaction: ChatInputCommand
 }
 
 async function autocomplete(client: Client, interaction: AutocompleteInteraction) {
-    const focused = interaction.options.getFocused();
+    const focused = interaction.options.getFocused().toLowerCase();
     try {
         if (!tipCache) tipCache = new TipCache();
         const tips = await tipCache.getApprovedTips();
-        const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused.toLowerCase()) || t.title.toLowerCase().includes(focused.toLowerCase()) );
+        const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
         await interaction.respond(
             filtered.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)
         );

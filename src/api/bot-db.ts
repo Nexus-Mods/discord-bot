@@ -21,9 +21,6 @@ import { getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, update
 // USER SERVER LINK MANAGEMENT
 import { getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, deleteAllServerLinksByUser, updateRoles, updateAllRoles, modUniqueDLTotal } from './user_servers';
 
-// INFO MANAGEMENT 
-import { getAllInfos, createInfo, deleteInfo, displayInfo } from './infos';
-
 // AUTOMOD
 import { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile  } from './automod';
 
@@ -39,7 +36,6 @@ export {
     getAllModFeeds, getModFeed, getModFeedsForServer, createModFeed, updateModFeed, deleteModFeed,
     getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, 
     deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, updateRoles, updateAllRoles, modUniqueDLTotal,
-    getAllInfos, createInfo, deleteInfo, displayInfo,
     getAutomodRules, createAutomodRule, deleteAutomodRule,
     getBadFiles, addBadFile,
     getAllTips, addTip, deleteTip, editTip, setApprovedTip

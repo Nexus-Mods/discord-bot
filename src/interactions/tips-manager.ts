@@ -9,7 +9,7 @@ import {
 } from "discord.js";
 import { InfoResult, PostableInfo } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
-import { getAllInfos, displayInfo, createInfo, addTip, getAllTips, editTip } from '../api/bot-db';
+import { addTip, getAllTips, editTip } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { ITip } from "../api/tips";
 
@@ -29,15 +29,6 @@ const discordInteraction: DiscordInteraction = {
             .setDescription('The prompt of the tip to edit')
             .setRequired(true)
         )
-    )
-    .addSubcommand(sc =>
-        sc.setName('tojson')
-        .setDescription('Show the tip as JSON')
-        .addStringOption(option => 
-            option.setName('code')
-            .setDescription('The short code to load this tip.')    
-            .setRequired(true)
-        )
     ) as SlashCommandBuilder,
     public: false,
     guilds: [
@@ -46,19 +37,17 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-type SubCommandType = 'tojson' | 'add' | 'edit' | 'approve' | 'delete';
+type SubCommandType = 'add' | 'edit' | 'approve' | 'delete';
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const subCommand: SubCommandType = interaction.options.getSubcommand(true) as SubCommandType;
 
-    const infos: InfoResult[] = await getAllInfos().catch(() => []);
     const tips: ITip[] = await getAllTips().catch(() => []);
 
     switch(subCommand) {
         case 'add' : return addNewTip(client, interaction, tips);
         case 'edit': return editExistingTip(client, interaction, tips);
-        case 'tojson': return tipJSON(client, interaction, infos);
         default: return interaction.editReply('Error!');
     }
 }
@@ -271,21 +260,6 @@ function validateModalResponse(submit: ModalSubmitInteraction<CacheType>): {tip:
         embedData: embed,
     }
     
-}
-
-async function tipJSON(client: Client, interaction: ChatInputCommandInteraction, infos: InfoResult[]) {   
-    await interaction.deferReply();
-    const code: string = interaction.options.getString('code', true);
-
-    const tipToShow: InfoResult|undefined = infos.find(i => i.name === code.toLowerCase());
-    if (!tipToShow) return interaction.editReply('Unknown tip code.');
-    const postable: PostableInfo = displayInfo(client, tipToShow, null);
-    const output = {...postable, embeds: postable.embeds?.map(m => m.toJSON()) };
-    const jsonContent = JSON.stringify(output, null, 2);
-    if (jsonContent.length > 2000) {
-        return interaction.editReply({ files: [ { name: `code.json`,  attachment: jsonContent } ] });
-    }
-    else return interaction.editReply({ content: `\`\`\`json\n${JSON.stringify(output, null, 2)}\`\`\``, embeds: output.embeds, });
 }
 
 export { discordInteraction };
