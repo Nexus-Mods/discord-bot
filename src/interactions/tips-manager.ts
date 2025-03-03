@@ -195,7 +195,7 @@ function tipModal(existingTip?: ITip): ModalBuilder {
     .setCustomId('message-input')
     .setLabel('Message to send (non-embed)')
     .setPlaceholder('e.g. Download Help')
-    .setStyle(TextInputStyle.Short)
+    .setStyle(TextInputStyle.Paragraph)
     .setRequired(false)
     .setMaxLength(120);
     if (existingTip?.message) messageInput.setValue(existingTip.message);
