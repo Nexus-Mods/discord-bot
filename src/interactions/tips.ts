@@ -35,7 +35,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply().catch(err => { throw err });
     
-    const message: string = interaction.options.getString('code', true);
+    const message: string = interaction.options.getString('prompt', true);
     const user: User | null = interaction.options.getUser('user');
 
     if (!client.tipCache) client.tipCache = new TipCache();
