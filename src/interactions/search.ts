@@ -614,18 +614,18 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
 
 
 async function postResult(interaction: ChatInputCommandInteraction, embed: EmbedBuilder, ephemeral: boolean) {
-    const replyOrEdit = (interaction.deferred || interaction.replied) ? 'editReply' : 'reply'
+    const replyOrEdit = (interaction.deferred || interaction.replied) ? interaction.editReply : interaction.reply;
 
-    if (ephemeral) return interaction[replyOrEdit]({content: '', embeds: [embed], flags: MessageFlags.Ephemeral})
+    if (ephemeral) return replyOrEdit({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 
-    interaction[replyOrEdit]({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
+    replyOrEdit({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return interaction.followUp({content: '', embeds: [embed], flags: MessageFlags.Ephemeral, fetchReply: false})
+    return interaction.followUp({content: '', embeds: [embed], flags: MessageFlags.Ephemeral})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 }
 
