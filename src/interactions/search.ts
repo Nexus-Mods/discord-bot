@@ -1,7 +1,8 @@
 import { 
     CommandInteraction, ActionRowBuilder, Client, EmbedBuilder, Message, 
     ButtonBuilder, TextChannel, EmbedField, ButtonInteraction, ChatInputCommandInteraction, 
-    SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField, 
+    SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField,
+    MessageFlags, 
 } from "discord.js";
 import { customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
@@ -399,7 +400,7 @@ async function searchGames(query: string, ephemeral:boolean, client: Client, int
 
 async function searchUsers(query: string, userId: number, ephemeral: boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
     logMessage('User search', {query, userId, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
-    if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
+    if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', flags: ephemeral ? MessageFlags.Ephemeral: undefined });
 
     const invalidSearch = () => new EmbedBuilder()
     .setTitle('Invalid search')
@@ -615,16 +616,16 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
 async function postResult(interaction: ChatInputCommandInteraction, embed: EmbedBuilder, ephemeral: boolean) {
     const replyOrEdit = (interaction.deferred || interaction.replied) ? 'editReply' : 'reply'
 
-    if (ephemeral) return interaction[replyOrEdit]({content: '', embeds: [embed], ephemeral})
+    if (ephemeral) return interaction[replyOrEdit]({content: '', embeds: [embed], flags: MessageFlags.Ephemeral})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 
-    interaction[replyOrEdit]({ content: 'Search result posted!', embeds:[], components: [], ephemeral})
+    interaction[replyOrEdit]({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return interaction.followUp({content: '', embeds: [embed], ephemeral, fetchReply: false})
+    return interaction.followUp({content: '', embeds: [embed], flags: MessageFlags.Ephemeral, fetchReply: false})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 }
 

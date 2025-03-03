@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
 import { createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile } from "../api/bot-db";
@@ -208,7 +208,7 @@ async function listRules(client: ClientExt, interaction: ChatInputCommandInterac
         rulePages.map(async (page, index) => {
             if (index === 0) return;
             const pageMessage = `\`\`\`${header}${page.map(r => `| ${r.id} | ${r.type} | ${r.filter} | ${r.added.toLocaleString()} | ${r.reason} `).join('\n')}\`\`\``;
-            await interaction.followUp({content: pageMessage, ephemeral: true});
+            await interaction.followUp({content: pageMessage, flags: MessageFlags.Ephemeral});
             return;
         });
     }

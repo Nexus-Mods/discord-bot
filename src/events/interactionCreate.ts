@@ -1,5 +1,6 @@
 import { 
-    InteractionReplyOptions, GuildChannel, CommandInteraction, AutocompleteInteraction 
+    InteractionReplyOptions, GuildChannel, CommandInteraction, AutocompleteInteraction, 
+    MessageFlags
 } from 'discord.js';
 import { unexpectedErrorEmbed, logMessage } from '../api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
@@ -58,7 +59,7 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
         error: err.message || err
     }
 
-    const reply:InteractionReplyOptions  = { embeds: [unexpectedErrorEmbed(err, context)], ephemeral: true};
+    const reply:InteractionReplyOptions  = { embeds: [unexpectedErrorEmbed(err, context)], flags: MessageFlags.Ephemeral};
     if (ignoreErrors.includes(context.error.toString())) {
         return logMessage('Unknown interaction error', { err, inter: interaction.options, ...context }, true);
     }

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, Client, CommandInteraction, ChatInputCommandInteraction } from "discord.js";
+import { SlashCommandBuilder, PermissionFlagsBits, Client, CommandInteraction, ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 
 const discordInteraction: DiscordInteraction = {
@@ -22,10 +22,10 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
     try {
         await client.updateInteractions?.(true);
-        return interaction.followUp({content: 'Updated slash commands!', ephemeral: true});
+        return interaction.followUp({content: 'Updated slash commands!', flags: MessageFlags.Ephemeral});
     }
     catch(err) {
-        return interaction.followUp({content: 'Failed to update slash commands: '+((err as Error).message || err), ephemeral: true});
+        return interaction.followUp({content: 'Failed to update slash commands: '+((err as Error).message || err), flags: MessageFlags.Ephemeral});
     }
 
 

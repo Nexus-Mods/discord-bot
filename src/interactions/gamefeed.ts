@@ -2,7 +2,8 @@ import {
     CommandInteraction, Snowflake, EmbedBuilder, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
     ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction, AutocompleteInteraction
+    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction, AutocompleteInteraction,
+    MessageFlags
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
@@ -196,7 +197,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
                 const id = await createGameFeed(newFeed);
                 await interaction.editReply({ content: 'Game Feed created successfully', components: [], embeds: [] });
                 logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).name, owner: interaction.user.tag });
-                const infoMsg = await interaction?.followUp({ content: '', embeds: [successEmbed(interaction, newFeed, game, id)], ephemeral: false }).catch((err) => logMessage('Followup error', err, true));
+                const infoMsg = await interaction?.followUp({ content: '', embeds: [successEmbed(interaction, newFeed, game, id)], flags: MessageFlags.Ephemeral }).catch((err) => logMessage('Followup error', err, true));
                 if (perms.includes('ManageMessages')) await (infoMsg as Message)?.pin().catch((err) => logMessage('Pinning post error', err, true));
                 return;
             }
