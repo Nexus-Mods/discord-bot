@@ -94,7 +94,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             if (tip.message) replyMessage.content = replyMessage.content + `${tip.message}`;
             if (tip.embed) {
                 const embedData = JSON.parse(tip.embed) as EmbedData;
-                const embedToShow = embedBulderWithOverrides(embedData, interaction);
+                const embedToShow = embedBulderWithOverrides(tip, embedData, interaction);
                 replyMessage.embeds = [ embedToShow ]
             }
             else replyMessage.content = replyMessage.content + `\n-# Tip requested by ${interaction.user.displayName}`;
