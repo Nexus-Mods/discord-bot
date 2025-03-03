@@ -5,7 +5,7 @@ import {
 import { GameFeedManager } from "../feeds/GameFeedManager";
 import { ModFeedManager } from "../feeds/ModFeedManager";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
-import { GameListCache } from "./util";
+import { GameListCache, TipCache } from "./util";
 import { AutoModManager } from "../feeds/AutoModManager";
 
 interface ClientExt extends Client {
@@ -18,6 +18,7 @@ interface ClientExt extends Client {
     automod?: AutoModManager;
     updateInteractions?: (force?: boolean) => Promise<void>
     gamesList?: GameListCache;
+    tipCache?: TipCache;
 }
 
 interface DiscordEventInterface {

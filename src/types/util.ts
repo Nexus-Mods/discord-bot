@@ -7,6 +7,7 @@ import {
 import { other } from "../api/queries/all";
 import { logMessage } from "../api/util";
 import { IGameStatic } from "../api/queries/other";
+import { getAllTips, ITip } from "../api/tips";
 
 export interface InfoResult {
     name: string;
@@ -174,6 +175,49 @@ export class GameListCache {
             this.dateStamp = Date.now() + 300000;
             return games;
         }
+    }
+}
+
+export class TipCache {
+    private tips : ITip[] = [];
+    private nextUpdate: number = new Date().getTime() + 10000;
+
+    constructor() {
+        getAllTips()
+        .then( t =>  {
+            this.tips = t;
+            this.setNextUpdate();
+        });
+    }
+
+    private setNextUpdate(): void {
+        this.nextUpdate = new Date().getTime() + 300000
+    }
+
+    private async fetchTips(limit?: 'approved' | 'unapproved'): Promise<ITip[]> {
+        if (new Date().getTime() > this.nextUpdate) {
+            logMessage("Recaching tips")
+            this.tips = await getAllTips();
+            this.setNextUpdate();
+        }
+        else logMessage("Using cached tips "+new Date(this.nextUpdate).toLocaleDateString());
+        switch(limit){
+            case 'approved' : return this.tips.filter(t => t.approved === true);
+            case 'unapproved' : return this.tips.filter(t => t.approved === true);
+            default: return this.tips;
+        }
+    }
+    
+    public async getApprovedTips(): Promise<ITip[]> {
+        return await this.fetchTips('approved');
+    }
+
+    public async getPendingTips(): Promise<ITip[]> {
+        return await this.fetchTips('unapproved');
+    }
+
+    public async getTips(): Promise<ITip[]> {
+        return await this.fetchTips();
     }
 }
 

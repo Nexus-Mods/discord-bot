@@ -5,10 +5,11 @@ import {
     ModalActionRowComponentBuilder, ModalBuilder, EmbedData, MessageFlags, 
     ModalSubmitInteraction,
     CacheType,
-    InteractionReplyOptions
+    InteractionReplyOptions,
+    AutocompleteInteraction
 } from "discord.js";
-import { InfoResult, PostableInfo } from "../types/util";
-import { DiscordInteraction } from '../types/DiscordTypes';
+import { InfoResult, PostableInfo, TipCache } from "../types/util";
+import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { addTip, getAllTips, editTip } from '../api/bot-db';
 import { logMessage } from "../api/util";
 import { ITip } from "../api/tips";
@@ -28,13 +29,15 @@ const discordInteraction: DiscordInteraction = {
             option.setName('prompt')
             .setDescription('The prompt of the tip to edit')
             .setRequired(true)
+            .setAutocomplete(true)
         )
     ) as SlashCommandBuilder,
     public: false,
     guilds: [
         '581095546291355649'
     ],
-    action
+    action,
+    autocomplete
 }
 
 type SubCommandType = 'add' | 'edit' | 'approve' | 'delete';
@@ -260,6 +263,22 @@ function validateModalResponse(submit: ModalSubmitInteraction<CacheType>): {tip:
         embedData: embed,
     }
     
+}
+
+async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction) {
+    const focused = interaction.options.getFocused().toLowerCase();
+    try {
+        if (!client.tipCache) client.tipCache = new TipCache();
+        const tips = await client.tipCache.getTips();
+        const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
+        await interaction.respond(
+            filtered.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)
+        );
+    }
+    catch(err) {
+        logMessage('Error autocompleting tips', {err}, true);
+        throw err;
+    }
 }
 
 export { discordInteraction };

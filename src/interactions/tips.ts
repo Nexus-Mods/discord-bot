@@ -4,10 +4,10 @@ import {
     ChatInputCommandInteraction, AutocompleteInteraction,
     EmbedData,InteractionEditReplyOptions
 } from "discord.js";
-import { DiscordInteraction } from '../types/DiscordTypes';
-import { getAllTips } from '../api/bot-db';
+import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { logMessage } from "../api/util";
 import { ITip } from "../api/tips";
+import { TipCache } from "../types/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -31,60 +31,15 @@ const discordInteraction: DiscordInteraction = {
     autocomplete
 }
 
-class TipCache {
-    private tips : ITip[] = [];
-    private nextUpdate: number = new Date().getTime() + 10000;
-
-    constructor() {
-        getAllTips()
-        .then( t =>  {
-            this.tips = t;
-            this.setNextUpdate();
-        });
-    }
-
-    private setNextUpdate(): void {
-        this.nextUpdate = new Date().getTime() + 300000
-    }
-
-    private async fetchTips(limit?: 'approved' | 'unapproved'): Promise<ITip[]> {
-        if (new Date().getTime() > this.nextUpdate) {
-            logMessage("Recaching tips")
-            this.tips = await getAllTips();
-            this.setNextUpdate();
-        }
-        else logMessage("Using cached tips "+new Date(this.nextUpdate).toLocaleDateString());
-        switch(limit){
-            case 'approved' : return this.tips.filter(t => t.approved === true);
-            case 'unapproved' : return this.tips.filter(t => t.approved === true);
-            default: return this.tips;
-        }
-    }
-    
-    public async getApprovedTips(): Promise<ITip[]> {
-        return await this.fetchTips('approved');
-    }
-
-    public async getPendingTips(): Promise<ITip[]> {
-        return await this.fetchTips('unapproved');
-    }
-
-    public async getTips(): Promise<ITip[]> {
-        return await this.fetchTips();
-    }
-}
-
-let tipCache: TipCache;
-
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply().catch(err => { throw err });
     
     const message: string = interaction.options.getString('code', true);
     const user: User | null = interaction.options.getUser('user');
 
-    if (!tipCache) tipCache = new TipCache();
-    const tips: ITip[] = await tipCache.getTips().catch(() => []);
+    if (!client.tipCache) client.tipCache = new TipCache();
+    const tips: ITip[] = await client.tipCache.getTips().catch(() => []);
     let replyMessage: InteractionEditReplyOptions = { content: '' };
 
     if (!!message) {
@@ -116,11 +71,11 @@ function embedBulderWithOverrides(tip: ITip, data: EmbedData, interaction: ChatI
     .setColor(0xda8e35);
 }
 
-async function autocomplete(client: Client, interaction: AutocompleteInteraction) {
+async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction) {
     const focused = interaction.options.getFocused().toLowerCase();
     try {
-        if (!tipCache) tipCache = new TipCache();
-        const tips = await tipCache.getApprovedTips();
+        if (!client.tipCache) client.tipCache = new TipCache();
+        const tips = await client.tipCache.getApprovedTips();
         const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
         await interaction.respond(
             filtered.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)
