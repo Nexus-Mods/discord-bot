@@ -1,11 +1,8 @@
 import { 
-    CommandInteraction, Client, EmbedBuilder, 
-    User, SlashCommandBuilder, 
-    ChatInputCommandInteraction, 
-    AutocompleteInteraction,
-    EmbedData,
-    InteractionReplyOptions,
-    InteractionEditReplyOptions
+    CommandInteraction, Client, 
+    EmbedBuilder, User, SlashCommandBuilder, 
+    ChatInputCommandInteraction, AutocompleteInteraction,
+    EmbedData,InteractionEditReplyOptions
 } from "discord.js";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getAllTips } from '../api/bot-db';
@@ -18,7 +15,7 @@ const discordInteraction: DiscordInteraction = {
     .setDescription('Return a quick info message on a number of topics.')
     .addStringOption(option =>
         option.setName('code')
-        .setDescription('Quick code for known message. (Optional)')
+        .setDescription('Quick code for known message.')
         .setRequired(true)
         .setAutocomplete(true)    
     )
@@ -88,7 +85,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     if (!tipCache) tipCache = new TipCache();
     const tips: ITip[] = await tipCache.getTips().catch(() => []);
-    let replyMessage: InteractionReplyOptions = { content: '' };
+    let replyMessage: InteractionEditReplyOptions = { content: '' };
 
     if (!!message) {
         const tip: ITip | undefined = tips.find(t => t.prompt.toLowerCase() === message.toLowerCase());
@@ -105,17 +102,17 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             // Clean out the content if it's blank
             if (replyMessage.content === '') delete replyMessage.content;
 
-            return interaction.reply(replyMessage);
+            return interaction.editReply(replyMessage);
         }
         else replyMessage.content = `No results found for ${message}`;
     }
 
 }
 
-function embedBulderWithOverrides(data: EmbedData, interaction: ChatInputCommandInteraction): EmbedBuilder {
+function embedBulderWithOverrides(tip: ITip, data: EmbedData, interaction: ChatInputCommandInteraction): EmbedBuilder {
     return new EmbedBuilder(data)
     .setFooter({ text:`Tip requested by ${interaction.user.displayName || '???'}`, iconURL: interaction.user.avatarURL() || '' } )
-    .setTimestamp(new Date())
+    .setTimestamp(new Date(tip.updated))
     .setColor(0xda8e35);
 }
 
