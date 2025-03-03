@@ -19,7 +19,7 @@ const discordInteraction: DiscordInteraction = {
     .addStringOption(option =>
         option.setName('code')
         .setDescription('Quick code for known message. (Optional)')
-        .setRequired(false)
+        .setRequired(true)
         .setAutocomplete(true)    
     )
     .addUserOption(option =>
@@ -83,102 +83,33 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
     
-    const message: string | null = interaction.options.getString('code');
+    const message: string = interaction.options.getString('code', true);
     const user: User | null = interaction.options.getUser('user');
 
-    const data: InfoResult[] = await getAllInfos().catch(() => []);
     if (!tipCache) tipCache = new TipCache();
     const tips: ITip[] = await tipCache.getTips().catch(() => []);
-    let content: string | null = null;
+    let replyMessage: InteractionReplyOptions = {};
 
-    if (!data.length && !tips.length) return interaction.editReply('No infos available.');
+    if (!tips.length) return interaction.editReply('No tips available.');
 
     if (!!message) {
-        const selected: InfoResult|undefined = data.find(i => i.name.toLowerCase() === message.toLowerCase());
         const tip: ITip | undefined = tips.find(t => t.prompt.toLowerCase() === message.toLowerCase());
-        if (!!selected) {
-            await interaction.editReply({ content: 'Info posted!', embeds: [], components: [] });
-            return displaySelected(client, selected, interaction, user);
-        }
-        else if (!!tip) {
+        if (!!tip) {
             await interaction.editReply({ content: 'Tip posted!', embeds: [], components: [] });
             const postable: InteractionReplyOptions = { embeds: [] };
-            if (tip.message) postable.content = tip.message;
+            replyMessage.content = 
+                `${user ? `${user.toString()}\n` : null}`+
+                `${tip.message || null}`+
+                `${!tip.embed? `\n-# Tip requested by ${interaction.user.displayName}`: null}`;
             if (tip.embed) {
                 const embedData = JSON.parse(tip.embed) as EmbedData;
-                const embedToShow = new EmbedBuilder(embedData);
-                postable.embeds = [ embedToShow ]
+                const embedToShow = embedBulderWithOverrides(embedData, interaction);
+                replyMessage.embeds = [ embedToShow ]
             }
-            return interaction.followUp(postable);
+            else (postable.content)
+            return interaction.editReply(postable);
         }
-        else content = `No results found for ${message}`;
-    }
-
-    if (!interaction.guild) return interaction.editReply('Unrecognised or invalid code.');
-
-    try {
-    const options: SelectMenuOptionBuilder[] = data.sort((a,b) => (a.title || a.name).localeCompare(b.title || b.name))
-    .map(d =>  new SelectMenuOptionBuilder()
-        .setLabel(d.title || d.name)
-        .setDescription(`Short code: ${d.name}`)
-        .setValue(d.name)
-    );
-    
-    // No message pre-selected!
-    const choices: ActionRowBuilder<SelectMenuBuilder | ButtonBuilder>[] | undefined = 
-        data.length ? [
-            new ActionRowBuilder<SelectMenuBuilder>()
-            .addComponents(
-                new SelectMenuBuilder()
-                .setCustomId('info-select')
-                .setPlaceholder('Select a topic to display...')
-                .addOptions(options)
-            ),
-            new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                .setCustomId('cancel')
-                .setLabel('Cancel')
-                .setStyle(ButtonStyle.Secondary)
-            )
-        ] : undefined;
-
-    const searchEmbed: EmbedBuilder = new EmbedBuilder()
-    .setColor(0xda8e35)
-    .setTitle('Select an Info Message to display')
-    .setDescription('This command will return an embed or message based on a preset help topic. Select the desired topic below.')
-    .addFields({ name: 'Suggest Tips', value: 'You can suggest your own tips to be shown with this command [here](https://forms.gle/jXzqwr5caRiSPZRf7).'})
-    .setFooter({text:`Nexus Mods API link`, iconURL:client.user?.avatarURL() || ''});
-
-
-    const replyMsg = await interaction.editReply({ content, embeds: [searchEmbed], components: choices, });
-
-    // Set up the collector
-    const collector: InteractionCollector<any> = (replyMsg as Message).createMessageComponentCollector({ time: 60000 });
-
-    collector.on('collect', async s => {
-        if (s.isButton() && s.customId === 'cancel') {
-            collector.stop('Selection complete');
-            await interaction.editReply({ content: 'Selection cancelled.', embeds: [], components: [] });
-            return;
-        }
-
-        await s.deferUpdate();
-        const selected = data.find(d => d.name === s.values[0]);
-        if (!!selected) {
-            collector.stop('Selection complete');
-            await interaction.editReply({ content: 'Info posted!', embeds: [], components: [] });
-            return displaySelected(client, selected, interaction, user)
-        };
-    });
-
-    collector.on('end', async () => {
-        await interaction.editReply({ components: [] }).catch((err) => logMessage('Error ending collector', err, true));
-    });
-    } 
-    catch(err) {
-        logMessage('Failed to show list of infos', { err }, true);
-        interaction.editReply({ content: 'Something went wrong. Please try again later.' });
+        else replyMessage.content = `No results found for ${message}`;
     }
 
 }
@@ -187,6 +118,13 @@ async function displaySelected(client: Client, selected: InfoResult, interaction
     logMessage('Posting interaction', { selected: selected.name });
     const postable: PostableInfo = displayInfo(client, selected, user);
     return interaction.followUp(postable);
+}
+
+function embedBulderWithOverrides(data: EmbedData, interaction: ChatInputCommandInteraction): EmbedBuilder {
+    return new EmbedBuilder(data)
+    .setFooter({ text:`Tip requested by ${interaction.user.displayName || '???'}`, iconURL: interaction.user.avatarURL() || '' } )
+    .setTimestamp(new Date())
+    .setColor(0xda8e35);
 }
 
 async function autocomplete(client: Client, interaction: AutocompleteInteraction) {
