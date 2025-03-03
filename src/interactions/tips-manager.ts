@@ -197,7 +197,7 @@ function tipModal(existingTip?: ITip): ModalBuilder {
     .setPlaceholder('e.g. Download Help')
     .setStyle(TextInputStyle.Paragraph)
     .setRequired(false)
-    .setMaxLength(120);
+    .setMaxLength(3000)
     if (existingTip?.message) messageInput.setValue(existingTip.message);
 
     const jsonInput = new TextInputBuilder()
