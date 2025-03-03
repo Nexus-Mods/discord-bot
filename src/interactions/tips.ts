@@ -36,7 +36,7 @@ const discordInteraction: DiscordInteraction = {
 
 class TipCache {
     private tips : ITip[] = [];
-    private nextUpdate: number = new Date().getTime() + 30000;
+    private nextUpdate: number = new Date().getTime() + 10000;
 
     constructor() {
         getAllTips()
@@ -52,9 +52,11 @@ class TipCache {
 
     private async fetchTips(limit?: 'approved' | 'unapproved'): Promise<ITip[]> {
         if (new Date().getTime() > this.nextUpdate) {
+            logMessage("Recaching tips")
             this.tips = await getAllTips();
             this.setNextUpdate();
         }
+        else logMessage("Using cached tips "+new Date(this.nextUpdate).toLocaleDateString());
         switch(limit){
             case 'approved' : return this.tips.filter(t => t.approved === true);
             case 'unapproved' : return this.tips.filter(t => t.approved === true);
