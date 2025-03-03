@@ -88,7 +88,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     if (!tipCache) tipCache = new TipCache();
     const tips: ITip[] = await tipCache.getTips().catch(() => []);
-    let replyMessage: InteractionEditReplyOptions = {};
+    let replyMessage: InteractionEditReplyOptions = { content: '' };
 
     if (!tips.length) return interaction.editReply('No tips available.');
 
@@ -104,6 +104,10 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
                 replyMessage.embeds = [ embedToShow ]
             }
             else replyMessage.content = replyMessage.content + `\n-# Tip requested by ${interaction.user.displayName}`;
+
+            // Clean out the content if it's blank
+            if (replyMessage.content === '') delete replyMessage.content;
+
             return interaction.editReply(replyMessage);
         }
         else replyMessage.content = `No results found for ${message}`;
