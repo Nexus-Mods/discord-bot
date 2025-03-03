@@ -631,7 +631,7 @@ async function postResult(interaction: ChatInputCommandInteraction, embed: Embed
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return interaction.followUp({content: '', embeds: [embed], flags: MessageFlags.Ephemeral})
+    return interaction.followUp({content: '', embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 }
 

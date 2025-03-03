@@ -75,10 +75,10 @@ async function autocomplete(client: ClientExt, interaction: AutocompleteInteract
     const focused = interaction.options.getFocused().toLowerCase();
     try {
         if (!client.tipCache) client.tipCache = new TipCache();
-        const tips = await client.tipCache.getApprovedTips();
-        const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
+        let tips = await client.tipCache.getApprovedTips();
+        if(focused.length) tips = tips.filter(t => t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
         await interaction.respond(
-            filtered.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)
+            tips.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)
         );
     }
     catch(err) {
