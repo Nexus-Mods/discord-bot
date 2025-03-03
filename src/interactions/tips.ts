@@ -14,8 +14,8 @@ const discordInteraction: DiscordInteraction = {
     .setName('tips')
     .setDescription('Return a quick info message on a number of topics.')
     .addStringOption(option =>
-        option.setName('code')
-        .setDescription('Quick code for known message.')
+        option.setName('prompt')
+        .setDescription('Start typing the tip title or prompt.')
         .setRequired(true)
         .setAutocomplete(true)    
     )
