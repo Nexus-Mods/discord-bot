@@ -81,7 +81,7 @@ let tipCache: TipCache;
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
+    await interaction.deferReply().catch(err => { throw err });
     
     const message: string = interaction.options.getString('code', true);
     const user: User | null = interaction.options.getUser('user');
@@ -96,15 +96,14 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         const tip: ITip | undefined = tips.find(t => t.prompt.toLowerCase() === message.toLowerCase());
         if (!!tip) {
             await interaction.editReply({ content: 'Tip posted!', embeds: [], components: [] });
-            replyMessage.content = 
-                `${user ? `${user.toString()}\n` : null}`+
-                `${tip.message || null}`+
-                `${!tip.embed? `\n-# Tip requested by ${interaction.user.displayName}`: null}`;
+            if (user) replyMessage.content = replyMessage.content + `${user.toString()}\n`;
+            if (tip.message) replyMessage.content = replyMessage.content + `${tip.message}`;
             if (tip.embed) {
                 const embedData = JSON.parse(tip.embed) as EmbedData;
                 const embedToShow = embedBulderWithOverrides(embedData, interaction);
                 replyMessage.embeds = [ embedToShow ]
             }
+            else replyMessage.content = replyMessage.content + `\n-# Tip requested by ${interaction.user.displayName}`;
             return interaction.editReply(replyMessage);
         }
         else replyMessage.content = `No results found for ${message}`;
