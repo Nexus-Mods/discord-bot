@@ -36,7 +36,7 @@ const discordInteraction: DiscordInteraction = {
 
 class TipCache {
     private tips : ITip[] = [];
-    private nextUpdate: number = new Date().getTime() + 300000;
+    private nextUpdate: number = new Date().getTime() + 30000;
 
     constructor() {
         getAllTips()
@@ -46,20 +46,32 @@ class TipCache {
         });
     }
 
-    private setNextUpdate() {
+    private setNextUpdate(): void {
         this.nextUpdate = new Date().getTime() + 300000
     }
-    
-    public async getApprovedTips() {
-        return this.tips.filter(t => t.approved === true);
-    }
 
-    public async getTips(): Promise<ITip[]> {
+    private async fetchTips(limit?: 'approved' | 'unapproved'): Promise<ITip[]> {
         if (new Date().getTime() > this.nextUpdate) {
             this.tips = await getAllTips();
             this.setNextUpdate();
         }
-        return this.tips;
+        switch(limit){
+            case 'approved' : return this.tips.filter(t => t.approved === true);
+            case 'unapproved' : return this.tips.filter(t => t.approved === true);
+            default: return this.tips;
+        }
+    }
+    
+    public async getApprovedTips(): Promise<ITip[]> {
+        return await this.fetchTips('approved');
+    }
+
+    public async getPendingTips(): Promise<ITip[]> {
+        return await this.fetchTips('unapproved');
+    }
+
+    public async getTips(): Promise<ITip[]> {
+        return await this.fetchTips();
     }
 }
 
@@ -178,7 +190,8 @@ async function displaySelected(client: Client, selected: InfoResult, interaction
 async function autocomplete(client: Client, interaction: AutocompleteInteraction) {
     const focused = interaction.options.getFocused();
     try {
-        const tips = await getAllTips();
+        if (!tipCache) tipCache = new TipCache();
+        const tips = await tipCache.getApprovedTips();
         const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused.toLowerCase()) || t.title.toLowerCase().includes(focused.toLowerCase()) );
         await interaction.respond(
             filtered.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)
