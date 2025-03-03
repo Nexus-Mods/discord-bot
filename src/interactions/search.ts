@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
-import { getUserByDiscordId, getServer } from '../api/bot-db';
+import { getUserByDiscordId, getServer, editTip } from '../api/bot-db';
 import Fuse from 'fuse.js';
 import { logMessage, nexusModsTrackingUrl } from "../api/util";
 import { CollectionsUserFilter } from "../types/GQLTypes";
@@ -614,13 +614,19 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
 
 
 async function postResult(interaction: ChatInputCommandInteraction, embed: EmbedBuilder, ephemeral: boolean) {
-    const replyOrEdit = (interaction.deferred || interaction.replied) ? interaction.editReply : interaction.reply;
+    const editReply: boolean = (interaction.deferred || interaction.replied)// ? interaction.editReply : interaction.reply;
 
-    if (ephemeral) return replyOrEdit({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral})
+    if (ephemeral) {
+        if (editReply) return interaction.editReply({content: undefined, embeds: [embed]})
+            .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+        else return interaction.reply({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+    }
 
-    replyOrEdit({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
+    if (editReply) interaction.editReply({ content: 'Search result posted!', embeds:[], components: []})
         .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+    else interaction.reply({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
+    .catch(e => {sendUnexpectedError(interaction, interaction, e)});
 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
