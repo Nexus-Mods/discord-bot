@@ -7,7 +7,8 @@ import {
     CacheType,
     InteractionReplyOptions,
     AutocompleteInteraction,
-    InteractionEditReplyOptions
+    InteractionEditReplyOptions,
+    PermissionFlagsBits
 } from "discord.js";
 import { InfoResult, PostableInfo, TipCache } from "../types/util";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
@@ -17,6 +18,7 @@ import { deleteTip, ITip, setApprovedTip } from "../api/tips";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
     .setName('tips-manager')
     .setDescription('Manage tips.')
     .addSubcommand(sc =>
@@ -39,7 +41,8 @@ const discordInteraction: DiscordInteraction = {
     ) as SlashCommandBuilder,
     public: false,
     guilds: [
-        '581095546291355649'
+        '581095546291355649',
+        '1134149061080002713'
     ],
     action,
     autocomplete
