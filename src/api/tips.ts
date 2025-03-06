@@ -62,16 +62,16 @@ async function setApprovedTip(prompt: string, approved: boolean): Promise<void> 
     }
 }
 
-async function deleteTip(code: string): Promise<void> {
+async function deleteTip(prompt: string): Promise<void> {
     try {
         await queryPromise(
-            'DELETE FROM tips WHERE code=$1',
-            [code]
+            'DELETE FROM tips WHERE prompt=$1',
+            [prompt]
         );
         return;
     }
     catch(error) {
-        throw new Error(`Could not delete Tip from database: ${code}. ${(error as Error).message}`);
+        throw new Error(`Could not delete Tip from database: ${prompt}. ${(error as Error).message}`);
     }
 }
 

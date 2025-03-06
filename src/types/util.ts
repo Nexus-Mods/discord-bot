@@ -195,15 +195,20 @@ export class TipCache {
     }
 
     private async fetchTips(limit?: 'approved' | 'unapproved'): Promise<ITip[]> {
-        if (new Date().getTime() > this.nextUpdate) {
+        if (!this.tips.length || new Date().getTime() >= this.nextUpdate) {
             this.tips = await getAllTips();
             this.setNextUpdate();
         }
         switch(limit){
             case 'approved' : return this.tips.filter(t => t.approved === true);
-            case 'unapproved' : return this.tips.filter(t => t.approved === true);
+            case 'unapproved' : return this.tips.filter(t => t.approved === false);
             default: return this.tips;
         }
+    }
+
+    public async bustCache(): Promise<void> {
+        this.tips = await getAllTips();
+        this.setNextUpdate();
     }
     
     public async getApprovedTips(): Promise<ITip[]> {
