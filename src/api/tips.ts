@@ -14,7 +14,7 @@ export interface ITip {
 
 async function getAllTips(): Promise<ITip[]> {
     try {
-        const data = await queryPromise('SELECT * FROM tips', []);
+        const data = await queryPromise('SELECT * FROM tips ORDER BY title', []);
         return data.rows as ITip[];
     }
     catch(error) {
