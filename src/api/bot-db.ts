@@ -27,6 +27,9 @@ import { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, add
 // TIPS
 import { getAllTips, addTip, deleteTip, editTip, setApprovedTip } from './tips';
 
+// ROLE CONDITIONS
+import { getConditionsForRole, addConditionForRole, deleteConditionForRole } from './server_role_conditions';
+
 export {
     getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
     getAllMods, getModsbyUser, createMod, deleteMod, updateMod, 
@@ -38,5 +41,6 @@ export {
     deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, updateRoles, updateAllRoles, modUniqueDLTotal,
     getAutomodRules, createAutomodRule, deleteAutomodRule,
     getBadFiles, addBadFile,
-    getAllTips, addTip, deleteTip, editTip, setApprovedTip
+    getAllTips, addTip, deleteTip, editTip, setApprovedTip,
+    getConditionsForRole, addConditionForRole, deleteConditionForRole
 };

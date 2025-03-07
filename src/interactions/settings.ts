@@ -5,7 +5,7 @@ import {
     PermissionFlagsBits, 
     APIRole
 } from "discord.js";
-import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
+import { getUserByDiscordId, updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';
 import { BotServer } from "../types/servers";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { logMessage } from "../api/util";
@@ -13,13 +13,6 @@ import { IGameInfo } from "@nexusmods/nexus-api";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
 import { autocompleteGameName } from "../api/util";
-
-interface IBotServerChange {
-    name: string;
-    cur: any | Role | IGameInfo | string | undefined;
-    new: any | Role | IGameInfo | string | undefined;
-    data: Partial<BotServer>;
-}
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -52,7 +45,48 @@ const discordInteraction: DiscordInteraction = {
         )
         .addSubcommand(sc => 
             sc.setName('add-role-conditions')
-            .setDescription('Add a crieria for the claimable role')
+            .setDescription('Add a criteria for the claimable role')
+            .addStringOption(option =>
+                option.setName('type')
+                .setDescription('The type of requirement')
+                .setChoices([
+                    {
+                        name: "Total Mod Downloads",
+                        value: "modDownloads"
+                    },
+                    {
+                        name: 'Total Mods Uploaded',
+                        value: 'modsPublished'
+                    }
+                ]).setRequired(true)
+            )
+            .addStringOption(option => 
+                option.setName('game')
+                .setDescription('The game this requirement applies to')
+                .setAutocomplete(true)
+                .setRequired(true)
+            )
+            .addNumberOption(option => 
+                option.setName('count')
+                .setDescription('The minimum number to satisfy the requirement')
+                .setMinValue(0)
+                .setRequired(true)
+            )
+            .addStringOption(option =>
+                option.setName('op')
+                .setDescription('Operator to use (Default: AND)')
+                .setChoices([
+                    {
+                        name: 'AND',
+                        value: 'AND'
+                    },
+                    {
+                        name: 'OR',
+                        value: 'OR'
+                    }
+                ])
+            )
+            
         )
         .addSubcommand(sc => 
             sc.setName('remove-role-conditions')
@@ -69,7 +103,19 @@ const discordInteraction: DiscordInteraction = {
 
 type SubCommandGroups = 'update';
 type SubCommands = 'view' | 'searchfilter' | 'role' | 'add-role-conditions' | 'remove-role-conditions';
-type OptionNames = 'game' | 'role';
+type OptionNames = 'game' | 'role' | 'count' | 'op' | 'type';
+
+enum ConditionType {
+    modDownloads = 'mod downloads',
+    modsPublished = 'mods published'
+}
+
+interface IBotServerChange {
+    name: string;
+    cur: any | Role | IGameInfo | string | undefined;
+    new: any | Role | IGameInfo | string | undefined;
+    data: Partial<BotServer>;
+};
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
@@ -110,8 +156,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                 break;
                 case 'role': newData = await updateClaimableRole(interaction, gameList, server, guild);
                 break;
-                case 'add-role-conditions': await addRoleConditions();
-                break;
+                case 'add-role-conditions': return addRoleConditions(interaction, gameList, server, guild);
                 case 'remove-role-conditions': await removeRoleConditions();
                 default: throw new Error('Unrecognised SubCommand: '+subCom);
             }
@@ -141,7 +186,7 @@ async function viewServerInfo(client: ClientExt, interaction: CommandInteraction
 }
 
 async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer): Promise<Partial<IBotServerChange>> {
-    const gameQuery: OptionNames | null = interaction.options.getString('game') as OptionNames;
+    const gameQuery: string | null = interaction.options.getString('game' as OptionNames);
     let foundGame : IGameStatic | undefined;
     if (!!gameQuery) {
         foundGame = resolveFilter(gameList, gameQuery);
@@ -170,8 +215,45 @@ async function updateClaimableRole(interaction: ChatInputCommandInteraction, gam
     }
 }
 
-async function addRoleConditions() {
-    throw new Error('Not implemented')
+async function addRoleConditions(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild) {    
+    // Get the role for the server
+    const roleId: string | undefined = server.role_author;
+    console.log(server);
+    if (roleId === undefined) return interaction.editReply('No role configured. Use the `/settings update role` option to set a role.');
+    const role: Role | APIRole| null = await guild.roles.fetch(roleId!);
+    if (role === null) return interaction.editReply('Configured role no longer exists. Use the `/settings update role` option to set a role.');
+    // Get current conditions
+    const currentConditions = await getConditionsForRole(guild.id, role!.id);
+    if (currentConditions.length >= 5) return interaction.editReply('Maximum number of conditions reached, please remove one to make further changes.');
+    
+    // Get the variables from the command
+    const type: 'modDownloads' | 'modsPublished' = interaction.options.getString('type' as OptionNames, true) as 'modDownloads' | 'modsPublished';
+    const game: string = interaction.options.getString('game' as OptionNames, true);
+    const minCount: number = interaction.options.getNumber('count' as OptionNames, true);
+    const op: 'AND' | 'OR' = interaction.options.getString('op' as OptionNames) as 'AND' | 'OR' ?? 'AND';
+
+    // Get the game
+    const gameInfo = gameList.find(g => g.domain_name === game);
+    if (!gameInfo) return interaction.editReply(`Invalid game: ${game}`);
+
+    logMessage('Adding role condition', { roleId, type, game, minCount, op });
+
+    try {
+        const newCondition = await addConditionForRole(guild.id, roleId!, type, game, minCount, op);
+        const newConditions = [...currentConditions, newCondition];
+        // Show a pretty embed with all current options;
+        const conditionText = newConditions.map(c => (`- ${c.min.toLocaleString()}+ ${ConditionType[c.type]} for ${gameList.find(g => g.domain_name === c.game)!.name} :: ${c.op}`))
+
+        const embed = new EmbedBuilder()
+        .setTitle('Role Conditions')
+        .setDescription(`Conditions for ${role?.toString()}\n\n${conditionText.join('\n')}`);
+
+        return interaction.editReply({ content: 'Role conditions updated', embeds: [embed] });
+    }
+    catch(err) {
+        logMessage('Error adding role condition', err, true);
+        return interaction.editReply('Error adding role condition');
+    }
 }
 
 async function removeRoleConditions() {
