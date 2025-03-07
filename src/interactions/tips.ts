@@ -1,8 +1,7 @@
 import { 
-    CommandInteraction, Client, 
-    EmbedBuilder, User, SlashCommandBuilder, 
-    ChatInputCommandInteraction, AutocompleteInteraction,
-    EmbedData,InteractionEditReplyOptions
+    CommandInteraction, EmbedBuilder, User, 
+    SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
+    EmbedData, InteractionEditReplyOptions
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { logMessage } from "../api/util";

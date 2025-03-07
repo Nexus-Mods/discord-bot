@@ -1,4 +1,9 @@
-import { CommandInteraction, Client, Guild, EmbedBuilder, Role, ThreadChannel, GuildChannel, GuildMember, SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits, APIRole } from "discord.js";
+import { 
+    CommandInteraction, Client, Guild, EmbedBuilder, 
+    Role, ThreadChannel, GuildChannel, GuildMember, 
+    SlashCommandBuilder, ChatInputCommandInteraction, 
+    PermissionFlagsBits 
+} from "discord.js";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { BotServer } from "../types/servers";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
@@ -6,8 +11,9 @@ import { logMessage } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
+import { autocompleteGameName } from "../api/util";
 
-interface BotServerChange {
+interface IBotServerChange {
     name: string;
     cur: any | Role | IGameInfo | string | undefined;
     new: any | Role | IGameInfo | string | undefined;
@@ -27,63 +33,12 @@ const discordInteraction: DiscordInteraction = {
         scg.setName('update')
         .setDescription('Update the settings for this server.')
         .addSubcommand(sc => 
-            sc.setName('filter')
-            .setDescription('The game to used for mod search commands.')
+            sc.setName('searchfilter')
+            .setDescription('The default game filter to used for search commands.')
             .addStringOption(option =>
                 option.setName('game')   
-                .setDescription('The domain name or title (must be exact). e.g. Stardew Valley or stardewvalley.') 
-            )
-        )
-        // .addSubcommand(sc => 
-        //     sc.setName('role')
-        //     .setDescription('The roles assigned by the bot.')
-        //     .addStringOption(option =>
-        //         option.setName('type')
-        //         .setDescription('The role type to edit.')
-        //         .setRequired(true)
-        //         .addChoices(
-        //             { name: 'Mod Author', value: 'author' },
-        //             { name: 'Linked to Nexus Mods', value: 'linked' },
-        //             { name: 'Nexus Mods Premium', value: 'premium' },
-        //             { name: 'Nexus Mods Supporter', value: 'supporter' },
-        //         )
-        //     )
-        //     .addRoleOption(option => 
-        //         option.setName('newrole')  
-        //         .setDescription('Role to use. To unset, leave this blank.')
-        //     )
-        // )
-        .addSubcommand(sc => 
-            sc.setName('channel')
-            .setDescription('Channels used by the bot.')
-            .addStringOption(option =>
-                option.setName('type')
-                .setDescription('The channel to edit.')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'Text-Command Reply Channel', value: 'replychannel' },
-                    { name: 'Activity Log', value: 'logchannel' }
-                )
-            )
-            .addChannelOption(option =>
-                option.setName('newchannel') 
-                .setDescription('Channel to use. To unset, leave this blank.')   
-            )
-        )
-        .addSubcommand(sc => 
-            sc.setName('value')
-            .setDescription('Additional options used by the bot.')
-            .addStringOption(option =>
-                option.setName('key')
-                .setDescription('The key to update.')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'Minimum Unique Downloads to be considered a Mod Author', value: 'authordownloads' }
-                )
-            )
-            .addIntegerOption(option =>
-                option.setName('newvalue')
-                .setDescription('The numerical value to set.')
+                .setDescription('Game Title. e.g. Stardew Valley or stardewvalley.')
+                .setAutocomplete(true)
             )
         )
     ) as SlashCommandBuilder,
@@ -91,25 +46,23 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         '581095546291355649'
     ],
-    action
+    action,
+    autocomplete: autocompleteGameName
 }
+
+type SubCommandGroups = 'update';
+type SubCommands = 'view' | 'searchfilter';
+type OptionNames = 'game';
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    // logMessage('Settings interaction triggered', 
-    // { 
-    //     user: interaction.user.tag, 
-    //     guild: interaction.guild?.name, 
-    //     interaction: interaction.toString(),
-    //     channel: (interaction.channel as any)?.name
-    // });
 
     await interaction.deferReply({ ephemeral: true });
 
     // Outcomes: update, null
-    const subComGroup: string | null = interaction.options.getSubcommandGroup(false);
+    const subComGroup: SubCommandGroups | null = interaction.options.getSubcommandGroup(false) as SubCommandGroups;
     // Outcomes: view, filter, role, channel
-    const subCom: string = interaction.options.getSubcommand();
+    const subCom: SubCommands = interaction.options.getSubcommand() as SubCommands;
     // Some important IDs
     const discordId : string = interaction.user.id;
     const guild : Guild | null = interaction.guild;
@@ -126,125 +79,23 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const server: BotServer = await getServer(guild)
         .catch((err) => { throw new Error('Could not retrieve server details'+err.message) }); 
         const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
-        const gameList: IGameStatic[] = user ? await user.NexusMods.API.Other.Games() : [];
-        const filterGame: IGameStatic|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
+        const gameList: IGameStatic[] = await client.gamesList?.getGames() ?? [];
 
         // Viewing the current settings
-        if (!subComGroup && subCom === 'view') {
-            const view: EmbedBuilder = await serverEmbed(client, guild, server, filterGame?.name);
-            return interaction.editReply({ embeds: [view] });
-        }
+        if (!subComGroup && subCom === 'view') return viewServerInfo(client, interaction, guild, gameList, server);
         // Update 
         else if (subComGroup === 'update') {
-            let newData: Partial<BotServerChange> = {};
+            let newData: Partial<IBotServerChange> = {};
 
             switch (subCom) {
-                case 'channel': {
-                    const channelType: string = interaction.options.getString('type', true);
-                    const newChannel = interaction.options.getChannel('newchannel');
-
-                    switch(channelType) {
-                        case 'replychannel': {
-                            newData = {
-                                cur: server.channel_bot,
-                                name: 'Reply Channel',
-                                new: newChannel,
-                                data: { channel_bot: (newChannel as any)?.id }
-                            };
-                        
-                        }
-                        break;
-                        case 'logchannel': {
-                            newData = {
-                                cur: server.channel_nexus,
-                                name: 'Log Channel',
-                                new: newChannel,
-                                data: { channel_nexus: (newChannel as any)?.id }
-                            };
-                        }
-                        break;
-                    }
-                }
-                break;
-                case 'role': {
-                    const roleType: string = interaction.options.getString('type', true);
-                    const newRole: Role | APIRole | null = interaction.options.getRole('newrole');
-                    switch(roleType) {
-                        case 'author': {
-                            newData = {
-                                cur: server.role_author,
-                                name: 'Mod Author Role',
-                                new: newRole,
-                                data: { role_author: newRole?.id }
-                            };
-                        
-                        }
-                        break;
-                        case 'premium': {
-                            newData = {
-                                cur: server.role_premium,
-                                name: 'Log Channel',
-                                new: newRole,
-                                data: { role_premium: newRole?.id }
-                            };
-                        }
-                        break;
-                        case 'supporter': {
-                            newData = {
-                                cur: server.role_supporter,
-                                name: 'Log Channel',
-                                new: newRole,
-                                data: { role_supporter: newRole?.id }
-                            };
-                        }
-                        break;
-                        case 'linked': {
-                            newData = {
-                                cur: server.role_linked,
-                                name: 'Log Channel',
-                                new: newRole,
-                                data: { role_linked: newRole?.id }
-                            };
-                        }
-                        break;
-                    }
-
-                }
-                break;
-                case 'filter': {
-                    const gameQuery: string | null = interaction.options.getString('game');
-                    let foundGame : IGameStatic | undefined;
-                    if (!!gameQuery) {
-                        foundGame = resolveFilter(gameList, gameQuery);
-                        if (!foundGame) throw new Error(`Invalid Game: Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
-                    }
-                    newData = {
-                        name: 'Mod Search Filter',
-                        cur: resolveFilter(gameList, server.game_filter?.toString()),
-                        new: foundGame,
-                        data: { game_filter: foundGame?.id.toString() }
-                    }
-                }
-                break;
-                case 'value': {
-                    const valueToEdit: string = interaction.options.getString('key', true);
-                    const newInt: number|null = interaction.options.getInteger('newvalue');
-                    // Only one value for now, so no harm in hard-coding this.
-                    if (valueToEdit !== 'authordownloads') throw new Error('Unknown value key: '+valueToEdit);
-                    newData = {
-                        name: 'Minimum Unique Downloads for Mod Author role',
-                        cur: server.author_min_downloads ? parseInt(server.author_min_downloads).toLocaleString() : 'none',
-                        new: newInt?.toLocaleString() || (1000).toLocaleString(),
-                        data: { author_min_downloads: newInt?.toString() }
-                    }
-                }
+                case 'searchfilter': newData = await updateSearchFilter(interaction, gameList, server);
                 break;
                 default: throw new Error('Unrecognised SubCommand: '+subCom);
             }
 
             try {
                 await updateServer(server.id, newData.data);
-                return interaction.editReply({ embeds: [updateEmbed(newData as BotServerChange)] })
+                return interaction.editReply({ embeds: [updateEmbed(newData as IBotServerChange)] })
             }
             catch (err) {
                 throw new Error('Error updating server data: '+(err as Error).message)
@@ -258,7 +109,28 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     }
 }
 
-const updateEmbed = (data: BotServerChange): EmbedBuilder => { 
+async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, ) {
+    const filterGame: IGameStatic|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
+    const view: EmbedBuilder = await serverEmbed(client, guild, server, filterGame?.name);
+    return interaction.editReply({ embeds: [view] });
+}
+
+async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer): Promise<Partial<IBotServerChange>> {
+    const gameQuery: OptionNames | null = interaction.options.getString('game') as OptionNames;
+    let foundGame : IGameStatic | undefined;
+    if (!!gameQuery) {
+        foundGame = resolveFilter(gameList, gameQuery);
+        if (!foundGame) throw new Error(`Invalid Game: Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
+    }
+    return {
+        name: 'Mod Search Filter',
+        cur: resolveFilter(gameList, server.game_filter?.toString()),
+        new: foundGame,
+        data: { game_filter: foundGame?.id.toString() }
+    }
+}
+
+const updateEmbed = (data: IBotServerChange): EmbedBuilder => { 
     const curVal = (data.cur as IGameInfo) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
     const newVal = (data.new as IGameInfo) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
     console.log({curVal, newVal, data});
@@ -276,9 +148,9 @@ function resolveFilter(games: IGameStatic[], term: string|null|undefined): IGame
 }
 
 const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameName?: string): Promise<EmbedBuilder> => {
-    const botChannel: ThreadChannel | GuildChannel|null = server.channel_bot ? guild.channels.resolve(server.channel_bot) : null;
+    // const botChannel: ThreadChannel | GuildChannel|null = server.channel_bot ? guild.channels.resolve(server.channel_bot) : null;
     const nexusChannel: ThreadChannel | GuildChannel|null = server.channel_nexus ? guild.channels.resolve(server.channel_nexus) : null;
-    const logChannel: ThreadChannel | GuildChannel|null = server.channel_log ? guild.channels.resolve(server.channel_log) : null;
+    const logChannel: ThreadChannel | GuildChannel|null = null //server.channel_log ? guild.channels.resolve(server.channel_log) : null;
     const newsChannel: ThreadChannel|GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
     const owner: GuildMember = await guild.fetchOwner();
 
@@ -295,7 +167,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
         {
             name: 'Channel Settings',
             value: 'Set a bot channel to limit bot replies to one place or set a channel for bot logging messages.\n\n'+
-            `**Reply Channel:** ${botChannel?.toString() || '*<any>*'}\n`+
+            // `**Reply Channel:** ${botChannel?.toString() || '*<any>*'}\n`+
             `**Log Channel:** ${nexusChannel?.toString() || '*Not set*'}`
         },
         {
@@ -305,7 +177,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     ])
     .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: client.user?.avatarURL() || '' });
 
-    if (newsChannel || logChannel) embed.addFields({ name: 'Depreciated Channels', value: `News: ${newsChannel?.toString() || 'n/a'}, Log: ${logChannel?.toString() || 'n/a'}`});
+    if (newsChannel || logChannel) embed.addFields({ name: 'Deprecated Channels', value: `News: ${newsChannel?.toString() || 'n/a'}, Log: ${(logChannel as any)?.toString() || 'n/a'}`});
     if (server.official) embed.addFields({ name: 'Official Nexus Mods Server', value: 'This server is an official Nexus Mods server, all bot functions are enabled.'});
 
     return embed;

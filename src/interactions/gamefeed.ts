@@ -5,12 +5,13 @@ import {
     SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction, AutocompleteInteraction,
     MessageFlags
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
+import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
 import { logMessage } from '../api/util';
 import { GameFeed } from "../types/feeds";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
+import { autocompleteGameName } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -52,7 +53,7 @@ const discordInteraction: DiscordInteraction = {
     public: true,
     guilds: [],
     action,
-    autocomplete,
+    autocomplete: autocompleteGameName,
 }
 
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
@@ -512,21 +513,6 @@ async function rejectMessage(reason: string,  interaction: CommandInteraction) {
     .setDescription(reason)
 
     await interaction.editReply({ content: null, embeds: [rejectEmbed], components: [] });
-}
-
-async function autocomplete(client: ClientExt, acInteraction: AutocompleteInteraction) {
-    const focused = acInteraction.options.getFocused();
-    try {
-        const games = await client.gamesList?.getGames() || [];
-        const filtered = games.filter(g => focused === '' || (g.name.toLowerCase().startsWith(focused.toLowerCase()) || g.domain_name.includes(focused.toLowerCase())));
-        await acInteraction.respond(
-            filtered.map(g => ({ name: g.name, value: g.domain_name })).slice(0, 25)
-        );
-    }
-    catch(err) {
-        logMessage('Error autocompleting', {err}, true);
-        throw err;
-    }
 }
 
 

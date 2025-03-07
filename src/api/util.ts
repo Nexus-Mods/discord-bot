@@ -1,9 +1,25 @@
-import { EmbedBuilder } from "discord.js";
+import { AutocompleteInteraction, EmbedBuilder } from "discord.js";
+import { ClientExt } from "../types/DiscordTypes";
 
 export const logMessage  = (msg: string, obj?: any, error?: boolean) => {
     const message = `${new Date().toLocaleString()} - ${msg}`;
     error === true ? console.error(message, obj || '') : console.log(message, obj || '');
 };
+
+export async function autocompleteGameName(client: ClientExt, acInteraction: AutocompleteInteraction) {
+    const focused = acInteraction.options.getFocused().toLowerCase();
+    try {
+        var games = await client.gamesList!.getGames();
+        if (focused !== '') games = games.filter(g => (g.name.toLowerCase().startsWith(focused) || g.domain_name.includes(focused)));
+        await acInteraction.respond(
+            games.map(g => ({ name: g.name, value: g.domain_name })).slice(0, 25)
+        );
+    }
+    catch(err) {
+        logMessage('Error autocompleting games', {err}, true);
+        throw err;
+    }
+}
 
 export const unexpectedErrorEmbed = (err: any, context: any): EmbedBuilder => {
     return new EmbedBuilder()
