@@ -7,7 +7,7 @@ export interface BotServer {
     channel_nexus?: Snowflake;
     // channel_log?: Snowflake;
     channel_news?: Snowflake;
-    // role_author?: Snowflake;
+    role_author?: Snowflake;
     // role_premium?: Snowflake;
     // role_supporter?: Snowflake;
     // role_linked?: Snowflake;

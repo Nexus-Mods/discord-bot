@@ -2,7 +2,8 @@ import {
     CommandInteraction, Client, Guild, EmbedBuilder, 
     Role, ThreadChannel, GuildChannel, GuildMember, 
     SlashCommandBuilder, ChatInputCommandInteraction, 
-    PermissionFlagsBits 
+    PermissionFlagsBits, 
+    APIRole
 } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer } from '../api/bot-db';
 import { BotServer } from "../types/servers";
@@ -41,6 +42,22 @@ const discordInteraction: DiscordInteraction = {
                 .setAutocomplete(true)
             )
         )
+        .addSubcommand(sc =>
+            sc.setName('role')
+            .setDescription('Set a claimable role with specific Nexus Mods account conditions')
+            .addRoleOption(option =>
+                option.setName('role')
+                .setDescription('Role to use. Must be lower than the bot role in server settings.')
+            )
+        )
+        .addSubcommand(sc => 
+            sc.setName('add-role-conditions')
+            .setDescription('Add a crieria for the claimable role')
+        )
+        .addSubcommand(sc => 
+            sc.setName('remove-role-conditions')
+            .setDescription('Remove a crieria for the claimable role')
+        )
     ) as SlashCommandBuilder,
     public: true,
     guilds: [
@@ -51,8 +68,8 @@ const discordInteraction: DiscordInteraction = {
 }
 
 type SubCommandGroups = 'update';
-type SubCommands = 'view' | 'searchfilter';
-type OptionNames = 'game';
+type SubCommands = 'view' | 'searchfilter' | 'role' | 'add-role-conditions' | 'remove-role-conditions';
+type OptionNames = 'game' | 'role';
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
@@ -87,11 +104,19 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         else if (subComGroup === 'update') {
             let newData: Partial<IBotServerChange> = {};
 
+            // Handle the subcommand
             switch (subCom) {
                 case 'searchfilter': newData = await updateSearchFilter(interaction, gameList, server);
                 break;
+                case 'role': newData = await updateClaimableRole(interaction, gameList, server, guild);
+                break;
+                case 'add-role-conditions': await addRoleConditions();
+                break;
+                case 'remove-role-conditions': await removeRoleConditions();
                 default: throw new Error('Unrecognised SubCommand: '+subCom);
             }
+
+            if (!Object.keys(newData).length) return interaction.editReply('No updates needed');
 
             try {
                 await updateServer(server.id, newData.data);
@@ -128,6 +153,29 @@ async function updateSearchFilter(interaction: ChatInputCommandInteraction, game
         new: foundGame,
         data: { game_filter: foundGame?.id.toString() }
     }
+}
+
+async function updateClaimableRole(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild): Promise<Partial<IBotServerChange>> {
+    // Need to get the role the user picked
+    const newRole: Role | APIRole | null = interaction.options.getRole('role', false);
+    const currentRole: Role | APIRole | null = server.role_author ? await guild.roles.fetch(server.role_author) : null;
+    // No change means we can exit. 
+    if ((newRole === null && currentRole === null) || newRole?.id === currentRole?.id) return {};
+
+    return {
+        name: 'Claimable Role',
+        cur: currentRole,
+        new: newRole,
+        data: { role_author: newRole!.id }
+    }
+}
+
+async function addRoleConditions() {
+    throw new Error('Not implemented')
+}
+
+async function removeRoleConditions() {
+    throw new Error('Not implemented')
 }
 
 const updateEmbed = (data: IBotServerChange): EmbedBuilder => { 
