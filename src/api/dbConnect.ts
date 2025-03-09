@@ -1,4 +1,4 @@
-import { Pool, PoolConfig, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolConfig, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import path from 'path';
 import { logMessage } from './util';
 const config = require(path.join('..', 'config.json'));
@@ -16,7 +16,7 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
-export async function queryPromise(query: string, values: any[]): Promise<QueryResult> {
+export async function queryPromise<T extends QueryResultRow>(query: string, values: any[]): Promise<QueryResult<T>> {
     return new Promise((resolve, reject) => {
         pool.connect((err?: Error, client?: PoolClient, release?) => {
             if (err) {

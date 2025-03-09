@@ -14,8 +14,8 @@ export interface ITip {
 
 async function getAllTips(): Promise<ITip[]> {
     try {
-        const data = await queryPromise('SELECT * FROM tips ORDER BY title', []);
-        return data.rows as ITip[];
+        const data = await queryPromise<ITip>('SELECT * FROM tips ORDER BY title', []);
+        return data.rows;
     }
     catch(error) {
         throw new Error(`Could not get Tips from database. ${(error as Error).message}`);
@@ -23,10 +23,10 @@ async function getAllTips(): Promise<ITip[]> {
 
 }
 
-async function addTip(prompt: string, author: string, title: string, embed?: string, message?: string): Promise<{id: number, prompt: string}> {
+async function addTip(prompt: string, author: string, title: string, embed?: string, message?: string): Promise<ITip> {
     try {
-        const data = await queryPromise(
-            'INSERT INTO tips (prompt, title, embed, message, author) VALUES ($1 , $2, $3, $4, $5) RETURNING id, prompt',
+        const data = await queryPromise<ITip>(
+            'INSERT INTO tips (prompt, title, embed, message, author) VALUES ($1 , $2, $3, $4, $5) RETURNING *',
             [prompt, title, embed, message, author]
         );
         return data.rows[0];

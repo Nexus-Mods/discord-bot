@@ -3,7 +3,12 @@ import {
     Role, ThreadChannel, GuildChannel, GuildMember, 
     SlashCommandBuilder, ChatInputCommandInteraction, 
     PermissionFlagsBits, 
-    APIRole
+    APIRole,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ComponentType,
+    ButtonInteraction
 } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';
 import { BotServer } from "../types/servers";
@@ -13,6 +18,7 @@ import { IGameInfo } from "@nexusmods/nexus-api";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
 import { autocompleteGameName } from "../api/util";
+import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -157,7 +163,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                 case 'role': newData = await updateClaimableRole(interaction, gameList, server, guild);
                 break;
                 case 'add-role-conditions': return addRoleConditions(interaction, gameList, server, guild);
-                case 'remove-role-conditions': await removeRoleConditions();
+                case 'remove-role-conditions': return removeRoleConditions(interaction, gameList, server, guild);
                 default: throw new Error('Unrecognised SubCommand: '+subCom);
             }
 
@@ -181,7 +187,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
 async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, ) {
     const filterGame: IGameStatic|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
-    const view: EmbedBuilder = await serverEmbed(client, guild, server, filterGame?.name);
+    const view: EmbedBuilder = await serverEmbed(client, guild, server, gameList, filterGame?.name);
     return interaction.editReply({ embeds: [view] });
 }
 
@@ -203,9 +209,32 @@ async function updateSearchFilter(interaction: ChatInputCommandInteraction, game
 async function updateClaimableRole(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild): Promise<Partial<IBotServerChange>> {
     // Need to get the role the user picked
     const newRole: Role | APIRole | null = interaction.options.getRole('role', false);
-    const currentRole: Role | APIRole | null = server.role_author ? await guild.roles.fetch(server.role_author) : null;
+    const currentRole: Role | null = server.role_author ? await guild.roles.fetch(server.role_author) : null;
     // No change means we can exit. 
     if ((newRole === null && currentRole === null) || newRole?.id === currentRole?.id) return {};
+
+    // Delete conditions if we're clearing the role
+    if (currentRole && newRole === null) {
+        try {
+            await deleteAllConditionsForRole(guild.id, server.role_author!);
+        }
+        catch(err) {
+            logMessage('Error deleting conditions for role', err, true);
+        }
+    }
+    // If we're swapping the role, swap the conditions
+    else if (!!newRole  && !!currentRole && newRole!.id !== currentRole!.id) {
+        try {
+            logMessage('Changing role for conditions', { cur: currentRole!.id, new:newRole!.id });
+            await changeRoleForConditions(guild.id, currentRole!.id, newRole!.id);
+
+        }
+        catch(err) {
+            logMessage('Error updating role for conditions', err, true);
+        }
+    }
+    else logMessage('No changes needed for conditions');
+    
 
     return {
         name: 'Claimable Role',
@@ -218,7 +247,6 @@ async function updateClaimableRole(interaction: ChatInputCommandInteraction, gam
 async function addRoleConditions(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild) {    
     // Get the role for the server
     const roleId: string | undefined = server.role_author;
-    console.log(server);
     if (roleId === undefined) return interaction.editReply('No role configured. Use the `/settings update role` option to set a role.');
     const role: Role | APIRole| null = await guild.roles.fetch(roleId!);
     if (role === null) return interaction.editReply('Configured role no longer exists. Use the `/settings update role` option to set a role.');
@@ -256,14 +284,57 @@ async function addRoleConditions(interaction: ChatInputCommandInteraction, gameL
     }
 }
 
-async function removeRoleConditions() {
-    throw new Error('Not implemented')
+async function removeRoleConditions(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild) {
+    // Get conditions
+    const roleId: string | null = server.role_author ?? null;
+    if (!roleId) return interaction.editReply('Not claimable role set!');
+    const role = await guild.roles.fetch(roleId);
+    if (!role) {
+        await deleteAllConditionsForRole(guild.id, roleId);
+        return interaction.editReply('The role for this server does not exist anymore. Please set it up again.');
+    }
+    const conditions = await getConditionsForRole(guild.id, roleId);
+    if (!conditions.length) return interaction.editReply(`No conditions set for ${role.toString()}`);
+
+    const emoji =  [ '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣' ];
+    let conditionWithEmoji : (IConditionForRole & {emoji: string})[] = conditions.map((c, i) => ({...c, emoji: emoji[i]}) );
+
+    const embed = (options: (IConditionForRole & {emoji: string})[]) => new EmbedBuilder()
+    .setTitle('Claimable Role Conditions')
+    .setDescription(`Role: ${role.toString()}\n\n${ options.map(c => (` - ${c.emoji} ${c.min.toLocaleString()}+ ${ConditionType[c.type]} for ${gameList.find(g => g.domain_name === c.game)!.name} :: ${c.op}`)).join('\n') }`)
+
+    const buttons = (options: (IConditionForRole & {emoji: string})[]) => new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+        options.map(e => (new ButtonBuilder().setCustomId(e.emoji).setLabel(e.emoji).setStyle(ButtonStyle.Secondary)))
+    )
+
+    await interaction.editReply({content: 'Choose a condition to delete.', embeds: [embed(conditionWithEmoji)], components: [buttons(conditionWithEmoji)]});
+
+    // throw new Error('Not implemented');
+    const collector = (await interaction.fetchReply()).createMessageComponentCollector({ max: conditionWithEmoji.length, time: 60_000, componentType: ComponentType.Button });
+    collector.on('end', () => logMessage('Collector ended'))
+    collector.on('collect', async (i: ButtonInteraction) => {
+        await i.deferUpdate();
+        const selection = i.customId;
+        const conditionToRemove = conditionWithEmoji.find(c => c.emoji === selection);
+        if (!conditionToRemove) return logMessage('Could not find condition to remove!', selection, true);
+        try {
+            await deleteConditionForRole(conditionToRemove!.id);
+            // filter out the removed condition;
+            conditionWithEmoji = conditionWithEmoji.filter(c => c.emoji !== selection);
+            if (!conditionWithEmoji.length) return i.editReply({ components: [], content: 'All conditions removed!', embeds: [embed(conditionWithEmoji)] });
+            await i.editReply({embeds: [embed(conditionWithEmoji)], components: [buttons(conditionWithEmoji)]});
+        }
+        catch(err) {
+            logMessage('Error removing condition', err, true);
+        }
+    })
+
 }
 
 const updateEmbed = (data: IBotServerChange): EmbedBuilder => { 
     const curVal = (data.cur as IGameInfo) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
     const newVal = (data.new as IGameInfo) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
-    console.log({curVal, newVal, data});
     return new EmbedBuilder()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)
@@ -277,40 +348,41 @@ function resolveFilter(games: IGameStatic[], term: string|null|undefined): IGame
     return game;
 }
 
-const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameName?: string): Promise<EmbedBuilder> => {
-    // const botChannel: ThreadChannel | GuildChannel|null = server.channel_bot ? guild.channels.resolve(server.channel_bot) : null;
+const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameList: IGameStatic[], gameName?: string,): Promise<EmbedBuilder> => {
+    const roleAuthor: Role | null = server.role_author ? await guild.roles.fetch(server.role_author) : null;
+    let conditions: IConditionForRole[] = [];
+    if (roleAuthor) conditions = await getConditionsForRole(guild.id, server.role_author!);
     const nexusChannel: ThreadChannel | GuildChannel|null = server.channel_nexus ? guild.channels.resolve(server.channel_nexus) : null;
-    const logChannel: ThreadChannel | GuildChannel|null = null //server.channel_log ? guild.channels.resolve(server.channel_log) : null;
     const newsChannel: ThreadChannel|GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
     const owner: GuildMember = await guild.fetchOwner();
 
     const embed = new EmbedBuilder()
     .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })
     .setTitle(`Server Configuration - ${guild.name}`)
-    .setDescription('Configure any of these options for your server by using the /settings command`')
+    .setDescription('Configure any of these options for your server by using the /settings command. **Linked Roles** can be set up in your role settings, [Learn More](https://discord.com/blog/connected-accounts-functionality-boost-linked-roles).')
     .setColor(0xda8e35)
     .addFields([
         {
-            name: 'Role Settings', 
-            value: 'These settings can now be managed using [Linked Roles](https://discord.com/blog/connected-accounts-functionality-boost-linked-roles) in Discord.'
+            name: 'Default Search Filter',
+            value: server.game_filter ? `${gameName || server.game_filter}` : 'All games'
         },
         {
-            name: 'Channel Settings',
-            value: 'Set a bot channel to limit bot replies to one place or set a channel for bot logging messages.\n\n'+
-            // `**Reply Channel:** ${botChannel?.toString() || '*<any>*'}\n`+
-            `**Log Channel:** ${nexusChannel?.toString() || '*Not set*'}`
-        },
-        {
-            name: 'Search',
-            value: `Showing ${server.game_filter ? `mods from ${gameName || server.game_filter}` : 'all games' }.`
+            name: 'Claimable Role',
+            value: roleAuthor ? `${roleAuthor.toString()}\n${conditionsToString(conditions, gameList)}` : '_Not set_'
         }
     ])
     .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: client.user?.avatarURL() || '' });
 
-    if (newsChannel || logChannel) embed.addFields({ name: 'Deprecated Channels', value: `News: ${newsChannel?.toString() || 'n/a'}, Log: ${(logChannel as any)?.toString() || 'n/a'}`});
+    if (nexusChannel) embed.addFields({ name: 'Channel Settings', value: `**Log Channel:** ${nexusChannel?.toString()}`})
+    if (newsChannel) embed.addFields({ name: 'Deprecated Channels', value: `News: ${newsChannel?.toString() || 'n/a'}`});
     if (server.official) embed.addFields({ name: 'Official Nexus Mods Server', value: 'This server is an official Nexus Mods server, all bot functions are enabled.'});
 
     return embed;
+}
+
+function conditionsToString(conditons: IConditionForRole[], gameList: IGameStatic[]): string {
+    const text = conditons.map(c => (`- ${c.min.toLocaleString()}+ ${ConditionType[c.type]} for ${gameList.find(g => g.domain_name === c.game)!.name} :: ${c.op}`));
+    return text.join('\n');
 }
 
 export { discordInteraction };

@@ -1,3 +1,4 @@
+import { QueryResultRow } from 'pg';
 import { queryPromise } from '../api/dbConnect';
 import { logMessage } from '../api/util';
 
@@ -35,7 +36,7 @@ async function userSetup() {
     }
 
     try {
-        const columnsQuery = await queryPromise('SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1', ['users']);
+        const columnsQuery = await queryPromise<{ column_name: string, data_type: string }>('SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1', ['users']);
         const columns = convertToObject(columnsQuery.rows);
         await compareColumns('users', columns, tableTypes());
     }
