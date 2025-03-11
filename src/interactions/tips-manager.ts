@@ -263,6 +263,8 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
         continue;
     }
 
+    await client.tipCache.bustCache().catch(() => null);
+
     if (!collector.ended) collector.stop();
     await interaction.editReply({ content: 'All tips reviewed', embeds:[], components: [] }).catch(e => logMessage("Failed to finish tip review", e, true));
 
