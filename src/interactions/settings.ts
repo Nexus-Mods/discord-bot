@@ -19,6 +19,7 @@ import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
 import { autocompleteGameName } from "../api/util";
 import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions";
+import { ConditionType } from "../types/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -110,11 +111,6 @@ const discordInteraction: DiscordInteraction = {
 type SubCommandGroups = 'update';
 type SubCommands = 'view' | 'searchfilter' | 'role' | 'add-role-conditions' | 'remove-role-conditions';
 type OptionNames = 'game' | 'role' | 'count' | 'op' | 'type';
-
-enum ConditionType {
-    modDownloads = 'mod downloads',
-    modsPublished = 'mods published'
-}
 
 interface IBotServerChange {
     name: string;

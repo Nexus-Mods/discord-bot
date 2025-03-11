@@ -166,6 +166,11 @@ export interface BooleanFilterValue {
     op: FilterComparisonOperator;
 }
 
+export interface IntFilterValue {
+    value: number;
+    op: FilterComparisonOperator;
+}
+
 interface CollectionsSort {
     relevance?: BaseSortValue;
     createdAt?: BaseSortValue;

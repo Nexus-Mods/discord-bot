@@ -39,6 +39,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
         }
         adult
         version
+        downloads
         game {
           domainName
           name
@@ -50,20 +51,7 @@ query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, searchTerm: string, includeAdult: boolean, gameIds?: number | number[], sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
-    
-    // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
-    const filter: IModsFilter = {
-        name: {
-            value: searchTerm,
-            op: 'WILDCARD'
-        }
-    };
-
-    if (!!gameIds && typeof gameIds === "number") filter.gameId = [{ value: gameIds.toString(), op: 'EQUALS' }];
-    else if (!!gameIds && Array.isArray(gameIds)) {
-        filter.filter = [{ gameId: gameIds.map(id => ({ value: id.toString(), op: 'EQUALS' })), op: 'OR' }];
-    }
+export async function mods(headers: Record<string,string>, filter: IModsFilter, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
 
     const vars = {
         filter,
@@ -73,8 +61,6 @@ export async function mods(headers: Record<string,string>, searchTerm: string, i
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        // Adult content filter is not available on the API yet, so we'll have to do it manually.
-        if (!includeAdult) result.mods.nodes = result.mods.nodes.filter(m => m.adult === false);
         return result.mods;
     }
     catch(err) {

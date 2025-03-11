@@ -172,7 +172,7 @@ async function urlCheck(link: string, mods: NexusLinkedMod[], games: IGameStatic
 async function stringCheck (query: string, mods: NexusLinkedMod[], games: IGameStatic[], user: DiscordBotUser): Promise<APIEmbedField | SearchError> {
 
     try {
-        const search: IMod[] = (await user.NexusMods.API.v2.Mods(query, true).catch(() => { return { nodes: [] } } )).nodes;
+        const search: IMod[] = (await user.NexusMods.API.v2.Mods({ name: { value: query, op: 'WILDCARD' } }).catch(() => { return { nodes: [] } } )).nodes;
         const filteredResult: IMod[] = 
             search.filter(mod => mod.uploader.memberId == user.NexusModsId && !mods.find(m => m.mod_id === mod.modId && m.domain === mod.game.domainName));
 

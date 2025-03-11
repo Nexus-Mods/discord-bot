@@ -59,6 +59,7 @@ export interface IMod {
     summary: string;
     description: string;
     status: ModStatus;
+    downloads: number;
     author: string;
     uploader: {
         name: string;
@@ -100,9 +101,25 @@ export interface IModsFilter {
     name?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
     nameStemmed?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
     gameId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[]; //This is the numerical ID for a game, not the domain. 
+    gameDomainName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
     createdAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
     updatedAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
     hasUpdated?: GQLTypes.BooleanFilterValue | GQLTypes.BooleanFilterValue[];
+    uploaderId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    adultContent?: GQLTypes.BooleanFilterValue | GQLTypes.BooleanFilterValue[];
+    fileSize?: GQLTypes.IntFilterValue | GQLTypes.IntFilterValue[];
+    downloads?: GQLTypes.IntFilterValue | GQLTypes.IntFilterValue[];
+    endorsements?: GQLTypes.IntFilterValue | GQLTypes.IntFilterValue[];
+    tag?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    description?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    author?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    uploader?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    supportsVortex?: GQLTypes.BooleanFilterValue | GQLTypes.BooleanFilterValue[];
+    languageName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    categoryName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    status?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    gameName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
+    primaryImage?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
 }
 
 export class NexusGQLError extends Error {

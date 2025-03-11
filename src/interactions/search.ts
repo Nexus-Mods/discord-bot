@@ -13,7 +13,7 @@ import { CollectionsUserFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
 import { DiscordBotUser } from "../api/DiscordBotUser";
-import { ICollection, IMod } from "../api/queries/v2";
+import { ICollection, IMod, IModsFilter } from "../api/queries/v2";
 import { IUser } from "../api/queries/v2-finduser";
 import { IModResults } from "../api/queries/v2-mods";
 import { IGameStatic } from "../api/queries/other";
@@ -303,7 +303,11 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
     // Search for mods
     try {
-        const search: IModResults = await user.NexusMods.API.v2.Mods(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
+        let modsFilter: IModsFilter = { name: { value: query , op: 'WILDCARD' }};
+        if (gameIdFilter !== 0) modsFilter.gameId = { value: gameIdFilter.toString(), op: 'EQUALS' };
+        if (!(interaction.channel as TextChannel)?.nsfw) modsFilter.adultContent = { value: false, op: 'EQUALS' };
+        
+        const search: IModResults = await user.NexusMods.API.v2.Mods(modsFilter);
         // const search: NexusSearchResult = await user.NexusMods.API.v1.ModQuickSearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
         if (!search.nodes.length) {
             // No results!

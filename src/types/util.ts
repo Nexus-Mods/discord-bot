@@ -313,3 +313,8 @@ interface IStatusPageIncidentUpdate {
         new_status: string;
     }[]
 }
+
+export enum ConditionType {
+    modDownloads = 'mod downloads',
+    modsPublished = 'mods published'
+}
