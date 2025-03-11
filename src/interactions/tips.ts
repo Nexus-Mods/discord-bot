@@ -51,21 +51,22 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                 const embedToShow = embedBulderWithOverrides(tip, embedData, interaction);
                 replyMessage.embeds = [ embedToShow ]
             }
-            else replyMessage.content = replyMessage.content + `\n-# Tip requested by ${interaction.user.displayName}`;
+            else replyMessage.content = replyMessage.content + `\n-# Tip submitted by ${tip.author}`;
 
             // Clean out the content if it's blank
             if (replyMessage.content === '') delete replyMessage.content;
-
-            return interaction.editReply(replyMessage);
         }
         else replyMessage.content = `No results found for ${message}`;
+
+        return interaction.editReply(replyMessage);
     }
+    else throw new Error('Tip prompt was not provided.')
 
 }
 
 function embedBulderWithOverrides(tip: ITip, data: EmbedData, interaction: ChatInputCommandInteraction): EmbedBuilder {
     return new EmbedBuilder(data)
-    .setFooter({ text:`Tip requested by ${interaction.user.displayName || '???'}`, iconURL: interaction.user.avatarURL() || '' } )
+    .setFooter({ text:`Last updated by ${tip.author || '???'}`, iconURL: interaction.user.avatarURL() || '' } )
     .setTimestamp(new Date(tip.updated))
     .setColor(0xda8e35);
 }
