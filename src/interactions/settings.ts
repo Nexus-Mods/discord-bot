@@ -207,7 +207,7 @@ async function updateClaimableRole(interaction: ChatInputCommandInteraction, gam
     const newRole: Role | APIRole | null = interaction.options.getRole('role', false);
     const currentRole: Role | null = server.role_author ? await guild.roles.fetch(server.role_author) : null;
     // No change means we can exit. 
-    if ((newRole === null && currentRole === null) || newRole?.id === currentRole?.id) return {};
+    if ((newRole === null && !server.role_author) || newRole?.id === currentRole?.id) return {};
 
     // Delete conditions if we're clearing the role
     if (currentRole && newRole === null) {
