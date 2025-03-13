@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
 import { logMessage } from './util';
+import { IUsersUploadingFirstMod } from '../feeds/AutoModManager';
 
 export interface ISlackMessage {
     blocks: (ISlackSectionBlock | ISlackHeaderBlock | ISlackDividerBlock)[]
@@ -57,10 +58,14 @@ export async function PublishToSlack(data: ISlackMessage): Promise<Boolean> {
 }
 
 
-export async function PublishToDiscord(data: RESTPostAPIWebhookWithTokenJSONBody): Promise<Boolean> {
+export async function PublishToDiscord(data: RESTPostAPIWebhookWithTokenJSONBody, firstMods: IUsersUploadingFirstMod): Promise<Boolean> {
     const discordWebhook: string = process.env['DISCORD_WEBHOOK'] || '';
 
     if (!discordWebhook) throw new Error('Discord webhook is not provided!');
+
+    if (firstMods.users.size > firstMods.lastPostedAt) {
+        data.content = `Users uploading their first mod between <t:${firstMods.since}:t> - <t:${new Date().getTime() / 1000}:t>: ${firstMods.users.size}`;
+    }
 
     try {
         await axios({

@@ -21,7 +21,11 @@ interface IModWithFlags {
     }
 }
 
-
+export interface IUsersUploadingFirstMod {
+    since: number;
+    users: Set<number>;
+    lastPostedAt: number;
+}
 
 export class AutoModManager {
     private static instance: AutoModManager;
@@ -30,6 +34,7 @@ export class AutoModManager {
     private BadFiles: IBadFileRule[] = [];
     private client: ClientExt;
     private updateTimer: NodeJS.Timeout;
+    private usersUploadingFirstMod: IUsersUploadingFirstMod;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
     public recentUids: Set<string> = new Set<string>(); // A list of recently checked Uids
@@ -54,6 +59,8 @@ export class AutoModManager {
     private constructor(client: ClientExt) {
         // Save the client for later
         this.client = client;
+        // Set up the counter for first uploads
+        this.usersUploadingFirstMod = { since: Math.floor(new Date().getTime()/1000), users: new Set<number>(), lastPostedAt: -1 };
         // Set the update interval.
         this.updateTimer = setInterval(this.runAutomod.bind(this), pollTime);
         this.getRules()
@@ -116,7 +123,10 @@ export class AutoModManager {
                 results.push(await analyseMod(mod, this.AutoModRules, this.BadFiles, user))
             }
             this.addToLastReports(results);
-            // const concerns = results.filter(m => (m.flags.high.length) !== 0);
+            // Add the new uploader flagged mods
+            const newUploaders: number[] = results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId);
+            newUploaders.forEach(this.usersUploadingFirstMod.users.add, newUploaders);
+            // Map the concerns for posting
             const concerns = results.filter(m => (m.flags.high.length) > 0 || (m.flags.low.length) > 0);
             if (!concerns.length) {
                 logMessage('No mods with concerns found.')
@@ -126,7 +136,7 @@ export class AutoModManager {
                 try {
                     logMessage('Reporting mods:', concerns.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
                     await PublishToSlack(flagsToSlackMessage(concerns));
-                    await PublishToDiscord(flagsToDiscordEmbeds(concerns));
+                    await PublishToDiscord(flagsToDiscordEmbeds(concerns), this.usersUploadingFirstMod);
                 }
                 catch(err) {
                     logMessage('Error posting automod to Discord or Slack', err, true)
@@ -149,7 +159,7 @@ export class AutoModManager {
         logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
         const analysis = await analyseMod(mod, this.AutoModRules, this.BadFiles, user);
         if (analysis.flags.high.length) {
-            await PublishToDiscord(flagsToDiscordEmbeds([analysis]))
+            await PublishToDiscord(flagsToDiscordEmbeds([analysis]), this.usersUploadingFirstMod);
             await PublishToSlack(flagsToSlackMessage([analysis]))
         }
         else logMessage('No flags to report', analysis);
