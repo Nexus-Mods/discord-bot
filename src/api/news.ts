@@ -1,28 +1,36 @@
-import query from './dbConnect';
-import { NewsArticle } from '../types/feeds';
-import { QueryResult } from 'pg';
+import { queryPromise } from './dbConnect';
+import { logMessage } from './util';
 
 async function getSavedNews(): Promise<{title: string, date: Date}> {
-    return new Promise((resolve, reject) => {
-        query('SELECT * FROM news', [], 
-        (error: Error, results?: QueryResult) => {
-            if (error) reject(error);
-            resolve(results?.rows[0]);
-        });
-    });
+    try {
+        const data = await queryPromise<{title: string, date: Date}>(
+            'SELECT * FROM news',
+            []
+        )
+        return data.rows[0];
+    }
+    catch(err) {
+        logMessage('Error getting saved news', err, true);
+        throw err;
+    }
 }
 
-const updateSavedNews = (newsArticle: NewsArticle) => {
-    return new Promise((resolve, reject) => {
-        query('DELETE FROM news', [], 
-        (error: Error, results?: QueryResult) => {
-            if (error) return reject(error);
-            query('INSERT INTO news (title, date) VALUES ($1, $2)', [newsArticle.title, newsArticle.pubDate], (error, results) => {
-                if (error) return reject(error);
-                resolve(true);
-            });
-        })
-    });
+async function updateSavedNews(title: string, date: Date): Promise<boolean> {
+    try {
+        await queryPromise(
+            'DELETE FROM news', 
+            []
+        );
+        await queryPromise(
+            'INSERT INTO news (title, date) VALUES ($1, $2)',
+            [title, date]
+        );
+        return true;
+    }
+    catch(err) {
+        logMessage('Error updating news', err, true);
+        throw err;
+    }
 }
 
 export { getSavedNews, updateSavedNews };

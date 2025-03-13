@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { logMessage } from "../api/util";
+import { autocompleteGameName, logMessage } from "../api/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 import { SavedNewsData } from "../types/feeds";
 
@@ -10,7 +10,8 @@ const discordInteraction: DiscordInteraction = {
     .setDescription('Refresh the news feed manually.')
     .addStringOption(option => 
         option.setName('domain')
-        .setDescription('Domain to check, for game-specific news.')    
+        .setDescription('Domain to check, for game-specific news.')
+        .setAutocomplete(true)    
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
     public: false,
@@ -19,7 +20,8 @@ const discordInteraction: DiscordInteraction = {
         '268004475510325248',
 
     ],
-    action
+    action,
+    autocomplete: autocompleteGameName
 }
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {

@@ -16,8 +16,8 @@ const pollTime: number = (1000*60*1); //1 mins
 interface IModWithFlags {
     mod: Partial<IMod>
     flags: {
-        low: string[];
-        high: string[];
+        low: (AutoModFlags | string)[];
+        high: (AutoModFlags | string)[];
     }
 }
 
@@ -25,6 +25,13 @@ export interface IUsersUploadingFirstMod {
     since: number;
     users: Set<number>;
     lastPostedAt: number;
+}
+
+enum AutoModFlags {
+    FirstUpload = 'First mod upload',
+    FirstUploadProbablySpam = 'First upload, short description. Probable spam.',
+    NewAccount = 'New account',
+
 }
 
 export class AutoModManager {
@@ -282,15 +289,17 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
 async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: IBadFileRule[], user: DiscordBotUser): Promise<IModWithFlags> {
     let flags: {high: string[], low: string[]} = { high: [], low: [] };    
     const now = new Date()
-    const anHourAgo = new Date(now.valueOf() - (60000 * 60))
-    
-    if (new Date(mod.uploader!.joined).getTime() >= anHourAgo.getTime()) flags.low.push('New account');
+    const anHourAgo = new Date(now.valueOf() - (60000 * 60)).getTime()
+    const userJoined = new Date(mod.uploader!.joined).getTime();
+    const modCreatedAt = new Date(mod.createdAt!).getTime();
 
+    if (userJoined >= anHourAgo) flags.low.push(AutoModFlags.NewAccount);
+    
     if (mod.uploader!.modCount <= 1) {
-        if ((mod.description ?? '').length < 150 && flags.low.includes('New account')) {
-            flags.high.push('First upload, short description. Probable spam.')
+        if ((mod.description ?? '').length < 150 && flags.low.includes(AutoModFlags.NewAccount)) {
+            flags.high.push(AutoModFlags.FirstUploadProbablySpam)
         }
-        else flags.low.push('First mod upload')
+        else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload)
     };
 
 
@@ -300,7 +309,8 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
         if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
     }
     catch(err) {
-        logMessage(`Failed to check content preview for ${mod.name} for ${mod.game?.name}`, err, true);
+        if ((err as any).code === 401) logMessage(`Permissions error getting content preview for ${mod.name} for ${mod.game?.name}`, {}, true)
+        else logMessage(`Failed to check content preview for ${mod.name} for ${mod.game?.name}`, err, true);
     }
 
 

@@ -80,7 +80,7 @@ export async function PublishToDiscord(data: RESTPostAPIWebhookWithTokenJSONBody
         return true
     }
     catch(err) {
-        logMessage('Error posting Slack Webhook', err, true);
+        logMessage('Error posting Discord Webhook', err, true);
         return false;
     }
 }
