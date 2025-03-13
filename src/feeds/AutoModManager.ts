@@ -130,10 +130,10 @@ export class AutoModManager {
             // Add the new uploader flagged mods
             try {
                 const newUploaders: number[] = results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId);
-                newUploaders.forEach(this.usersUploadingFirstMod.users.add, newUploaders);
+                newUploaders.map(id => this.usersUploadingFirstMod.users.add(id));
             }
             catch(err) {
-                logMessage(`Error adding ${results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId)} to ${this.usersUploadingFirstMod.users}`)
+                logMessage(`Error adding ${results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId)} to ${this.usersUploadingFirstMod.users}`, err, true)
             }
             // Map the concerns for posting
             const concerns = results.filter(m => (m.flags.high.length) > 0 || (m.flags.low.length) > 0);
