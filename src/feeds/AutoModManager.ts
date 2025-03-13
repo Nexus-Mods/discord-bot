@@ -66,7 +66,7 @@ export class AutoModManager {
         this.getRules()
             .then(() => {
                 logMessage(`Automod started with ${this.AutoModRules.length} rules, checking every ${pollTime/1000/60} minutes. Last check ${this.lastCheck}`);
-                this.runAutomod().catch((err) => logMessage(`Error updating game feeds`, err, true));
+                this.runAutomod().catch((err) => logMessage(`Error running automod`, err, true));
             })
             .catch((err) => logMessage('Error in AutomodManager constructor', err, true));
     }
@@ -128,8 +128,13 @@ export class AutoModManager {
             }
             this.addToLastReports(results);
             // Add the new uploader flagged mods
-            const newUploaders: number[] = results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId);
-            newUploaders.forEach(this.usersUploadingFirstMod.users.add, newUploaders);
+            try {
+                const newUploaders: number[] = results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId);
+                newUploaders.forEach(this.usersUploadingFirstMod.users.add, newUploaders);
+            }
+            catch(err) {
+                logMessage(`Error adding ${results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId)} to ${this.usersUploadingFirstMod.users}`)
+            }
             // Map the concerns for posting
             const concerns = results.filter(m => (m.flags.high.length) > 0 || (m.flags.low.length) > 0);
             if (!concerns.length) {
