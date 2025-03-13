@@ -309,7 +309,7 @@ async function listFileRules(client: ClientExt, interaction: ChatInputCommandInt
         rulePages.map(async (page, index) => {
             if (index === 0) return;
             const pageMessage = `\`\`\`${header}${page.map(r => `| ${r.id} | ${r.type} | ${r.test} | ${r.funcName} | ${r.flagMessage} `).join('\n')}\`\`\``;
-            await interaction.followUp({content: pageMessage, ephemeral: true});
+            await interaction.followUp({content: pageMessage, flags: MessageFlags.Ephemeral});
             return;
         });
     }
@@ -376,7 +376,11 @@ async function showReport(client: ClientExt, interaction: ChatInputCommandIntera
     .setDescription('UIDs checked over the last few minutes\n\n```'+[...client.automod!.recentUids].join('\n')+'```')
     .setColor("Blue")
 
-    return interaction.editReply({ embeds: [resultEmbed, uidEmbed] })
+    const newModUploaders = new EmbedBuilder()
+    .setTitle('Authors who uploaded this first mod')
+    .setDescription(`${[ ...client.automod!.getNewUploaders()].map(id => (`https://nexusmods.com/users/${id}`)).join('\n')}`)
+
+    return interaction.editReply({ embeds: [resultEmbed, uidEmbed, newModUploaders] })
 }
 
 export { discordInteraction }

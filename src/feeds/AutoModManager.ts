@@ -83,6 +83,10 @@ export class AutoModManager {
         this.getRules();
     }
 
+    public getNewUploaders(): Set<number> {
+        return this.usersUploadingFirstMod.users;
+    }
+
     private async getRules() {
         try {
             this.AutoModRules = await getAutomodRules();

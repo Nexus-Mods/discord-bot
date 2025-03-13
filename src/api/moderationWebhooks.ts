@@ -64,7 +64,7 @@ export async function PublishToDiscord(data: RESTPostAPIWebhookWithTokenJSONBody
     if (!discordWebhook) throw new Error('Discord webhook is not provided!');
 
     if (firstMods.users.size > firstMods.lastPostedAt) {
-        data.content = `Users uploading their first mod between <t:${firstMods.since}:t> - <t:${new Date().getTime() / 1000}:t>: ${firstMods.users.size}`;
+        data.content = `Users uploading their first mod between <t:${firstMods.since}:f> - <t:${Math.floor(new Date().getTime() / 1000)}:f>: **${firstMods.users.size}**`;
     }
 
     try {
