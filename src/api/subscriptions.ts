@@ -11,7 +11,10 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
             'SELECT * FROM SubscribedChannels',
             []
         );
-        return data.rows.map(r => new SubscribedChannel(r));
+        const promises = data.rows.map(async r => { return await SubscribedChannel.create(r) });
+        const channels = await Promise.all(promises);
+        
+        return channels;
 
     }
     catch(err) {
@@ -28,7 +31,7 @@ async function createSubscribedChannel(c: Omit<ISubscribedChannel, 'id' | 'creat
                 VALUES ($1, $2, $3, $4) RETURNING *`,
             [c.guild_id, c.channel_id, c.webhook_id, c.webhook_token]
         );
-        return new SubscribedChannel(data.rows[0]);
+        return new SubscribedChannel(data.rows[0], []);
     }
     catch(err) {
         const error: Error = (err as Error);
@@ -38,6 +41,23 @@ async function createSubscribedChannel(c: Omit<ISubscribedChannel, 'id' | 'creat
 }
 
 // SUBSCRIBED ITEM HANDLERS
+
+async function getAllSubscriptions(): Promise<SubscribedItem[]> {
+    try {
+        const data = await queryPromise<ISubscribedItemUnionType>(
+            'SELECT * FROM SubscribedItems',
+            []
+        );
+        return data.rows.map(r => new SubscribedItem(r));
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to fetch subscribed channels.\n${error.message}`;
+        throw error;
+    }
+
+}
 
 async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedItem[]> {
     try {
@@ -103,4 +123,8 @@ async function ensureSubscriptionsDB() {
 }
 
 
-export { ensureSubscriptionsDB, getSubscribedChannels, createSubscribedChannel, getSubscriptionsByChannel };
+export { 
+    ensureSubscriptionsDB, 
+    getSubscribedChannels, createSubscribedChannel, 
+    getAllSubscriptions, getSubscriptionsByChannel 
+};

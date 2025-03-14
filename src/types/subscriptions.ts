@@ -1,5 +1,8 @@
 
 import { Snowflake, TextChannel, WebhookClient } from 'discord.js';
+import { getSubscriptionsByChannel } from '../api/subscriptions';
+import { logMessage } from '../api/util';
+import { ICollection, IMod } from '../api/queries/v2';
 
 export interface ISubscribedChannel {
     id: number;
@@ -23,7 +26,7 @@ export class SubscribedChannel implements ISubscribedChannel {
     public webHookClient: WebhookClient
     private subscribedItems: SubscribedItem[] = [];
     
-    constructor(c: ISubscribedChannel) {
+    constructor(c: ISubscribedChannel, items: SubscribedItem[]) {
         this.id = c.id;
         this.guild_id = c.guild_id;
         this.channel_id = c.channel_id;
@@ -31,13 +34,27 @@ export class SubscribedChannel implements ISubscribedChannel {
         this.webhook_token = c.webhook_token;
         this.last_update = c.last_update;
         this.created = c.created;
+        this.subscribedItems = items;
 
         this.webHookClient = new WebhookClient({ id: this.webhook_id, token: this.webhook_token});
+    }
+
+    public static async create(c: ISubscribedChannel): Promise<SubscribedChannel> {
+        try {
+            const items = await getSubscriptionsByChannel(c.guild_id, c.channel_id);
+            return new SubscribedChannel(c, items);
+
+        }
+        catch(err) {
+            logMessage('Error creating subscribed channel class', err, true);
+            throw new Error('Unable to create subscribed channel');
+        }
     }
 
     async getSubscribedItems(skipCache: boolean = false): Promise<SubscribedItem[]> {
         if (!this.subscribedItems.length || skipCache) {
             // fetch from database
+            this.subscribedItems = await getSubscriptionsByChannel(this.guild_id, this.channel_id);
         }
         
         return this.subscribedItems;
@@ -46,7 +63,7 @@ export class SubscribedChannel implements ISubscribedChannel {
 
 }
 
-enum SubscribedItemType {
+export enum SubscribedItemType {
     Game = 'game',
     User = 'user',
     Mod = 'mod',
@@ -156,4 +173,88 @@ export class SubscribedItem {
         if ((this.type === SubscribedItemType.Game || this.type === SubscribedItemType.User) && this.nsfw !== undefined) return this.nsfw;
         else return channel.nsfw;
     }
+}
+
+export interface ISubscriptionCache {
+    games: {
+        new: { [domain: string] : IMod[] };
+        updated: { [domain: string] : IMod[] }; 
+    }
+    mods: {
+        [modUid: string]: IMod;
+    }
+    modFiles: {
+        [modUid: string]: any[];
+    }
+    collections: {
+        [slug: string]: ICollection;
+    }
+    users: {
+        [id: number]: any;
+    }
+}
+
+export class SubscriptionCache implements ISubscriptionCache {
+    games: { 
+        new: { [domain: string] : IMod[] };
+        updated: { [domain: string] : IMod[] };  
+    };
+    mods: { [modUid: string]: IMod; };
+    modFiles: { [modUid: string]: any[]; };
+    collections: { [slug: string]: ICollection; };
+    users: { [id: string]: any; };
+
+    constructor() {
+        this.games = {new: {}, updated: {}};
+        this.mods = {};
+        this.modFiles = {};
+        this.collections = {};
+        this.users = {};
+    }
+
+    public add(type: 'games', content: IMod[], key: string, updated?: boolean) : void;
+    public add(type: 'mods', content: IMod[], key: string) : void;
+    public add(type: 'modFiles', content: any[], key: string) : void;
+    public add(type: 'collections', content: ICollection[], key: string) : void;
+    public add(type: 'users', content: any, key: string) : void;
+    public add(type: keyof ISubscriptionCache, content: any, key: string, updated:boolean = false) {
+        if (type == 'games') {
+            if (updated) this[type].updated[key] = content;
+            else this[type].new[key] = content;
+        }
+        else this[type][key] = content;
+    }
+
+    public getCachedMod(uuid: string, domain: string): IMod | undefined {
+        return this.mods[uuid] 
+        || this.games.new[domain].find(m => m.uid === uuid)
+        || this.games.updated[domain].find(m => m.uid === uuid);
+    }
+
+    public getCachedModsForGame(domain: string, updated:boolean): IMod[] | undefined {
+        return updated ? this.games.updated[domain] : this.games.new[domain];
+    }
+
+    public getCachedModFiles(uuid: string) {
+        return this.modFiles[uuid];
+    }
+
+    public getCachedCollection(slug: string): ICollection | undefined {
+        return this.collections[slug];
+    }
+
+    public getCachedUser(id: number) {
+        return this.users[id.toString()];
+    }
+
+}
+
+export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
+    type: SubscribedItemType;
+    date: Date;
+    entity: T extends 'games' 
+        ? IMod[]
+        : T extends 'user' 
+            ? any
+            : any ;
 }
