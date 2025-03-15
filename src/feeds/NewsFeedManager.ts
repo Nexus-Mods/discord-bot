@@ -38,7 +38,7 @@ export class NewsFeedManager {
         this.updateTimer = setInterval(async () => {
             try {
                 // this.checkNews()
-                await this.postLatestNews()
+                await this.postLatestNews();
             }
             catch(err) {
                 logMessage('Failed to check for latest news updates', err, true);

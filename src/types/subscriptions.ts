@@ -1,8 +1,9 @@
 
-import { EmbedBuilder, Snowflake, TextChannel, WebhookClient } from 'discord.js';
+import { EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
 import { getSubscriptionsByChannel } from '../api/subscriptions';
-import { logMessage } from '../api/util';
+import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { ICollection, IMod, IModFile } from '../api/queries/v2';
+import { getUserByNexusModsId } from '../api/users';
 
 export interface ISubscribedChannel {
     id: number;
@@ -254,6 +255,7 @@ export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
     date: Date;
     embed: EmbedBuilder;
     entity: EntityType<T>;
+    message?: string;
 }
 
 type IModWithFiles = IMod & { files?: IModFile[] };
@@ -264,8 +266,80 @@ type EntityType<T extends SubscribedItemType> =
     T extends 'collection' ? ICollection :
     T extends 'user' ? any : null;
 
-export function subscribedItemEmbed<T extends SubscribedItemType>(type: SubscribedItemType, entity: EntityType<T>, sub: SubscribedItem, updated: boolean = false): EmbedBuilder {
+export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder();
+    switch (entity.type) {
+        case SubscribedItemType.Game: {
+            const mod = entity as IModWithFiles;
+            const compact: boolean = sub.compact;
+            let lastestFile = updated ? mod.files?.[0] : undefined;
+            const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${mod.game.id}.jpg`;
+            // Try and find a Discord user for the mod uploader
+            const linkedUser = await getUserByNexusModsId(mod.uploader.memberId);
+            const guildMember: GuildMember | undefined = linkedUser ? await guild.members.fetch(linkedUser?.DiscordId) : undefined;
+
+            embed.setTitle(mod.name)
+            .setURL(nexusModsTrackingUrl(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subscribedGame'))
+            .setDescription(mod.summary ?? '_No summary_')
+            .setImage(compact ? null :  mod.pictureUrl || null)
+            .setThumbnail(compact ? mod.pictureUrl : gameThumb)
+            .setAuthor( { name: `${updated ? 'New Mod Uploaded' : 'Mod Updated'} (${mod.game.name})` })
+            // Updated or otherwise
+            if (updated) {
+                embed.setColor(0x57a5cc)
+                .setAuthor({ name: `Mod Updated (${mod.game.name})`, iconURL: compact ? gameThumb : undefined })
+                .setTimestamp(new Date(lastestFile?.date ?? mod.updatedAt))
+                if (lastestFile) {
+                    let changelog = '';
+                    // If the changelog is bigger than a field size, add an ellipse and exit
+                    for (const t of lastestFile.changelogText) {
+                        const temp = `${changelog}\n- ${t}`;
+                        if (temp.length > 1020) {
+                            changelog = `${changelog}...`;
+                            break;
+                        }
+                        else changelog = temp;
+                    }
+                    if (changelog.length) embed.addFields({ name: `Changelog (v${lastestFile.version})`, value: changelog})
+                }
+            }
+            else {
+                embed.setColor(0xda8e35)
+                .setAuthor({ name: `New Mod Upload (${mod.game.name})`, iconURL: compact ? gameThumb : undefined })
+                .setTimestamp(new Date(mod.createdAt))
+            }
+            embed.setFooter({ text: `${mod.game.name}  •  ${mod.modCategory.name}  • v${mod.version} `, iconURL: undefined })
+            .addFields(
+                {
+                    name: 'Author',
+                    value: mod.author,
+                    inline: true
+                },
+                {
+                    name: 'Uploader',
+                    value: `[${mod.uploader.name}](${nexusModsTrackingUrl(`https://nexusmods.com/users/${mod.uploader.memberId})`, 'subscribedGame')}`,
+                    inline: true
+                }
+            )
+            if (guildMember) embed.addFields({ name: 'Discord', value: guildMember.toString(), inline: true })
+
+        }
+        break;
+        case SubscribedItemType.Mod: {
+
+        }
+        break;
+        case SubscribedItemType.Collection: {
+
+        }
+        break;
+        case SubscribedItemType.User: {
+
+        }
+        break;
+        default: embed.setDescription(`Unknown SubscribedItemType when building Embed: ${sub.type}`);
+
+    }
 
     return embed;
 }

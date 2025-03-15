@@ -1,17 +1,10 @@
-import { GameFeed } from '../types/feeds';
-import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
-import { IUpdateEntry, IChangelogs } from '@nexusmods/nexus-api';
-import { User, Guild, Snowflake, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, NewsChannel, GuildBasedChannel } from 'discord.js';
-import { logMessage, nexusModsTrackingUrl } from '../api/util';
-import { NexusAPIServerError } from '../types/util';
+import { Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IMod, IModFile } from '../api/queries/v2';
-import { IGameStatic } from '../api/queries/other';
 import { IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache } from '../types/subscriptions';
-import { ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels } from '../api/subscriptions';
-
-// const pollTime: number = (1000*60*10); //10 mins
+import { ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, updateSubscribedChannel } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -90,13 +83,13 @@ export class SubscriptionManger {
                 
                 // Logic based on subscription type here.
                 switch (item.type) {
-                    case SubscribedItemType.Game: updates = await this.getGameUpdates(item);
+                    case SubscribedItemType.Game: updates = await this.getGameUpdates(item, guild);
                     break;
-                    case SubscribedItemType.Mod:updates = await this.getModUpdates(item);
+                    case SubscribedItemType.Mod:updates = await this.getModUpdates(item, guild);
                     break;
-                    case SubscribedItemType.Collection: updates = await this.getCollectionUpdates(item);
+                    case SubscribedItemType.Collection: updates = await this.getCollectionUpdates(item, guild);
                     break;
-                    case SubscribedItemType.User: updates = await this.getUserUpdates(item);
+                    case SubscribedItemType.User: updates = await this.getUserUpdates(item, guild);
                     break;
                     default: throw new Error('Unregcognised SubscribedItemType: '+item.type)
                 }
@@ -104,13 +97,45 @@ export class SubscriptionManger {
                 // Format the items into a generic type for comparison. 
                 postableUpdates.push(...updates);
             }
+
+            // Got all the updates - break them into groups by type and limit to 10 (API limit).
+            const blocks: WebhookMessageCreateOptions[] = []
+            let currentType: SubscribedItemType | undefined = undefined;
+            for (const update of postableUpdates) {
+                // If we've swapped type or we've got more than 10 embeds already
+                if (update.type === currentType || blocks[blocks.length - 1].embeds?.length === 10) blocks.push({})
+                const myBlock = blocks[blocks.length - 1];
+                myBlock.embeds = myBlock.embeds ? [...myBlock.embeds, update.embed] : [update.embed];
+                if (!myBlock.content && update.message) myBlock.content = update.message;
+                currentType = update.type;
+            }
+
+            // Send the updates to the webhook!
+            logMessage(`Posting $${blocks.length} webhook updates to ${guild.name}`);
+            for (const block of blocks) {
+                try {
+                    await webHookClient.send(block);
+                }
+                catch(err) {
+                    logMessage('Failed to send webhook message', { block, err }, true);
+                }
+            }
+
+            // Update the last updated time for the channel.
+            const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
+            try {
+                await updateSubscribedChannel(channel, lastUpdate);
+            }
+            catch(err) {
+                logMessage('Failed to update channel date', err, true);
+            }
         }
 
         // Empty the cache
         this.cache = new SubscriptionCache();        
     }
 
-    private async getGameUpdates(item: SubscribedItem): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Game>[]> {
+    private async getGameUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Game>[]> {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         const domain: string = item.entityId as string;
         const last_update = item.last_update;
@@ -127,14 +152,17 @@ export class SubscriptionManger {
             newMods = res.nodes;
         }
         // Map into the generic format.
-        const formattedNew = newMods.map(m => (
-            { 
+        const formattedNew: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
+        for (const mod of newMods) {
+            const embed = await subscribedItemEmbed(mod, item, guild);
+            formattedNew.push({ 
                 type: SubscribedItemType.Game, 
-                date: new Date(m.createdAt), 
-                entity: m, 
-                embed: subscribedItemEmbed(SubscribedItemType.Game, m, item) 
-            }
-        ));
+                date: new Date(mod.createdAt), 
+                entity: mod, 
+                embed,
+                message: item.message
+            })
+        }
         results.push(...formattedNew);
 
         let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates ? this.cache.games.updated[domain].filter(m => new Date(m.updatedAt) >= last_update ): [];
@@ -158,29 +186,35 @@ export class SubscriptionManger {
             this.cache.add('modFiles', files, mod.uid);
         }
         // Map into the generic format.
-        const formattedUpdates = updatedMods.map(m => (
-            { 
+        const formattedUpdates: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
+        for (const mod of updatedMods) {
+            const embed = await subscribedItemEmbed(mod, item, guild, true);
+            formattedUpdates.push({ 
                 type: SubscribedItemType.Game, 
-                date: new Date(m.createdAt), 
-                entity: m, 
-                embed: subscribedItemEmbed(SubscribedItemType.Game, m, item, true) 
-            }
-        ));
+                date: new Date(mod.updatedAt), 
+                entity: mod, 
+                embed,
+                message: item.message
+            })
+        }
         results.push(...formattedUpdates);
+
+        // TODO! - Save the last date so we know where to start next time!
+
 
         // Order the results.
         return results.sort((a,b) => a.date.getTime() - b.date.getTime());
     }
 
-    private async getModUpdates(item: SubscribedItem): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Mod>[]> {
+    private async getModUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Mod>[]> {
         return [];
     } 
 
-    private async getCollectionUpdates(item: SubscribedItem): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Collection>[]> {
+    private async getCollectionUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Collection>[]> {
         return [];
     } 
 
-    private async getUserUpdates(item: SubscribedItem): Promise<IPostableSubscriptionUpdate<SubscribedItemType.User>[]> {
+    private async getUserUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.User>[]> {
         return [];
     } 
 

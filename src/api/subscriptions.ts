@@ -24,12 +24,45 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
     }
 }
 
+async function getSubscribedChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedChannel | undefined> {
+    try {
+        const data = await queryPromise<ISubscribedChannel>(
+            'SELECT * FROM SubscribedChannels WHERE guild_id=$1 AND channel_id=$2',
+            [guild, channel]
+        );
+        if (data.rows.length === 0) return undefined;
+        else return await SubscribedChannel.create(data.rows[0]);
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to fetch subscribed channel.\n${error.message}`;
+        throw error;
+    }
+}
+
 async function createSubscribedChannel(c: Omit<ISubscribedChannel, 'id' | 'created' | 'last_update'>): Promise<SubscribedChannel> {
     try {
         const data = await queryPromise<ISubscribedChannel>(
             `INSERT INTO SubscribedChannel (guild_id, channel_id, webhook_id, webhook_token)
                 VALUES ($1, $2, $3, $4) RETURNING *`,
             [c.guild_id, c.channel_id, c.webhook_id, c.webhook_token]
+        );
+        return new SubscribedChannel(data.rows[0], []);
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to create subscribed channel.\n${error.message}`;
+        throw error;
+    }
+}
+
+async function updateSubscribedChannel(c: ISubscribedChannel, date: Date): Promise<SubscribedChannel> {
+    try {
+        const data = await queryPromise<ISubscribedChannel>(
+            `UPDATE SubscribedChannel SET last_update=$1
+                WHERE id=$2 RETURNING *`,
+            [date, c.id]
         );
         return new SubscribedChannel(data.rows[0], []);
     }
@@ -125,6 +158,6 @@ async function ensureSubscriptionsDB() {
 
 export { 
     ensureSubscriptionsDB, 
-    getSubscribedChannels, createSubscribedChannel, 
+    getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, getSubscriptionsByChannel 
 };
