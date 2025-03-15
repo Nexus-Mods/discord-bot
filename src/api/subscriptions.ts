@@ -81,32 +81,32 @@ async function ensureSubscriptionsDB() {
     try {
         await queryPromise(
             `CREATE TABLE IF NOT EXISTS SubscribedChannels (
-                id INT PRIMARY KEY,           -- ID of the channel subscription
-                guild_id VARCHAR(255),        -- Guild ID (Snowflake as a string)
-                channel_id VARCHAR(255),      -- Channel ID (Snowflake as a string)
-                webhook_id VARCHAR(255),      -- Webhook ID (Snowflake as a string)
-                webhook_token VARCHAR(255),   -- Webhook token (string)
-                last_update DATETIME DEFAULT CURRENT_TIMESTAMP,         -- Last update date
-                created DATETIME DEFAULT CURRENT_TIMESTAMP              -- Created date
+                id bigint PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 9223372036854775807 CACHE 1 ),           -- ID of the channel subscription
+                guild_id VARCHAR(255) NOT NULL,        -- Guild ID (Snowflake as a string)
+                channel_id VARCHAR(255) NOT NULL,      -- Channel ID (Snowflake as a string)
+                webhook_id VARCHAR(255) NOT NULL,      -- Webhook ID (Snowflake as a string)
+                webhook_token VARCHAR(255) NOT NULL,   -- Webhook token (string)
+                last_update timestamp with time zone DEFAULT CURRENT_TIMESTAMP,         -- Last update date
+                created timestamp with time zone DEFAULT CURRENT_TIMESTAMP              -- Created date
             );`,
             []
         )
         await queryPromise(
             `CREATE TABLE IF NOT EXISTS SubscribedItems (
-                id INT PRIMARY KEY,           -- ID of the item
-                parent INT,                   -- Parent ID
-                title VARCHAR(255),           -- Title of the item
-                entityId VARCHAR(255),        -- Entity ID (can be a string or number, storing as string)
-                owner VARCHAR(255),           -- Owner (Snowflake is a string)
-                last_update DATETIME DEFAULT CURRENT_TIMESTAMP,         -- Last update date
-                created DATETIME DEFAULT CURRENT_TIMESTAMP,             -- Created date
+                id bigint PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 9223372036854775807 CACHE 1 ),           -- ID of the item
+                parent INT NOT NULL,                   -- Parent ID
+                title VARCHAR(255) NOT NULL,           -- Title of the item
+                entityId VARCHAR(255) NOT NULL,        -- Entity ID (can be a string or number, storing as string)
+                owner VARCHAR(255) NOT NULL,           -- Owner (Snowflake is a string)
+                last_update timestamp with time zone DEFAULT CURRENT_TIMESTAMP,         -- Last update date
+                created timestamp with time zone DEFAULT CURRENT_TIMESTAMP,             -- Created date
                 crosspost BOOLEAN,            -- Whether it is crossposted
                 compact BOOLEAN,              -- Whether it is compact
                 message TEXT,                 -- Message associated with the item
                 error_count INT,              -- Error count
                 nsfw BOOLEAN DEFAULT FALSE,   -- NSFW flag (optional)
                 sfw BOOLEAN DEFAULT TRUE,    -- SFW flag (optional)
-                type VARCHAR(50),             -- Type of item (Game, Mod, Collection, User)
+                type VARCHAR(50) NOT NULL,             -- Type of item (Game, Mod, Collection, User)
                 show_new BOOLEAN,             -- Only for Game type items
                 show_updates BOOLEAN,         -- Only for Game type items
                 CONSTRAINT fk_parent FOREIGN KEY (parent) REFERENCES SubscribedChannels(id)

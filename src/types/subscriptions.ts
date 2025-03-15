@@ -1,8 +1,8 @@
 
-import { Snowflake, TextChannel, WebhookClient } from 'discord.js';
+import { EmbedBuilder, Snowflake, TextChannel, WebhookClient } from 'discord.js';
 import { getSubscriptionsByChannel } from '../api/subscriptions';
 import { logMessage } from '../api/util';
-import { ICollection, IMod } from '../api/queries/v2';
+import { ICollection, IMod, IModFile } from '../api/queries/v2';
 
 export interface ISubscribedChannel {
     id: number;
@@ -197,10 +197,10 @@ export interface ISubscriptionCache {
 export class SubscriptionCache implements ISubscriptionCache {
     games: { 
         new: { [domain: string] : IMod[] };
-        updated: { [domain: string] : IMod[] };  
+        updated: { [domain: string] : IModWithFiles[] };  
     };
     mods: { [modUid: string]: IMod; };
-    modFiles: { [modUid: string]: any[]; };
+    modFiles: { [modUid: string]: IModFile[]; };
     collections: { [slug: string]: ICollection; };
     users: { [id: string]: any; };
 
@@ -235,7 +235,7 @@ export class SubscriptionCache implements ISubscriptionCache {
         return updated ? this.games.updated[domain] : this.games.new[domain];
     }
 
-    public getCachedModFiles(uuid: string) {
+    public getCachedModFiles(uuid: string): IModFile[] | undefined {
         return this.modFiles[uuid];
     }
 
@@ -252,9 +252,20 @@ export class SubscriptionCache implements ISubscriptionCache {
 export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
     type: SubscribedItemType;
     date: Date;
-    entity: T extends 'games' 
-        ? IMod[]
-        : T extends 'user' 
-            ? any
-            : any ;
+    embed: EmbedBuilder;
+    entity: EntityType<T>;
+}
+
+type IModWithFiles = IMod & { files?: IModFile[] };
+
+type EntityType<T extends SubscribedItemType> = 
+    T extends 'game' ? IMod :
+    T extends 'mod' ? IModWithFiles:
+    T extends 'collection' ? ICollection :
+    T extends 'user' ? any : null;
+
+export function subscribedItemEmbed<T extends SubscribedItemType>(type: SubscribedItemType, entity: EntityType<T>, sub: SubscribedItem, updated: boolean = false): EmbedBuilder {
+    const embed = new EmbedBuilder();
+
+    return embed;
 }

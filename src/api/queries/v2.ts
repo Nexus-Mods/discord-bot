@@ -140,3 +140,23 @@ export class NexusGQLError extends Error {
     }
 
 }
+
+export interface IModFile {
+    uid: string;
+    category: ModFileCategory;
+    changelogText: string[];
+    date: number;
+    fileId: number;
+    name: string;
+    version: string;
+}
+
+export enum ModFileCategory {
+    Main = 'MAIN',
+    Update = 'UPDATE',
+    Optional = 'OPTIONAL',
+    Old = 'OLD_VERSION',
+    Misc = 'MISCELLANEOUS',
+    Removed = 'REMOVED',
+    Archived = 'ARCHIVED'
+}
