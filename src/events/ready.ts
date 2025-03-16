@@ -35,7 +35,7 @@ const main: DiscordEventInterface = {
             client.gameFeeds = GameFeedManager.getInstance(client);
             client.modFeeds = ModFeedManager.getInstance(client);
             client.newsFeed = NewsFeedManager.getInstance(client);
-            //  client.automod = AutoModManager.getInstance(client);
+            client.automod = AutoModManager.getInstance(client);
             client.subscriptions = await SubscriptionManger.getInstance(client);
         }
         catch(err) {
