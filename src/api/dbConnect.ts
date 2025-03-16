@@ -21,16 +21,15 @@ export async function queryPromise<T extends QueryResultRow>(query: string, valu
         pool.connect((err?: Error, client?: PoolClient, release?) => {
             if (err) {
                 logMessage('Error acquiring client', { query, err: err.message }, true);
-                release?.(true);
+                release?.();
                 return reject(err);
             };
             client?.query(query, values, (err: Error, result: QueryResult) => {
+                release?.();
                 if (err) {
                     logMessage('Error in query', { query, values, err }, true);
-                    release?.(true);
                     return reject(err);
                 }
-                release?.(true);
                 return resolve(result);
             })
 
