@@ -16,7 +16,7 @@ export interface IUser {
 }
 
 const idQuery = gql`
-query UserById($id: Int!) {
+query DiscordBotUserById($id: Int!) {
     user(id: $id) {
         name
         memberId

@@ -14,7 +14,7 @@ interface IQueryVariables extends Variables {
 }
 
 const query = gql`
-query searchCollections(
+query DiscordBotSearchCollections(
   $filters: CollectionsSearchFilter, 
   $count: Int, 
   $sort: [CollectionsSearchSort!]

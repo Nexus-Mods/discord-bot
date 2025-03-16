@@ -18,7 +18,7 @@ export interface IUpdatedModResults {
 }
 
 const query = gql`
-query getUpdatedMods($count: Int!, $filter: ModsFilter, $sort: [ModsSort!]) {
+query DiscordBotGetUpdatedMods($count: Int!, $filter: ModsFilter, $sort: [ModsSort!]) {
     mods( 
         filter: $filter 
         count: $count

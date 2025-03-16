@@ -10,7 +10,7 @@ export interface IResult {
 }
 
 const query = gql`
-query getModAuthorStatus($id: Int!) {
+query DiscordBotGetModAuthorStatus($id: Int!) {
     user(id: $id) {
         name
         recognizedAuthor

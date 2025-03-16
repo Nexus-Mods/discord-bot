@@ -7,7 +7,7 @@ interface IResult {
 }
 
 const query = gql`
-query getCollectionData($slug: String, $adult: Boolean, $domain: String) {
+query DiscordBotGetCollectionData($slug: String, $adult: Boolean, $domain: String) {
     collection(slug: $slug, viewAdultContent: $adult, domainName: $domain) {
         id
         slug

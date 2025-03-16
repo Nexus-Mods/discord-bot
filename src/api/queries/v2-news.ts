@@ -16,7 +16,7 @@ export interface INewResults {
 }
 
 const query = gql`
-query News($gameId: Int) {
+query DiscordBotNews($gameId: Int) {
     news(gameId: $gameId) {
         nodes {
             id

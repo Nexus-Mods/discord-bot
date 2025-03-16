@@ -32,7 +32,7 @@ interface ITotals {
 }
 
 const query = gql`
-query getTotalDownloadsForCollections(
+query DiscordBotGetTotalDownloadsForCollections(
   $filters: CollectionsSearchFilter, 
   $offset: Int!,
   $sort: [CollectionsSearchSort!]
