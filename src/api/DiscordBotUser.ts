@@ -1,13 +1,13 @@
 import * as NexusModsOAuth from '../server/NexusModsOAuth';
 import * as DiscordOAuth from '../server/DiscordOAuth';
 import { IUpdateEntry, IValidateKeyResponse } from '@nexusmods/nexus-api';
-import { NexusLinkedMod, NexusUser } from '../types/users';
+import { NexusUser } from '../types/users';
 import { logMessage } from './util';
 import { updateUser } from './users';
 import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
-import { getModsbyUser, createMod, deleteMod, userProfileEmbed } from './bot-db';
+import { userProfileEmbed } from './bot-db';
 import { IModsFilter, IModsSort } from './queries/v2';
 
 interface OAuthTokens {
@@ -130,9 +130,6 @@ export class DiscordBotUser {
         IsPremium: (): boolean => this.NexusModsRoles.has('premium'),
         IsSupporter: (): boolean => this.NexusModsRoles.has('supporter'),
         IsAuthor: (): boolean => this.NexusModsRoles.has('modauthor'),
-        LinkedMods: () => getModsbyUser(this.NexusModsId),
-        AddLinkedMod: (mod: NexusLinkedMod) => createMod(mod),
-        DeleteLinkedMod: (mod: NexusLinkedMod) => deleteMod(mod),
         Revoke: () => this.NexusModsAuthType === 'OAUTH' && !!this.NexusModsOAuthTokens ? NexusModsOAuth.revoke(this.NexusModsOAuthTokens) : null,
         API: {
             v1: {

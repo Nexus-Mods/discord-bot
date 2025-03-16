@@ -11,51 +11,35 @@ const poolConfig: PoolConfig = {
     ssl: !config.testing ? {
         rejectUnauthorized: false,
     } : false,
-    statement_timeout: 5000
+    statement_timeout: 5000,
+    connectionTimeoutMillis: 2000,
+    idleTimeoutMillis: 3000,
+    max: 10
 };
 
 const pool = new Pool(poolConfig);
 
-export async function queryPromise<T extends QueryResultRow>(query: string, values: any[]): Promise<QueryResult<T>> {
-    return new Promise((resolve, reject) => {
-        pool.connect((err?: Error, client?: PoolClient, release?) => {
-            if (err) {
-                logMessage('Error acquiring client', { query, err: err.message }, true);
-                release?.();
-                return reject(err);
-            };
-            client?.query(query, values, (err: Error, result: QueryResult) => {
-                release?.();
-                if (err) {
-                    logMessage('Error in query', { query, values, err }, true);
-                    return reject(err);
-                }
-                return resolve(result);
-            })
-
-        })
-
-    });
-}
-
-function doQuery(query: string, values: any[], callback: (err: Error, result?: QueryResult) => void) {
-    pool.connect((err?: Error, client?: PoolClient, release?) => {
-        if (err) {
-            logMessage('Error acquiring client', { query, err: err.message }, true);
-            release?.();
-            return callback(err);
-        };
-        client?.query(query, values, (err: Error, result: QueryResult) => {
-            release?.();
-            if (err) {
-                logMessage('Error in query', { query, values, err }, true);
-                return callback(err);
-            };
-            if (callback) callback(err, result);
-            else console.warn('Callback undefined in query', query, values);
+export async function queryPromise<T extends QueryResultRow>(query: string, values: any[], name?: string): Promise<QueryResult<T>> {
+    let client: PoolClient | undefined = undefined;
+    
+    try {
+        client = await pool.connect();
+        const result = await client.query<T>({
+            text: query,
+            values,
+            name,            
         });
-
-    });    
+        return result;
+        
+    }
+    catch(err) {
+        if (!client) logMessage('Error acquiring client', { query, err: (err as Error).message }, true);
+        else logMessage('Error in query', { query, values, err }, true);
+        throw err;
+    }
+    finally {
+        client?.release()
+    }
 }
 
-export default doQuery;
+export default queryPromise;

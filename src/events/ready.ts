@@ -5,7 +5,6 @@ import { logMessage } from '../api/util';
 import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
 
 import { NewsFeedManager } from '../feeds/NewsFeedManager';
-import { ModFeedManager } from '../feeds/ModFeedManager';
 import { GameFeedManager } from '../feeds/GameFeedManager';
 import { AutoModManager } from '../feeds/AutoModManager';
 import { GameListCache } from '../types/util';
@@ -33,7 +32,6 @@ const main: DiscordEventInterface = {
         // Start up the feeds
         try {
             client.gameFeeds = GameFeedManager.getInstance(client);
-            client.modFeeds = ModFeedManager.getInstance(client);
             client.newsFeed = NewsFeedManager.getInstance(client);
             client.automod = AutoModManager.getInstance(client);
             client.subscriptions = await SubscriptionManger.getInstance(client);

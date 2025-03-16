@@ -1,12 +1,7 @@
-import { ModDownloadInfo } from "../types/util";
 import { DiscordInteraction } from "../types/DiscordTypes";
-import { NexusLinkedMod, NexusUser } from "../types/users";
-import { 
-    getUserByDiscordId, getModsbyUser, deleteMod, updateMod, 
-    modUniqueDLTotal, updateAllRoles 
-} from '../api/bot-db';
+import { NexusUser } from "../types/users";
+import { getUserByDiscordId } from '../api/bot-db';
 import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { IModInfo } from "@nexusmods/nexus-api";
 import { logMessage } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
@@ -146,55 +141,6 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     // logMessage('Editing reply, updating mod stats');
     card.setTitle('Updating mod stats...');
     await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
-
-    // Update download counts for the mods
-    try {
-        const mods: NexusLinkedMod[] = await getModsbyUser(userData.NexusModsId).catch(() => []);
-        if (mods.length) {
-            let updatedMods: (Partial<IModInfo | NexusLinkedMod>)[] = [];
-            let deletedMods: (Partial<IModInfo | NexusLinkedMod>)[] = [];
-            // Map over all the mods
-            const allMods = await Promise.all(mods.map(async (mod) => {
-                const info = (await userData?.NexusMods.API.v2.Mod(mod.domain, mod.mod_id))?.[0];
-                if (!info) return mod;
-                if (['removed', 'wastebinned'].includes(info.status)) {
-                    // Mod has been deleted
-                    await deleteMod(mod);
-                    deletedMods.push(mod);
-                    return mod;
-                }
-                const dls: ModDownloadInfo = await userData?.NexusMods.API.Other.ModDownloads(info.game.id, mod.mod_id) as ModDownloadInfo || { unique_downloads: 0, total_downloads: 0 };
-                let newInfo: Partial<NexusLinkedMod> = {};
-                // Compare any changes
-                if (info.name && mod.name !== info.name) newInfo.name = info.name;
-                if (dls.unique_downloads > mod.unique_downloads) newInfo.unique_downloads = dls.unique_downloads;
-                if (dls.total_downloads > mod.total_downloads) newInfo.total_downloads = dls.total_downloads;
-                if (Object.keys(newInfo).length) {
-                    updateRoles = true;
-                    await updateMod(mod, newInfo);
-                    mod = { ...info, ...newInfo } as any;
-                    updatedMods.push(mod);
-                }
-                return mod;
-            }));
-
-            const displayable: string = updatedMods.reduce((prev, cur: any) => {
-                const newStr = prev + `- [${cur?.name}](https://nexusmods.com/${cur?.domain_name || cur.domainName}/mods/${cur?.mod_id})\n`;
-                if (newStr.length > 1024) return prev;
-                else prev = newStr;
-                return prev;
-            }, `${updatedMods.length} mods updated:\n`);
-
-            const udlTotal: number = modUniqueDLTotal(allMods.filter(mod => deletedMods.indexOf(mod) === -1));
-
-            if (updatedMods.length) card.addFields({ name: `Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, value: displayable});
-            else card.addFields({ name: `Mods (${udlTotal.toLocaleString()} unique downloads, ${mods.length} mods)`, value: 'No changes required.'});
-        }
-
-    }
-    catch(err) {
-        card.addFields({ name: 'Mods', value: `Error checking mod downloads:\n${err}`});
-    }
 
     // Update the interaction
     card.setTitle('Update complete');
