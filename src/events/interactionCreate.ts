@@ -37,7 +37,7 @@ const main: DiscordEventInterface = {
 async function handleAutoComplete(client: ClientExt, interaction: AutocompleteInteraction) {
     const command: DiscordInteraction = client.interactions?.get(interaction.commandName);
     if (!command || !command.autocomplete) {
-        return logMessage('Invalid command or missing auto-complete', { name: interaction.commandName, autocomplete: !!command.autocomplete }, true);
+        return logMessage('Invalid command or missing auto-complete', { name: interaction.commandName, autocomplete: !!command?.autocomplete, command }, true);
     }
 
     try {

@@ -1,6 +1,6 @@
 
 import { EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
-import { createSubscription, getSubscriptionsByChannel } from '../api/subscriptions';
+import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
 import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { ICollection, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
@@ -61,9 +61,9 @@ export class SubscribedChannel implements ISubscribedChannel {
         return this.subscribedItems;
     }
 
-    async subscribe(type: SubscribedItemType, data:  Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+    async subscribe(data: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
         try {
-            const newSub = await createSubscription(type, this.id, data);
+            const newSub = await createSubscription(this.id, data);
             return newSub;
         }
         catch(err) {
@@ -71,6 +71,17 @@ export class SubscribedChannel implements ISubscribedChannel {
             throw err;
         }
 
+    }
+
+    async updateSub(id: number, data: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+        try {
+            const updatedSub = await updateSubscription(id, this.id, data);
+            return updatedSub;
+        }
+        catch(err) {
+            logMessage('Could not update subscription', err, true);
+            throw err;
+        }
     }
 
 

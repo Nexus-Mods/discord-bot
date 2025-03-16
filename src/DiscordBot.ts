@@ -16,7 +16,7 @@ export class DiscordBot {
 
     private token: Snowflake = process.env.DISCORD_TOKEN as Snowflake;
     private clientId: Snowflake = process.env.DISCORD_CLIENT_ID as Snowflake;
-    private client: ClientExt = new Client({ intents });
+    public client: ClientExt = new Client({ intents });
     private rest: REST = new REST({ version: '10' }).setToken(this.token);
 
     private constructor() {

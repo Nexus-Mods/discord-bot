@@ -1,4 +1,4 @@
-import { EmbedBuilder, Guild, TextChannel, ActivityType, GuildBasedChannel } from 'discord.js';
+import { EmbedBuilder, Guild, TextChannel, GuildBasedChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
 import { logMessage } from '../api/util';
@@ -35,7 +35,7 @@ const main: DiscordEventInterface = {
             client.gameFeeds = GameFeedManager.getInstance(client);
             client.modFeeds = ModFeedManager.getInstance(client);
             client.newsFeed = NewsFeedManager.getInstance(client);
-            client.automod = AutoModManager.getInstance(client);
+            //  client.automod = AutoModManager.getInstance(client);
             client.subscriptions = await SubscriptionManger.getInstance(client);
         }
         catch(err) {

@@ -4,7 +4,7 @@ import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IMod, IModFile } from '../api/queries/v2';
 import { IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache } from '../types/subscriptions';
-import { ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, updateSubscribedChannel } from '../api/subscriptions';
+import { ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -32,7 +32,7 @@ export class SubscriptionManger {
         this.updateSubscriptions(true);
     }
 
-    static async getInstance(client: ClientExt, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
+    static async getInstance(client: ClientExt, pollTime: number = (1000*60*1)): Promise<SubscriptionManger> {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime);
         }
@@ -62,6 +62,8 @@ export class SubscriptionManger {
         if (!firstRun) await this.updateChannels();
         // Prepare the cache
         await this.prepareCache();
+
+        logMessage('Running subscription updates');
 
         // Process the channels and their subscribed items.
         for (const channel of this.channels) {
@@ -98,6 +100,14 @@ export class SubscriptionManger {
 
                 // Format the items into a generic type for comparison. 
                 postableUpdates.push(...updates);
+            }
+
+            // TODO! Update the last_update for the channel
+
+            // Exit if there's nothing to post
+            if (!postableUpdates.length) {
+                logMessage(`No updates for ${discordChannel.name} in ${guild.name}`);
+                continue;
             }
 
             // Got all the updates - break them into groups by type and limit to 10 (API limit).
@@ -147,7 +157,7 @@ export class SubscriptionManger {
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
                 { 
                     gameDomainName: { value: domain, op: 'EQUALS' },
-                    createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GTE' }
+                    createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
                 }, 
                 { createdAt: { direction: 'ASC' } }
             );
@@ -173,7 +183,7 @@ export class SubscriptionManger {
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
                 { 
                     gameDomainName: { value: domain, op: 'EQUALS' },
-                    updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GTE' },
+                    updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
                     hasUpdated: { value: true, op: 'EQUALS' }
                 }, 
                 { createdAt: { direction: 'ASC' } }
@@ -201,11 +211,15 @@ export class SubscriptionManger {
         }
         results.push(...formattedUpdates);
 
-        // TODO! - Save the last date so we know where to start next time!
-
-
-        // Order the results.
-        return results.sort((a,b) => a.date.getTime() - b.date.getTime());
+        // Exit if there's nothing to post
+        if (!results.length) return results;
+        // Order the array so the newest is first and the oldest is last
+        results.sort((a,b) => a.date.getTime() - b.date.getTime())
+        // Save the last date so we know where to start next time!
+        const lastDate = results[results.length -1].date;
+        await saveLastUpdatedForSub(item.id, lastDate);
+        // Return the results
+        return results;
     }
 
     private async getModUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Mod>[]> {
@@ -234,7 +248,7 @@ export class SubscriptionManger {
             const mods = await this.fakeUser.NexusMods.API.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
-                    createdAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GTE' }
+                    createdAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }
                 },
                 { createdAt: { direction: 'ASC' } }
             );
@@ -251,7 +265,7 @@ export class SubscriptionManger {
             const mods = await this.fakeUser.NexusMods.API.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
-                    updatedAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GTE' },
+                    updatedAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' },
                     hasUpdated: { value: true, op:'EQUALS' }
                 },
                 { updatedAt: { direction: 'ASC' } }

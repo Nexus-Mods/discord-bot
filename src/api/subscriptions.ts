@@ -112,7 +112,7 @@ async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): 
     }
 }
 
-async function createSubscription(type: SubscribedItemType, parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+async function createSubscription(parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
             `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, nsfw, sfw, type, show_new, show_updates, parent)
@@ -125,6 +125,41 @@ async function createSubscription(type: SubscribedItemType, parent: number, s: O
     catch(err) {
         const error: Error = (err as Error);
         error.message = `Failed to create subscription for channel.\n${error.message}`;
+        throw error;
+    }
+}
+
+async function updateSubscription(id: number, parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+    try {
+        const data = await queryPromise<ISubscribedItemUnionType>(
+            `UPDATE SubscribedItems SET title=$1, entityid=$2, owner=$3, crosspost=$4, compact=$5, message=$6, nsfw=$7, sfw=$8, type=$9, show_new=$10, show_updates=$11, parent=$12, last_update=CURRENT_DATE
+                WHERE id=$13 RETURNING *`,
+            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.nsfw, s.sfw, s.type, s.show_new, s.show_updates, parent, id]
+        );
+        return new SubscribedItem(data.rows[0]);
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to update subscription for channel.\n${error.message}`;
+        throw error;
+    }
+}
+
+async function saveLastUpdatedForSub(id: number, date: Date) {
+    try {
+        logMessage('Setting last update', { id, date });
+        const data = await queryPromise<ISubscribedItemUnionType>(
+            `UPDATE SubscribedItems SET last_update=$1
+                WHERE id=$2 RETURNING *`,
+            [date, id]
+        );
+        return new SubscribedItem(data.rows[0]);
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to update subscription for channel.\n${error.message}`;
         throw error;
     }
 }
@@ -180,5 +215,5 @@ async function ensureSubscriptionsDB() {
 export { 
     ensureSubscriptionsDB, 
     getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
-    getAllSubscriptions, getSubscriptionsByChannel, createSubscription
+    getAllSubscriptions, getSubscriptionsByChannel, createSubscription, updateSubscription, saveLastUpdatedForSub
 };

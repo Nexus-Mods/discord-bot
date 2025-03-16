@@ -167,3 +167,48 @@ a{
         max-width:858px
     }
 }
+
+        /* General Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #1d1f21;  /* Dark background color for the table */
+            color: #e4e4e4;              /* Light gray text color */
+            font-family: Arial, sans-serif;
+        }
+
+        /* Table Header Styling */
+        th {
+            background-color: #2d2f32;  /* Slightly lighter dark background for header */
+            color: #55b8e4;              /* Nexus Mods accent color - light blue */
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Table Body Styling */
+        td {
+            background-color: #2d2f32;  /* Same as header background for consistency */
+            padding: 10px;
+            border-bottom: 1px solid #444849; /* Slightly darker border for rows */
+        }
+
+        /* Hover Effect for Table Rows */
+        tr:hover {
+            background-color: #3a3d41;  /* Darker background color when hovering over rows */
+        }
+
+        /* Placeholder Styling when No Items */
+        .placeholder {
+            text-align: center;
+            color: #aaa;  /* Light gray color */
+            padding: 10px;
+            background-color: #2d2f32;
+            font-style: italic;
+        }
+
+        /* Optional: Add some spacing around the table */
+        table {
+            margin: 20px 0;
+        }

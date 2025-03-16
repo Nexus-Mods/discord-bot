@@ -7,20 +7,24 @@ import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusM
 import { NexusUser } from '../types/users';
 import path from 'path';
 import { DiscordBotUser } from '../api/DiscordBotUser';
+import { ClientExt } from '../types/DiscordTypes';
+import { getSubscriptionsByChannel } from '../api/subscriptions';
 
 export class AuthSite {
     private static instance: AuthSite;
     private app = express();
+    private client: ClientExt;
     private port = process.env.AUTH_PORT || 3000;
     public TempStore: Map<string, { name: string, id: string, tokens: any }> = new Map();
 
-    private constructor() {
+    private constructor(client: ClientExt) {
+        this.client = client;
         this.initialize();
     }
 
-    static getInstance(): AuthSite {
+    static getInstance(client: ClientExt): AuthSite {
         if (!AuthSite.instance) {
-            AuthSite.instance = new AuthSite();
+            AuthSite.instance = new AuthSite(client);
         }
 
         return AuthSite.instance;
@@ -69,6 +73,8 @@ export class AuthSite {
         this.app.get('/revoke', this.revokeAccess.bind(this));
         
         this.app.get('/beacon', this.beaconTest.bind(this));
+
+        this.app.get('/tracking', this.tracking.bind(this));
 
         this.app.get('*', (req, res) => res.redirect('/'));
 
@@ -305,5 +311,33 @@ export class AuthSite {
 
     async beaconTest(req: express.Request, res: express.Response) {
         res.render('beacon', { pageTitle: 'Beacon Test Page', loadBeacon: true });
+    }
+
+    async tracking(req: express.Request, res: express.Response) {
+        const guild = req.query['guild'] as string;
+        const channel = req.query['channel'] as string;
+        if (!guild || !channel) return res.redirect('/')
+        const knownGuild = await this.client.guilds.fetch(guild);
+        if (!knownGuild) return res.redirect('/');
+        const guildImage = knownGuild.iconURL();
+        const knownChannel = await knownGuild.channels.fetch(channel);
+        if (!knownChannel) return res.redirect('/');
+        const subs = await getSubscriptionsByChannel(guild, channel);
+
+        const timeAgo = (timestamp: string) => {
+            const now = new Date();
+            const diff = now.getTime() - new Date(timestamp).getTime();
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+        
+            if (seconds < 60) return `${seconds} seconds ago`;
+            if (minutes < 60) return `${minutes} minutes ago`;
+            if (hours < 24) return `${hours} hours ago`;
+            return `${days} days ago`;
+        }
+
+        res.render('tracking', { pageTitle: 'Tracking Summary', guild: knownGuild.name, channel: knownChannel.name, guildImage, subs, timeAgo });
     }
 }

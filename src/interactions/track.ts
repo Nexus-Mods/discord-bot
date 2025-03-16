@@ -9,8 +9,6 @@ import {
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { autocompleteGameName, logMessage } from "../api/util";
-import { ITip } from "../api/tips";
-import { TipCache } from "../types/util";
 import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions";
 import { createSubscribedChannel, getSubscribedChannel } from "../api/subscriptions";
 
@@ -26,6 +24,36 @@ const discordInteraction: DiscordInteraction = {
             .setDescription('The title of the game.')
             .setRequired(true)
             .setAutocomplete(true)
+        )
+        .addStringOption(o =>
+            o.setName('message')
+            .setDescription('Post with updates. e.g. Role')
+            .setRequired(false)
+        )
+        .addBooleanOption(o =>
+            o.setName('show_new')
+            .setDescription('Show new mods. Default: True')
+            .setRequired(false)
+        )
+        .addBooleanOption(o =>
+            o.setName('show_updates')
+            .setDescription('Show updated mods. Default: True')
+            .setRequired(false)
+        )
+        .addBooleanOption(o =>
+            o.setName('nsfw')
+            .setDescription('Show adult content.')
+            .setRequired(false)
+        )
+        .addBooleanOption(o =>
+            o.setName('sfw')
+            .setDescription('Show non-adult content.')
+            .setRequired(false)
+        )
+        .addBooleanOption(o =>
+            o.setName('compact')
+            .setDescription('Use compact style cards.')
+            .setRequired(false)
         )
     )
     .addSubcommand(sc =>
@@ -45,7 +73,7 @@ const discordInteraction: DiscordInteraction = {
         '581095546291355649'
     ],
     action,
-    autocomplete: autocompleteGameName
+    autocomplete,
 }
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
@@ -61,26 +89,43 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
 async function trackGame(client: ClientExt, interaction: ChatInputCommandInteraction) {
     const channel = await ensureChannelisSubscribed(client, interaction);
+    // Get options from the command
     const gameDomain = interaction.options.getString('game', true);
+    const compact = interaction.options.getBoolean('compact') ?? false;
+    const show_new = interaction.options.getBoolean('show_new') ?? true;
+    const show_updates = interaction.options.getBoolean('show_updates') ?? true;
+    const nsfw = interaction.options.getBoolean('nsfw') ?? (interaction.channel as TextChannel).nsfw;
+    const sfw = interaction.options.getBoolean('sfw') ?? true;
+    const message = interaction.options.getString('message');
+    // Get the game object for selected domain
     const game = (await client.gamesList!.getGames()).find(g => g.domain_name === gameDomain);
+
+    const currentSubs = await channel.getSubscribedItems();
+    const currentGameSub = currentSubs.find(s => s.entityid === gameDomain && s.type === SubscribedItemType.Game);
+
+    const newData = {
+        title: game!.name,
+        entityid: gameDomain,
+        type: SubscribedItemType.Game,
+        owner: interaction.user.id,
+        crosspost: false,
+        compact,
+        message,
+        show_new,
+        show_updates,
+        sfw,
+        nsfw
+    };
+
     try {
-        const newSub = channel.subscribe(
-            SubscribedItemType.Game,
-            {
-                title: game!.name,
-                entityid: gameDomain,
-                type: SubscribedItemType.Game,
-                owner: interaction.user.id,
-                crosspost: false,
-                compact: false,
-                message: null,
-                show_new: true,
-                show_updates: true,
-                sfw: true,
-                nsfw: true
-            }
-        )
-        
+        if (currentGameSub) {
+            await channel.updateSub(currentGameSub.id, newData);
+            logMessage('Updating existing subscription')
+        }
+        else {
+            await channel.subscribe(newData);
+            logMessage('Creating new subscription')
+        }
         const embed = new EmbedBuilder()
         .setTitle('Game Tracked!')
         .setDescription(`New Mods for ${game!.name} will be posted in this channel`)
@@ -88,6 +133,7 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
         .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game!.id}.jpg`)
         
         return await interaction.editReply({ embeds: [embed] });
+        
     }
     catch(err) {
         logMessage('Failed to track game', err, true);
@@ -129,6 +175,12 @@ async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInp
         webhook_token: webHook.token!
     });
     return newChannel;
+}
+
+async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction) {
+    const focused = interaction.options.getFocused(true);
+
+    if (focused.name === 'game') return autocompleteGameName(client, interaction);
 }
 
 export { discordInteraction };

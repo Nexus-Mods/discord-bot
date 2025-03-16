@@ -1,0 +1,40 @@
+<div>
+    <h1>Tracking Summary</h1>
+    <div style="display: flex; justify-content: flex-start; align-items: center; background-color: #5865F2; margin: 16px 0;">
+        <div style="max-width: 64px; margin: 8px;">
+            <img src="<%=guildImage%>" style="border-radius: 16px; width: 64px; height: 64px;"/>
+        </div>
+        <div style="margin: 8px; padding-right:4px;">
+            Summary for <strong>#<%=channel%></strong> in <strong><%=guild%></strong>
+        </div>
+    </div>
+    <table style="width: 100%;">
+        <thead style="background-color: #2d2f32; color: #55b8e4; ">
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Name</th>
+                <th>Entity ID</th>
+                <th>Last Update</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (subs.length === 0) { %>
+                <tr>
+                    <td colspan="5" class="placeholder" style="text-align: center;"><i>No subscriptions</i></td>
+                </tr>
+            <% } else { %>
+                <% subs.forEach(function(sub) { %>
+                    <tr>
+                        <td><%= sub.id %></td>
+                        <td><%= sub.type.toUpperCase() %></td>
+                        <td><%= sub.title %></td>
+                        <td><%= sub.entityid %></td>
+                        <td title="<%= sub.last_update %>"><%= timeAgo(sub.last_update) %></td>
+                    </tr>
+                <% }); %>
+            <% } %>
+        </tbody>
+    </table>
+    
+</div>
