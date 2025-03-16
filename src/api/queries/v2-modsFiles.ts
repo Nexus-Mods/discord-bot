@@ -13,7 +13,7 @@ interface IVariables extends Variables {
 
 const query = gql`
 query ModFiles($modId: ID!, $gameId: ID!) {
-    modsFiles(modId: $modId, gameId: $gameId) {
+    modFiles(modId: $modId, gameId: $gameId) {
       uid
       fileId
       name

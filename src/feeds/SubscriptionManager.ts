@@ -36,6 +36,7 @@ export class SubscriptionManger {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime);
         }
+        logMessage('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length});
         return SubscriptionManger.instance;
     }
 
@@ -76,6 +77,7 @@ export class SubscriptionManger {
             const webHookClient = channel.webHookClient;
             // Grab the subscribed items
             const items = await channel.getSubscribedItems();
+            if (!items.length) continue;
             // Get the postable info for each subscribed item
             const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
             for (const item of items) {
@@ -99,11 +101,11 @@ export class SubscriptionManger {
             }
 
             // Got all the updates - break them into groups by type and limit to 10 (API limit).
-            const blocks: WebhookMessageCreateOptions[] = []
-            let currentType: SubscribedItemType | undefined = undefined;
+            const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }]
+            let currentType: SubscribedItemType = postableUpdates[0].type;
             for (const update of postableUpdates) {
                 // If we've swapped type or we've got more than 10 embeds already
-                if (update.type === currentType || blocks[blocks.length - 1].embeds?.length === 10) blocks.push({})
+                if (update.type !== currentType || blocks[blocks.length - 1].embeds!.length === 10) blocks.push({ embeds: [] })
                 const myBlock = blocks[blocks.length - 1];
                 myBlock.embeds = myBlock.embeds ? [...myBlock.embeds, update.embed] : [update.embed];
                 if (!myBlock.content && update.message) myBlock.content = update.message;
@@ -111,7 +113,7 @@ export class SubscriptionManger {
             }
 
             // Send the updates to the webhook!
-            logMessage(`Posting $${blocks.length} webhook updates to ${guild.name}`);
+            logMessage(`Posting ${blocks.length} webhook updates to ${guild.name}`);
             for (const block of blocks) {
                 try {
                     await webHookClient.send(block);
@@ -137,7 +139,7 @@ export class SubscriptionManger {
 
     private async getGameUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Game>[]> {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
-        const domain: string = item.entityId as string;
+        const domain: string = item.entityid as string;
         const last_update = item.last_update;
         let newMods = item.show_new ? this.cache.games.new[domain].filter(m => new Date(m.createdAt) >= last_update ): [];
         // If there's nothing in the cache, we'll double check
@@ -160,7 +162,7 @@ export class SubscriptionManger {
                 date: new Date(mod.createdAt), 
                 entity: mod, 
                 embed,
-                message: item.message
+                message: item.message ?? null
             })
         }
         results.push(...formattedNew);
@@ -194,7 +196,7 @@ export class SubscriptionManger {
                 date: new Date(mod.updatedAt), 
                 entity: mod, 
                 embed,
-                message: item.message
+                message: item.message ?? null
             })
         }
         results.push(...formattedUpdates);
@@ -225,7 +227,7 @@ export class SubscriptionManger {
 
         // NEW MODS FOR GAMES 
         const newGameSubs = subs.filter(s => s.type === SubscribedItemType.Game && s.show_new);
-        const newGames = new Set<string>(newGameSubs.map(s => s.entityId as string));
+        const newGames = new Set<string>(newGameSubs.map(s => s.entityid as string));
         // For each game, get the date of the oldest possible mod to show.
         const oldestPerNewGame = getMaxiumDatesForGame(newGameSubs, newGames);
         const newGamePromises = Object.entries(oldestPerNewGame).map(async ([ domain, date ]) => {
@@ -243,7 +245,7 @@ export class SubscriptionManger {
 
         // UPDATED MODS FOR GAMES
         const updatedGameSubs = subs.filter(s => s.type === SubscribedItemType.Game && s.show_updates);
-        const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityId as string));
+        const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityid as string));
         const oldestPerUpdatedGame = getMaxiumDatesForGame(updatedGameSubs, updatedGames);
         const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(async ([ domain, date ]) => {
             const mods = await this.fakeUser.NexusMods.API.v2.Mods(
@@ -269,7 +271,7 @@ export class SubscriptionManger {
 function getMaxiumDatesForGame(subs: ISubscribedItem[], games: Set<string>) {
     return [...games].reduce<{ [domain: string]: Date }>(
         (prev, cur) => {
-        const subsForDomain = subs.filter(g => g.entityId === cur);
+        const subsForDomain = subs.filter(g => g.entityid === cur);
         const oldest = subsForDomain.sort((a,b) => a.last_update.getTime() - b.last_update.getTime())[0]
         prev[cur] = oldest.last_update;
         return prev;

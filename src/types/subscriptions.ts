@@ -1,6 +1,6 @@
 
 import { EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
-import { getSubscriptionsByChannel } from '../api/subscriptions';
+import { createSubscription, getSubscriptionsByChannel } from '../api/subscriptions';
 import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { ICollection, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
@@ -61,6 +61,18 @@ export class SubscribedChannel implements ISubscribedChannel {
         return this.subscribedItems;
     }
 
+    async subscribe(type: SubscribedItemType, data:  Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+        try {
+            const newSub = await createSubscription(type, this.id, data);
+            return newSub;
+        }
+        catch(err) {
+            logMessage('Could not create subscription', err, true);
+            throw err;
+        }
+
+    }
+
 
 }
 
@@ -75,20 +87,20 @@ export interface ISubscribedItem {
     id: number;
     parent: number;
     title: string;
-    entityId: any;
+    entityid: any;
     owner: Snowflake;
     last_update: Date;
     created: Date;
     crosspost: boolean;
     compact: boolean;
-    message: string;
+    message: string | null;
     error_count: number;
     nsfw?: boolean;
     sfw?: boolean;
 }
 
 export interface ISubscribedGameItem extends ISubscribedItem {
-    entityId: string;
+    entityid: string;
     type: SubscribedItemType.Game;
     show_new: boolean;
     show_updates:boolean;
@@ -125,7 +137,7 @@ export class SubscribedItem {
     // Displayable title without re-fetching
     title: string;
     // Entity ID (mod ID, collection slug, user ID, game domain)
-    entityId: string | number;
+    entityid: string | number;
     // Discord ID of the owner.
     owner: string;
     // Last update to this subscribed item
@@ -137,7 +149,7 @@ export class SubscribedItem {
     // Display compact mode
     compact: boolean;
     // Message to post with updates
-    message: string;
+    message: string | null;
     // Error counter, when it gets too high we abandon this feed.
     error_count: number;
     // Show NSFEW content
@@ -153,7 +165,7 @@ export class SubscribedItem {
         this.id = item.id;
         this.type = item.type;
         this.title = item.title;
-        this.entityId = item.entityId
+        this.entityid = item.entityid
         this.owner = item.owner;
         this.last_update = item.last_update as Date ? item.last_update : new Date(item.last_update);
         this.created = item.created as Date ? item.created : new Date(item.created);
@@ -255,7 +267,7 @@ export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
     date: Date;
     embed: EmbedBuilder;
     entity: EntityType<T>;
-    message?: string;
+    message?: string | null;
 }
 
 type IModWithFiles = IMod & { files?: IModFile[] };
@@ -268,7 +280,7 @@ type EntityType<T extends SubscribedItemType> =
 
 export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder();
-    switch (entity.type) {
+    switch (sub.type) {
         case SubscribedItemType.Game: {
             const mod = entity as IModWithFiles;
             const compact: boolean = sub.compact;
@@ -283,7 +295,6 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
             .setDescription(mod.summary ?? '_No summary_')
             .setImage(compact ? null :  mod.pictureUrl || null)
             .setThumbnail(compact ? mod.pictureUrl : gameThumb)
-            .setAuthor( { name: `${updated ? 'New Mod Uploaded' : 'Mod Updated'} (${mod.game.name})` })
             // Updated or otherwise
             if (updated) {
                 embed.setColor(0x57a5cc)
@@ -293,7 +304,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                     let changelog = '';
                     // If the changelog is bigger than a field size, add an ellipse and exit
                     for (const t of lastestFile.changelogText) {
-                        const temp = `${changelog}\n- ${t}`;
+                        const temp = `${changelog}- ${t}\n`;
                         if (temp.length > 1020) {
                             changelog = `${changelog}...`;
                             break;
@@ -317,7 +328,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                 },
                 {
                     name: 'Uploader',
-                    value: `[${mod.uploader.name}](${nexusModsTrackingUrl(`https://nexusmods.com/users/${mod.uploader.memberId})`, 'subscribedGame')}`,
+                    value: `[${mod.uploader.name}](${nexusModsTrackingUrl(`https://nexusmods.com/users/${mod.uploader.memberId}`, 'subscribedGame')})`,
                     inline: true
                 }
             )
