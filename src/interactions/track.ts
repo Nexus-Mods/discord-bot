@@ -8,7 +8,7 @@ import {
     Webhook
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { autocompleteGameName, logMessage } from "../api/util";
+import { autocompleteGameName, autoCompleteModSearch, logMessage } from "../api/util";
 import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions";
 import { createSubscribedChannel, getSubscribedChannel } from "../api/subscriptions";
 
@@ -59,6 +59,12 @@ const discordInteraction: DiscordInteraction = {
     .addSubcommand(sc =>
         sc.setName('mod')
         .setDescription('Track a specific mod page for updates')
+        .addStringOption(o =>
+            o.setName('mod')
+            .setDescription('The mod to track.')
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
     )
     .addSubcommand(sc =>
         sc.setName('collection')
@@ -181,6 +187,7 @@ async function autocomplete(client: ClientExt, interaction: AutocompleteInteract
     const focused = interaction.options.getFocused(true);
 
     if (focused.name === 'game') return autocompleteGameName(client, interaction);
+    else if (focused.name === 'mod') return autoCompleteModSearch(interaction);
 }
 
 export { discordInteraction };

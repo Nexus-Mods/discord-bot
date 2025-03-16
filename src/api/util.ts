@@ -1,5 +1,7 @@
 import { AutocompleteInteraction, EmbedBuilder } from "discord.js";
 import { ClientExt } from "../types/DiscordTypes";
+import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser";
+import { IModsFilter } from "./queries/v2";
 
 export const logMessage  = (msg: string, obj?: any, error?: boolean) => {
     const message = `${new Date().toLocaleString()} - ${msg}`;
@@ -17,6 +19,28 @@ export async function autocompleteGameName(client: ClientExt, acInteraction: Aut
     }
     catch(err) {
         logMessage('Error autocompleting games', {err}, true);
+        throw err;
+    }
+}
+
+export async function autoCompleteModSearch(acInteraction: AutocompleteInteraction, gameDomain?: string) {
+    const focused = acInteraction.options.getFocused();
+    if (focused.length < 3) return await acInteraction.respond([]);
+    try {
+        const user = new DiscordBotUser(DummyNexusModsUser);
+        const modFilter: IModsFilter = {};
+        if (focused) modFilter.name = { value: focused, op: 'WILDCARD' };
+        if (gameDomain) modFilter.gameDomainName = { value: gameDomain, op: 'EQUALS' };
+        const modSearch = await user.NexusMods.API.v2.Mods(
+            modFilter,
+            { endorsements: { direction: 'DESC' }}
+        )
+        await acInteraction.respond(
+            modSearch.nodes.map(m => ({ name: `${m.name} (${m.game.name})`, value: m.uid }))
+        );
+    }
+    catch(err) {
+        logMessage('Error autocompleting mods', {err}, true);
         throw err;
     }
 }
