@@ -1,13 +1,13 @@
 import * as NexusModsOAuth from '../server/NexusModsOAuth';
 import * as DiscordOAuth from '../server/DiscordOAuth';
 import { IUpdateEntry, IValidateKeyResponse } from '@nexusmods/nexus-api';
-import { NexusLinkedMod, NexusUser } from '../types/users';
+import { NexusUser } from '../types/users';
 import { logMessage } from './util';
 import { updateUser } from './users';
 import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
-import { getModsbyUser, createMod, deleteMod, userProfileEmbed } from './bot-db';
+import { userProfileEmbed } from './bot-db';
 import { IModsFilter, IModsSort } from './queries/v2';
 
 interface OAuthTokens {
@@ -130,9 +130,6 @@ export class DiscordBotUser {
         IsPremium: (): boolean => this.NexusModsRoles.has('premium'),
         IsSupporter: (): boolean => this.NexusModsRoles.has('supporter'),
         IsAuthor: (): boolean => this.NexusModsRoles.has('modauthor'),
-        LinkedMods: () => getModsbyUser(this.NexusModsId),
-        AddLinkedMod: (mod: NexusLinkedMod) => createMod(mod),
-        DeleteLinkedMod: (mod: NexusLinkedMod) => deleteMod(mod),
         Revoke: () => this.NexusModsAuthType === 'OAUTH' && !!this.NexusModsOAuthTokens ? NexusModsOAuth.revoke(this.NexusModsOAuthTokens) : null,
         API: {
             v1: {
@@ -167,16 +164,19 @@ export class DiscordBotUser {
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
                         v2.modsById(this.headers(), mods),
+                ModsByUid: async (uids: string[]) => v2.modsByUid(this.headers(), uids),
                 MyCollections: async () => v2.myCollections(this.headers()),
                 Collections: 
-                    async (filters: GQLTypes.CollectionsUserFilter, sort: GQLTypes.CollectionsSort, adultContent?: boolean) => 
+                    async (filters: GQLTypes.ICollectionsFilter, sort?: GQLTypes.CollectionsSort, adultContent?: boolean) => 
                         v2.collections(this.headers(), filters, sort, adultContent),
                 Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), slug, domain, adult),
                 CollectionsByUser: async (userId: number) => v2.collections(this.headers(), { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),
                 CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), userId),
                 FindUser: async (query: string | number) => v2.findUser(this.headers(), query),
                 LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), since, gameIds, sort),
-                News: async (gameId?: number) => v2.news(this.headers(), gameId)
+                News: async (gameId?: number) => v2.news(this.headers(), gameId),
+                ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), gameId, modId),
+                Users: async (name: string) => v2.users(this.headers(), name)
             },
             Other: {
                 // Games pulled from the static Games.json file.

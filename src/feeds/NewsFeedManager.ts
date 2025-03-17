@@ -35,10 +35,10 @@ export class NewsFeedManager {
         // Save the client for later
         this.client = client;
         // Set the update interval.
-        this.updateTimer = setInterval(() => {
+        this.updateTimer = setInterval(async () => {
             try {
-                this.checkNews()
-                // this.postLatestNews()
+                // this.checkNews()
+                await this.postLatestNews();
             }
             catch(err) {
                 logMessage('Failed to check for latest news updates', err, true);
@@ -50,8 +50,8 @@ export class NewsFeedManager {
                 try {
                     this.LatestNews = latest;
                     // logMessage('Checking for news');
-                    this.checkNews();
-                    // this.postLatestNews();                    
+                    // this.checkNews();
+                    this.postLatestNews();                    
                 }
                 catch(err) {
                     logMessage('Error fetching news', (err as Error).message, true);
@@ -171,11 +171,11 @@ export class NewsFeedManager {
 
     async forceUpdate(domain?: string): Promise<EmbedBuilder|SavedNewsData|undefined> {
         clearInterval(NewsFeedManager.instance.updateTimer);
-        // NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.postLatestNews(), pollTime);
-        NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
+        NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.postLatestNews(), pollTime);
+        // NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
         logMessage('Forced news feed update check', domain || 'all');
-        return NewsFeedManager.instance.checkNews(domain);
-        // return NewsFeedManager.instance.postLatestNews(domain);
+        // return NewsFeedManager.instance.checkNews(domain);
+        return NewsFeedManager.instance.postLatestNews(domain);
     }
 }
 

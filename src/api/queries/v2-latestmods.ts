@@ -12,7 +12,7 @@ export interface IModResults {
 }
 
 const query = gql`
-query Mods($filter: ModsFilter, $sort: [ModsSort!]) {
+query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
     mods(
         filter: $filter, 
         sort: $sort

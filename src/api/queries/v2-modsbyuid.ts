@@ -1,24 +1,20 @@
 import { request, gql } from "graphql-request";
 import { logMessage } from "../util";
-import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
+import { v2API, IMod, NexusGQLError } from './v2';
 
 interface IResult {
-    mods: IModResults;
+    modsByUid: IModResults;
 }
 
 export interface IModResults {
     nodes: IMod[];
     totalCount: number;
-    // For backwards compatibility
-    fullSearchUrl?: string;
 }
 
 const query = gql`
-query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!]) {
-    mods(
-        filter: $filter, 
-        sort: $sort
-    ) {
+query DiscordBotModsByUid($uids: [ID!]!) {
+    modsByUid(uids: $uids)
+    {
       nodes {
         uid
         modId
@@ -34,9 +30,9 @@ query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!]) {
           memberId
         }
         pictureUrl
-        modCategory {
-          name
-        }
+        # modCategory {
+        #  name
+        # }
         adult
         version
         downloads
@@ -51,21 +47,21 @@ query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, filter: IModsFilter, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
+type IModWithoutCategory = Omit<IMod,'modcategory'>;
+
+export async function modsByUid(headers: Record<string,string>, uids: string[]): Promise<IModWithoutCategory[]> {
 
     const vars = {
-        filter,
-        sort,
-        count: 10
+        uids
     }
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        return result.mods;
+        return result.modsByUid.nodes;
     }
     catch(err) {
-        const error = new NexusGQLError(err as any, 'mods');
-        logMessage('Error in mods v2 request', error, true);
-        return { nodes: [], totalCount: 0 };
+        const error = new NexusGQLError(err as any, 'modsByUid');
+        logMessage('Error in modsbyuid v2 request', error, true);
+        return [];
     }
 }

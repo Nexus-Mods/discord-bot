@@ -2,7 +2,7 @@ import { GameFeed } from '../types/feeds';
 import { getAllGameFeeds, getGameFeed, createGameFeed, deleteGameFeed, getUserByDiscordId, getUserByNexusModsName, updateGameFeed } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import { IUpdateEntry, IChangelogs } from '@nexusmods/nexus-api';
-import { User, Guild, Snowflake, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, NewsChannel, GuildBasedChannel } from 'discord.js';
+import { User, Guild, Snowflake, TextChannel, WebhookClient, GuildMember, EmbedBuilder, Client, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, NewsChannel, GuildBasedChannel, ChannelType } from 'discord.js';
 import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { NexusAPIServerError } from '../types/util';
 import { DiscordBotUser } from '../api/DiscordBotUser';
@@ -348,7 +348,7 @@ async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: 
     // https://github.com/Vedinsoh/discord-auto-publisher/blob/main/src/crosspost/crosspost.ts#L13
     
     try {
-        const newsChannel = (channel as GuildBasedChannel).type === 5 ? (channel as GuildBasedChannel) as NewsChannel : undefined;
+        const newsChannel = (channel as GuildBasedChannel).type === ChannelType.GuildAnnouncement ? (channel as GuildBasedChannel) as NewsChannel : undefined;
         if (!newsChannel || !messageId) return // logMessage('Could not cross-post message for feed', { feedId: feed._id, channel: channel.name }, true);
         const latest = newsChannel.messages.resolve(messageId);
         if (!!latest?.crosspostable) throw new Error('Message is not cross-postable');

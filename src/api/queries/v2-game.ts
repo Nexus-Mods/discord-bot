@@ -16,7 +16,7 @@ export interface IGame {
 }
 
 const query = gql`
-query Game {
+query DiscordBotGame {
     game {
         id
         name

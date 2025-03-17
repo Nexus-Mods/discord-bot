@@ -8,13 +8,13 @@ interface IResult {
 }
 
 interface IQueryVariables extends Variables {
-  filters: GQLTypes.CollectionsUserFilter;
+  filters: GQLTypes.ICollectionsFilter;
   count: number;
   sort: GQLTypes.CollectionsSort
 }
 
 const query = gql`
-query searchCollections(
+query DiscordBotSearchCollections(
   $filters: CollectionsSearchFilter, 
   $count: Int, 
   $sort: [CollectionsSearchSort!]
@@ -60,11 +60,10 @@ query searchCollections(
 }
 `;
 
-export async function collections(headers: Record<string,string>, filters: GQLTypes.CollectionsUserFilter, sort: GQLTypes.CollectionsSort = {endorsements: { direction: 'DESC' }}, adultContent: boolean = false): Promise<ICollectionSearchResult> {
+export async function collections(headers: Record<string,string>, filters: GQLTypes.ICollectionsFilter, sort: GQLTypes.CollectionsSort = {endorsements: { direction: 'DESC' }}, adultContent: boolean = true): Promise<ICollectionSearchResult> {
     const variables: IQueryVariables = {
-        filters: {},
+        filters,
         sort,
-        adultContent,
         count: 5
     };
 

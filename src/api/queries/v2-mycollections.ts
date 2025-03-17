@@ -11,7 +11,7 @@ interface IResult {
 }
 
 const query = gql`
-query MyCollections {
+query DiscordBotMyCollections {
     myCollections(
       viewAdultContent: true,
       viewUnderModeration: true,

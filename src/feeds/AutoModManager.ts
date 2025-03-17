@@ -40,7 +40,7 @@ export class AutoModManager {
     private AutoModRules: IAutomodRule[] = [];
     private BadFiles: IBadFileRule[] = [];
     private client: ClientExt;
-    private updateTimer: NodeJS.Timeout;
+    private updateTimer?: NodeJS.Timeout;
     private usersUploadingFirstMod: IUsersUploadingFirstMod;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
@@ -68,7 +68,11 @@ export class AutoModManager {
         this.client = client;
         // Set up the counter for first uploads
         this.usersUploadingFirstMod = { since: Math.floor(new Date().getTime()/1000), users: new Set<number>(), lastPostedAt: -1 };
-        // Set the update interval.
+        // Set the update interval. Unless testing
+        if (client.config?.testing == true) {
+            logMessage('Skipping automod setup due to testing env')
+            return
+        };
         this.updateTimer = setInterval(this.runAutomod.bind(this), pollTime);
         this.getRules()
             .then(() => {

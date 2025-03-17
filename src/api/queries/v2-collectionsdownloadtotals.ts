@@ -21,7 +21,7 @@ interface IDownloadStats {
 };
 
 interface IQueryVariables extends Variables {
-  filters: GQLTypes.CollectionsUserFilter;
+  filters: GQLTypes.ICollectionsFilter;
   offset: number;
   sort: GQLTypes.CollectionsSort
 }
@@ -32,7 +32,7 @@ interface ITotals {
 }
 
 const query = gql`
-query getTotalDownloadsForCollections(
+query DiscordBotGetTotalDownloadsForCollections(
   $filters: CollectionsSearchFilter, 
   $offset: Int!,
   $sort: [CollectionsSearchSort!]

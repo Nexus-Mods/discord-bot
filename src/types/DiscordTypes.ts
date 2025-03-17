@@ -3,19 +3,19 @@ import {
     Client, ContextMenuCommandBuilder, SlashCommandBuilder, AutocompleteInteraction,
 } from "discord.js";
 import { GameFeedManager } from "../feeds/GameFeedManager";
-import { ModFeedManager } from "../feeds/ModFeedManager";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 import { GameListCache, TipCache } from "./util";
 import { AutoModManager } from "../feeds/AutoModManager";
+import { SubscriptionManger } from "../feeds/SubscriptionManager";
 
 interface ClientExt extends Client {
     config?: any;
     commands?: Collection<any, any>;
     interactions?: Collection<any, any>;
     gameFeeds?: GameFeedManager;
-    modFeeds?: ModFeedManager;
     newsFeed?: NewsFeedManager;
     automod?: AutoModManager;
+    subscriptions?: SubscriptionManger;
     updateInteractions?: (force?: boolean) => Promise<void>
     gamesList?: GameListCache;
     tipCache?: TipCache;
