@@ -376,11 +376,11 @@ async function showReport(client: ClientExt, interaction: ChatInputCommandIntera
     .setDescription('UIDs checked over the last few minutes\n\n```'+[...client.automod!.recentUids].join('\n')+'```')
     .setColor("Blue")
 
-    const newModUploaders = new EmbedBuilder()
-    .setTitle('Authors who uploaded this first mod')
-    .setDescription(`${[ ...client.automod!.getNewUploaders()].map(id => (`https://nexusmods.com/users/${id}`)).join('\n')}`)
+    // const newModUploaders = new EmbedBuilder()
+    // .setTitle('Authors who uploaded this first mod')
+    // .setDescription(`${[ ...client.automod!.getNewUploaders()].map(id => (`https://nexusmods.com/users/${id}`)).join('\n')}`)
 
-    return interaction.editReply({ embeds: [resultEmbed, uidEmbed, newModUploaders] })
+    return interaction.editReply({ embeds: [resultEmbed, uidEmbed] })
 }
 
 export { discordInteraction }
