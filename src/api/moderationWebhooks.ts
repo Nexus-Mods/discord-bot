@@ -58,14 +58,14 @@ export async function PublishToSlack(data: ISlackMessage): Promise<Boolean> {
 }
 
 
-export async function PublishToDiscord(data: RESTPostAPIWebhookWithTokenJSONBody, firstMods: IUsersUploadingFirstMod): Promise<Boolean> {
+export async function PublishToDiscord(data: RESTPostAPIWebhookWithTokenJSONBody): Promise<Boolean> {
     const discordWebhook: string = process.env['DISCORD_WEBHOOK'] || '';
 
     if (!discordWebhook) throw new Error('Discord webhook is not provided!');
 
-    if (firstMods.users.size > firstMods.lastPostedAt) {
-        data.content = `Users uploading their first mod between <t:${firstMods.since}:f> - <t:${Math.floor(new Date().getTime() / 1000)}:f>: **${firstMods.users.size}**`;
-    }
+    // if (firstMods.users.size > firstMods.lastPostedAt) {
+    //     data.content = `Users uploading their first mod between <t:${firstMods.since}:f> - <t:${Math.floor(new Date().getTime() / 1000)}:f>: **${firstMods.users.size}**`;
+    // }
 
     try {
         await axios({

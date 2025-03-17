@@ -41,7 +41,7 @@ export class AutoModManager {
     private BadFiles: IBadFileRule[] = [];
     private client: ClientExt;
     private updateTimer?: NodeJS.Timeout;
-    private usersUploadingFirstMod: IUsersUploadingFirstMod;
+    // private usersUploadingFirstMod: IUsersUploadingFirstMod;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
     public recentUids: Set<string> = new Set<string>(); // A list of recently checked Uids
@@ -67,7 +67,7 @@ export class AutoModManager {
         // Save the client for later
         this.client = client;
         // Set up the counter for first uploads
-        this.usersUploadingFirstMod = { since: Math.floor(new Date().getTime()/1000), users: new Set<number>(), lastPostedAt: -1 };
+        // this.usersUploadingFirstMod = { since: Math.floor(new Date().getTime()/1000), users: new Set<number>(), lastPostedAt: -1 };
         // Set the update interval. Unless testing
         if (client.config?.testing == true) {
             logMessage('Skipping automod setup due to testing env')
@@ -94,9 +94,9 @@ export class AutoModManager {
         this.getRules();
     }
 
-    public getNewUploaders(): Set<number> {
-        return this.usersUploadingFirstMod.users;
-    }
+    // public getNewUploaders(): Set<number> {
+    //     return this.usersUploadingFirstMod.users;
+    // }
 
     private async getRules() {
         try {
@@ -139,13 +139,13 @@ export class AutoModManager {
             }
             this.addToLastReports(results);
             // Add the new uploader flagged mods
-            try {
-                const newUploaders: number[] = results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId);
-                newUploaders.map(id => this.usersUploadingFirstMod.users.add(id));
-            }
-            catch(err) {
-                logMessage(`Error adding ${results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId)} to ${this.usersUploadingFirstMod.users}`, err, true)
-            }
+            // try {
+            //     const newUploaders: number[] = results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId);
+            //     newUploaders.map(id => this.usersUploadingFirstMod.users.add(id));
+            // }
+            // catch(err) {
+            //     logMessage(`Error adding ${results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId)} to ${this.usersUploadingFirstMod.users}`, err, true)
+            // }
             // Map the concerns for posting
             const concerns = results.filter(m => (m.flags.high.length) > 0 || (m.flags.low.length) > 0);
             if (!concerns.length) {
@@ -156,7 +156,7 @@ export class AutoModManager {
                 try {
                     logMessage('Reporting mods:', concerns.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
                     await PublishToSlack(flagsToSlackMessage(concerns));
-                    await PublishToDiscord(flagsToDiscordEmbeds(concerns), this.usersUploadingFirstMod);
+                    await PublishToDiscord(flagsToDiscordEmbeds(concerns));
                 }
                 catch(err) {
                     logMessage('Error posting automod to Discord or Slack', err, true)
@@ -179,7 +179,7 @@ export class AutoModManager {
         logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
         const analysis = await analyseMod(mod, this.AutoModRules, this.BadFiles, user);
         if (analysis.flags.high.length) {
-            await PublishToDiscord(flagsToDiscordEmbeds([analysis]), this.usersUploadingFirstMod);
+            await PublishToDiscord(flagsToDiscordEmbeds([analysis]));
             await PublishToSlack(flagsToSlackMessage([analysis]))
         }
         else logMessage('No flags to report', analysis);
@@ -295,7 +295,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60)).getTime()
     const userJoined = new Date(mod.uploader!.joined).getTime();
-    const modCreatedAt = new Date(mod.createdAt!).getTime();
+    // const modCreatedAt = new Date(mod.createdAt!).getTime();
 
     if (userJoined >= anHourAgo) flags.low.push(AutoModFlags.NewAccount);
     
@@ -303,7 +303,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
         if ((mod.description ?? '').length < 150 && flags.low.includes(AutoModFlags.NewAccount)) {
             flags.high.push(AutoModFlags.FirstUploadProbablySpam)
         }
-        else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload)
+        // else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload)
     };
 
 
