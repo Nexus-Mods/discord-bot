@@ -29,7 +29,7 @@
                         <td><%= sub.id %></td>
                         <td><%= sub.type.toUpperCase() %></td>
                         <td><%= sub.title %></td>
-                        <td><%= sub.entityid %></td>
+                        <td><code><%= sub.entityid %></code></td>
                         <td title="<%= sub.last_update %>"><%= timeAgo(sub.last_update) %></td>
                     </tr>
                 <% }); %>

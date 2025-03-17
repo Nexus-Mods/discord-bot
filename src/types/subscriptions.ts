@@ -108,6 +108,10 @@ export interface ISubscribedItem {
     error_count: number;
     nsfw?: boolean;
     sfw?: boolean;
+    collectionIds?: {
+        domain: string;
+        slug: string;
+    } 
 }
 
 export interface ISubscribedGameItem extends ISubscribedItem {
@@ -125,6 +129,10 @@ export interface ISubscribedModItem extends ISubscribedItem {
 export interface ISubscribedCollectionItem extends ISubscribedItem {
     entityId: string;
     type: SubscribedItemType.Collection;
+    collectionIds: {
+        domain: string;
+        slug: string;
+    }
 }
 
 export interface ISubscribedUserItem extends ISubscribedItem {
@@ -171,6 +179,8 @@ export class SubscribedItem {
     show_new?: boolean;
     // Show updated content (Mods only)
     show_updates?: boolean;
+    // Collection IDs
+    collectionIds?: { domain: string, slug: string };
 
     constructor(item: ISubscribedItemUnionType) {
         this.id = item.id;
@@ -190,6 +200,10 @@ export class SubscribedItem {
         if (item.type === SubscribedItemType.Game) {
             this.show_new = item.show_new;
             this.show_updates = item.show_updates; 
+        }
+        if (item.type === SubscribedItemType.Collection) {
+            const [domain, slug] = (this.entityid as string).split(':');
+            this.collectionIds = { domain, slug };
         }
     }
 

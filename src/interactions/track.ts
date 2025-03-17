@@ -1,10 +1,6 @@
 import { 
-    CommandInteraction, EmbedBuilder, User, 
-    SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    TextChannel,
-    Collection,
-    Snowflake,
-    Webhook
+    CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
+    TextChannel, Collection, Snowflake, Webhook
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, logMessage } from "../api/util";
@@ -268,7 +264,7 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
 
         const newData = {
             title: collection.name,
-            entityid: collection.slug,
+            entityid: collectionSlugAndDomain,
             type: SubscribedItemType.Collection,
             owner: interaction.user.id,
             crosspost: false,
