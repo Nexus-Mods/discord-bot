@@ -295,7 +295,7 @@ export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
     message?: string | null;
 }
 
-type IModWithFiles = IMod & { files?: IModFile[] };
+export type IModWithFiles = IMod & { files?: IModFile[] };
 
 type EntityType<T extends SubscribedItemType> = 
     T extends 'game' ? IMod :
@@ -362,7 +362,32 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         }
         break;
         case SubscribedItemType.Mod: {
-
+            const modWithFiles: IModWithFiles = entity as IModWithFiles;
+            const file: IModFile = modWithFiles.files![0];
+            // logMessage(`Building embed for ${file.version} on ${modWithFiles.name}`)
+            const compact: boolean = sub.compact;
+            embed.setColor('Aqua')
+            .setAuthor({ 
+                name: modWithFiles.uploader.name, 
+                url: nexusModsTrackingUrl(`https://nexusmods.com/users/${modWithFiles.uploader.memberId}`, 'subscribedMod'),
+                iconURL: modWithFiles.uploader.avatar
+            })
+            .setTitle(`${file.name} v${file.version} is now available!`)
+            .setDescription(`A new version can be downloaded from [${modWithFiles.name}](${nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}`, 'subscribedMod')}) on Nexus Mods.`)
+            .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}?tab=files`, 'subscribedMod'))
+            .setThumbnail(modWithFiles.pictureUrl)
+            .setTimestamp(new Date(file.date * 1000))
+            .setFooter({ text: `${modWithFiles.game.name} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' });
+            if (file.changelogText.length) {
+                const changelogTrimLength = compact ? 250: 1020;
+                const changelog = file.changelogText.reduce((prev, cur) => {
+                    const current = `- ${cur}`;
+                    const aggrigate = prev.length ? `${prev}\n${current}` : current;
+                    if (aggrigate.length >= changelogTrimLength) return prev
+                    else return prev = aggrigate;
+                }, '')
+                embed.addFields({ name: 'Changelog', value: changelog });
+            };
         }
         break;
         case SubscribedItemType.Collection: {

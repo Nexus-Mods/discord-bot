@@ -2,8 +2,8 @@ import { ClientExt } from "../types/DiscordTypes";
 import { Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
 import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
-import { IMod, IModFile } from '../api/queries/v2';
-import { IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache } from '../types/subscriptions';
+import { IMod, IModFile, ModFileCategory } from '../api/queries/v2';
+import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache } from '../types/subscriptions';
 import { ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
 
 export class SubscriptionManger {
@@ -145,8 +145,9 @@ export class SubscriptionManger {
         }
 
         // Send the updates to the webhook!
-        logMessage(`Posting ${blocks.length} webhook updates to ${guild.name}`);
+        logMessage(`Posting ${blocks.length} webhook updates to ${discordChannel.name} in ${guild.name}`);
         for (const block of blocks) {
+            logMessage('Block', block.embeds?.length)
             try {
                 await webHookClient.send(block);
             }
@@ -241,7 +242,42 @@ export class SubscriptionManger {
     }
 
     private async getModUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Mod>[]> {
-        return [];
+        logMessage('Processing mod updates', item.title);
+        const results: IPostableSubscriptionUpdate<SubscribedItemType.Mod>[] = [];
+        const modUid: string = item.entityid as string;
+        const last_update = item.last_update;
+        const res = await this.fakeUser.NexusMods.API.v2.ModsByUid([modUid]);
+        const mod: IModWithFiles = res[0];
+        if (!mod) throw new Error(`Mod not found for ${modUid}`);
+        mod.files = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId) ?? [];
+        // See which files are new.
+        const newFiles = mod.files.filter(f => {
+            const fileDate: Date = new Date(Math.floor(f.date * 1000));
+            // File date is greater than last_update on this item.
+            if (fileDate.getTime() <= last_update.getTime()) return false;
+            // Not archived or deleted
+            return ![ModFileCategory.Archived, ModFileCategory.Removed].includes(f.category)
+        });
+        logMessage('New files found', newFiles.length);
+        if (!newFiles.length) return results;
+        // Map the newly uploaded files
+        for (const file of newFiles) {
+            const embed = await subscribedItemEmbed({...mod, files: [file]}, item, guild);
+            results.push({
+                type: SubscribedItemType.Mod, 
+                date: new Date(file.date * 1000), 
+                entity: {...mod, files: [file]}, 
+                embed: embed,
+                message: item.message ?? null
+            });
+        }
+        // Order the array so the newest is first and the oldest is last
+        results.sort((a,b) => a.date.getTime() - b.date.getTime());
+        // Save the last date so we know where to start next time!
+        const lastDate = results[results.length -1].date;
+        await saveLastUpdatedForSub(item.id, lastDate);       
+        
+        return results;
     } 
 
     private async getCollectionUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Collection>[]> {
