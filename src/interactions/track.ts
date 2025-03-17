@@ -1,7 +1,6 @@
 import { 
     CommandInteraction, EmbedBuilder, User, 
     SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    EmbedData, InteractionEditReplyOptions,
     TextChannel,
     Collection,
     Snowflake,
@@ -107,7 +106,7 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
     const game = (await client.gamesList!.getGames()).find(g => g.domain_name === gameDomain);
 
     const currentSubs = await channel.getSubscribedItems();
-    const currentGameSub = currentSubs.find(s => s.entityid === gameDomain && s.type === SubscribedItemType.Game);
+    let currentGameSub = currentSubs.find(s => s.entityid === gameDomain && s.type === SubscribedItemType.Game);
 
     const newData = {
         title: game!.name,
@@ -123,20 +122,22 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
         nsfw
     };
 
-    try {
+    try { 
         if (currentGameSub) {
-            await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updating existing subscription')
+            currentGameSub = await channel.updateSub(currentGameSub.id, newData);
+            logMessage('Updated existing game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
-            await channel.subscribe(newData);
-            logMessage('Creating new subscription')
+            currentGameSub = await channel.subscribe(newData);
+            logMessage('Created new game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
         const embed = new EmbedBuilder()
         .setTitle('Game Tracked!')
-        .setDescription(`New Mods for ${game!.name} will be posted in this channel`)
+        .setDescription(`Mods for ${game!.name} will be posted in this channel.`)
         .setColor('DarkGreen')
         .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game!.id}.jpg`)
+        .setFooter({ text: `ID: ${currentGameSub.id}` })
+        .setTimestamp(currentGameSub.last_update);
         
         return await interaction.editReply({ embeds: [embed] });
         

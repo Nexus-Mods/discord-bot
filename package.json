@@ -1,14 +1,15 @@
 {
   "name": "nexus-bot-typescript",
-  "version": "3.9.2",
+  "version": "3.10.0",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
-    "build": "npx tsc --build tsconfig.json && copyfiles -f ./src/config.json dist && yarn copy-assets",
+    "build": "yarn clean && npx tsc --build tsconfig.json && copyfiles -f ./src/config.json dist && yarn copy-assets",
     "copy-assets": "copyfiles -f -a ./src/server/views/* dist/server/views && copyfiles -f -a ./src/server/public/css/* dist/server/public/css && copyfiles -f -a ./src/server/public/images/* dist/server/public/images",
     "start": "node dist/app.js",
     "dev": "yarn build && yarn start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "node clean.js"
   },
   "author": "Pickysaurus",
   "license": "ISC",

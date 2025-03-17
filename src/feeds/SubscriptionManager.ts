@@ -32,7 +32,7 @@ export class SubscriptionManger {
         this.updateSubscriptions(true);
     }
 
-    static async getInstance(client: ClientExt, pollTime: number = (1000*60*1)): Promise<SubscriptionManger> {
+    static async getInstance(client: ClientExt, pollTime: number = (1000*60*5)): Promise<SubscriptionManger> {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime);
         }
@@ -67,24 +67,40 @@ export class SubscriptionManger {
 
         // Process the channels and their subscribed items.
         for (const channel of this.channels) {
-            // Verify the channel exists
-            const guild = await this.client.guilds.fetch(channel.guild_id)
-            const discordChannel: TextChannel | null = await guild.channels.fetch(channel.channel_id) as TextChannel;
-            if (!guild || !discordChannel) {
-                logMessage('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id });
+            try {
+                await this.getUpdatesForChannel(channel);
+            }
+            catch(err) {
+                logMessage('Error processing updates for channel', err, true);
                 continue;
             }
-            else logMessage(`Processing subscribed items for ${discordChannel.name} in ${guild.name}`)
-            // Grab the WH Client
-            const webHookClient = channel.webHookClient;
-            // Grab the subscribed items
-            const items = await channel.getSubscribedItems();
-            if (!items.length) continue;
-            // Get the postable info for each subscribed item
-            const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
-            for (const item of items) {
-                let updates: IPostableSubscriptionUpdate<typeof item.type>[] = [];
-                
+        }
+
+        // Empty the cache
+        this.cache = new SubscriptionCache();    
+        logMessage('Subscription updates complete');    
+    }
+
+    public async getUpdatesForChannel(channel: SubscribedChannel) {
+        // Verify the channel exists
+        const guild = await this.client.guilds.fetch(channel.guild_id)
+        const discordChannel: TextChannel | null = await guild.channels.fetch(channel.channel_id) as TextChannel;
+        if (!guild || !discordChannel) {
+            logMessage('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id });
+            return;
+        }
+        else logMessage(`Processing subscribed items for ${discordChannel.name} in ${guild.name}`)
+        // Grab the WH Client
+        const webHookClient = channel.webHookClient;
+        // Grab the subscribed items
+        const items = await channel.getSubscribedItems();
+        if (!items.length) return;
+        // Get the postable info for each subscribed item
+        const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
+        for (const item of items) {
+            let updates: IPostableSubscriptionUpdate<typeof item.type>[] = [];
+
+            try {
                 // Logic based on subscription type here.
                 switch (item.type) {
                     case SubscribedItemType.Game: updates = await this.getGameUpdates(item, guild);
@@ -95,56 +111,58 @@ export class SubscriptionManger {
                     break;
                     case SubscribedItemType.User: updates = await this.getUserUpdates(item, guild);
                     break;
-                    default: throw new Error('Unregcognised SubscribedItemType: '+item.type)
+                    default: throw new Error('Unregcognised SubscribedItemType');
                 }
-
-                // Format the items into a generic type for comparison. 
-                postableUpdates.push(...updates);
-            }
-
-            // TODO! Update the last_update for the channel
-
-            // Exit if there's nothing to post
-            if (!postableUpdates.length) {
-                logMessage(`No updates for ${discordChannel.name} in ${guild.name}`);
-                continue;
-            }
-
-            // Got all the updates - break them into groups by type and limit to 10 (API limit).
-            const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }]
-            let currentType: SubscribedItemType = postableUpdates[0].type;
-            for (const update of postableUpdates) {
-                // If we've swapped type or we've got more than 10 embeds already
-                if (update.type !== currentType || blocks[blocks.length - 1].embeds!.length === 10) blocks.push({ embeds: [] })
-                const myBlock = blocks[blocks.length - 1];
-                myBlock.embeds = myBlock.embeds ? [...myBlock.embeds, update.embed] : [update.embed];
-                if (!myBlock.content && update.message) myBlock.content = update.message;
-                currentType = update.type;
-            }
-
-            // Send the updates to the webhook!
-            logMessage(`Posting ${blocks.length} webhook updates to ${guild.name}`);
-            for (const block of blocks) {
-                try {
-                    await webHookClient.send(block);
-                }
-                catch(err) {
-                    logMessage('Failed to send webhook message', { block, err }, true);
-                }
-            }
-
-            // Update the last updated time for the channel.
-            const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
-            try {
-                await updateSubscribedChannel(channel, lastUpdate);
             }
             catch(err) {
-                logMessage('Failed to update channel date', err, true);
+                logMessage('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
+                continue;
+            }           
+            
+
+            // Format the items into a generic type for comparison. 
+            postableUpdates.push(...updates);
+        }
+
+        // TODO! Update the last_update for the channel
+
+        // Exit if there's nothing to post
+        if (!postableUpdates.length) {
+            logMessage(`No updates for ${discordChannel.name} in ${guild.name}`);
+            return;
+        }
+
+        // Got all the updates - break them into groups by type and limit to 10 (API limit).
+        const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }]
+        let currentType: SubscribedItemType = postableUpdates[0].type;
+        for (const update of postableUpdates) {
+            // If we've swapped type or we've got more than 10 embeds already
+            if (update.type !== currentType || blocks[blocks.length - 1].embeds!.length === 10) blocks.push({ embeds: [] })
+            const myBlock = blocks[blocks.length - 1];
+            myBlock.embeds = myBlock.embeds ? [...myBlock.embeds, update.embed] : [update.embed];
+            if (!myBlock.content && update.message) myBlock.content = update.message;
+            currentType = update.type;
+        }
+
+        // Send the updates to the webhook!
+        logMessage(`Posting ${blocks.length} webhook updates to ${guild.name}`);
+        for (const block of blocks) {
+            try {
+                await webHookClient.send(block);
+            }
+            catch(err) {
+                logMessage('Failed to send webhook message', { block, err }, true);
             }
         }
 
-        // Empty the cache
-        this.cache = new SubscriptionCache();        
+        // Update the last updated time for the channel.
+        const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
+        try {
+            await updateSubscribedChannel(channel, lastUpdate);
+        }
+        catch(err) {
+            logMessage('Failed to update channel date', err, true);
+        }
     }
 
     private async getGameUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Game>[]> {
