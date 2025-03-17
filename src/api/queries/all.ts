@@ -16,6 +16,8 @@ import { modFiles } from './v2-modsFiles';
 import { ICollection, ICollectionSearchResult, IMod as IModResult } from './v2';
 
 import { Games as gamesJSON, ModDownloads, SiteStats, WebsiteStatus } from './other';
+import { modsByUid } from './v2-modsbyuid';
+import { users } from './v2-users';
 
 export const v1 = {
     validate,
@@ -34,6 +36,7 @@ export const v2 = {
     games,
     mods,
     modsById,
+    modsByUid,
     updatedMods: updatedModsV2,
     myCollections,
     collections,
@@ -42,7 +45,8 @@ export const v2 = {
     findUser,
     latestMods,
     news,
-    modFiles
+    modFiles,
+    users
 };
 
 export const other = {

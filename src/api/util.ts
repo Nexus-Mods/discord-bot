@@ -2,6 +2,7 @@ import { AutocompleteInteraction, EmbedBuilder } from "discord.js";
 import { ClientExt } from "../types/DiscordTypes";
 import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser";
 import { IModsFilter } from "./queries/v2";
+import { ICollectionsFilter } from "../types/GQLTypes";
 
 export const logMessage  = (msg: string, obj?: any, error?: boolean) => {
     const message = `${new Date().toLocaleString()} - ${msg}`;
@@ -37,6 +38,41 @@ export async function autoCompleteModSearch(acInteraction: AutocompleteInteracti
         )
         await acInteraction.respond(
             modSearch.nodes.map(m => ({ name: `${m.name} (${m.game.name})`, value: m.uid }))
+        );
+    }
+    catch(err) {
+        logMessage('Error autocompleting mods', {err}, true);
+        throw err;
+    }
+}
+
+export async function autoCompleteCollectionSearch(acInteraction: AutocompleteInteraction, gameDomain?: string) {
+    const focused = acInteraction.options.getFocused();
+    if (focused.length < 3) return await acInteraction.respond([]);
+    try {
+        const user = new DiscordBotUser(DummyNexusModsUser);
+        const filter: ICollectionsFilter = {};
+        if (focused) filter.generalSearch = { value: focused, op: 'WILDCARD' };
+        if (gameDomain) filter.gameDomain = { value: gameDomain, op: 'EQUALS' };
+        const search = await user.NexusMods.API.v2.Collections(filter);
+        await acInteraction.respond(
+            search.nodes.map(c => ({ name: `${c.name} (${c.game.name})`, value: `${c.game.domainName}:${c.slug}` }))
+        );
+    }
+    catch(err) {
+        logMessage('Error autocompleting mods', {err}, true);
+        throw err;
+    }
+}
+
+export async function autoCompleteUserSearch(acInteraction: AutocompleteInteraction) {
+    const focused = acInteraction.options.getFocused();
+    if (focused.length < 3) return await acInteraction.respond([]);
+    try {
+        const user = new DiscordBotUser(DummyNexusModsUser);
+        const search = await user.NexusMods.API.v2.Users(focused);
+        await acInteraction.respond(
+            search.map(u => ({ name: u.name, value: u.memberId.toString() }))
         );
     }
     catch(err) {

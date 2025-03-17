@@ -180,8 +180,8 @@ interface CollectionsSort {
     rating?: BaseSortValue;
 }
 
-interface CollectionsUserFilter {
-    filter?: CollectionsUserFilter[];
+interface ICollectionsFilter {
+    filter?: ICollectionsFilter[];
     op?: FilterLogicalOperator;
     userId?: BaseFilterValue;
     name?: BaseFilterValue;
@@ -213,4 +213,4 @@ interface CollectionPage {
     nextURL?: string; //URL to browser the results on the website.
 }
 
-export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, CollectionsUserFilter, CollectionsSort };
+export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, ICollectionsFilter, CollectionsSort };

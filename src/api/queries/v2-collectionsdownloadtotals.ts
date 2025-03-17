@@ -21,7 +21,7 @@ interface IDownloadStats {
 };
 
 interface IQueryVariables extends Variables {
-  filters: GQLTypes.CollectionsUserFilter;
+  filters: GQLTypes.ICollectionsFilter;
   offset: number;
   sort: GQLTypes.CollectionsSort
 }

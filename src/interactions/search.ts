@@ -9,7 +9,7 @@ import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer, editTip } from '../api/bot-db';
 import Fuse from 'fuse.js';
 import { logMessage, nexusModsTrackingUrl } from "../api/util";
-import { CollectionsUserFilter } from "../types/GQLTypes";
+import { ICollectionsFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
 import { DiscordBotUser } from "../api/DiscordBotUser";
@@ -186,7 +186,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
     try {
-        const filters: CollectionsUserFilter = {
+        const filters: ICollectionsFilter = {
             'generalSearch' : {
                 value: query,
                 op: 'MATCHES'
