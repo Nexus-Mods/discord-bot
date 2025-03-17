@@ -34,7 +34,7 @@ export async function modFiles(headers: Record<string,string>, gameId: number, m
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        return result.modFiles.sort((a,b) => a.date - b.date);
+        return result.modFiles.sort((a,b) => b.date - a.date);
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'modFiles');

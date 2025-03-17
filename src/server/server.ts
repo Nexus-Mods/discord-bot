@@ -322,7 +322,7 @@ export class AuthSite {
         const guildImage = knownGuild.iconURL();
         const knownChannel = await knownGuild.channels.fetch(channel);
         if (!knownChannel) return res.redirect('/');
-        const subs = (await getSubscriptionsByChannel(guild, channel)).sort((a,b) => a.last_update.getTime() - b.last_update.getTime());
+        const subs = (await getSubscriptionsByChannel(guild, channel)).sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
 
         const timeAgo = (timestamp: string) => {
             const now = new Date();

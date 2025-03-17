@@ -323,8 +323,8 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
             // Updated or otherwise
             if (updated) {
                 embed.setColor(0x57a5cc)
-                .setAuthor({ name: `Mod Updated (${mod.game.name})`, iconURL: compact ? gameThumb : undefined })
-                .setTimestamp(new Date(lastestFile?.date ?? mod.updatedAt))
+                .setAuthor({ name: `Mod Updated (${mod.game.name})`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
+                .setTimestamp(new Date(lastestFile ? lastestFile.date * 1000 : mod.updatedAt))
                 if (lastestFile) {
                     let changelog = '';
                     // If the changelog is bigger than a field size, add an ellipse and exit
@@ -341,10 +341,10 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
             }
             else {
                 embed.setColor(0xda8e35)
-                .setAuthor({ name: `New Mod Upload (${mod.game.name})`, iconURL: compact ? gameThumb : undefined })
+                .setAuthor({ name: `New Mod Upload (${mod.game.name})`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
                 .setTimestamp(new Date(mod.createdAt))
             }
-            embed.setFooter({ text: `${mod.game.name}  •  ${mod.modCategory.name}  • v${mod.version} `, iconURL: undefined })
+            embed.setFooter({ text: `${mod.game.name}  •  ${mod.modCategory.name}  • v${mod.version} `, iconURL: compact ? gameThumb : undefined })
             .addFields(
                 {
                     name: 'Author',
