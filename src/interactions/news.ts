@@ -34,7 +34,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     await interaction.deferReply({ ephemeral: true });
 
     const domain: string|null = interaction.options.getString('domain'); 
-    const newsInst: NewsFeedManager = NewsFeedManager.getInstance(client);
+    const newsInst: NewsFeedManager = await NewsFeedManager.getInstance(client);
 
     try {
         const latest = await newsInst.forceUpdate(domain?.toLowerCase());

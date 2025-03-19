@@ -32,7 +32,7 @@ const main: DiscordEventInterface = {
         // Start up the feeds
         try {
             client.gameFeeds = GameFeedManager.getInstance(client);
-            client.newsFeed = NewsFeedManager.getInstance(client);
+            client.newsFeed = await NewsFeedManager.getInstance(client);
             client.automod = AutoModManager.getInstance(client);
             client.subscriptions = await SubscriptionManger.getInstance(client);
         }

@@ -111,4 +111,5 @@ export class News implements INews {
 export interface SavedNewsData {
     title: string;
     date: Date;
+    id: number;
 }
