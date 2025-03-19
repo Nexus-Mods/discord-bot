@@ -14,7 +14,7 @@ const parser = new Parser<Parser.Output<NewsArticle>, { "nexusmods:plain_descrip
     }  
 });
 
-const pollTime = (1000*60*60)*1; //1 hour
+const pollTime = (1000*60*0.5)*1; //1 hour
 
 export class NewsFeedManager {
     private static instance: NewsFeedManager;
@@ -38,7 +38,7 @@ export class NewsFeedManager {
         this.updateTimer = setInterval(async () => {
             try {
                 // this.checkNews()
-                // await this.postLatestNews();
+                await this.postLatestNews();
             }
             catch(err) {
                 logMessage('Failed to check for latest news updates', err, true);
@@ -75,35 +75,39 @@ export class NewsFeedManager {
                 logMessage('No news updates since last check.');
                 return newsPostEmbed(news[0], game?.domain_name);
             }
-            // We need to post a new article! Let's set up a webhook.
-            const webhook_id: string | undefined = process.env['NEWS_WEBHOOK_ID'];
-            const webhook_token: string | undefined = process.env['NEWS_WEBHOOK_TOKEN'];
-            const webhook_guild: string | undefined = process.env['NEWS_WEBHOOK_GUILD'];
-            const webhook_channel: string | undefined = process.env['NEWS_WEBHOOK_CHANNEL'];
-            if (!webhook_id || !webhook_token || !webhook_guild || !webhook_channel) throw new Error('News Webhook ID or Token missing from the ENV file');
-
-            const webhookClient = new WebhookClient({ id: webhook_id, token: webhook_token });
-
-            const newsEmbed = newsPostEmbed(news[0], game?.domain_name);
-
-            // const whMessage = await webhookClient.send({ content: '-# <@&1116364961757790238> (You can toggle this role in <id:customize>)', embeds: [newsEmbed] });
-            const whMessage = await webhookClient.send({ embeds: [newsEmbed] });
-
-            const guild = await this.client.guilds.fetch(webhook_guild);
-            const channel = await guild.channels.fetch(webhook_channel);
-            const message = await (channel as TextChannel).messages.fetch(whMessage.id);
-
-            if (message.crosspostable) {
-                await message.crosspost();
-                logMessage('News crossposted');
+            else {
+                logMessage('News data did not match', { old: { title: stored?.title, date: stored?.date }, new: { title: news[0].title, date: news[0].publishDate } });
+                return newsPostEmbed(news[0], game?.domain_name);
             }
-            else logMessage('Could not crosspost news');
+            // // We need to post a new article! Let's set up a webhook.
+            // const webhook_id: string | undefined = process.env['NEWS_WEBHOOK_ID'];
+            // const webhook_token: string | undefined = process.env['NEWS_WEBHOOK_TOKEN'];
+            // const webhook_guild: string | undefined = process.env['NEWS_WEBHOOK_GUILD'];
+            // const webhook_channel: string | undefined = process.env['NEWS_WEBHOOK_CHANNEL'];
+            // if (!webhook_id || !webhook_token || !webhook_guild || !webhook_channel) throw new Error('News Webhook ID or Token missing from the ENV file');
 
-            // Update saved news.
+            // const webhookClient = new WebhookClient({ id: webhook_id, token: webhook_token });
 
-            await updateSavedNews(news[0].title, news[0].publishDate);
+            // const newsEmbed = newsPostEmbed(news[0], game?.domain_name);
 
-            return newsEmbed;
+            // // const whMessage = await webhookClient.send({ content: '-# <@&1116364961757790238> (You can toggle this role in <id:customize>)', embeds: [newsEmbed] });
+            // const whMessage = await webhookClient.send({ embeds: [newsEmbed] });
+
+            // const guild = await this.client.guilds.fetch(webhook_guild);
+            // const channel = await guild.channels.fetch(webhook_channel);
+            // const message = await (channel as TextChannel).messages.fetch(whMessage.id);
+
+            // if (message.crosspostable) {
+            //     await message.crosspost();
+            //     logMessage('News crossposted');
+            // }
+            // else logMessage('Could not crosspost news');
+
+            // // Update saved news.
+
+            // await updateSavedNews(news[0].title, news[0].publishDate);
+
+            // return newsEmbed;
 
         }
         catch(err) {
