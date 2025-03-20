@@ -1,17 +1,10 @@
-import { News, NewsArticle, SavedNewsData } from '../types/feeds';
+import { News, SavedNewsData } from '../types/feeds';
 import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
-// import Parser = require('rss-parser');
 import { EmbedBuilder, TextChannel, WebhookClient } from 'discord.js';
 import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IGameStatic } from '../api/queries/other';
-
-// const parser = new Parser<Parser.Output<NewsArticle>, { "nexusmods:plain_description": string }>({
-//     customFields: {
-//         item:['nexusmods:plain_description'],
-//     }  
-// });
 
 const pollTime = (1000*60*60)*1; //1 hour
 
@@ -33,14 +26,14 @@ export class NewsFeedManager {
                 logMessage('Error fetching news', (err as Error).message, true);
             }
             logMessage('Initialised news feed, checking every hour.')
-            NewsFeedManager.instance = new NewsFeedManager(client, saved);
+            NewsFeedManager.instance = new NewsFeedManager(client, pollTime, saved);
             await NewsFeedManager.instance.postLatestNews();
         }
         
         return NewsFeedManager.instance;
     }
 
-    private constructor(client: ClientExt, savedNews?: SavedNewsData) {
+    private constructor(client: ClientExt, pollTime: number, savedNews?: SavedNewsData) {
         // Save the client for later
         this.client = client;
         // Set the update interval.
@@ -66,10 +59,6 @@ export class NewsFeedManager {
             if (stored?.title === news[0].title && stored?.date.getTime() === news[0].publishDate.getTime()) {
                 logMessage('No news updates since last check.');
                 return newsPostEmbed(news[0], game?.domain_name);
-            }
-            else {
-                logMessage('News data did not match', { old: { title: stored?.title, date: stored?.date }, new: { title: news[0].title, date: news[0].publishDate } });
-                // return newsPostEmbed(news[0], game?.domain_name);
             }
             // We need to post a new article! Let's set up a webhook.
             const webhook_id: string | undefined = process.env['NEWS_WEBHOOK_ID'];
@@ -98,8 +87,11 @@ export class NewsFeedManager {
             // Update saved news.
             const latest: SavedNewsData = { title: news[0].title, date: news[0].publishDate, id: parseInt(news[0].id) };
 
-            await updateSavedNews(latest.title, latest.date, latest.id);
-            this.LatestNews = latest
+            if (!domain) {
+                // Only update the saved news if this wasn't run against a game domain!
+                await updateSavedNews(latest.title, latest.date, latest.id);
+                this.LatestNews = latest;
+            }           
 
             return newsEmbed;
 
@@ -110,65 +102,7 @@ export class NewsFeedManager {
         }
     }
 
-    // private async checkNews(domain?: string|null): Promise<EmbedBuilder|SavedNewsData|undefined> {
-    //     const dom: string = domain ? `${domain}/` : '';
-    //     const url = `https://www.nexusmods.com/${dom}rss/news`;
-
-    //     try {
-    //         const allNews: Parser.Output<NewsArticle> =  await parser.parseURL(url); //await parseFeed(url);
-    //         const latest: NewsArticle = allNews.items[0];
-    //         const stored: SavedNewsData | undefined = NewsFeedManager.instance.LatestNews;
-
-    //         if (stored && (stored.title === latest.title || stored.date === latest.date)) {
-    //             logMessage('No news updates since last check.');
-    //             return stored;
-    //         };
-
-    //         const post: EmbedBuilder = buildEmbed(NewsFeedManager.instance.client, latest);
-    //         let allServers = await getAllServers()
-    //             .catch((err) => {
-    //                 logMessage('Error getting servers to post news update.', err, true);
-    //                 return Promise.reject(err);
-    //             });
-    //         if (!allServers) return;
-            
-    //         allServers = allServers.filter(server => server.channel_news !== undefined);
-
-
-    //         logMessage(`Publishing news post ${latest.title} to ${allServers.length} servers.`);
-    //         for (const server of allServers) {
-    //             const guildId: Snowflake | undefined = (server as BotServer).id;
-    //             const channelId: Snowflake | undefined = server.channel_news;
-    //             const guild: Guild | undefined = channelId ? await NewsFeedManager.instance.client.guilds.fetch(guildId).catch(() => undefined) : undefined;
-    //             if (!guild) continue;
-    //             const channel: GuildChannel | ThreadChannel | null = channelId ? guild.channels.resolve(channelId) : null;
-    //             if (!channel) continue;
-    //             try {
-    //                 const message = await (channel as TextChannel).send({ embeds: [post] });
-    //                 message.crosspostable && !domain ? await message.crosspost() : null;
-    //             }
-    //             catch(err) {
-    //                 logMessage(`Failed to post news in ${guild?.name}.`, err, true)
-    //             };
-    //         }
-
-    //         if (!domain) {
-    //             await updateSavedNews(latest.title, latest.date, 0).catch((err) => logMessage('Could not updated saved news', err.message, true))
-    //             NewsFeedManager.instance.LatestNews = { title: latest.title, date: latest.pubDate, id: 0 };
-    //         };
-
-    //         return post;
-    //     }
-    //     catch(err) {
-    //         logMessage('Error checking news', (err as Error) ? (err as Error).message : err);
-    //         if ((err as Error) && (err as Error).message.includes('404')) return Promise.reject({ message: `404 Not Found - ${url}` });
-    //         // return Promise.reject(err);
-    //     }
-        
-
-    // }
-
-    async forceUpdate(domain?: string): Promise<EmbedBuilder|SavedNewsData|undefined> {
+    async forceUpdate(domain?: string): Promise<EmbedBuilder> {
         clearInterval(NewsFeedManager.instance.updateTimer);
         NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.postLatestNews(), pollTime);
         // NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
@@ -177,18 +111,6 @@ export class NewsFeedManager {
         return NewsFeedManager.instance.postLatestNews(domain);
     }
 }
-
-// function buildEmbed(client: ClientExt, news: NewsArticle): EmbedBuilder {
-//     const embed = new EmbedBuilder()
-//     .setTitle(decodeURI(news.title).replace(/\&amp;/g,'&'))
-//     .setURL(nexusModsTrackingUrl(news.link, 'newsfeed'))
-//     .setImage(news.enclosure?.url)
-//     .setDescription(`${decodeURI(news["nexusmods:plain_description"].substr(0, 250))}...`)
-//     .setFooter({text: `${news.categories.toString()} - ${news.author}`, iconURL: client.user?.avatarURL() || undefined })
-//     .setTimestamp(new Date(news.pubDate))
-//     .setColor(0xda8e35);
-//     return embed;
-// }
 
 function newsPostEmbed(news: News, gameDomain?: string) {
     const embed = new EmbedBuilder()

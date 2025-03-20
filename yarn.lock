@@ -941,13 +941,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"entities@npm:^2.0.3":
-  version: 2.2.0
-  resolution: "entities@npm:2.2.0"
-  checksum: 19010dacaf0912c895ea262b4f6128574f9ccf8d4b3b65c7e8334ad0079b3706376360e28d8843ff50a78aabcb8f08f0a32dbfacdc77e47ed77ca08b713669b3
-  languageName: node
-  linkType: hard
-
 "es-define-property@npm:^1.0.1":
   version: 1.0.1
   resolution: "es-define-property@npm:1.0.1"
@@ -2009,7 +2002,6 @@ __metadata:
     jsonwebtoken: ^9.0.1
     path: ^0.12.7
     pg: ^8.11.3
-    rss-parser: ^3.13.0
     tall: ^8.0.0
     typescript: ^5.1.6
   languageName: unknown
@@ -2522,16 +2514,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rss-parser@npm:^3.13.0":
-  version: 3.13.0
-  resolution: "rss-parser@npm:3.13.0"
-  dependencies:
-    entities: "npm:^2.0.3"
-    xml2js: "npm:^0.5.0"
-  checksum: 7c6ab677386dbf14ddc0526f769ccdd5bf0b53a019dd2c0454ce80971dd4decb7ac567a4e78dffe99e87d7b595698e7f24eae45f09c49ef79ad644efb702db22
-  languageName: node
-  linkType: hard
-
 "run-parallel@npm:^1.1.9":
   version: 1.2.0
   resolution: "run-parallel@npm:1.2.0"
@@ -2559,13 +2541,6 @@ __metadata:
   version: 2.1.2
   resolution: "safer-buffer@npm:2.1.2"
   checksum: cab8f25ae6f1434abee8d80023d7e72b598cf1327164ddab31003c51215526801e40b66c5e65d658a0af1e9d6478cadcb4c745f4bd6751f97d8644786c0978b0
-  languageName: node
-  linkType: hard
-
-"sax@npm:>=0.6.0":
-  version: 1.4.1
-  resolution: "sax@npm:1.4.1"
-  checksum: 3ad64df16b743f0f2eb7c38ced9692a6d924f1cd07bbe45c39576c2cf50de8290d9d04e7b2228f924c7d05fecc4ec5cf651423278e0c7b63d260c387ef3af84a
   languageName: node
   linkType: hard
 
@@ -3075,23 +3050,6 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: 91d4d35bc99ff6df483bdf029b9ea4bfd7af1f16fc91231a96777a63d263e1eabf486e13a2353970efc534f9faa43bdbf9ee76525af22f4752cbc5ebda333975
-  languageName: node
-  linkType: hard
-
-"xml2js@npm:^0.5.0":
-  version: 0.5.0
-  resolution: "xml2js@npm:0.5.0"
-  dependencies:
-    sax: "npm:>=0.6.0"
-    xmlbuilder: "npm:~11.0.0"
-  checksum: 1aa71d62e5bc2d89138e3929b9ea46459157727759cbc62ef99484b778641c0cd21fb637696c052d901a22f82d092a3e740a16b4ce218e81ac59b933535124ea
-  languageName: node
-  linkType: hard
-
-"xmlbuilder@npm:~11.0.0":
-  version: 11.0.1
-  resolution: "xmlbuilder@npm:11.0.1"
-  checksum: 7152695e16f1a9976658215abab27e55d08b1b97bca901d58b048d2b6e106b5af31efccbdecf9b07af37c8377d8e7e821b494af10b3a68b0ff4ae60331b415b0
   languageName: node
   linkType: hard
 
