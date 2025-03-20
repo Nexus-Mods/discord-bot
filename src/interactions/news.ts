@@ -2,7 +2,6 @@ import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, Permissi
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { autocompleteGameName, logMessage } from "../api/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
-import { SavedNewsData } from "../types/feeds";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

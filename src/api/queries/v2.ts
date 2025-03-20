@@ -19,11 +19,13 @@ export interface ICollection {
     endorsements: number;
     totalDownloads: number;
     draftRevisionNumber: number;
+    lastPublishedAt: string;
     latestPublishedRevision: {
         fileSize: number;
         modCount: number;
         revisionNumber: number;
         adultContent: boolean;
+        updatedAt: string;
     }
     game: {
         id: number;
@@ -41,6 +43,20 @@ export interface ICollection {
         thumbnailUrl: string;
     }
     updatedAt: Date;
+}
+
+export interface ICollectionRevision {
+    revisionNumber: number;
+    fileSize: number;
+    modCount: number;
+    adultContent: boolean;
+    updatedAt: string;
+    collectionChangelog: ICollectionChangelog;
+    status: 'draft' | 'published' | 'retracted';
+}
+
+export interface ICollectionChangelog {
+    description: string;
 }
 
 export interface ICollectionSearchResult {

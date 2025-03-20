@@ -176,7 +176,8 @@ export class DiscordBotUser {
                 LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), since, gameIds, sort),
                 News: async (gameId?: number) => v2.news(this.headers(), gameId),
                 ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), gameId, modId),
-                Users: async (name: string) => v2.users(this.headers(), name)
+                Users: async (name: string) => v2.users(this.headers(), name),
+                CollectionRevisions: async (domain: string, slug: string) => v2.collectionRevisions(this.headers(), slug, domain)
             },
             Other: {
                 // Games pulled from the static Games.json file.

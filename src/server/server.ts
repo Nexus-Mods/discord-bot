@@ -76,6 +76,8 @@ export class AuthSite {
 
         this.app.get('/tracking', this.tracking.bind(this));
 
+        this.app.get('/nxm', this.nxmForward.bind(this));
+
         this.app.get('*', (req, res) => res.redirect('/'));
 
         this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
@@ -339,5 +341,25 @@ export class AuthSite {
         }
 
         res.render('tracking', { pageTitle: 'Tracking Summary', guild: knownGuild.name, channel: knownChannel.name, guildImage, subs, timeAgo });
+    }
+
+
+    async nxmForward(req: express.Request, res: express.Response) {
+        const type = req.query['type'] as string;
+        if (type === 'collection') {
+            const domain = req.query['domain'] as string;
+            const slug = req.query['slug'] as string;
+            const rev = req.query['rev'] as string;
+            if (!domain || !slug) {
+                res.statusCode = 500
+                res.send('Domain or slug not provided')
+            }
+            const nxmlink = `nxm://${domain}/collections/${slug}/revisions/${rev ?? 'latest'}`;
+            res.redirect(nxmlink);
+        }
+        else if (type === 'mod') {
+            res.statusCode = 500;
+            res.send(`Not implemented`);
+        }        
     }
 }

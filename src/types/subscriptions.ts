@@ -2,7 +2,7 @@
 import { EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
 import { logMessage, nexusModsTrackingUrl } from '../api/util';
-import { ICollection, IMod, IModFile } from '../api/queries/v2';
+import { ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
 
 export interface ISubscribedChannel {
@@ -300,7 +300,7 @@ export type IModWithFiles = IMod & { files?: IModFile[] };
 type EntityType<T extends SubscribedItemType> = 
     T extends 'game' ? IMod :
     T extends 'mod' ? IModWithFiles:
-    T extends 'collection' ? ICollection :
+    T extends 'collection' ? ICollection & { revisions: ICollectionRevision[] } :
     T extends 'user' ? any : null;
 
 export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false): Promise<EmbedBuilder> {
@@ -391,7 +391,38 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         }
         break;
         case SubscribedItemType.Collection: {
-
+            const collection: EntityType<SubscribedItemType.Collection> = entity;
+            const revision: ICollectionRevision = collection.revisions[0];
+            const compact: boolean = sub.compact;
+            embed.setColor('Random')
+            .setAuthor({
+                name: collection.user.name,
+                url: nexusModsTrackingUrl(`https://nexusmods.com/users/${collection.user.memberId}`, 'subscribedCollection'),
+                iconURL: collection.user.avatar
+            })
+            .setTitle(`${collection.name} Revision ${revision.revisionNumber} is now available!`)
+            .setDescription(
+                `### Changelog\n`+
+                (revision.collectionChangelog.description.length ? revision.collectionChangelog.description.substring(0, 500) : '__Not provided__')
+            )
+            .setURL(nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedCollection'))
+            .setThumbnail(collection.tileImage.url)
+            .setTimestamp(new Date(revision.updatedAt))
+            .setFooter({ text: `${collection.game.name} • ${revision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
+            .addFields(
+                [
+                    {
+                        name: 'Mod Manager',
+                        value: `[Download ↗](https://discordbot.nexusmods.com/nxm?type=collection&domain=${collection.game.domainName}&slug=${collection.slug}&rev=${revision.revisionNumber})`,
+                        inline: true
+                    },
+                    {
+                        name: 'Nexus Mods',
+                        value: `[Revision ${revision.revisionNumber} ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}/revisions/${revision.revisionNumber}`, 'subscribedCollection')})`,
+                        inline: true
+                    }
+                ]
+            )
         }
         break;
         case SubscribedItemType.User: {

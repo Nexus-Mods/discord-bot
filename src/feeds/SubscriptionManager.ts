@@ -1,5 +1,5 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { embedLength, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
 import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IMod, IModFile, ModFileCategory } from '../api/queries/v2';
@@ -113,6 +113,7 @@ export class SubscriptionManger {
                     break;
                     default: throw new Error('Unregcognised SubscribedItemType');
                 }
+                logMessage(`Returning ${updates.length} updates for ${item.title} (${item.type})`);
             }
             catch(err) {
                 logMessage('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
@@ -152,7 +153,7 @@ export class SubscriptionManger {
                 await webHookClient.send(block);
             }
             catch(err) {
-                logMessage('Failed to send webhook message', { block, err }, true);
+                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err }, true);
             }
         }
 
@@ -275,13 +276,46 @@ export class SubscriptionManger {
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate);       
+        await saveLastUpdatedForSub(item.id, lastDate);    
         
         return results;
     } 
 
     private async getCollectionUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Collection>[]> {
-        return [];
+        logMessage('Processing collection updates', item.title);
+        const results: IPostableSubscriptionUpdate<SubscribedItemType.Collection>[] = [];
+        const [gameDomain, slug] = (item.entityid as string).split(':');
+        const last_update = item.last_update;
+        const collection = await this.fakeUser.NexusMods.API.v2.Collection(slug, gameDomain, true);
+        if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
+        const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
+        if (collectionUpdatedAt.getTime() <= last_update.getTime()) {
+            // Collection hasn't been updated since we last checked.
+            return results;
+        }
+        const withRevisions = await this.fakeUser.NexusMods.API.v2.CollectionRevisions(gameDomain, slug);
+        if (!withRevisions) throw new Error(`Unable to get revision data`);
+        const revisions = withRevisions.revisions.filter(r => new Date(r.updatedAt).getTime() > last_update.getTime()).sort((a,b) => a.revisionNumber - b.revisionNumber);
+        if (!revisions.length) return results;
+        // Map into updates
+        for(const rev of revisions) {
+            const merged = { ...collection, revisions: [rev] }
+            const embed = await subscribedItemEmbed(merged, item, guild);
+            results.push({
+                type: SubscribedItemType.Collection,
+                entity: merged,
+                date: new Date(rev.updatedAt),
+                embed,
+            })
+        }
+
+        // Order the array so the newest is first and the oldest is last
+        results.sort((a,b) => a.date.getTime() - b.date.getTime());
+        // Save the last date so we know where to start next time!
+        const lastDate = results[results.length -1].date;
+        await saveLastUpdatedForSub(item.id, lastDate);
+                
+        return results;
     } 
 
     private async getUserUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.User>[]> {

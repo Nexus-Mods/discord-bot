@@ -22,9 +22,13 @@ query DiscordBotGetCollectionData($slug: String, $adult: Boolean, $domain: Strin
         endorsements
         totalDownloads
         draftRevisionNumber
+        lastPublishedAt
         latestPublishedRevision {
+            revisionNumber 
             fileSize
             modCount
+            adultContent
+            updatedAt
         }
         game {
             id
