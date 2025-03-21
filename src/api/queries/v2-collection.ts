@@ -17,6 +17,7 @@ query DiscordBotGetCollectionData($slug: String, $adult: Boolean, $domain: Strin
             name
         }
         adultContent
+        collectionStatus
         overallRating
         overallRatingCount
         endorsements

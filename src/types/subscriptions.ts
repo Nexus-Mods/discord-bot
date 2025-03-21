@@ -2,8 +2,9 @@
 import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
 import { logMessage, nexusModsTrackingUrl } from '../api/util';
-import { ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
+import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
+import { ModStatus } from '@nexusmods/nexus-api';
 
 export interface ISubscribedChannel {
     id: number;
@@ -107,11 +108,7 @@ export interface ISubscribedItem {
     message: string | null;
     error_count: number;
     nsfw?: boolean;
-    sfw?: boolean;
-    collectionIds?: {
-        domain: string;
-        slug: string;
-    } 
+    sfw?: boolean; 
 }
 
 export interface ISubscribedGameItem extends ISubscribedItem {
@@ -124,15 +121,17 @@ export interface ISubscribedGameItem extends ISubscribedItem {
 export interface ISubscribedModItem extends ISubscribedItem {
     entityId: number;
     type: SubscribedItemType.Mod;
+    last_status: ModStatus;
 }
 
 export interface ISubscribedCollectionItem extends ISubscribedItem {
     entityId: string;
     type: SubscribedItemType.Collection;
     collectionIds: {
-        domain: string;
+        gameDomain: string;
         slug: string;
     }
+    last_status: CollectionStatus;
 }
 
 export interface ISubscribedUserItem extends ISubscribedItem {
@@ -180,7 +179,9 @@ export class SubscribedItem {
     // Show updated content (Mods only)
     show_updates?: boolean;
     // Collection IDs
-    collectionIds?: { domain: string, slug: string };
+    collectionIds?: { gameDomain: string, slug: string };
+    // Last status
+    last_status?: CollectionStatus | ModStatus;
 
     constructor(item: ISubscribedItemUnionType) {
         this.id = item.id;
@@ -202,8 +203,12 @@ export class SubscribedItem {
             this.show_updates = item.show_updates; 
         }
         if (item.type === SubscribedItemType.Collection) {
-            const [domain, slug] = (this.entityid as string).split(':');
-            this.collectionIds = { domain, slug };
+            const [gameDomain, slug] = (this.entityid as string).split(':');
+            this.collectionIds = { gameDomain, slug };
+            this.last_status = item.last_status;
+        }
+        if (item.type === SubscribedItemType.Mod) {
+            this.last_status = item.last_status;
         }
     }
 

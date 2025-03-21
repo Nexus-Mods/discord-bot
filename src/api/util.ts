@@ -114,3 +114,13 @@ export const nexusModsTrackingUrl = (url: string, tag?: string, extraParams?: Re
     
     return new URL(`${url}?${params.toString()}`).toString();
 }
+
+export function modUidToGameAndModId(uid: number): { gameId: number, modId: number } {
+    const gameId = uid >>> 32; // Use unsigned right shift (>>>)
+    const modId = uid & 0xFFFFFFFF; // Bitwise AND with 0xFFFFFFFF (unsigned 32-bit mask)
+    return { gameId, modId };
+}
+
+export function modIdAndGameIdToModUid(gameId: number, modId: number): number {
+    return (gameId * Math.pow(2, 32)) + modId; // Equivalent to left shift by 32
+}

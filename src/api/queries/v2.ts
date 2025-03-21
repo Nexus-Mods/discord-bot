@@ -6,11 +6,19 @@ import * as GQLTypes from '../../types/GQLTypes';
 
 export const v2API: string = 'https://api.nexusmods.com/v2/graphql';
 
+export enum CollectionStatus {
+    Listed = 'listed',
+    Unlisted = 'unlisted',
+    Moderated = 'under_moderation',
+    Discarded = 'discarded'
+}
+
 export interface ICollection {
     id: number;
     slug: string;
     name: string;
     summary: string;
+    collectionStatus: CollectionStatus
     category: {
         name: string;
     };

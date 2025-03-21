@@ -146,12 +146,12 @@ async function updateSubscription(id: number, parent: number, s: Omit<Subscribed
     }
 }
 
-async function saveLastUpdatedForSub(id: number, date: Date) {
+async function saveLastUpdatedForSub(id: number, date: Date, status: string | null = null) {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `UPDATE SubscribedItems SET last_update=$1
-                WHERE id=$2 RETURNING *`,
-            [date, id]
+            `UPDATE SubscribedItems SET last_update=$1 last_status=$2
+                WHERE id=$3 RETURNING *`,
+            [date, status, id]
         );
         return new SubscribedItem(data.rows[0]);
 
@@ -219,6 +219,7 @@ async function ensureSubscriptionsDB() {
                 type VARCHAR(50) NOT NULL,             -- Type of item (Game, Mod, Collection, User)
                 show_new BOOLEAN,             -- Only for Game type items
                 show_updates BOOLEAN,         -- Only for Game type items
+                last_status VARCHAR(255), -- Only for Mod/Collection items
                 CONSTRAINT fk_parent FOREIGN KEY (parent) REFERENCES SubscribedChannels(id)
             );
             `,

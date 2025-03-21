@@ -2,7 +2,7 @@ import { ClientExt } from "../types/DiscordTypes";
 import { APIEmbed, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
 import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
-import { IMod, IModFile, ModFileCategory } from '../api/queries/v2';
+import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache } from '../types/subscriptions';
 import { ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
 
@@ -255,6 +255,13 @@ export class SubscriptionManger {
         const res = await this.fakeUser.NexusMods.API.v2.ModsByUid([modUid]);
         const mod: IModWithFiles = res[0];
         if (!mod) throw new Error(`Mod not found for ${modUid}`);
+        if (['hidden', 'under_moderation'].includes(mod.status)) {
+            logMessage('Mod is temporarily unavailable:', mod.status);
+            return results;
+        }
+        else if (['deleted', 'wastebinned'].includes(mod.status)){
+            logMessage('Mod is permanently unavailable:', mod.status)
+        } 
         mod.files = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId) ?? [];
         // See which files are new.
         const newFiles = mod.files.filter(f => {
@@ -283,7 +290,7 @@ export class SubscriptionManger {
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate);    
+        await saveLastUpdatedForSub(item.id, lastDate, mod.status);    
         
         return results;
     } 
@@ -291,10 +298,18 @@ export class SubscriptionManger {
     private async getCollectionUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Collection>[]> {
         logMessage('Processing collection updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Collection>[] = [];
-        const [gameDomain, slug] = (item.entityid as string).split(':');
+        const {gameDomain, slug} = item.collectionIds!;
         const last_update = item.last_update;
         const collection = await this.fakeUser.NexusMods.API.v2.Collection(slug, gameDomain, true);
         if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
+        if (collection.collectionStatus === CollectionStatus.Moderated) {
+            logMessage('Collection under moderation', item.title);
+            return results;
+        }
+        else if (collection.collectionStatus === CollectionStatus.Discarded) {
+            logMessage('Collection has been discarded', item.title);
+            return results;
+        }
         const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
         if (collectionUpdatedAt.getTime() <= last_update.getTime()) {
             // Collection hasn't been updated since we last checked.
@@ -325,7 +340,7 @@ export class SubscriptionManger {
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate);
+        await saveLastUpdatedForSub(item.id, lastDate, collection.collectionStatus);
                 
         return results;
     } 
