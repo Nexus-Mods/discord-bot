@@ -1,5 +1,5 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { embedLength, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { APIEmbed, EmbedBuilder, embedLength, Guild, JSONEncodable, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
 import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IMod, IModFile, ModFileCategory } from '../api/queries/v2';
@@ -134,28 +134,29 @@ export class SubscriptionManger {
         }
 
         // Got all the updates - break them into groups by type and limit to 10 (API limit).
-        const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }]
+        const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }];
+        const maxBlockSize = 5;
         let currentType: SubscribedItemType = postableUpdates[0].type;
-        let currentEntity = postableUpdates[0].entityId;
+        let currentSub: number = postableUpdates[0].subId;
         for (const update of postableUpdates) {
-            // If we've swapped type or we've got more than 10 embeds already
-            if (update.type !== currentType || update.entity != currentEntity || blocks[blocks.length - 1].embeds!.length === 10) blocks.push({ embeds: [] })
+            // If we've swapped type, sub or we've got more than 5 embeds already
+            if (update.type !== currentType || update.subId != currentSub || blocks[blocks.length - 1].embeds!.length === maxBlockSize) blocks.push({ embeds: [] })
             const myBlock = blocks[blocks.length - 1];
             myBlock.embeds = myBlock.embeds ? [...myBlock.embeds, update.embed] : [update.embed];
             if (!myBlock.content && update.message) myBlock.content = update.message;
             currentType = update.type;
-            currentEntity = update.entityId
+            currentSub = update.subId;
         }
 
         // Send the updates to the webhook!
         logMessage(`Posting ${blocks.length} webhook updates to ${discordChannel.name} in ${guild.name}`);
         for (const block of blocks) {
-            logMessage('Block', block.embeds?.length)
+            logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
                 await webHookClient.send(block);
             }
             catch(err) {
-                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err }, true);
+                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err, body: (err as any).requestBody.json }, true); 
             }
         }
 
@@ -193,8 +194,8 @@ export class SubscriptionManger {
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.createdAt), 
                 entity: mod, 
-                entityId: item.entityid,
-                embed,
+                subId: item.id,
+                embed: embed.data,
                 message: item.message ?? null
             })
         }
@@ -228,8 +229,8 @@ export class SubscriptionManger {
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.updatedAt), 
                 entity: mod, 
-                entityId: item.entityid,
-                embed,
+                subId: item.id,
+                embed: embed.data,
                 message: item.message ?? null
             })
         }
@@ -272,8 +273,8 @@ export class SubscriptionManger {
                 type: SubscribedItemType.Mod, 
                 date: new Date(file.date * 1000), 
                 entity: {...mod, files: [file]}, 
-                entityId: item.entityid,
-                embed: embed,
+                subId: item.id,
+                embed: embed.data,
                 message: item.message ?? null
             });
         }
@@ -309,9 +310,10 @@ export class SubscriptionManger {
             results.push({
                 type: SubscribedItemType.Collection,
                 entity: merged,
-                entityId: item.entityid,
+                subId: item.id,
                 date: new Date(rev.updatedAt),
-                embed,
+                message: item.message,
+                embed: embed.data,
             })
         }
 

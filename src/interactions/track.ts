@@ -220,11 +220,11 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
 
         if (currentGameSub) {
             currentGameSub = await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updated existing mod subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logMessage('Updated existing mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
             currentGameSub = await channel.subscribe(newData);
-            logMessage('Created new mod subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logMessage('Created new mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
 
         const embed = new EmbedBuilder()
@@ -274,11 +274,11 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
 
         if (currentGameSub) {
             currentGameSub = await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updated existing collection subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logMessage('Updated existing collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
             currentGameSub = await channel.subscribe(newData);
-            logMessage('Created new collection subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logMessage('Created new collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
 
         const embed = new EmbedBuilder()
@@ -327,11 +327,11 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
 
         if (currentGameSub) {
             currentGameSub = await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updated existing user subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logMessage('Updated existing user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
             currentGameSub = await channel.subscribe(newData);
-            logMessage('Created new user subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logMessage('Created new user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
 
         const embed = new EmbedBuilder()

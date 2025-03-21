@@ -1,5 +1,5 @@
 
-import { EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
+import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
 import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
@@ -290,9 +290,9 @@ export class SubscriptionCache implements ISubscriptionCache {
 export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
     type: SubscribedItemType;
     date: Date;
-    embed: EmbedBuilder;
+    embed: APIEmbed;
     entity: EntityType<T>;
-    entityId: any;
+    subId: any;
     message?: string | null;
 }
 
@@ -318,7 +318,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
 
             embed.setTitle(mod.name)
             .setURL(nexusModsTrackingUrl(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subscribedGame'))
-            .setDescription(mod.summary ?? '_No summary_')
+            .setDescription(mod.summary.length ? mod.summary : '_No summary_')
             .setImage(compact ? null :  mod.pictureUrl || null)
             .setThumbnail(compact ? mod.pictureUrl : gameThumb)
             // Updated or otherwise
@@ -403,13 +403,13 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
             })
             .setTitle(`${collection.name} Revision ${revision.revisionNumber} is now available!`)
             .setDescription(
-                `### Changelog\n`+
-                (revision.collectionChangelog.description.length ? revision.collectionChangelog.description.substring(0, 500) : '__Not provided__')
+                `## Changelog\n`+
+                (revision.collectionChangelog.description.length ? trimCollectionChangelog(revision.collectionChangelog.description) : '__Not provided__')
             )
-            .setURL(nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedCollection'))
+            // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedCollection'))
             .setThumbnail(collection.tileImage.url)
             .setTimestamp(new Date(revision.updatedAt))
-            .setFooter({ text: `${collection.game.name} • ${revision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
+            .setFooter({ text: `${collection.game.name}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
             .addFields(
                 [
                     {
@@ -435,4 +435,32 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
     }
 
     return embed;
+}
+
+// Cut to length and reformat any incompatible markdown
+function trimCollectionChangelog(markdown: string, maxLength: number = 1000) {
+    // Remove images by regex (anything inside ![...](...) will be removed)
+    let modifiedMarkdown = markdown.replace(/!\[([^\]]*)\]\([^\)]*\)/g, '');
+
+    // Convert all headers to h3 by replacing headers with less than 3 # symbols
+    modifiedMarkdown = modifiedMarkdown.replace(/^#{1,2} (.*)/gm, '### $1');
+
+    // Extract only the text inside <summary> tags within <details> sections
+    modifiedMarkdown = modifiedMarkdown.replace(/<details><summary>(.*?)<\/summary>[\s\S]*?<\/details>/g, '$1 (View full changelog to expand)');
+
+    // break into lines, then reduce to the max length 
+    const newLines = modifiedMarkdown.split('\n');
+    let trimmedMarkdown = '';
+    for (const line of newLines) {
+
+        const temp = `${trimmedMarkdown}\n${line}`;
+        if (temp.length >= maxLength) {
+            trimmedMarkdown += '...'
+            break;
+        }
+        else trimmedMarkdown = temp;
+    }
+
+    return trimmedMarkdown; 
+
 }
