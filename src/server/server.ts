@@ -351,15 +351,22 @@ export class AuthSite {
             const slug = req.query['slug'] as string;
             const rev = req.query['rev'] as string;
             if (!domain || !slug) {
-                res.statusCode = 500
-                res.send('Domain or slug not provided')
+                res.statusCode = 400
+                return res.send('Domain or slug not provided')
             }
             const nxmlink = `nxm://${domain}/collections/${slug}/revisions/${rev ?? 'latest'}`;
-            res.redirect(nxmlink);
+            return res.redirect(nxmlink);
         }
         else if (type === 'mod') {
-            res.statusCode = 500;
-            res.send(`Not implemented`);
+            const domain = req.query['domain'] as string;
+            const modId = req.query['mod_id'] as string;
+            const fileId = req.query['file_id'] as string;
+            if (!domain || !modId || fileId) {
+                res.statusCode = 400
+                return res.send('Game, mod or file ID not provided')
+            }
+            const nxmlink = `nxm://${domain}/mods/${modId}/revisions/${fileId}`;
+            return res.redirect(nxmlink);
         }        
     }
 }

@@ -78,10 +78,10 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     logMessage('Date give is', timeToUse);
 
     try {
-        const channel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
+        let channel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
         if (!channel) return interaction.editReply('No subscribed items in this channel.');
         const update = await setDateForAllSubsInChannel(timeToUse, interaction.guildId!, interaction.channelId);
-        await updateSubscribedChannel(channel, timeToUse);
+        channel = await updateSubscribedChannel(channel, timeToUse);
         await interaction.editReply(`Updates for all tracked items since <t:${Math.floor(timeToUse.getTime()/1000)}:t> will be posted shortly.\n${update.map(i => i.title).join('\n')}`);
         await client.subscriptions?.getUpdatesForChannel(channel);
     }

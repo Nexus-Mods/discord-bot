@@ -106,9 +106,9 @@ export const discontinuedEmbed = (newCommand: string): EmbedBuilder => {
     .setDescription(`This command has been retired, please use the slash command **${newCommand}** instead. [Help](https://discord.gg/nexusmods)`)
 }
 
-export const nexusModsTrackingUrl = (url: string, tag?: string): string => {
+export const nexusModsTrackingUrl = (url: string, tag?: string, extraParams?: Record<string,string>): string => {
     const campaign = 'DiscordBot';
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(extraParams);
     params.append('mtm_campaign', campaign);
     if (tag) params.append('mtm_kwd', tag);
     

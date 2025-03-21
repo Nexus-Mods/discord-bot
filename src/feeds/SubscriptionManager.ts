@@ -156,7 +156,7 @@ export class SubscriptionManger {
                 await webHookClient.send(block);
             }
             catch(err) {
-                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err, body: (err as any).requestBody.json }, true); 
+                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) }, true); 
             }
         }
 

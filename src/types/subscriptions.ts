@@ -365,37 +365,39 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         case SubscribedItemType.Mod: {
             const modWithFiles: IModWithFiles = entity as IModWithFiles;
             const file: IModFile = modWithFiles.files![0];
-            // logMessage(`Building embed for ${file.version} on ${modWithFiles.name}`)
             const compact: boolean = sub.compact;
-            embed.setColor('Aqua')
+            let changelog = file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
+            embed.setColor('#2dd4bf')
             .setAuthor({ 
                 name: modWithFiles.uploader.name, 
                 url: nexusModsTrackingUrl(`https://nexusmods.com/users/${modWithFiles.uploader.memberId}`, 'subscribedMod'),
                 iconURL: modWithFiles.uploader.avatar
             })
             .setTitle(`${file.name} v${file.version} is now available!`)
-            .setDescription(`A new version can be downloaded from [${modWithFiles.name}](${nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}`, 'subscribedMod')}) on Nexus Mods.`)
-            // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}?tab=files`, 'subscribedMod'))
+            .setDescription(`A new version can be downloaded from [${modWithFiles.name}](${nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}`, 'subscribedMod')}) on Nexus Mods.\n${changelog ? `## Changelog\n${changelog}` : ''}`)
+            // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}`, 'subscribedMod', { 'tab': 'files' }))
             .setThumbnail(modWithFiles.pictureUrl)
             .setTimestamp(new Date(file.date * 1000))
-            .setFooter({ text: `${modWithFiles.game.name} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' });
-            if (file.changelogText.length) {
-                const changelogTrimLength = compact ? 250: 1020;
-                const changelog = file.changelogText.reduce((prev, cur) => {
-                    const current = `- ${cur}`;
-                    const aggrigate = prev.length ? `${prev}\n${current}` : current;
-                    if (aggrigate.length >= changelogTrimLength) return prev
-                    else return prev = aggrigate;
-                }, '')
-                embed.addFields({ name: 'Changelog', value: changelog });
-            };
+            .setFooter({ text: `${modWithFiles.game.name} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
+            .addFields(
+                {
+                    name: 'Mod Manager',
+                    value: `[Download ↗](https://discordbot.nexusmods.com/nxm?type=mod&domain=${modWithFiles.game.domainName}&mod_id=${modWithFiles.modId}&file_id=${file.fileId})\n-# Requires Premium 💎`,
+                    inline: true
+                },
+                {
+                    name: 'Nexus Mods',
+                    value: `[View Files ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}/`, 'subscribedMod', { 'tab': 'files' })})`,
+                    inline: true
+                }
+            )
         }
         break;
         case SubscribedItemType.Collection: {
             const collection: EntityType<SubscribedItemType.Collection> = entity;
             const revision: ICollectionRevision = collection.revisions[0];
             const compact: boolean = sub.compact;
-            embed.setColor('Random')
+            embed.setColor('#2dd4bf')
             .setAuthor({
                 name: collection.user.name,
                 url: nexusModsTrackingUrl(`https://nexusmods.com/users/${collection.user.memberId}`, 'subscribedCollection'),
@@ -404,7 +406,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
             .setTitle(`${collection.name} Revision ${revision.revisionNumber} is now available!`)
             .setDescription(
                 `## Changelog\n`+
-                (revision.collectionChangelog.description.length ? trimCollectionChangelog(revision.collectionChangelog.description) : '__Not provided__')
+                (revision.collectionChangelog.description.length ? trimCollectionChangelog(revision.collectionChangelog.description, compact ? 500 : undefined) : '__Not provided__')
             )
             // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedCollection'))
             .setThumbnail(collection.tileImage.url)
@@ -438,7 +440,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
 }
 
 // Cut to length and reformat any incompatible markdown
-function trimCollectionChangelog(markdown: string, maxLength: number = 1000) {
+function trimCollectionChangelog(markdown: string, maxLength: number = 2000): string {
     // Remove images by regex (anything inside ![...](...) will be removed)
     let modifiedMarkdown = markdown.replace(/!\[([^\]]*)\]\([^\)]*\)/g, '');
 
@@ -463,4 +465,18 @@ function trimCollectionChangelog(markdown: string, maxLength: number = 1000) {
 
     return trimmedMarkdown; 
 
+}
+
+function trimModChangelog(raw: string[], limit: number = 1000): string {
+    let changelog = '';
+    for (const line of raw) {
+        const temp = changelog.length ? `${changelog}\n${line}` : line;
+        if (temp.length >= limit) {
+            changelog = changelog += '...'
+            break;
+        }
+        else changelog = temp;
+    }
+
+    return changelog;
 }
