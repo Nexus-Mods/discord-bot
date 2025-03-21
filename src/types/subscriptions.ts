@@ -375,7 +375,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
             })
             .setTitle(`${file.name} v${file.version} is now available!`)
             .setDescription(`A new version can be downloaded from [${modWithFiles.name}](${nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}`, 'subscribedMod')}) on Nexus Mods.`)
-            .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}?tab=files`, 'subscribedMod'))
+            // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}?tab=files`, 'subscribedMod'))
             .setThumbnail(modWithFiles.pictureUrl)
             .setTimestamp(new Date(file.date * 1000))
             .setFooter({ text: `${modWithFiles.game.name} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' });

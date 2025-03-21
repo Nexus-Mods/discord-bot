@@ -82,7 +82,8 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         if (!channel) return interaction.editReply('No subscribed items in this channel.');
         const update = await setDateForAllSubsInChannel(timeToUse, interaction.guildId!, interaction.channelId);
         await updateSubscribedChannel(channel, timeToUse);
-        return interaction.editReply(`Updates for all tracked items since <t:${Math.floor(timeToUse.getTime()/1000)}:t> will be posted shortly.\n${update.map(i => i.title).join('\n')}`)
+        await interaction.editReply(`Updates for all tracked items since <t:${Math.floor(timeToUse.getTime()/1000)}:t> will be posted shortly.\n${update.map(i => i.title).join('\n')}`);
+        await client.subscriptions?.getUpdatesForChannel(channel);
     }
     catch(err) {
         return interaction.editReply('An error occurred updating subscriptions');

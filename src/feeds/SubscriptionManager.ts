@@ -1,5 +1,5 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { APIEmbed, EmbedBuilder, embedLength, Guild, JSONEncodable, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { APIEmbed, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
 import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IMod, IModFile, ModFileCategory } from '../api/queries/v2';
@@ -36,7 +36,7 @@ export class SubscriptionManger {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime);
         }
-        logMessage('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length});
+        logMessage('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length, pollTime});
         return SubscriptionManger.instance;
     }
 
@@ -135,7 +135,7 @@ export class SubscriptionManger {
 
         // Got all the updates - break them into groups by type and limit to 10 (API limit).
         const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }];
-        const maxBlockSize = 5;
+        const maxBlockSize = 10;
         let currentType: SubscribedItemType = postableUpdates[0].type;
         let currentSub: number = postableUpdates[0].subId;
         for (const update of postableUpdates) {
@@ -263,7 +263,8 @@ export class SubscriptionManger {
             if (fileDate.getTime() <= last_update.getTime()) return false;
             // Not archived or deleted
             return ![ModFileCategory.Archived, ModFileCategory.Removed].includes(f.category)
-        });
+        })
+        .slice(0,5); // Max of 5 due to embed limits
         logMessage('New files found', newFiles.length);
         if (!newFiles.length) return results;
         // Map the newly uploaded files
@@ -297,11 +298,14 @@ export class SubscriptionManger {
         const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
         if (collectionUpdatedAt.getTime() <= last_update.getTime()) {
             // Collection hasn't been updated since we last checked.
+            logMessage('No updates found', item.title);
             return results;
         }
         const withRevisions = await this.fakeUser.NexusMods.API.v2.CollectionRevisions(gameDomain, slug);
         if (!withRevisions) throw new Error(`Unable to get revision data`);
-        const revisions = withRevisions.revisions.filter(r => new Date(r.updatedAt).getTime() > last_update.getTime()).sort((a,b) => a.revisionNumber - b.revisionNumber);
+        const revisions = withRevisions.revisions.filter(r => new Date(r.updatedAt).getTime() > last_update.getTime())
+            .sort((a,b) => a.revisionNumber - b.revisionNumber)
+            .slice(0, 5); // Limit to 5 collections as the embeds can be a lot bigger.
         if (!revisions.length) return results;
         // Map into updates
         for(const rev of revisions) {
