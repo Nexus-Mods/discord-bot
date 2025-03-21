@@ -136,13 +136,15 @@ export class SubscriptionManger {
         // Got all the updates - break them into groups by type and limit to 10 (API limit).
         const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }]
         let currentType: SubscribedItemType = postableUpdates[0].type;
+        let currentEntity = postableUpdates[0].entityId;
         for (const update of postableUpdates) {
             // If we've swapped type or we've got more than 10 embeds already
-            if (update.type !== currentType || blocks[blocks.length - 1].embeds!.length === 10) blocks.push({ embeds: [] })
+            if (update.type !== currentType || update.entity != currentEntity || blocks[blocks.length - 1].embeds!.length === 10) blocks.push({ embeds: [] })
             const myBlock = blocks[blocks.length - 1];
             myBlock.embeds = myBlock.embeds ? [...myBlock.embeds, update.embed] : [update.embed];
             if (!myBlock.content && update.message) myBlock.content = update.message;
             currentType = update.type;
+            currentEntity = update.entityId
         }
 
         // Send the updates to the webhook!
@@ -191,6 +193,7 @@ export class SubscriptionManger {
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.createdAt), 
                 entity: mod, 
+                entityId: item.entityid,
                 embed,
                 message: item.message ?? null
             })
@@ -225,6 +228,7 @@ export class SubscriptionManger {
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.updatedAt), 
                 entity: mod, 
+                entityId: item.entityid,
                 embed,
                 message: item.message ?? null
             })
@@ -268,6 +272,7 @@ export class SubscriptionManger {
                 type: SubscribedItemType.Mod, 
                 date: new Date(file.date * 1000), 
                 entity: {...mod, files: [file]}, 
+                entityId: item.entityid,
                 embed: embed,
                 message: item.message ?? null
             });
@@ -304,6 +309,7 @@ export class SubscriptionManger {
             results.push({
                 type: SubscribedItemType.Collection,
                 entity: merged,
+                entityId: item.entityid,
                 date: new Date(rev.updatedAt),
                 embed,
             })

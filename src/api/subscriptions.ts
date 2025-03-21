@@ -148,13 +148,34 @@ async function updateSubscription(id: number, parent: number, s: Omit<Subscribed
 
 async function saveLastUpdatedForSub(id: number, date: Date) {
     try {
-        logMessage('Setting last update', { id, date });
         const data = await queryPromise<ISubscribedItemUnionType>(
             `UPDATE SubscribedItems SET last_update=$1
                 WHERE id=$2 RETURNING *`,
             [date, id]
         );
         return new SubscribedItem(data.rows[0]);
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to update subscription for channel.\n${error.message}`;
+        throw error;
+    }
+}
+
+async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel: Snowflake): Promise<SubscribedItem[]> {
+    try {
+        const data = await queryPromise<ISubscribedItemUnionType>(
+            `UPDATE SubscribedItems si
+            SET last_update = $1 
+            FROM SubscribedChannels sc
+            WHERE si.parent = sc.id
+                AND sc.guild_id = $2
+                AND sc.channel_id = $3
+            RETURNING si.*`,
+            [date, guild, channel]
+        );
+        return data.rows.map(r => new SubscribedItem(r));
 
     }
     catch(err) {
@@ -215,5 +236,6 @@ async function ensureSubscriptionsDB() {
 export { 
     ensureSubscriptionsDB, 
     getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
-    getAllSubscriptions, getSubscriptionsByChannel, createSubscription, updateSubscription, saveLastUpdatedForSub
+    getAllSubscriptions, getSubscriptionsByChannel, createSubscription, updateSubscription, saveLastUpdatedForSub,
+    setDateForAllSubsInChannel
 };

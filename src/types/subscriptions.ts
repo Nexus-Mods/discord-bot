@@ -292,6 +292,7 @@ export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
     date: Date;
     embed: EmbedBuilder;
     entity: EntityType<T>;
+    entityId: any;
     message?: string | null;
 }
 
