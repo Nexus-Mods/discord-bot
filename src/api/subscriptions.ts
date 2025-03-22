@@ -146,6 +146,22 @@ async function updateSubscription(id: number, parent: number, s: Omit<Subscribed
     }
 }
 
+async function deleteSubscription(id: number): Promise<void> {
+    try {
+        await queryPromise(
+            `DELETE FROM SubscribedItems WHERE id=$1`,
+            [id]
+        );
+        return;
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to update subscription for channel.\n${error.message}`;
+        throw error;
+    }
+}
+
 async function saveLastUpdatedForSub(id: number, date: Date, status: string | null = null) {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
@@ -237,6 +253,6 @@ async function ensureSubscriptionsDB() {
 export { 
     ensureSubscriptionsDB, 
     getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
-    getAllSubscriptions, getSubscriptionsByChannel, createSubscription, updateSubscription, saveLastUpdatedForSub,
+    getAllSubscriptions, getSubscriptionsByChannel, createSubscription, updateSubscription, saveLastUpdatedForSub, deleteSubscription,
     setDateForAllSubsInChannel
 };

@@ -306,7 +306,7 @@ export type IModWithFiles = IMod & { files?: IModFile[] };
 type EntityType<T extends SubscribedItemType> = 
     T extends 'game' ? IMod :
     T extends 'mod' ? IModWithFiles:
-    T extends 'collection' ? ICollection & { revisions: ICollectionRevision[] } :
+    T extends 'collection' ? ICollection & { revisions?: ICollectionRevision[] } :
     T extends 'user' ? any : null;
 
 export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false): Promise<EmbedBuilder> {
@@ -400,7 +400,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         break;
         case SubscribedItemType.Collection: {
             const collection: EntityType<SubscribedItemType.Collection> = entity;
-            const revision: ICollectionRevision = collection.revisions[0];
+            const revision: ICollectionRevision = collection.revisions![0];
             const compact: boolean = sub.compact;
             embed.setColor('#2dd4bf')
             .setAuthor({
@@ -442,6 +442,87 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
     }
 
     return embed;
+}
+
+export function unavailableUpdate<T extends SubscribedItemType>(entity: EntityType<T>, type: SubscribedItemType, sub: SubscribedItem, newStatus: ModStatus | CollectionStatus): IPostableSubscriptionUpdate<T> {
+    const embed = new EmbedBuilder();
+    let date = new Date();
+    if (type === SubscribedItemType.Mod) {
+        newStatus = newStatus as ModStatus;
+        const mod = entity as EntityType<SubscribedItemType.Mod>;
+        date = typeof mod.updatedAt === 'string' ? new Date(mod.updatedAt) : mod.updatedAt;
+        switch (newStatus) {
+            case 'hidden': {
+                embed.setTitle(`${mod.name} has been hidden`)
+                .setDescription(
+                    `The mod page has been temporarily hidden from viewing by the mod author, a team member, or a moderator.\n`+
+                    `[More Info](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subscribedMod')})`
+                )
+                .setColor('DarkGold')
+                .setThumbnail(null)
+            }
+            break;
+            case 'under_moderation': {
+                embed.setTitle(`${mod.name} has been placed under moderator review`)
+                .setDescription(
+                    'The mod page is unavaialble while it is reviewed by a moderator. \n'+
+                    'This mod may become available again, but it can take some time depending on the nature of the issue and how long the author takes to respond.'
+                )
+                .setColor('DarkRed')
+                .setThumbnail(null)
+            }
+            break;
+            case 'removed': {
+                embed.setTitle(`${mod.name} has been deleted`)
+                .setDescription(`The mod page has been deleted by the mod author or a team member. \nNo further updates will be posted.`)
+                .setColor('Red')
+                .setThumbnail(null)
+            }
+            break;
+            case 'wastebinned': {
+                embed.setTitle(`${mod.name} has been permanently removed`)
+                .setDescription(`The mod page has been permanently deleted by a moderator for breaching the Nexus Mods Terms of Service. \nNo further updates will be posted.`)
+                .setColor('Red')
+                .setThumbnail(null)
+            }
+            break;
+        }
+
+    }
+    else if (type === SubscribedItemType.Collection) {
+        newStatus = newStatus as CollectionStatus;
+        const collection = entity as EntityType<SubscribedItemType.Collection>;
+        date = typeof collection.latestPublishedRevision.updatedAt === 'string' ? new Date(collection.latestPublishedRevision.updatedAt) : collection.latestPublishedRevision.updatedAt;
+        switch (newStatus) {
+            case 'under_moderation': {
+                embed.setTitle(`${collection.name} has been placed under moderator review`)
+                .setDescription(
+                    'The collection page is unavaialble while it is reviewed by a moderator. \n'+
+                    'This mod may become available again, but it can take some time depending on the nature of the issue and how long the author takes to respond.'
+                )
+                .setColor('DarkRed')
+                .setThumbnail(null)
+            }
+            break;
+            case 'discarded' : {
+                embed.setTitle(`${collection.name} has been permanently removed`)
+                .setDescription(`The collection page has been permanently deleted by a moderator for breaching the Nexus Mods Terms of Service. \nNo further updates will be posted.`)
+                .setColor('Red')
+                .setThumbnail(null)
+            }
+            break;
+        }
+
+    }
+
+    return {
+        type,
+        date,
+        embed: embed.data,
+        entity,
+        subId: sub.id,
+        message: sub.message
+    }
 }
 
 // Cut to length and reformat any incompatible markdown

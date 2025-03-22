@@ -3,8 +3,8 @@ import { APIEmbed, Guild, TextChannel,  WebhookMessageCreateOptions } from 'disc
 import { logMessage, modIdAndGameIdToModUid, modUidToGameAndModId } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
-import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache } from '../types/subscriptions';
-import { ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
+import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate } from '../types/subscriptions';
+import { deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -258,10 +258,19 @@ export class SubscriptionManger {
         if (!mod) throw new Error(`Mod not found for ${modUid}`);
         if (['hidden', 'under_moderation'].includes(mod.status)) {
             logMessage('Mod is temporarily unavailable:', mod.status);
+            if (item.last_status === 'published') {
+                results.push(unavailableUpdate(mod, SubscribedItemType.Mod, item, mod.status))
+                await saveLastUpdatedForSub(item.id, results[0].date, mod.status);
+            }
             return results;
         }
         else if (['deleted', 'wastebinned'].includes(mod.status)){
-            logMessage('Mod is permanently unavailable:', mod.status)
+            logMessage('Mod is permanently unavailable:', mod.status);
+            if (item.last_status === 'published') {
+                results.push(unavailableUpdate(mod, SubscribedItemType.Mod, item, mod.status))
+                await deleteSubscription(item.id);
+            }
+            return results;
         } 
         mod.files = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId) ?? [];
         // See which files are new.
@@ -305,10 +314,18 @@ export class SubscriptionManger {
         if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
         if (collection.collectionStatus === CollectionStatus.Moderated) {
             logMessage('Collection under moderation', item.title);
+            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.last_status as CollectionStatus)) {
+                results.push(unavailableUpdate(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
+                await saveLastUpdatedForSub(item.id, results[0].date, collection.collectionStatus);
+            }
             return results;
         }
         else if (collection.collectionStatus === CollectionStatus.Discarded) {
             logMessage('Collection has been discarded', item.title);
+            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.last_status as CollectionStatus)) {
+                results.push(unavailableUpdate(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
+                await deleteSubscription(item.id);
+            }
             return results;
         }
         const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
