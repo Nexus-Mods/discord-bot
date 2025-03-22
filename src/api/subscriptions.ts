@@ -149,7 +149,7 @@ async function updateSubscription(id: number, parent: number, s: Omit<Subscribed
 async function saveLastUpdatedForSub(id: number, date: Date, status: string | null = null) {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `UPDATE SubscribedItems SET last_update=$1 last_status=$2
+            `UPDATE SubscribedItems SET last_update=$1, last_status=$2
                 WHERE id=$3 RETURNING *`,
             [date, status, id]
         );

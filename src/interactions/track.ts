@@ -215,7 +215,8 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
             owner: interaction.user.id,
             crosspost: false,
             compact,
-            message
+            message,
+            last_status: mod.status
         }
 
         if (currentGameSub) {
@@ -269,7 +270,8 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
             owner: interaction.user.id,
             crosspost: false,
             compact,
-            message
+            message,
+            last_status: collection.collectionStatus
         }
 
         if (currentGameSub) {
