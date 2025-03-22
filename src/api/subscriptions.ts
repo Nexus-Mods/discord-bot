@@ -213,7 +213,7 @@ async function ensureSubscriptionsDB() {
                 crosspost BOOLEAN,            -- Whether it is crossposted
                 compact BOOLEAN,              -- Whether it is compact
                 message TEXT,                 -- Message associated with the item
-                error_count INT,              -- Error count
+                error_count INT NOT NULL DEFAULT 0,              -- Error count
                 nsfw BOOLEAN DEFAULT FALSE,   -- NSFW flag (optional)
                 sfw BOOLEAN DEFAULT TRUE,    -- SFW flag (optional)
                 type VARCHAR(50) NOT NULL,             -- Type of item (Game, Mod, Collection, User)

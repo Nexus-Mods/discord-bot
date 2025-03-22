@@ -67,6 +67,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     if (!date && !time && !timezone) {
         timeToUse = new Date();
     }
+    else if (!date && time) {
+        const now = new Date();
+        const [hrs, mins] = time.split(':');
+        now.setHours(parseInt(hrs));
+        now.setMinutes(parseInt(mins));
+        timeToUse = now;
+    }
     else {
         const dateString = `${date}T${time ?? '00:00'}:00${timezone ?? 'Z'}`
         timeToUse = new Date(dateString);

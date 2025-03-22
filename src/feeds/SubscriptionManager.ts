@@ -174,7 +174,7 @@ export class SubscriptionManger {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         const domain: string = item.entityid as string;
         const last_update = item.last_update;
-        let newMods = item.show_new ? this.cache.games.new[domain].filter(m => new Date(m.createdAt) >= last_update ): [];
+        let newMods = item.show_new ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) >= last_update ): [];
         // If there's nothing in the cache, we'll double check
         if (!newMods.length && item.show_new) {
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
@@ -201,7 +201,7 @@ export class SubscriptionManger {
         }
         results.push(...formattedNew);
 
-        let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates ? this.cache.games.updated[domain].filter(m => new Date(m.updatedAt) >= last_update ): [];
+        let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) >= last_update ): [];
         // If there's nothing in the cache, we'll double check
         if (!updatedMods.length && item.show_updates) {
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
