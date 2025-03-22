@@ -1,6 +1,6 @@
 import { ClientExt } from "../types/DiscordTypes";
 import { APIEmbed, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
-import { logMessage } from '../api/util';
+import { logMessage, modIdAndGameIdToModUid, modUidToGameAndModId } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache } from '../types/subscriptions';
@@ -251,6 +251,7 @@ export class SubscriptionManger {
         logMessage('Processing mod updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Mod>[] = [];
         const modUid: string = item.entityid as string;
+        // const ids = modUidToGameAndModId(modUid); // We can convert the UID to mod/game IDs, but we need to domain to look it up on the API.
         const last_update = item.last_update;
         const res = await this.fakeUser.NexusMods.API.v2.ModsByUid([modUid]);
         const mod: IModWithFiles = res[0];

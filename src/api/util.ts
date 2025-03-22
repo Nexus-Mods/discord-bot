@@ -115,12 +115,18 @@ export const nexusModsTrackingUrl = (url: string, tag?: string, extraParams?: Re
     return new URL(`${url}?${params.toString()}`).toString();
 }
 
-export function modUidToGameAndModId(uid: number): { gameId: number, modId: number } {
-    const gameId = uid >>> 32; // Use unsigned right shift (>>>)
-    const modId = uid & 0xFFFFFFFF; // Bitwise AND with 0xFFFFFFFF (unsigned 32-bit mask)
+export function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: number } {
+    if (typeof uid === 'string') uid = BigInt(uid);
+    const gameId = Number(uid >> BigInt(32)); // Use unsigned right shift (>>>)
+    const modId = Number(uid & BigInt(0xFFFFFFFF));; // Bitwise AND with 0xFFFFFFFF (unsigned 32-bit mask)
+    console.log('Parsed IDs', { uid, gameId, modId });
     return { gameId, modId };
 }
 
-export function modIdAndGameIdToModUid(gameId: number, modId: number): number {
-    return (gameId * Math.pow(2, 32)) + modId; // Equivalent to left shift by 32
+export function modIdAndGameIdToModUid(gameId: number, modId: number): string {
+    // Convert the gameId and modId to BigInt
+    const bigGameId = BigInt(gameId);
+    const bigModId = BigInt(modId);
+    // Perform the left shift operation and combine the values
+    return ((bigGameId << BigInt(32)) + bigModId).toString();
 }

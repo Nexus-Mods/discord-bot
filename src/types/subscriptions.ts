@@ -49,7 +49,7 @@ export class SubscribedChannel implements ISubscribedChannel {
         }
         catch(err) {
             logMessage('Error creating subscribed channel class', err, true);
-            throw new Error('Unable to create subscribed channel');
+            throw new Error('Unable to create subscribed channel class');
         }
     }
 
@@ -119,7 +119,7 @@ export interface ISubscribedGameItem extends ISubscribedItem {
 }
 
 export interface ISubscribedModItem extends ISubscribedItem {
-    entityId: number;
+    entityId: string;
     type: SubscribedItemType.Mod;
     last_status: ModStatus;
 }
@@ -155,7 +155,7 @@ export class SubscribedItem {
     // Displayable title without re-fetching
     title: string;
     // Entity ID (mod ID, collection slug, user ID, game domain)
-    entityid: string | number;
+    entityid: string | number | bigint;
     // Discord ID of the owner.
     owner: string;
     // Last update to this subscribed item

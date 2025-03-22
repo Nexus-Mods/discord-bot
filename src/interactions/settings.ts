@@ -2,12 +2,8 @@ import {
     CommandInteraction, Client, Guild, EmbedBuilder, 
     Role, ThreadChannel, GuildChannel, GuildMember, 
     SlashCommandBuilder, ChatInputCommandInteraction, 
-    PermissionFlagsBits, 
-    APIRole,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    ComponentType,
+    PermissionFlagsBits, APIRole, ActionRowBuilder,
+    ButtonBuilder, ButtonStyle, ComponentType,
     ButtonInteraction
 } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';

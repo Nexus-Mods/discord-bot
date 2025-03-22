@@ -86,7 +86,7 @@ async function getAllSubscriptions(): Promise<SubscribedItem[]> {
     }
     catch(err) {
         const error: Error = (err as Error);
-        error.message = `Failed to fetch subscribed channels.\n${error.message}`;
+        error.message = `Failed to fetch all subscribed items.\n${error.message}`;
         throw error;
     }
 
@@ -107,7 +107,7 @@ async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): 
     }
     catch(err) {
         const error: Error = (err as Error);
-        error.message = `Failed to fetch subscribed channels.\n${error.message}`;
+        error.message = `Failed to fetch subscribed items for channel.\n${error.message}`;
         throw error;
     }
 }

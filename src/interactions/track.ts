@@ -194,9 +194,9 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
 async function trackMod(client: ClientExt, interaction: ChatInputCommandInteraction) {
     const channel = await ensureChannelisSubscribed(client, interaction);
     // Get options from the command
-    const moduid = interaction.options.getString('mod', true);
-    const compact = interaction.options.getBoolean('compact') ?? false;
-    const message = interaction.options.getString('message');
+    const moduid: string = interaction.options.getString('mod', true);
+    const compact: boolean = interaction.options.getBoolean('compact') ?? false;
+    const message: string | null = interaction.options.getString('message');
     // Get the mod info
     const dummyUser = new DiscordBotUser(DummyNexusModsUser);
     try {
