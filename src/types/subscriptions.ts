@@ -5,6 +5,7 @@ import { logMessage, nexusModsTrackingUrl } from '../api/util';
 import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
 import { ModStatus } from '@nexusmods/nexus-api';
+import { IUser } from '../api/queries/v2-finduser';
 
 export interface ISubscribedChannel {
     id: number;
@@ -522,6 +523,28 @@ export function unavailableUpdate<T extends SubscribedItemType>(entity: EntityTy
         entity,
         subId: sub.id,
         message: sub.message
+    }
+}
+
+export function unavailableUserUpdate(entity: IUser, sub: SubscribedItem): IPostableSubscriptionUpdate<SubscribedItemType.User> {
+    const embed = new EmbedBuilder()
+    if (entity.deleted) {
+        embed.setColor('DarkerGrey')
+        .setTitle(`${sub.title} has deleted their account`)
+        .setDescription(`You can no longer track updated for ${sub.title} as they have deleted their account.`);
+    }
+    else if (entity.banned) {
+        embed.setColor('DarkRed')
+        .setTitle(`${sub.title} has been banned`)
+        .setDescription(`The user account ${sub.title} has been banned from Nexus Mods for breaching the community rules.\nMore details can be found in the [public bans forum](https://forums.nexusmods.com/forum/188-formal-warnings-bans-and-takedowns/).`)
+    }
+
+    return {
+        entity,
+        type: SubscribedItemType.User,
+        date: new Date(),
+        subId: sub.id,
+        embed: embed.data
     }
 }
 

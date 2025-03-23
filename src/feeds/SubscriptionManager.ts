@@ -1,9 +1,9 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { APIEmbed, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { APIEmbed, EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
 import { logMessage, modIdAndGameIdToModUid, modUidToGameAndModId } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
-import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate } from '../types/subscriptions';
+import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate } from '../types/subscriptions';
 import { deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
 
 export class SubscriptionManger {
@@ -364,7 +364,65 @@ export class SubscriptionManger {
     } 
 
     private async getUserUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.User>[]> {
-        return [];
+        logMessage('Processing user updates', item.title);
+        const results: IPostableSubscriptionUpdate<SubscribedItemType.User>[] = [];
+        const userId: number = item.entityid as number;
+        const last_update = item.last_update;
+        const user = await this.fakeUser.NexusMods.API.v2.FindUser(userId);
+        if (!user) throw new Error(`User not found for ${userId}`);
+        if (user.banned === true || user.deleted == true) {
+            logMessage(`${user.name} has been banned or deleted from Nexus Mods`);
+            results.push(unavailableUserUpdate(user, item));
+            await deleteSubscription(item.id);
+        }
+        if (user.name !== item.title) {
+            logMessage(`${item.title} changed their username to ${user.name}`);
+            const usernameEmbed = new EmbedBuilder().setTitle('Username changed!')
+            .setDescription(`${item.title} changed their username to ${user.name}`)
+            .setColor('Random');
+            results.push({
+                type: SubscribedItemType.User,
+                entity: user,
+                date: new Date(),
+                subId: item.id,
+                embed: usernameEmbed.data,
+            })
+        }
+        // See if they have any new content since the last check
+        const newMods = await this.fakeUser.NexusMods.API.v2.Mods(
+            {
+                uploaderId: { value: userId.toString(), op: 'EQUALS' },
+                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+            },
+            { createdAt: { direction: 'ASC' } }
+        );
+        const newCollections = await this.fakeUser.NexusMods.API.v2.Collections(
+            {
+                userId: { value: userId.toString(), op: 'EQUALS' },
+                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+            },
+            { createdAt: { direction: 'ASC' } }
+        );
+        // We could also check for media? But not right now.
+        // Check for updated content since last check.
+        const updatedMods = await this.fakeUser.NexusMods.API.v2.Mods(
+            {
+                uploaderId: { value: userId.toString(), op: 'EQUALS' },
+                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+                hasUpdated: { value: true, op: 'EQUALS' }
+            },
+            { updatedAt: { direction: 'ASC' } }
+        );
+        const updatedCollections = await this.fakeUser.NexusMods.API.v2.Collections(
+            {
+                userId: { value: userId.toString(), op: 'EQUALS' },
+                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+            },
+            { updatedAt: { direction: 'ASC' } }
+        );
+        // Create a post for each of the new items.
+        
+        return results;
     } 
 
     private async prepareCache() {

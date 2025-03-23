@@ -13,6 +13,8 @@ export interface IUser {
     avatar: string;
     recognizedAuthor: boolean;
     uniqueModDownloads: number;
+    banned: boolean;
+    deleted: boolean;
 }
 
 const idQuery = gql`
@@ -23,6 +25,8 @@ query DiscordBotUserById($id: Int!) {
         avatar
         recognizedAuthor
         uniqueModDownloads
+        banned
+        deleted
     }
 }
 `;
@@ -35,6 +39,8 @@ query UserByName($username: String!) {
         avatar
         recognizedAuthor
         uniqueModDownloads
+        banned
+        deleted
     }
 }
 `;
