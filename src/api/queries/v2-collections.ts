@@ -37,6 +37,8 @@ query DiscordBotSearchCollections(
         adultContent
         fileSize
         modCount
+        revisionNumber
+        updatedAt
       }
       game {
         id

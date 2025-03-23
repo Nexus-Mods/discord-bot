@@ -6,6 +6,8 @@ import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } fr
 import { getUserByNexusModsId } from '../api/users';
 import { ModStatus } from '@nexusmods/nexus-api';
 import { IUser } from '../api/queries/v2-finduser';
+import e from 'express';
+import { customEmojis } from './util';
 
 export interface ISubscribedChannel {
     id: number;
@@ -310,12 +312,26 @@ type EntityType<T extends SubscribedItemType> =
     T extends 'collection' ? ICollection & { revisions?: ICollectionRevision[] } :
     T extends 'user' ? any : null;
 
-export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false): Promise<EmbedBuilder> {
+type UserEntityType<T extends UserEmbedType | undefined> =
+    T extends 'new-mod' | 'updated-mod' ? IUser & { mod: T extends 'new-mod' ? IMod : IModWithFiles } :
+    T extends 'new-collection' | 'updated-collection' ? IUser & { collection: ICollection } :
+    T extends 'new-image' | 'new-video' ? any : null;
+
+export enum UserEmbedType {
+    NewMod = 'new-mod',
+    UpdatedMod = 'updated-mod',
+    NewCollection = 'new-collection',
+    UpdatedCollection = 'updated-collection',
+    NewImage = 'new-image',
+    NewVideo = 'new-video'
+}
+
+export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false, userEmbedType: UserEmbedType | null = null): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder();
+    const compact: boolean = sub.compact;
     switch (sub.type) {
         case SubscribedItemType.Game: {
             const mod = entity as IModWithFiles;
-            const compact: boolean = sub.compact;
             let lastestFile = updated ? mod.files?.[0] : undefined;
             const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${mod.game.id}.jpg`;
             // Try and find a Discord user for the mod uploader
@@ -371,7 +387,6 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         case SubscribedItemType.Mod: {
             const modWithFiles: IModWithFiles = entity as IModWithFiles;
             const file: IModFile = modWithFiles.files![0];
-            const compact: boolean = sub.compact;
             let changelog = file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
             embed.setColor('#2dd4bf')
             .setAuthor({ 
@@ -402,7 +417,6 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         case SubscribedItemType.Collection: {
             const collection: EntityType<SubscribedItemType.Collection> = entity;
             const revision: ICollectionRevision = collection.revisions![0];
-            const compact: boolean = sub.compact;
             embed.setColor('#2dd4bf')
             .setAuthor({
                 name: collection.user.name,
@@ -435,7 +449,98 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         }
         break;
         case SubscribedItemType.User: {
-
+            const userUrl = nexusModsTrackingUrl(`https://nexusmods.com/users/${entity.memberId}`, 'subscribedUser');
+            switch (userEmbedType) {
+                case UserEmbedType.NewMod: {
+                    const userWithMod = entity as UserEntityType<UserEmbedType.NewMod>;
+                    const mod = userWithMod.mod;
+                    embed.setColor('#2dd4bf')
+                    .setAuthor(
+                        {
+                            name: `<:mod:${customEmojis.mod}> ${userWithMod.name} uploaded a new mod!`,
+                            url: userUrl,
+                            iconURL: userWithMod.avatar
+                        }
+                    )
+                    .setTitle(mod.name)
+                    .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subsribedUser')})`)
+                    .setImage(compact ? null : mod.pictureUrl)
+                    .setThumbnail(compact ? mod.pictureUrl : null)
+                    .setFooter({ text: `${mod.game.name} • v${mod.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
+                    .setTimestamp(new Date(mod.createdAt))
+                }
+                break;
+                case UserEmbedType.UpdatedMod: {
+                    const userWithMod = entity as UserEntityType<UserEmbedType.UpdatedMod>;
+                    const mod = userWithMod.mod;
+                    const file = mod.files?.length ? mod.files[0] : undefined;
+                    const changelog = file?.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
+                    embed.setColor('#2dd4bf')
+                    .setAuthor(
+                        {
+                            name: `<:mod:${customEmojis.mod}> ${userWithMod.name} updated a mod!`,
+                            url: userUrl,
+                            iconURL: userWithMod.avatar
+                        }
+                    )
+                    .setTitle(mod.name)
+                    .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subsribedUser')})`)
+                    .setImage(compact ? null : mod.pictureUrl)
+                    .setThumbnail(compact ? mod.pictureUrl : null)
+                    .setFooter({ text: `${mod.game.name} • v${mod.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
+                    .setTimestamp(file?.date ? new Date(file.date * 1000) : new Date(mod.updatedAt))
+                    if (changelog && changelog.length) embed.addFields({ name: 'Changelog', value: changelog });
+                }
+                break;
+                case UserEmbedType.NewCollection: {
+                    const userWithCollection = entity as UserEntityType<UserEmbedType.NewCollection>;
+                    const collection = userWithCollection.collection;
+                    embed.setColor('#2dd4bf')
+                    .setAuthor(
+                        {
+                            name: `<:collection:${customEmojis.collection}> ${userWithCollection.name} shared a new collection!`,
+                            url: userUrl,
+                            iconURL: userWithCollection.avatar
+                        }
+                    )
+                    .setTitle(collection.name)
+                    .setDescription(collection.summary ?? '_No Summary_')
+                    .setImage(compact ? null : collection.tileImage.url)
+                    .setThumbnail(compact ? collection.tileImage.url : null)
+                    .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
+                    .setTimestamp(new Date(collection.latestPublishedRevision.updatedAt))
+                }
+                break;
+                case UserEmbedType.UpdatedCollection: {
+                    const userWithCollection = entity as UserEntityType<UserEmbedType.UpdatedCollection>;
+                    const collection = userWithCollection.collection;
+                    embed.setColor('#2dd4bf')
+                    .setAuthor(
+                        {
+                            name: `<:collection:${customEmojis.collection}> ${userWithCollection.name} updated a collection!`,
+                            url: userUrl,
+                            iconURL: userWithCollection.avatar
+                        }
+                    )
+                    .setTitle(collection.name)
+                    .setDescription(collection.summary ?? '_No Summary_')
+                    .setImage(compact ? null : collection.tileImage.url)
+                    .setThumbnail(compact ? collection.tileImage.url : null)
+                    .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
+                    .setTimestamp(new Date(collection.latestPublishedRevision.updatedAt))
+                    .addFields({ name: 'Changelog ↗', value: `[View](${nexusModsTrackingUrl(`https://www.nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}/changelog`, 'subscribedUser')})` })
+                }
+                break;
+                case UserEmbedType.NewImage: {
+                    embed.setDescription('Media updates have not been implemented yet.');
+                }
+                break;
+                case UserEmbedType.NewVideo: {
+                    embed.setDescription('Media updates have not been implemented yet.');
+                }
+                break;
+                default: embed.setDescription(`Unknown user embed type: ${userEmbedType}`);
+            }
         }
         break;
         default: embed.setDescription(`Unknown SubscribedItemType when building Embed: ${sub.type}`);

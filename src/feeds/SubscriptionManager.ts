@@ -3,7 +3,7 @@ import { APIEmbed, EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOption
 import { logMessage, modIdAndGameIdToModUid, modUidToGameAndModId } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
-import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate } from '../types/subscriptions';
+import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
 import { deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
 
 export class SubscriptionManger {
@@ -396,6 +396,16 @@ export class SubscriptionManger {
             },
             { createdAt: { direction: 'ASC' } }
         );
+        for (const mod of newMods.nodes) {
+            const embed = await subscribedItemEmbed({...user, mod: mod}, item, guild, undefined, UserEmbedType.NewMod);
+            results.push({
+                type: SubscribedItemType.User,
+                entity:{ ...user, mod: mod },
+                date: new Date(mod.createdAt),
+                subId: item.id,
+                embed: embed.data
+            });
+        }
         const newCollections = await this.fakeUser.NexusMods.API.v2.Collections(
             {
                 userId: { value: userId.toString(), op: 'EQUALS' },
@@ -403,6 +413,16 @@ export class SubscriptionManger {
             },
             { createdAt: { direction: 'ASC' } }
         );
+        for (const collection of newCollections.nodes) {
+            const embed = await subscribedItemEmbed({...user, collection: collection}, item, guild, undefined, UserEmbedType.NewCollection);
+            results.push({
+                type: SubscribedItemType.User,
+                entity:{ ...user, collection: collection },
+                date: new Date(collection.latestPublishedRevision.updatedAt),
+                subId: item.id,
+                embed: embed.data
+            });
+        }
         // We could also check for media? But not right now.
         // Check for updated content since last check.
         const updatedMods = await this.fakeUser.NexusMods.API.v2.Mods(
@@ -413,6 +433,16 @@ export class SubscriptionManger {
             },
             { updatedAt: { direction: 'ASC' } }
         );
+        for (const mod of updatedMods.nodes) {
+            const embed = await subscribedItemEmbed({...user, mod: mod}, item, guild, undefined, UserEmbedType.UpdatedMod);
+            results.push({
+                type: SubscribedItemType.User,
+                entity:{ ...user, mod: mod },
+                date: new Date(mod.createdAt),
+                subId: item.id,
+                embed: embed.data
+            });
+        }
         const updatedCollections = await this.fakeUser.NexusMods.API.v2.Collections(
             {
                 userId: { value: userId.toString(), op: 'EQUALS' },
@@ -420,8 +450,23 @@ export class SubscriptionManger {
             },
             { updatedAt: { direction: 'ASC' } }
         );
-        // Create a post for each of the new items.
-        
+        for (const collection of updatedCollections.nodes) {
+            const embed = await subscribedItemEmbed({...user, collection: collection}, item, guild, undefined, UserEmbedType.UpdatedCollection);
+            results.push({
+                type: SubscribedItemType.User,
+                entity:{ ...user, collection: collection },
+                date: new Date(collection.latestPublishedRevision.updatedAt),
+                subId: item.id,
+                embed: embed.data
+            });
+        }
+
+        // Order the array so the newest is first and the oldest is last
+        results.sort((a,b) => a.date.getTime() - b.date.getTime());
+        // Save the last date so we know where to start next time!
+        const lastDate = results[results.length -1].date;
+        await saveLastUpdatedForSub(item.id, lastDate);
+
         return results;
     } 
 
