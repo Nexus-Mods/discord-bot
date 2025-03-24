@@ -336,7 +336,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
             const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${mod.game.id}.jpg`;
             // Try and find a Discord user for the mod uploader
             const linkedUser = await getUserByNexusModsId(mod.uploader.memberId);
-            const guildMember: GuildMember | undefined = linkedUser ? await guild.members.fetch(linkedUser?.DiscordId) : undefined;
+            const guildMember: GuildMember | undefined = linkedUser ? await guild.members.fetch(linkedUser?.DiscordId).catch(() => undefined) : undefined;
 
             embed.setTitle(mod.name)
             .setURL(nexusModsTrackingUrl(`https://www.nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subscribedGame'))
