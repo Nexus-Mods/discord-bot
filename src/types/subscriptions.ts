@@ -213,6 +213,9 @@ export class SubscribedItem {
         if (item.type === SubscribedItemType.Mod) {
             this.last_status = item.last_status;
         }
+        if (item.type === SubscribedItemType.User) {
+            this.entityid = parseInt(item.entityid);
+        }
     }
 
     public showAdult(channel: TextChannel): boolean {
@@ -457,12 +460,12 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                     embed.setColor('#2dd4bf')
                     .setAuthor(
                         {
-                            name: `<:mod:${customEmojis.mod}> ${userWithMod.name} uploaded a new mod!`,
+                            name: `${userWithMod.name} uploaded a new mod!`,
                             url: userUrl,
                             iconURL: userWithMod.avatar
                         }
                     )
-                    .setTitle(mod.name)
+                    .setTitle(`<:mod:${customEmojis.mod}> ${mod.name.slice(0, 225)}`)
                     .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subsribedUser')})`)
                     .setImage(compact ? null : mod.pictureUrl)
                     .setThumbnail(compact ? mod.pictureUrl : null)
@@ -478,12 +481,12 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                     embed.setColor('#2dd4bf')
                     .setAuthor(
                         {
-                            name: `<:mod:${customEmojis.mod}> ${userWithMod.name} updated a mod!`,
+                            name: `${userWithMod.name} updated a mod!`,
                             url: userUrl,
                             iconURL: userWithMod.avatar
                         }
                     )
-                    .setTitle(mod.name)
+                    .setTitle(`<:mod:${customEmojis.mod}> ${mod.name.slice(0, 225)}`)
                     .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subsribedUser')})`)
                     .setImage(compact ? null : mod.pictureUrl)
                     .setThumbnail(compact ? mod.pictureUrl : null)
@@ -498,13 +501,13 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                     embed.setColor('#2dd4bf')
                     .setAuthor(
                         {
-                            name: `<:collection:${customEmojis.collection}> ${userWithCollection.name} shared a new collection!`,
+                            name: `${userWithCollection.name} shared a new collection!`,
                             url: userUrl,
                             iconURL: userWithCollection.avatar
                         }
                     )
-                    .setTitle(collection.name)
-                    .setDescription(collection.summary ?? '_No Summary_')
+                    .setTitle(`<:collection:${customEmojis.collection}>  ${collection.name}`)
+                    .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subsribedUser')})`)
                     .setImage(compact ? null : collection.tileImage.url)
                     .setThumbnail(compact ? collection.tileImage.url : null)
                     .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
@@ -517,13 +520,13 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                     embed.setColor('#2dd4bf')
                     .setAuthor(
                         {
-                            name: `<:collection:${customEmojis.collection}> ${userWithCollection.name} updated a collection!`,
+                            name: `${userWithCollection.name} updated a collection!`,
                             url: userUrl,
                             iconURL: userWithCollection.avatar
                         }
                     )
-                    .setTitle(collection.name)
-                    .setDescription(collection.summary ?? '_No Summary_')
+                    .setTitle(`<:collection:${customEmojis.collection}>  ${collection.name}`)
+                    .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subsribedUser')})`)
                     .setImage(compact ? null : collection.tileImage.url)
                     .setThumbnail(compact ? collection.tileImage.url : null)
                     .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})

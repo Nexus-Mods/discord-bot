@@ -32,6 +32,8 @@ query DiscordBotSearchCollections(
       overallRatingCount
       endorsements
       totalDownloads
+      firstPublishedAt
+      updatedAt
       draftRevisionNumber
       latestPublishedRevision {
         adultContent
@@ -66,7 +68,7 @@ export async function collections(headers: Record<string,string>, filters: GQLTy
     const variables: IQueryVariables = {
         filters,
         sort,
-        count: 5
+        count: 20
     };
 
     // Only specify adult content if we explictly don't want to see it.

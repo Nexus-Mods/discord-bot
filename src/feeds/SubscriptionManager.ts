@@ -4,7 +4,7 @@ import { logMessage, modIdAndGameIdToModUid, modUidToGameAndModId } from '../api
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
-import { deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel } from '../api/subscriptions';
+import { deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -387,6 +387,7 @@ export class SubscriptionManger {
                 subId: item.id,
                 embed: usernameEmbed.data,
             })
+            await updateSubscription(item.id, item.parent, {...item, title: user.name});
         }
         // See if they have any new content since the last check
         const newMods = await this.fakeUser.NexusMods.API.v2.Mods(
@@ -418,7 +419,7 @@ export class SubscriptionManger {
             results.push({
                 type: SubscribedItemType.User,
                 entity:{ ...user, collection: collection },
-                date: new Date(collection.latestPublishedRevision.updatedAt),
+                date: new Date(collection.firstPublishedAt),
                 subId: item.id,
                 embed: embed.data
             });
@@ -434,11 +435,13 @@ export class SubscriptionManger {
             { updatedAt: { direction: 'ASC' } }
         );
         for (const mod of updatedMods.nodes) {
-            const embed = await subscribedItemEmbed({...user, mod: mod}, item, guild, undefined, UserEmbedType.UpdatedMod);
+            const modFiles = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
+            const modWithFile = { ...mod, file: modFiles.filter(f => Math.floor(f.date *1000) > last_update.getTime()) }
+            const embed = await subscribedItemEmbed({...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
             results.push({
                 type: SubscribedItemType.User,
                 entity:{ ...user, mod: mod },
-                date: new Date(mod.createdAt),
+                date: new Date(mod.updatedAt),
                 subId: item.id,
                 embed: embed.data
             });
@@ -455,7 +458,7 @@ export class SubscriptionManger {
             results.push({
                 type: SubscribedItemType.User,
                 entity:{ ...user, collection: collection },
-                date: new Date(collection.latestPublishedRevision.updatedAt),
+                date: new Date(collection.updatedAt),
                 subId: item.id,
                 embed: embed.data
             });
@@ -465,6 +468,7 @@ export class SubscriptionManger {
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
+        logMessage('Last date', { title: item.title, lastDate, last_update, result: results[results.length -1].embed.author?.name })
         await saveLastUpdatedForSub(item.id, lastDate);
 
         return results;

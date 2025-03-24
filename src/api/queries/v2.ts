@@ -28,6 +28,7 @@ export interface ICollection {
     totalDownloads: number;
     draftRevisionNumber: number;
     lastPublishedAt: string;
+    firstPublishedAt: string;
     latestPublishedRevision: {
         fileSize: number;
         modCount: number;
@@ -50,7 +51,7 @@ export interface ICollection {
         altText: string;
         thumbnailUrl: string;
     }
-    updatedAt: Date;
+    updatedAt: string;
 }
 
 export interface ICollectionRevision {
