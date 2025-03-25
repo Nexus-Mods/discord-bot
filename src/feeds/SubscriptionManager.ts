@@ -407,25 +407,6 @@ export class SubscriptionManger {
                 embed: embed.data
             });
         }
-        const newCollections = await this.fakeUser.NexusMods.API.v2.Collections(
-            {
-                userId: { value: userId.toString(), op: 'EQUALS' },
-                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
-            },
-            { createdAt: { direction: 'ASC' } }
-        );
-        for (const collection of newCollections.nodes) {
-            const embed = await subscribedItemEmbed({...user, collection: collection}, item, guild, undefined, UserEmbedType.NewCollection);
-            results.push({
-                type: SubscribedItemType.User,
-                entity:{ ...user, collection: collection },
-                date: new Date(collection.firstPublishedAt),
-                subId: item.id,
-                embed: embed.data
-            });
-        }
-        // We could also check for media? But not right now.
-        // Check for updated content since last check.
         const updatedMods = await this.fakeUser.NexusMods.API.v2.Mods(
             {
                 uploaderId: { value: userId.toString(), op: 'EQUALS' },
@@ -446,23 +427,43 @@ export class SubscriptionManger {
                 embed: embed.data
             });
         }
-        const updatedCollections = await this.fakeUser.NexusMods.API.v2.Collections(
-            {
-                userId: { value: userId.toString(), op: 'EQUALS' },
-                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
-            },
-            { updatedAt: { direction: 'ASC' } }
-        );
-        for (const collection of updatedCollections.nodes) {
-            const embed = await subscribedItemEmbed({...user, collection: collection}, item, guild, undefined, UserEmbedType.UpdatedCollection);
-            results.push({
-                type: SubscribedItemType.User,
-                entity:{ ...user, collection: collection },
-                date: new Date(collection.updatedAt),
-                subId: item.id,
-                embed: embed.data
-            });
-        }
+        // // COLLECTIONS FILTERING BY DATE IS BROKEN ON THE V2 API 
+        // const newCollections = await this.fakeUser.NexusMods.API.v2.Collections(
+        //     {
+        //         userId: { value: userId.toString(), op: 'EQUALS' },
+        //         createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+        //     },
+        //     { createdAt: { direction: 'ASC' } }
+        // );
+        // for (const collection of newCollections.nodes) {
+        //     const embed = await subscribedItemEmbed({...user, collection: collection}, item, guild, undefined, UserEmbedType.NewCollection);
+        //     results.push({
+        //         type: SubscribedItemType.User,
+        //         entity:{ ...user, collection: collection },
+        //         date: new Date(collection.firstPublishedAt),
+        //         subId: item.id,
+        //         embed: embed.data
+        //     });
+        // }       
+        // const updatedCollections = await this.fakeUser.NexusMods.API.v2.Collections(
+        //     {
+        //         userId: { value: userId.toString(), op: 'EQUALS' },
+        //         updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+        //     },
+        //     { updatedAt: { direction: 'ASC' } }
+        // );
+        // for (const collection of updatedCollections.nodes) {
+        //     const embed = await subscribedItemEmbed({...user, collection: collection}, item, guild, undefined, UserEmbedType.UpdatedCollection);
+        //     results.push({
+        //         type: SubscribedItemType.User,
+        //         entity:{ ...user, collection: collection },
+        //         date: new Date(collection.updatedAt),
+        //         subId: item.id,
+        //         embed: embed.data
+        //     });
+        // }
+        // // END COLLECTIONS SECTION
+        // We could also check for media? But not right now.
 
         // Order the array so the newest is first and the oldest is last
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
