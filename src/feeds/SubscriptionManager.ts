@@ -416,7 +416,7 @@ export class SubscriptionManger {
             { updatedAt: { direction: 'ASC' } }
         );
         for (const mod of updatedMods.nodes) {
-            const modFiles = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
+            const modFiles: IModFile[] = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
             const modWithFile = { ...mod, file: modFiles.filter(f => Math.floor(f.date *1000) > last_update.getTime()) }
             const embed = await subscribedItemEmbed({...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
             results.push({

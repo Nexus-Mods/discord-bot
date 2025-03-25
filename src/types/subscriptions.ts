@@ -351,19 +351,10 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                 embed.setColor(0x57a5cc)
                 .setAuthor({ name: `Mod Updated (${mod.game.name})`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
                 .setTimestamp(new Date(lastestFile ? lastestFile.date * 1000 : mod.updatedAt))
-                if (lastestFile) {
-                    let changelog = '';
-                    // If the changelog is bigger than a field size, add an ellipse and exit
-                    for (const t of lastestFile.changelogText) {
-                        const temp = `${changelog}- ${t}\n`;
-                        if (temp.length > 1020) {
-                            changelog = `${changelog}...`;
-                            break;
-                        }
-                        else changelog = temp;
-                    }
-                    if (changelog.length) embed.addFields({ name: `Changelog (v${lastestFile.version})`, value: changelog})
-                }
+                // CHANGELOG FEATURE BROKEN ON THE API
+                // if (lastestFile && lastestFile.changelogText.length) {
+                //     embed.addFields({ name: `Changelog (v${lastestFile.version})`, value: trimModChangelog(lastestFile.changelogText, 1000)});
+                // }
             }
             else {
                 embed.setColor(0xda8e35)
@@ -390,7 +381,8 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         case SubscribedItemType.Mod: {
             const modWithFiles: IModWithFiles = entity as IModWithFiles;
             const file: IModFile = modWithFiles.files![0];
-            let changelog = file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
+            // CHANGELOG FEATURE BROKEN ON THE API
+            let changelog //= file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
             embed.setColor('#2dd4bf')
             .setAuthor({ 
                 name: modWithFiles.uploader.name, 
@@ -477,7 +469,8 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                     const userWithMod = entity as UserEntityType<UserEmbedType.UpdatedMod>;
                     const mod = userWithMod.mod;
                     const file = mod.files?.length ? mod.files[0] : undefined;
-                    const changelog = file?.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
+                    // CHANGELOG FEATURE BROKEN ON THE API
+                    const changelog: string | undefined = ''// file?.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
                     embed.setColor('#2dd4bf')
                     .setAuthor(
                         {
