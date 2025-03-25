@@ -658,6 +658,9 @@ function trimCollectionChangelog(markdown: string, maxLength: number = 2000): st
     // Extract only the text inside <summary> tags within <details> sections
     modifiedMarkdown = modifiedMarkdown.replace(/<details><summary>(.*?)<\/summary>[\s\S]*?<\/details>/g, '$1 (View full changelog to expand)');
 
+    // Replace these weird HTML encoded spaces
+    modifiedMarkdown = modifiedMarkdown.replace('&#x20;', '');
+
     // break into lines, then reduce to the max length 
     const newLines = modifiedMarkdown.split('\n');
     let trimmedMarkdown = '';
