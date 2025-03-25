@@ -465,6 +465,8 @@ export class SubscriptionManger {
         // // END COLLECTIONS SECTION
         // We could also check for media? But not right now.
 
+        if (!results.length) return results;
+
         // Order the array so the newest is first and the oldest is last
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
