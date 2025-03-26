@@ -23,7 +23,10 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     await interaction.deferReply();
 
     const feeds = client.gameFeeds?.getAllFeeds();
-    const migratable = feeds?.filter(f => f.show_updates === false) ?? [];
+    let migratable = feeds?.filter(f => f.show_updates === false) ?? [];
+
+    logMessage('Migration cancelled. Review this function!')
+    migratable = [];
 
     logMessage('Migrating feeds', migratable.length);
 

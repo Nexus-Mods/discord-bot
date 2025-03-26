@@ -74,7 +74,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     switch (interactionSubCommand) {
         case 'about': return aboutGameFeeds(client, interaction, userData);
-        case 'create': return createFeed(client, interaction, userData);
+        case 'create': return createGameFeedDisabled(client, interaction, userData);
         case 'list' : return listFeeds(client, interaction, userData);
         case 'manage': return manageFeed(client, interaction, userData);
         default: await interaction.editReply('Unknown SubCommand!');
@@ -102,6 +102,10 @@ async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInter
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
 
     interaction.editReply({ content: null, embeds: [aboutEmbed] });
+}
+
+async function createGameFeedDisabled(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<any> {
+    return rejectMessage('The game feeds feature is being deprecated, please use `/track` for new feeds.', interaction);
 }
 
 async function createFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<any> {
