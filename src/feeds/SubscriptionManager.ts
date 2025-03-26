@@ -89,12 +89,12 @@ export class SubscriptionManger {
             logMessage('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id });
             return;
         }
-        else logMessage(`Processing subscribed items for ${discordChannel.name} in ${guild.name}`)
         // Grab the WH Client
         const webHookClient = channel.webHookClient;
         // Grab the subscribed items
         const items = await channel.getSubscribedItems();
         if (!items.length) return;
+        logMessage(`Processing ${items.length} subscribed items for ${discordChannel.name} in ${guild.name}`)
         // Get the postable info for each subscribed item
         const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
         for (const item of items) {
@@ -113,7 +113,7 @@ export class SubscriptionManger {
                     break;
                     default: throw new Error('Unregcognised SubscribedItemType');
                 }
-                logMessage(`Returning ${updates.length} updates for ${item.title} (${item.type})`);
+                // logMessage(`Returning ${updates.length} updates for ${item.title} (${item.type})`);
             }
             catch(err) {
                 logMessage('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
@@ -151,7 +151,7 @@ export class SubscriptionManger {
         // Send the updates to the webhook!
         logMessage(`Posting ${blocks.length} webhook updates to ${discordChannel.name} in ${guild.name}`);
         for (const block of blocks) {
-            logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
+            // logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
                 await webHookClient.send(block);
             }
@@ -248,7 +248,7 @@ export class SubscriptionManger {
     }
 
     private async getModUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Mod>[]> {
-        logMessage('Processing mod updates', item.title);
+        // logMessage('Processing mod updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Mod>[] = [];
         const modUid: string = item.entityid as string;
         // const ids = modUidToGameAndModId(modUid); // We can convert the UID to mod/game IDs, but we need to domain to look it up on the API.
@@ -282,7 +282,7 @@ export class SubscriptionManger {
             return ![ModFileCategory.Archived, ModFileCategory.Removed].includes(f.category)
         })
         .slice(0,5); // Max of 5 due to embed limits
-        logMessage('New files found', newFiles.length);
+        // logMessage('New files found', newFiles.length);
         if (!newFiles.length) return results;
         // Map the newly uploaded files
         for (const file of newFiles) {
@@ -306,7 +306,7 @@ export class SubscriptionManger {
     } 
 
     private async getCollectionUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Collection>[]> {
-        logMessage('Processing collection updates', item.title);
+        // logMessage('Processing collection updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Collection>[] = [];
         const {gameDomain, slug} = item.collectionIds!;
         const last_update = item.last_update;
@@ -331,7 +331,7 @@ export class SubscriptionManger {
         const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
         if (collectionUpdatedAt.getTime() <= last_update.getTime()) {
             // Collection hasn't been updated since we last checked.
-            logMessage('No updates found', item.title);
+            // logMessage('No updates found', item.title);
             return results;
         }
         const withRevisions = await this.fakeUser.NexusMods.API.v2.CollectionRevisions(gameDomain, slug);
@@ -364,7 +364,7 @@ export class SubscriptionManger {
     } 
 
     private async getUserUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.User>[]> {
-        logMessage('Processing user updates', item.title);
+        // logMessage('Processing user updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.User>[] = [];
         const userId: number = item.entityid as number;
         const last_update = item.last_update;
@@ -471,7 +471,7 @@ export class SubscriptionManger {
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
-        logMessage('Last date', { title: item.title, lastDate, last_update, result: results[results.length -1].embed.author?.name })
+        // logMessage('Last date', { title: item.title, lastDate, last_update, result: results[results.length -1].embed.author?.name })
         await saveLastUpdatedForSub(item.id, lastDate);
 
         return results;
@@ -496,7 +496,7 @@ export class SubscriptionManger {
                 { createdAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain);
-            logMessage(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain}`)
+            if (mods.totalCount > 0) logMessage(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain}`)
         });
         promises.push(...newGamePromises);
 
@@ -514,7 +514,7 @@ export class SubscriptionManger {
                 { updatedAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain, true);
-            logMessage(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain}`)
+            if (mods.totalCount > 0) logMessage(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain}`)
         });
         promises.push(...updatedGamePromises);
 
