@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { logMessage } from "../api/util";
+import { KnownDiscordServers, logMessage } from "../api/util";
 import { createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile } from "../api/bot-db";
 import { IAutomodRule, IBadFileRule } from "../types/util";
 
@@ -106,8 +106,8 @@ const discordInteraction: DiscordInteraction = {
     ) as SlashCommandBuilder,
     public: false,
     guilds: [
-        '581095546291355649',
-        '268004475510325248',
+        KnownDiscordServers.BotDemo,
+        KnownDiscordServers.Moderator,
 
     ],
     action

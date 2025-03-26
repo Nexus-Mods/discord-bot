@@ -13,7 +13,7 @@ import {
 import { TipCache } from "../types/util";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { addTip, getAllTips, editTip } from '../api/bot-db';
-import { logMessage } from "../api/util";
+import { KnownDiscordServers, logMessage } from "../api/util";
 import { deleteTip, ITip, setApprovedTip } from "../api/tips";
 
 const discordInteraction: DiscordInteraction = {
@@ -41,8 +41,8 @@ const discordInteraction: DiscordInteraction = {
     ) as SlashCommandBuilder,
     public: false,
     guilds: [
-        '581095546291355649',
-        '1134149061080002713'
+        KnownDiscordServers.BotDemo,
+        KnownDiscordServers.App
     ],
     action,
     autocomplete

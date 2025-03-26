@@ -1,7 +1,7 @@
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { CommandInteraction, Snowflake, EmbedBuilder, Client, CommandInteractionOption, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { logMessage } from '../api/util';
+import { KnownDiscordServers, logMessage } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
@@ -16,7 +16,7 @@ const discordInteraction: DiscordInteraction = {
     .setDMPermission(true) as SlashCommandBuilder,
     public: true,
     guilds: [
-        '581095546291355649'
+        KnownDiscordServers.BotDemo
     ],
     action
 }

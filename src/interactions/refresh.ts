@@ -2,7 +2,7 @@ import { DiscordInteraction } from "../types/DiscordTypes";
 import { NexusUser } from "../types/users";
 import { getUserByDiscordId } from '../api/bot-db';
 import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { logMessage } from '../api/util';
+import { KnownDiscordServers, logMessage } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const cooldown: number = (1*60*1000);
@@ -14,7 +14,7 @@ const discordInteraction: DiscordInteraction = {
     .setDMPermission(true),
     public: true,
     guilds: [
-        '581095546291355649'
+        KnownDiscordServers.BotDemo
     ],
     action
 }

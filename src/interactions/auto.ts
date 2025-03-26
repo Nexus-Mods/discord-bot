@@ -1,7 +1,7 @@
 import { AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
-import { logMessage } from "../api/util";
+import { KnownDiscordServers, logMessage } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { autocompleteGameName } from '../api/util';
 
@@ -19,8 +19,8 @@ const discordInteraction: DiscordInteraction = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) as SlashCommandBuilder,
     public: false,
     guilds: [
-        '581095546291355649',
-        '268004475510325248',
+        KnownDiscordServers.BotDemo,
+        KnownDiscordServers.Moderator,
 
     ],
     action,

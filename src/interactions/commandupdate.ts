@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, Client, CommandInteraction, ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
+import { KnownDiscordServers } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -9,8 +10,8 @@ const discordInteraction: DiscordInteraction = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     public: false,
     guilds: [
-        '581095546291355649',
-        '215154001799413770'
+        KnownDiscordServers.BotDemo,
+        KnownDiscordServers.Main
     ],
     action
 }

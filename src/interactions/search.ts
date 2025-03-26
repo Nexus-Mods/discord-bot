@@ -6,9 +6,9 @@ import {
 } from "discord.js";
 import { customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
-import { getUserByDiscordId, getServer, editTip } from '../api/bot-db';
+import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
-import { logMessage, nexusModsTrackingUrl } from "../api/util";
+import { KnownDiscordServers, logMessage, nexusModsTrackingUrl } from "../api/util";
 import { ICollectionsFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
@@ -114,7 +114,7 @@ const discordInteraction: DiscordInteraction = {
     ) as SlashCommandBuilder,
     public: true,
     guilds: [
-        '581095546291355649'
+        KnownDiscordServers.BotDemo
     ],
     action
 }

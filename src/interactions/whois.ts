@@ -2,7 +2,7 @@ import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
 import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags } from "discord.js";
-import { logMessage } from "../api/util";
+import { KnownDiscordServers, logMessage } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 
@@ -28,7 +28,7 @@ const discordInteraction: DiscordInteraction = {
     .setDMPermission(false) as SlashCommandBuilder,
     public: true,
     guilds: [
-        '581095546291355649'
+        KnownDiscordServers.BotDemo
     ],
     action
 }

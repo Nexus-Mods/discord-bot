@@ -130,3 +130,11 @@ export function modIdAndGameIdToModUid(gameId: number, modId: number): string {
     // Perform the left shift operation and combine the values
     return ((bigGameId << BigInt(32)) + bigModId).toString();
 }
+
+export enum KnownDiscordServers {
+    Main = '215154001799413770',
+    BotDemo = '581095546291355649',
+    Moderator = '268004475510325248',
+    Author = '232168805038686208',
+    App = '1134149061080002713'
+}

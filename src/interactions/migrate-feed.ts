@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder, WebhookClient } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { createSubscribedChannel, createSubscription, getSubscribedChannel } from "../api/subscriptions";
-import { logMessage } from "../api/util";
+import { KnownDiscordServers, logMessage } from "../api/util";
 import { SubscribedItemType } from "../types/subscriptions";
 import { deleteGameFeed } from "../api/game_feeds";
 
@@ -12,9 +12,8 @@ const discordInteraction: DiscordInteraction = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) as SlashCommandBuilder,
     public: false,
     guilds: [
-        '581095546291355649',
-        '268004475510325248',
-
+        KnownDiscordServers.BotDemo,
+        KnownDiscordServers.Moderator
     ],
     action
 }
@@ -81,6 +80,8 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             continue;
         }
     }
+
+    return interaction.editReply('Migration done!')
     
 }
 

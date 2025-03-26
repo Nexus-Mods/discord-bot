@@ -3,6 +3,7 @@ import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 import { IStatusPageFullResponse } from "../types/util";
+import { KnownDiscordServers } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -11,8 +12,8 @@ const discordInteraction: DiscordInteraction = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     public: false,
     guilds: [
-        '581095546291355649',
-        '268004475510325248',
+        KnownDiscordServers.BotDemo,
+        KnownDiscordServers.Moderator,
 
     ],
     action

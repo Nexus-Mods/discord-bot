@@ -4,22 +4,18 @@ import {
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
-import { logMessage } from '../api/util';
+import { KnownDiscordServers, logMessage } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('link')
     .setDescription('Link your Nexus Mods account to Discord.')
-    // .addStringOption(option => 
-    //     option.setName('apikey')
-    //     .setDescription('Provide your API key for your Nexus Mods account.')
-    // )
     .setDMPermission(true)
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     public: true,
     guilds: [
-        '581095546291355649'
+        KnownDiscordServers.BotDemo
     ],
     action
 }
