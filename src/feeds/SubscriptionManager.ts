@@ -1,6 +1,6 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { APIEmbed, EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
-import { logMessage, modIdAndGameIdToModUid, modUidToGameAndModId } from '../api/util';
+import { EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';

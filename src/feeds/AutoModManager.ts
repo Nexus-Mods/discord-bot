@@ -3,7 +3,6 @@ import { getAutomodRules, getBadFiles } from "../api/automod";
 import { ISlackMessage, PublishToDiscord, PublishToSlack } from "../api/moderationWebhooks";
 import { IMod, IModFile } from "../api/queries/v2";
 import { IModResults } from "../api/queries/v2-latestmods";
-import { getUserByNexusModsId } from "../api/users";
 import { logMessage } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule, IBadFileRule } from "../types/util";
