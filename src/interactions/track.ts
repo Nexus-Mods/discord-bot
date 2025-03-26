@@ -1,6 +1,7 @@
 import { 
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    TextChannel, Collection, Snowflake, Webhook
+    TextChannel, Collection, Snowflake, Webhook,
+    PermissionFlagsBits
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, logMessage } from "../api/util";
@@ -11,7 +12,9 @@ import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('track')
-    .setDescription('Return a quick info message on a number of topics.')
+    .setDMPermission(false)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+    .setDescription('Track a game, mod, collection or user in this channel.')
     .addSubcommand(sc => 
         sc.setName('game')
         .setDescription('Track new mod uploads for a game.')
@@ -112,10 +115,8 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(false)
         )
     ) as SlashCommandBuilder,
-    public: false,
-    guilds: [
-        '581095546291355649'
-    ],
+    public: true,
+    guilds: [],
     action,
     autocomplete,
 }

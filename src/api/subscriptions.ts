@@ -73,6 +73,22 @@ async function updateSubscribedChannel(c: ISubscribedChannel, date: Date): Promi
     }
 }
 
+async function deleteSubscribedChannel(c: ISubscribedChannel): Promise<void> {
+    try {
+        await queryPromise<ISubscribedChannel>(
+            `DELETE FROM SubscribedChannels
+                WHERE id=$2 RETURNING *`,
+            [c.id]
+        );
+        return;
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to delete subscribed channel.\n${error.message}`;
+        throw error;
+    }
+}
+
 // SUBSCRIBED ITEM HANDLERS
 
 async function getAllSubscriptions(): Promise<SubscribedItem[]> {
@@ -207,7 +223,7 @@ async function ensureSubscriptionsDB() {
     try {
         await queryPromise(
             `CREATE TABLE IF NOT EXISTS SubscribedChannels (
-                id bigint PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 9223372036854775807 CACHE 1 ),           -- ID of the channel subscription
+                id integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 9223372036854775807 CACHE 1 ),           -- ID of the channel subscription
                 guild_id VARCHAR(255) NOT NULL,        -- Guild ID (Snowflake as a string)
                 channel_id VARCHAR(255) NOT NULL,      -- Channel ID (Snowflake as a string)
                 webhook_id VARCHAR(255) NOT NULL,      -- Webhook ID (Snowflake as a string)
@@ -219,7 +235,7 @@ async function ensureSubscriptionsDB() {
         )
         await queryPromise(
             `CREATE TABLE IF NOT EXISTS SubscribedItems (
-                id bigint PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 9223372036854775807 CACHE 1 ),           -- ID of the item
+                id integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 9223372036854775807 CACHE 1 ),           -- ID of the item
                 parent INT NOT NULL,                   -- Parent ID
                 title VARCHAR(255) NOT NULL,           -- Title of the item
                 entityid VARCHAR(255) NOT NULL,        -- Entity ID (can be a string or number, storing as string)
@@ -254,5 +270,5 @@ export {
     ensureSubscriptionsDB, 
     getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, getSubscriptionsByChannel, createSubscription, updateSubscription, saveLastUpdatedForSub, deleteSubscription,
-    setDateForAllSubsInChannel
+    setDateForAllSubsInChannel, deleteSubscribedChannel
 };

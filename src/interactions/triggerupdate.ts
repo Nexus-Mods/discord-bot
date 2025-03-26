@@ -1,12 +1,7 @@
-import { 
-    CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    TextChannel, Collection, Snowflake, Webhook
-} from "discord.js";
+import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, logMessage } from "../api/util";
-import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions";
+import { logMessage } from "../api/util";
 import { getSubscribedChannel, setDateForAllSubsInChannel, updateSubscribedChannel } from "../api/subscriptions";
-import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 
 const timezones = [
     { name: 'UTC, GMT, Europe/London', value: '+00:00' },
@@ -27,6 +22,7 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('trigger-update')
     .setDescription('Return a quick info message on a number of topics.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .setDMPermission(false)
     .addStringOption(o =>
         o.setName('date')
@@ -48,10 +44,8 @@ const discordInteraction: DiscordInteraction = {
         .setRequired(false)
         .setChoices(...timezones)
     ) as SlashCommandBuilder,
-    public: false,
-    guilds: [
-        '581095546291355649'
-    ],
+    public: true,
+    guilds: [],
     action,
 }
 
@@ -82,18 +76,21 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         }
     }
     // Update all subs to use this date.
-    logMessage('Date give is', timeToUse);
 
     try {
+        const epoch: number = Math.floor(timeToUse.getTime()/1000);
         let channel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
         if (!channel) return interaction.editReply('No subscribed items in this channel.');
         const update = await setDateForAllSubsInChannel(timeToUse, interaction.guildId!, interaction.channelId);
         channel = await updateSubscribedChannel(channel, timeToUse);
-        await interaction.editReply(`Updates for all tracked items since <t:${Math.floor(timeToUse.getTime()/1000)}:t> will be posted shortly.\n${update.map(i => i.title).join('\n')}`);
+        logMessage('Subsription update triggered', { guild: interaction.guild?.name, channel: (interaction.channel as GuildChannel)?.name, timeToUse});
+        await interaction.editReply(`Updates for all tracked items since <t:${epoch}:f> will be posted shortly.\n${update.map(i => i.title).join('\n')}`);
+        await channel.webHookClient.send(`-# Update triggered by ${interaction.user.toString()} for updates since <t:${epoch}:f> for ${update.length} tracked item(s).`);
         await client.subscriptions?.getUpdatesForChannel(channel);
     }
     catch(err) {
-        return interaction.editReply('An error occurred updating subscriptions');
+        logMessage('Error updating subsriptions', err, true);
+        return interaction.editReply('An error occurred updating subscriptions: '+(err as Error).message);
     }
 }
 
