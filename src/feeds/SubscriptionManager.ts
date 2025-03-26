@@ -94,7 +94,7 @@ export class SubscriptionManger {
         // Grab the subscribed items
         const items = await channel.getSubscribedItems();
         if (!items.length) return;
-        logMessage(`Processing ${items.length} subscribed items for ${discordChannel.name} in ${guild.name}`)
+        // logMessage(`Processing ${items.length} subscribed items for ${discordChannel.name} in ${guild.name}`)
         // Get the postable info for each subscribed item
         const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
         for (const item of items) {
@@ -129,7 +129,7 @@ export class SubscriptionManger {
 
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
-            logMessage(`No updates for ${discordChannel.name} in ${guild.name}`);
+            // logMessage(`No updates for ${discordChannel.name} in ${guild.name}`);
             return;
         }
 
