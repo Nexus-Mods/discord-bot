@@ -71,12 +71,12 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             logMessage('Migration successful', { feed, newSub });
             await whClient.send(`-# The game feed for ${newSub.title} has been successfully migrated to a tracked game. Use \`/track\` and \`/untrack\` to manage these feeds in future.`);
             await deleteGameFeed(feed._id);
-            await interaction.followUp(`Migration complete! `)
+            await interaction.followUp(`Migration complete! Feed ${feed._id} for ${feed.domain} in ${guild.name}`)
             continue;
         }
         catch(err) {
             logMessage('Failed to migrate game feed', err, true);
-            await interaction.followUp(`Migration failed!`);
+            await interaction.followUp(`Migration failed! Feed ${feed._id} for ${feed.domain} in ${guild.name}`);
             continue;
         }
     }
