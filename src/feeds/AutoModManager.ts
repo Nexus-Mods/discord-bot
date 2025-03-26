@@ -1,7 +1,7 @@
 import { APIEmbed, EmbedBuilder, RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
 import { getAutomodRules, getBadFiles } from "../api/automod";
 import { ISlackMessage, PublishToDiscord, PublishToSlack } from "../api/moderationWebhooks";
-import { IMod } from "../api/queries/v2";
+import { IMod, IModFile } from "../api/queries/v2";
 import { IModResults } from "../api/queries/v2-latestmods";
 import { getUserByNexusModsId } from "../api/users";
 import { logMessage } from "../api/util";
@@ -131,11 +131,9 @@ export class AutoModManager {
             else logMessage(`Automod - Checking ${modsToCheck.length} new and updated mods.`)
             this.setLastCheck(newMods.nodes[0]?.createdAt ?? updatedMods.nodes[0].updatedAt!)
 
-            const user = await getUserByNexusModsId(31179975) ?? dummyUser;
-
             let results: IModWithFlags[] = []
             for (const mod of modsToCheck) {
-                results.push(await analyseMod(mod, this.AutoModRules, this.BadFiles, user))
+                results.push(await analyseMod(mod, this.AutoModRules, this.BadFiles, dummyUser))
             }
             this.addToLastReports(results);
             // Add the new uploader flagged mods
@@ -168,22 +166,22 @@ export class AutoModManager {
         }
     }
 
-    public async checkSingleMod(gameDomain: string, modId: number) {
-        // NOT YET IN USE!
-        const user: DiscordBotUser | undefined = await getUserByNexusModsId(31179975);
-        if (!user) throw new Error("User not found for automod");
-        await this.getRules();
-        const modInfo = await user.NexusMods.API.v2.ModsByModId({gameDomain, modId});
-        const mod = modInfo[0];
-        if (!mod) throw new Error('Mod not found')
-        logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
-        const analysis = await analyseMod(mod, this.AutoModRules, this.BadFiles, user);
-        if (analysis.flags.high.length) {
-            await PublishToDiscord(flagsToDiscordEmbeds([analysis]));
-            await PublishToSlack(flagsToSlackMessage([analysis]))
-        }
-        else logMessage('No flags to report', analysis);
-    }
+    // public async checkSingleMod(gameDomain: string, modId: number) {
+    //     // NOT YET IN USE!
+    //     const user: DiscordBotUser | undefined = await getUserByNexusModsId(31179975);
+    //     if (!user) throw new Error("User not found for automod");
+    //     await this.getRules();
+    //     const modInfo = await user.NexusMods.API.v2.ModsByModId({gameDomain, modId});
+    //     const mod = modInfo[0];
+    //     if (!mod) throw new Error('Mod not found')
+    //     logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
+    //     const analysis = await analyseMod(mod, this.AutoModRules, this.BadFiles, user);
+    //     if (analysis.flags.high.length) {
+    //         await PublishToDiscord(flagsToDiscordEmbeds([analysis]));
+    //         await PublishToSlack(flagsToSlackMessage([analysis]))
+    //     }
+    //     else logMessage('No flags to report', analysis);
+    // }
 
 
 }
@@ -313,7 +311,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
         if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
     }
     catch(err) {
-        if ((err as any).code === 401) logMessage(`Permissions error getting content preview for ${mod.name} for ${mod.game?.name}`, {}, true)
+        if ((err as any).code === 401) logMessage(`Permissions error getting content preview for ${mod.name} for ${mod.game?.name}`, undefined, true)
         else logMessage(`Failed to check content preview for ${mod.name} for ${mod.game?.name}`, err, true);
     }
 
@@ -399,14 +397,16 @@ const nonPlayableExtensions: string[] = [
 
 async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFiles: IBadFileRule[]): Promise<IModWithFlags> {
     const flags: { high: string[], low: string[] } = { high: [], low: [] };
-    const modFiles = await user.NexusMods.API.v1.ModFiles(mod.game!.domainName!, mod.modId!);
-    const latestFile = modFiles.files.sort((a, b) => a.uploaded_timestamp > b.uploaded_timestamp ? 1 : -1)[0];
+    // const modFiles = await user.NexusMods.API.v1.ModFiles(mod.game!.domainName!, mod.modId!);
+    const modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
+    const latestFile = modFiles.sort((a, b) => a.date - b.date)[0];
+    const previewUrl = getContentPreviewLink(mod.game!.id, mod.modId!, latestFile).toString();
     logMessage(`Checking file preview for ${latestFile.name} on ${mod.name} for ${mod.game?.name}`);
 
     // Check the content preview
     try {
         const request: AxiosResponse<IPreviewDirectory, any> = await axios({
-            url: latestFile.content_preview_link,
+            url: previewUrl,
             transformResponse: (res) => JSON.parse(res),
             validateStatus: () => true,
         });
@@ -442,6 +442,11 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFil
 
     
     return { mod, flags };
+}
+
+function getContentPreviewLink(gameId: number, modId: number, file: IModFile): URL {
+    // e.g. https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/2295/1221/Share%20Modlist%20Information-1221-1-0-1-1741637795.7z.json    
+    return new URL(`https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/${gameId}/${modId}/${encodeURI(file.uri)}.json`);
 }
 
 function flattenDirectory(input: IPreviewDirectory): string[] {

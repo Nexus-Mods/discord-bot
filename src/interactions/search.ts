@@ -308,7 +308,6 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
         if (!(interaction.channel as TextChannel)?.nsfw) modsFilter.adultContent = { value: false, op: 'EQUALS' };
         
         const search: IModResults = await user.NexusMods.API.v2.Mods(modsFilter);
-        // const search: NexusSearchResult = await user.NexusMods.API.v1.ModQuickSearch(query, (interaction.channel as TextChannel)?.nsfw, gameIdFilter);
         if (!search.nodes.length) {
             // No results!
             const noResults: EmbedBuilder = new EmbedBuilder()

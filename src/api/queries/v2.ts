@@ -168,6 +168,7 @@ export class NexusGQLError extends Error {
 
 export interface IModFile {
     uid: string;
+    uri: string;
     category: ModFileCategory;
     changelogText: string[];
     date: number;

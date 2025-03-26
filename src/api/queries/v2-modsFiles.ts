@@ -15,6 +15,7 @@ const query = gql`
 query DiscordBotModFiles($modId: ID!, $gameId: ID!) {
     modFiles(modId: $modId, gameId: $gameId) {
       uid
+      uri
       fileId
       name
       version

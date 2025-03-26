@@ -24,6 +24,7 @@ query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
         game {
             domainName
             name
+            id
         }
         modId
         createdAt
