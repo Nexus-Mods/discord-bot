@@ -71,8 +71,7 @@ export class NewsFeedManager {
 
             const newsEmbed = newsPostEmbed(news[0], game?.domain_name);
 
-            // const whMessage = await webhookClient.send({ content: '-# <@&1116364961757790238> (You can toggle this role in <id:customize>)', embeds: [newsEmbed] });
-            const whMessage = await webhookClient.send({ embeds: [newsEmbed] });
+            const whMessage = await webhookClient.send({ content: '-# <@&1116364961757790238> (You can toggle this role in <id:customize>)', embeds: [newsEmbed] });
 
             const guild = await this.client.guilds.fetch(webhook_guild);
             const channel = await guild.channels.fetch(webhook_channel);
