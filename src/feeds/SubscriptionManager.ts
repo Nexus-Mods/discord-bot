@@ -83,10 +83,10 @@ export class SubscriptionManger {
 
     public async getUpdatesForChannel(channel: SubscribedChannel) {
         // Verify the channel exists
-        const guild = await this.client.guilds.fetch(channel.guild_id)
-        const discordChannel: TextChannel | null = await guild.channels.fetch(channel.channel_id) as TextChannel;
-        if (!guild || !discordChannel) {
-            logMessage('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id });
+        const guild = await this.client.guilds.fetch(channel.guild_id).catch(() => null);
+        const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
+        if (guild === null || discordChannel === null) {
+            logMessage('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id, subChannelId: channel.id }, true);
             return;
         }
         // Grab the WH Client
