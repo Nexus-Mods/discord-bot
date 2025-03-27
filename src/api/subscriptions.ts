@@ -68,7 +68,7 @@ async function updateSubscribedChannel(c: ISubscribedChannel, date: Date): Promi
     }
     catch(err) {
         const error: Error = (err as Error);
-        error.message = `Failed to create subscribed channel.\n${error.message}`;
+        error.message = `Failed to update subscribed channel.\n${error.message}`;
         throw error;
     }
 }

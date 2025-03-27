@@ -162,7 +162,7 @@ export class SubscriptionManger {
                     .catch(() => null);
                     // Delete the channel and all associated tracked items.
                     await deleteSubscribedChannel(channel);
-                    break;
+                    throw Error('Webhook no longer exists');
                 }
                 logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) }, true);
             }
