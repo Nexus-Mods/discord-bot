@@ -1,10 +1,10 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { DiscordAPIError, EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
 import { logMessage } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
-import { deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
+import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -156,7 +156,15 @@ export class SubscriptionManger {
                 await webHookClient.send(block);
             }
             catch(err) {
-                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) }, true); 
+                if ((err as DiscordAPIError).message === 'Unknown Webhook') {
+                    // The webhook has been deleted
+                    await discordChannel.send('-# The webhook for this channel is no longer available. No futher updates will be posted. Please use `/track` to set up tracking again')
+                    .catch(() => null);
+                    // Delete the channel and all associated tracked items.
+                    await deleteSubscribedChannel(channel);
+                    break;
+                }
+                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) }, true);
             }
         }
 

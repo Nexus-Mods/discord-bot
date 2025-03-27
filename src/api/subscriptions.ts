@@ -76,8 +76,10 @@ async function updateSubscribedChannel(c: ISubscribedChannel, date: Date): Promi
 async function deleteSubscribedChannel(c: ISubscribedChannel): Promise<void> {
     try {
         await queryPromise<ISubscribedChannel>(
-            `DELETE FROM SubscribedChannels
-                WHERE id=$1 RETURNING *`,
+            `WITH deleted AS (
+                DELETE FROM SubscribedChannels WHERE id=$1 RETURNING id
+            )
+            DELETE FROM SubscribedItems WHERE parent IN (SELECT id FROM deleted)`,
             [c.id]
         );
         return;
