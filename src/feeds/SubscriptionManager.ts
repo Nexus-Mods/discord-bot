@@ -87,6 +87,8 @@ export class SubscriptionManger {
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
         if (guild === null || discordChannel === null) {
             logMessage('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id, subChannelId: channel.id }, true);
+            await deleteSubscribedChannel(channel);
+            throw new Error('Discord channel no longer exists')
             return;
         }
         // Grab the WH Client
