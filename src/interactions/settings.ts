@@ -4,7 +4,8 @@ import {
     SlashCommandBuilder, ChatInputCommandInteraction, 
     PermissionFlagsBits, APIRole, ActionRowBuilder,
     ButtonBuilder, ButtonStyle, ComponentType,
-    ButtonInteraction
+    ButtonInteraction,
+    MessageFlags
 } from "discord.js";
 import { getUserByDiscordId, updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';
 import { BotServer } from "../types/servers";
@@ -118,7 +119,7 @@ interface IBotServerChange {
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Outcomes: update, null
     const subComGroup: SubCommandGroups | null = interaction.options.getSubcommandGroup(false) as SubCommandGroups;

@@ -115,7 +115,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Get Subgroup and group
     const commandGroup = interaction.options.getSubcommandGroup();

@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { autocompleteGameName, KnownDiscordServers, logMessage } from "../api/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
@@ -25,7 +25,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const domain: string|null = interaction.options.getString('domain'); 
     const newsInst: NewsFeedManager = await NewsFeedManager.getInstance(client);

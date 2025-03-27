@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { KnownDiscordServers, logMessage } from "../api/util";
@@ -22,7 +22,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const discordId = interaction.user.id;
     const botuser: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
     if (!botuser) return interaction.editReply({ content: 'Error! No linked user!' });

@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits } from "discord.js";
+import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits, MessageFlags } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { logMessage } from "../api/util";
 import { getSubscribedChannel, setDateForAllSubsInChannel, updateSubscribedChannel } from "../api/subscriptions";
@@ -51,7 +51,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
+    await interaction.deferReply({flags: MessageFlags.Ephemeral }).catch(err => { throw err });
     // Get any passed options
     const date = interaction.options.getString('date');
     const time = interaction.options.getString('time');

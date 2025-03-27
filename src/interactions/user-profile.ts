@@ -1,4 +1,4 @@
-import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction, ContextMenuCommandType } from "discord.js";
+import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction, ContextMenuCommandType, MessageFlags } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId, userProfileEmbed, userEmbed } from '../api/bot-db';
 import { KnownDiscordServers, logMessage } from "../api/util";
@@ -16,7 +16,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: Client, baseinteraction: CommandInteraction): Promise<any> {
     const interaction = (baseinteraction as any as ContextMenuCommandInteraction);
-    await interaction.deferReply( { ephemeral: true });
+    await interaction.deferReply( { flags: MessageFlags.Ephemeral });
     const member = interaction.targetId;
     const guildMember = await interaction.guild?.members?.fetch(member).catch(() => undefined);
     if (!guildMember) return interaction.editReply('This user is no longer a member of this server.');

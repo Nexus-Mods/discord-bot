@@ -139,7 +139,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral: true });
 
 
-    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });;
 
     const user: DiscordBotUser|undefined = await getUserByDiscordId(interaction.user.id);
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;

@@ -60,7 +60,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
-    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });;
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });;
 
     if (!interaction.memberPermissions?.toArray().includes('ManageChannels')) {
         // User is not a moderator. 

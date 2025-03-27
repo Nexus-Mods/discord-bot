@@ -1,7 +1,8 @@
 import { 
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction,
     PermissionFlagsBits, GuildChannel, APIEmbedField,ActionRowBuilder, StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder, ComponentType
+    StringSelectMenuOptionBuilder, ComponentType,
+    MessageFlags
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { SubscribedItem, SubscribedItemType } from "../types/subscriptions";
@@ -20,7 +21,7 @@ const discordInteraction: DiscordInteraction = {
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ ephemeral: true }).catch(err => { throw err });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });
 
     // Check if we have a subbed channel
     const subbedChannel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);

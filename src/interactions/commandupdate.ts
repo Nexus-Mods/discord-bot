@@ -19,7 +19,7 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    await interaction.deferReply({ ephemeral: true }).catch((err) => { throw err });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch((err) => { throw err });
 
     try {
         await client.updateInteractions?.(true);
