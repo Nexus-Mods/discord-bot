@@ -681,7 +681,7 @@ function trimCollectionChangelog(markdown: string, maxLength: number = 2000): st
 function trimModChangelog(raw: string[], limit: number = 1000): string {
     // THIS FEATURE IS BROKEN IN THE API, WE'LL CHECK IF IT'S STILL INVALID AND RETURN NULL IF IT IS.
     if (raw[0].startsWith('#<ModChangelog')) {
-        logMessage('Mod changelogs are still broken', raw, true);
+        logMessage('Mod changelogs are still broken, returning an empty string', null, true);
         return '';
     }
     let changelog = '';
