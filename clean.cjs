@@ -8,13 +8,12 @@ function deleteFolderRecursive(path) {
       if (fs.lstatSync(curPath).isDirectory()) { // recurse
         deleteFolderRecursive(curPath);
       }
-      else if (curPath.endsWith('config.json')) return; // skip config.json
       else { // delete file
         fs.unlinkSync(curPath);
       }
     });
 
-    console.log(`Deleting directory "${path}"...`);
+    // console.log(`Deleting directory "${path}"...`);
     fs.rmdirSync(path);
   }
 }
@@ -22,6 +21,6 @@ function deleteFolderRecursive(path) {
 console.log('Cleaning working tree...');
 
 deleteFolderRecursive('./dist');
-if (!fs.existsSync('./src/config.json')) fs.writeFileSync('./src/config.json', JSON.stringify({}), 'utf-8');
+if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({}), 'utf-8');
 
 console.log('Successfully cleaned working tree!');

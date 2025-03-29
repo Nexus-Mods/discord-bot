@@ -40,3 +40,4 @@ function updateImportsInDirectory(directory) {
 
 // Start processing the compiled JS files
 updateImportsInDirectory(directory);
+console.log('Updated import statements in compiled JS files to include .js extension where necessary.');

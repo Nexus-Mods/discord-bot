@@ -4,7 +4,7 @@ import path from 'path';
 import { logMessage } from './api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
 import { GameListCache } from './types/util';
-import config from './config.json' assert { type: 'json' };
+import config from '../config.json' assert { type: 'json' };
 import { fileURLToPath, pathToFileURL } from 'url';
 
 // Get the equivalent of __dirname

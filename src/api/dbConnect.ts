@@ -1,7 +1,7 @@
 import pg, { PoolConfig, PoolClient, QueryResult, QueryResultRow } from 'pg';
 const { Pool } = pg;
 import { logMessage } from './util';
-import rawConfig from '../config.json' assert { type: 'json' };
+import rawConfig from '../../config.json' assert { type: 'json' };
 const config: { testing?: boolean } = rawConfig;
 import dotenv from 'dotenv';
 dotenv.config();

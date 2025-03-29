@@ -11,8 +11,11 @@
     "resolveJsonModule": true, // Allow importing JSON files
     "outDir": "./dist",         // Output folder
     "baseUrl": "./src",         // Base URL for module resolution
+    "rootDir": "./src",         // Root directory of the source files
     "paths": {
       "*": ["node_modules/*", "src/*"]
     }
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
