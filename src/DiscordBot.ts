@@ -4,7 +4,6 @@ import path from 'path';
 import { logMessage } from './api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
 import { GameListCache } from './types/util';
-import config from '../config.json' assert { type: 'json' };
 import { fileURLToPath, pathToFileURL } from 'url';
 
 // Get the equivalent of __dirname
@@ -40,7 +39,7 @@ export class DiscordBot {
     private initializeClient(): void {
         if (!this.client) return logMessage('Could not initialise DiscordBot, client is not defined.', {}, true);
         
-        this.client.config = config;
+        this.client.config = { testing: process.env.NODE_ENV === 'test', ownerIDs: process.env.OWNER_IDS?.split(',') || [] };
         this.client.application?.fetch();
         this.setEventHandler();
     }

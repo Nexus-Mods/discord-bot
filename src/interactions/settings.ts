@@ -132,7 +132,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
 
     // Check we're dealing with a server admin.
     if (!interaction.memberPermissions?.toArray().includes('ManageGuild') 
-    && !client.config.ownerID?.includes(discordId)) {
+    && !client.config.ownerIDs?.includes(discordId)) {
         return interaction.editReply('Server settings are only accessible by Guild managers');
     }
 

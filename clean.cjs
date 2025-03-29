@@ -21,6 +21,5 @@ function deleteFolderRecursive(path) {
 console.log('Cleaning working tree...');
 
 deleteFolderRecursive('./dist');
-if (!fs.existsSync('./config.json')) fs.writeFileSync('./config.json', JSON.stringify({}), 'utf-8');
 
 console.log('Successfully cleaned working tree!');

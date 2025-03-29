@@ -1,13 +1,10 @@
 import pg, { PoolConfig, PoolClient, QueryResult, QueryResultRow } from 'pg';
 const { Pool, DatabaseError } = pg;
 import { logMessage } from './util';
-import rawConfig from '../../config.json' assert { type: 'json' };
-const config: { testing?: boolean } = rawConfig;
 import dotenv from 'dotenv';
 dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === undefined;
-const isTest = process.env.NODE_ENV === 'test';
 
 const poolConfig: PoolConfig = {
     user: process.env.DBUSER,
