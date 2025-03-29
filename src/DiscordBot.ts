@@ -39,7 +39,10 @@ export class DiscordBot {
     private initializeClient(): void {
         if (!this.client) return logMessage('Could not initialise DiscordBot, client is not defined.', {}, true);
         
-        this.client.config = { testing: process.env.NODE_ENV === 'test', ownerIDs: process.env.OWNER_IDS?.split(',') || [] };
+        this.client.config = { 
+            testing: process.env.NODE_ENV === 'test', 
+            ownerIDs: process.env.OWNER_IDS?.split(',') || [] 
+        };
         this.client.application?.fetch();
         this.setEventHandler();
     }

@@ -1,7 +1,7 @@
 {
   "name": "nexus-bot-typescript",
   "type": "module",
-  "version": "3.11.0",
+  "version": "3.11.1",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "start": "node dist/app.js",
     "dev": "npm run build && npm run start",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "clean": "node clean.cjs"
+    "clean": "node clean.cjs",
+    "startSharded": "node dist/shards.js"
   },
   "author": "Pickysaurus",
   "license": "ISC",

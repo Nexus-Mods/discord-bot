@@ -9,8 +9,8 @@ import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, get
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
     private client: ClientExt;
-    private updateTimer: NodeJS.Timeout;
-    private pollTime: number; //10 mins
+    private updateTimer?: NodeJS.Timeout;
+    private pollTime: number = 0; //10 mins
     private channels: SubscribedChannel[];
     private cache: SubscriptionCache = new SubscriptionCache();
     private fakeUser: DiscordBotUser = new DiscordBotUser(DummyNexusModsUser);
@@ -18,6 +18,11 @@ export class SubscriptionManger {
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[]) {
         // Save the client for later
         this.client = client;
+        if (client.shard && client.shard.ids[0] !== 0) {
+            this.channels=[];
+            logMessage('Subscriptions only run on the first shard.'); // Only run on the first shard
+            return this;
+        }        
         this.pollTime = pollTime;
         this.updateTimer = setInterval(async () => {
             try {
@@ -35,6 +40,8 @@ export class SubscriptionManger {
     static async getInstance(client: ClientExt, pollTime: number = (1000*60*5)): Promise<SubscriptionManger> {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime);
+            const guilds = await client.guilds.fetch()
+            logMessage('Subscription Manager has guilds', { guilds: guilds.map(g => g.name), count: guilds.size });
         }
         logMessage('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length, pollTime});
         return SubscriptionManger.instance;

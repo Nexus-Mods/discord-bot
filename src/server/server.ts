@@ -24,7 +24,8 @@ export class AuthSite {
 
     private constructor(client: ClientExt) {
         this.client = client;
-        this.initialize();
+        if (client.shard && client.shard.ids[0] !== 0) logMessage('Skipping AuthSite initialization, not on shard 0', undefined, true);
+        else this.initialize();
     }
 
     static getInstance(client: ClientExt): AuthSite {
