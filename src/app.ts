@@ -1,4 +1,4 @@
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
 dotenv.config();
 import { logMessage } from './api/util';
 import { DiscordBot } from './DiscordBot';

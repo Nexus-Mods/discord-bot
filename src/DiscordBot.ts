@@ -4,6 +4,12 @@ import path from 'path';
 import { logMessage } from './api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
 import { GameListCache } from './types/util';
+import config from './config.json' assert { type: 'json' };
+import { fileURLToPath, pathToFileURL } from 'url';
+
+// Get the equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const intents: GatewayIntentBits[] = [
     IntentsBitField.Flags.Guilds, IntentsBitField.Flags.DirectMessages,
@@ -34,7 +40,7 @@ export class DiscordBot {
     private initializeClient(): void {
         if (!this.client) return logMessage('Could not initialise DiscordBot, client is not defined.', {}, true);
         
-        this.client.config = require(path.join(__dirname, 'config.json'));
+        this.client.config = config;
         this.client.application?.fetch();
         this.setEventHandler();
     }
@@ -73,9 +79,11 @@ export class DiscordBot {
     private setEventHandler(): void {
         try {
             const events: string[] = fs.readdirSync(path.join(__dirname, 'events'));
-            events.filter(e => e.endsWith('.js')).forEach((file) => {
+            events.filter(e => e.endsWith('.js')).forEach(async (file) => {
                 try {
-                    const event: DiscordEventInterface = require(path.join(__dirname, 'events', file)).default;
+                    // Convert the path to a file:// URL
+                    const eventPath = pathToFileURL(path.join(__dirname, 'events', file)).href;
+                    const event: DiscordEventInterface = (await import(eventPath)).default;
                     const eventName: string = file.split(".")[0];
                     if (!event.execute) return;
                     if (event.once) this.client.once(eventName, event.execute.bind(null, this.client));
@@ -109,7 +117,9 @@ export class DiscordBot {
         // TODO! - Get the commands list per-server from the database 
 
         for (const file of interactionFiles) {
-            const interaction: DiscordInteraction = require(path.join(__dirname, 'interactions', file)).discordInteraction;
+            // Convert the path to a file:// URL
+            const interactionPath = pathToFileURL(path.join(__dirname, 'interactions', file)).href;
+            const interaction: DiscordInteraction = (await import(interactionPath)).discordInteraction;
             if (!interaction) continue;
             // Add all valid interactions to the main array.
             allInteractions.push(interaction);

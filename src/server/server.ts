@@ -9,6 +9,11 @@ import path from 'path';
 import { DiscordBotUser } from '../api/DiscordBotUser';
 import { ClientExt } from '../types/DiscordTypes';
 import { getSubscriptionsByChannel } from '../api/subscriptions';
+import { fileURLToPath } from 'url';
+
+// Get the equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class AuthSite {
     private static instance: AuthSite;
@@ -134,7 +139,8 @@ export class AuthSite {
             const { clientState } = req.signedCookies;
             if (clientState != discordState) {
                 logMessage('Discord OAuth state verification failed.');
-                return res.sendStatus(403);
+                res.sendStatus(403);
+                return;
             }
 
             const tokens = await DiscordOAuth.getOAuthTokens(code as string);
@@ -146,12 +152,12 @@ export class AuthSite {
 
             // Forward to Nexus Mods auth.
             const { url } = NexusModsOAuth.getOAuthUrl(clientState);
-            return res.redirect(url);
+            res.redirect(url);
         }
         catch(err) {
             logMessage('Discord OAuth Error', err, true);
             res.cookie('ErrorDetail', `Discord OAuth Error: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
-            res.redirect('/oauth-error');
+            return res.redirect('/oauth-error');
             // return res.sendStatus(500);
         }
     }
@@ -164,14 +170,16 @@ export class AuthSite {
         const { clientState } = req.signedCookies;
         if (clientState != discordState) {
             logMessage('Nexus Mods OAuth state verification failed.');
-            return res.sendStatus(403);
+            res.sendStatus(403);
+            return;
         }
 
         // Get the Discord data from the store
         const discordData = this.TempStore.get(clientState);
         if (!discordData) {
             logMessage('Could not find matching Discord Auth to pair accounts', req.url, true);
-            return res.sendStatus(403);
+            res.sendStatus(403);
+            return;
         }
 
         try {
@@ -352,10 +360,12 @@ export class AuthSite {
             const rev = req.query['rev'] as string;
             if (!domain || !slug) {
                 res.statusCode = 400
-                return res.send('Domain or slug not provided')
+                res.send('Domain or slug not provided')
+                return;
             }
             const nxmlink = `nxm://${domain}/collections/${slug}/revisions/${rev ?? 'latest'}`;
-            return res.redirect(nxmlink);
+            res.redirect(nxmlink);
+            return;
         }
         else if (type === 'mod') {
             const domain = req.query['domain'] as string;
@@ -363,10 +373,12 @@ export class AuthSite {
             const fileId = req.query['file_id'] as string;
             if (!domain || !modId || fileId) {
                 res.statusCode = 400
-                return res.send('Game, mod or file ID not provided')
+                res.send('Game, mod or file ID not provided')
+                return;
             }
             const nxmlink = `nxm://${domain}/mods/${modId}/revisions/${fileId}`;
-            return res.redirect(nxmlink);
+            res.redirect(nxmlink);
+            return;
         }        
     }
 }
