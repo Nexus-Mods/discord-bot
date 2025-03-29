@@ -7,7 +7,9 @@ function deleteFolderRecursive(path) {
 
       if (fs.lstatSync(curPath).isDirectory()) { // recurse
         deleteFolderRecursive(curPath);
-      } else { // delete file
+      }
+      else if (curPath.endsWith('config.json')) return; // skip config.json
+      else { // delete file
         fs.unlinkSync(curPath);
       }
     });
