@@ -12,7 +12,7 @@ const poolConfig: PoolConfig = {
     host: process.env.HOST,
     database: process.env.DATABASE,
     port: process.env.PORT ? parseInt(process.env.PORT) : 0,
-    ssl: config?.testing === false ? {
+    ssl: config?.testing === true ? {
         rejectUnauthorized: false,
     } : false,
     statement_timeout: 5000,
