@@ -3,7 +3,7 @@ import { getAutomodRules, getBadFiles } from "../api/automod";
 import { ISlackMessage, PublishToDiscord, PublishToSlack } from "../api/moderationWebhooks";
 import { IMod, IModFile } from "../api/queries/v2";
 import { IModResults } from "../api/queries/v2-latestmods";
-import { logMessage } from "../api/util";
+import { Logger } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule, IBadFileRule } from "../types/util";
 import { tall } from 'tall';
@@ -39,19 +39,13 @@ export class AutoModManager {
     private AutoModRules: IAutomodRule[] = [];
     private BadFiles: IBadFileRule[] = [];
     private client: ClientExt;
+    private logger: Logger;
     private updateTimer?: NodeJS.Timeout;
+    private pollTime: number;
     // private usersUploadingFirstMod: IUsersUploadingFirstMod;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
     public recentUids: Set<string> = new Set<string>(); // A list of recently checked Uids
-
-    static getInstance(client: ClientExt): AutoModManager {
-        if (!AutoModManager.instance) {
-            AutoModManager.instance = new AutoModManager(client);
-        }
-
-        return AutoModManager.instance;
-    }
 
     private addToLastReports(mods: IModWithFlags[]) {
         this.lastReports = [mods, ...this.lastReports.filter((v, i) => i <= 9)];
@@ -62,23 +56,40 @@ export class AutoModManager {
         }, new Set<string>());
     }
 
-    private constructor(client: ClientExt) {
+    static async getInstance(client: ClientExt, logger: Logger, pollTime?: number): Promise<AutoModManager> {
+        if (!AutoModManager.instance) {
+            try {
+                const rules = await getAutomodRules();
+                const badFiles = await getBadFiles();
+                AutoModManager.instance = new AutoModManager(client, logger, rules, badFiles, pollTime);
+                logger.info(`Automod started with ${AutoModManager.instance.AutoModRules.length} rules, checking every ${AutoModManager.instance.pollTime/1000/60} minutes. Last check ${AutoModManager.instance.lastCheck}`);
+
+            }
+            catch(err){
+                logger.error('Error getting AutoModManager instance', err);
+                throw err;
+            }
+        }
+
+        return AutoModManager.instance;
+        
+    }
+
+    private constructor(client: ClientExt, logger: Logger, rules?: IAutomodRule[], badFiles?: IBadFileRule[], pollTime: number = (1000*60*1)) {
         // Save the client for later
         this.client = client;
-        // Set up the counter for first uploads
-        // this.usersUploadingFirstMod = { since: Math.floor(new Date().getTime()/1000), users: new Set<number>(), lastPostedAt: -1 };
+        this.logger = logger;
+        this.pollTime = pollTime;
+        // Set initial rules and files
+        this.AutoModRules = rules || [];
+        this.BadFiles = badFiles || [];
         // Set the update interval. Unless testing
         if (client.config?.testing == true) {
-            logMessage('Skipping automod setup due to testing env')
-            return
+            logger.debug('Skipping automod setup due to testing env')
+            return;
         };
         this.updateTimer = setInterval(this.runAutomod.bind(this), pollTime);
-        this.getRules()
-            .then(() => {
-                logMessage(`Automod started with ${this.AutoModRules.length} rules, checking every ${pollTime/1000/60} minutes. Last check ${this.lastCheck}`);
-                this.runAutomod().catch((err) => logMessage(`Error running automod`, err, true));
-            })
-            .catch((err) => logMessage('Error in AutomodManager constructor', err, true));
+        this.runAutomod().catch((err) => logger.error(`Error running automod`, err));
     }
 
     public async retrieveRules(): Promise<IAutomodRule[]> {
@@ -93,17 +104,13 @@ export class AutoModManager {
         this.getRules();
     }
 
-    // public getNewUploaders(): Set<number> {
-    //     return this.usersUploadingFirstMod.users;
-    // }
-
     private async getRules() {
         try {
             this.AutoModRules = await getAutomodRules();
             this.BadFiles = await getBadFiles();
         }
         catch(err) {
-            logMessage("Error getting automod rules", err, true)
+            this.logger.warn("Error getting automod rules", err)
             throw new Error('Could not get Automod rules: '+(err as Error).message)
         }
     }
@@ -115,24 +122,24 @@ export class AutoModManager {
 
     private async runAutomod() {
         try {
-            const dummyUser = new DiscordBotUser(DummyNexusModsUser);
+            const dummyUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
             if (!dummyUser) throw new Error("User not found for automod");
             await this.getRules();
             const newMods: IModResults = await dummyUser?.NexusMods.API.v2.LatestMods(this.lastCheck)
             const updatedMods: IModResults = await dummyUser?.NexusMods.API.v2.UpdatedMods(this.lastCheck, true);
             const modsToCheck = [...newMods.nodes, ...updatedMods.nodes].filter(mod => !this.recentUids.has(mod.uid!));
             if (!modsToCheck.length) {
-                logMessage("Automod - Nothing for automod to check")
+                this.logger.info("Automod - Nothing for automod to check")
                 this.setLastCheck(new Date())
                 this.addToLastReports([]);
                 return;
             }
-            else logMessage(`Automod - Checking ${modsToCheck.length} new and updated mods.`)
+            else this.logger.info(`Automod - Checking ${modsToCheck.length} new and updated mods.`)
             this.setLastCheck(newMods.nodes[0]?.createdAt ?? updatedMods.nodes[0].updatedAt!)
 
             let results: IModWithFlags[] = []
             for (const mod of modsToCheck) {
-                results.push(await analyseMod(mod, this.AutoModRules, this.BadFiles, dummyUser))
+                results.push(await analyseMod(mod, this.AutoModRules, this.BadFiles, dummyUser, this.logger))
             }
             this.addToLastReports(results);
             // Add the new uploader flagged mods
@@ -146,22 +153,22 @@ export class AutoModManager {
             // Map the concerns for posting
             const concerns = results.filter(m => (m.flags.high.length) > 0 || (m.flags.low.length) > 0);
             if (!concerns.length) {
-                logMessage('No mods with concerns found.')
+                this.logger.info('No mods with concerns found.')
                 return;
             }
             else {
                 try {
-                    logMessage('Reporting mods:', concerns.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
-                    await PublishToSlack(flagsToSlackMessage(concerns));
-                    await PublishToDiscord(flagsToDiscordEmbeds(concerns));
+                    this.logger.info('Reporting mods:', concerns.map(c => `${c.mod.name} - ${c.flags.high.join(', ')} - ${c.flags.low.join(', ')}`));
+                    await PublishToSlack(flagsToSlackMessage(concerns), this.logger);
+                    await PublishToDiscord(flagsToDiscordEmbeds(concerns), this.logger);
                 }
                 catch(err) {
-                    logMessage('Error posting automod to Discord or Slack', err, true)
+                    this.logger.error('Error posting automod to Discord or Slack', err)
                 }
             }
         }
         catch(err) {
-            logMessage("Error running automod", err, true)
+            this.logger.error("Error running automod", err)
         }
     }
 
@@ -287,7 +294,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
     }
 }
 
-async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: IBadFileRule[], user: DiscordBotUser): Promise<IModWithFlags> {
+async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: IBadFileRule[], user: DiscordBotUser, logger: Logger): Promise<IModWithFlags> {
     let flags: {high: string[], low: string[]} = { high: [], low: [] };    
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60)).getTime()
@@ -305,19 +312,19 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
 
 
     try {
-        const previewCheck = await checkFilePreview(mod, user, badFiles)
+        const previewCheck = await checkFilePreview(mod, user, badFiles, logger)
         if (previewCheck.flags.high.length) flags.high.push(...previewCheck.flags.high)
         if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
     }
     catch(err) {
-        if ((err as any).code === 401) logMessage(`Permissions error getting content preview for ${mod.name} for ${mod.game?.name}`, undefined, true)
-        else logMessage(`Failed to check content preview for ${mod.name} for ${mod.game?.name}`, err, true);
+        if ((err as any).code === 401) logger.warn(`Permissions error getting content preview for ${mod.name} for ${mod.game?.name}`)
+        else logger.warn(`Failed to check content preview for ${mod.name} for ${mod.game?.name}`, err);
     }
 
 
     // Check against automod rules
     let allText = `${mod.name}\n${mod.summary}\n${mod.description}`.toLowerCase();
-    const urls = await analyseURLS(allText);
+    const urls = await analyseURLS(allText, logger);
     if (urls.length) {
         urls.map(u => flags.low.push(`Shortened URL - ${u}`));
         allText = `${allText}\n\n${urls.map(u => u.toLowerCase()).join('\n')}`;
@@ -332,7 +339,7 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
     return { mod, flags };
 }
 
-async function analyseURLS(text: string): Promise<string[]> {
+async function analyseURLS(text: string, logger: Logger): Promise<string[]> {
     const regEx = new RegExp(/\b(https?:\/\/.*?\.[a-z]{2,4}\/[^\s\[\]]*\b)/g);
     const matches = text.match(regEx);
     if (!matches) return [];
@@ -346,7 +353,7 @@ async function analyseURLS(text: string): Promise<string[]> {
             const finalUrl = await tall(url, { timeout: 5 });
             if (finalUrl) {
                 if (finalUrl !== url) {
-                    logMessage("Expanded URL", { url, finalUrl })
+                    logger.info("Expanded URL", { url, finalUrl })
                     result.push(`${url} => ${finalUrl}`)
                 }
             }
@@ -355,7 +362,7 @@ async function analyseURLS(text: string): Promise<string[]> {
         }
         catch(err) {
             if ((err as Error).message.includes('socket hang up')) continue;
-            logMessage("Error expanding URL", { err, url }, true);
+            logger.warn("Error expanding URL", { err, url });
         }
     }
     return result;
@@ -394,13 +401,13 @@ const nonPlayableExtensions: string[] = [
     "rtf", "tex", "docx", "odt", "pdf", "url"
 ];
 
-async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFiles: IBadFileRule[]): Promise<IModWithFlags> {
+async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFiles: IBadFileRule[], logger: Logger): Promise<IModWithFlags> {
     const flags: { high: string[], low: string[] } = { high: [], low: [] };
     // const modFiles = await user.NexusMods.API.v1.ModFiles(mod.game!.domainName!, mod.modId!);
     const modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
     const latestFile = modFiles.sort((a, b) => a.date - b.date)[0];
     const previewUrl = getContentPreviewLink(mod.game!.id, mod.modId!, latestFile).toString();
-    logMessage(`Checking file preview for ${latestFile.name} on ${mod.name} for ${mod.game?.name}`);
+    logger.info(`Checking file preview for ${latestFile.name} on ${mod.name} for ${mod.game?.name}`);
 
     // Check the content preview
     try {
@@ -436,7 +443,7 @@ async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFil
 
     }
     catch(err) {
-        logMessage('Could not process file preview', err, true);
+        logger.warn('Could not process file preview', err);
     }
 
     

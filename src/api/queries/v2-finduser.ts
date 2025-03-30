@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { NexusGQLError, v2API } from './v2';
 
 export interface IResult {
@@ -45,7 +45,7 @@ query UserByName($username: String!) {
 }
 `;
 
-export async function findUser(headers: Record<string,string>, idOrName: number | string): Promise<IUser | undefined> {
+export async function findUser(headers: Record<string,string>, logger: Logger, idOrName: number | string): Promise<IUser | undefined> {
     let vars: Record<string, string | number>;
     let query: string = ``;
 
@@ -66,7 +66,7 @@ export async function findUser(headers: Record<string,string>, idOrName: number 
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'findUser');
-        logMessage('Error in findUser v2 request', error, true);
+        logger.error('Error in findUser v2 request', error, true);
         return undefined;
     }
 }

@@ -1,12 +1,11 @@
 
 import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
-import { logMessage, nexusModsTrackingUrl } from '../api/util';
+import { Logger, nexusModsTrackingUrl } from '../api/util';
 import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
 import { ModStatus } from '@nexusmods/nexus-api';
 import { IUser } from '../api/queries/v2-finduser';
-import e from 'express';
 import { customEmojis } from './util';
 
 export interface ISubscribedChannel {
@@ -30,8 +29,10 @@ export class SubscribedChannel implements ISubscribedChannel {
 
     public webHookClient: WebhookClient
     private subscribedItems: SubscribedItem[] = [];
+    private logger: Logger;
     
-    constructor(c: ISubscribedChannel, items: SubscribedItem[]) {
+    constructor(c: ISubscribedChannel, items: SubscribedItem[], logger: Logger) {
+        this.logger = logger;
         this.id = c.id;
         this.guild_id = c.guild_id;
         this.channel_id = c.channel_id;
@@ -44,14 +45,14 @@ export class SubscribedChannel implements ISubscribedChannel {
         this.webHookClient = new WebhookClient({ id: this.webhook_id, token: this.webhook_token});
     }
 
-    public static async create(c: ISubscribedChannel): Promise<SubscribedChannel> {
+    public static async create(c: ISubscribedChannel, logger: Logger): Promise<SubscribedChannel> {
         try {
             const items = await getSubscriptionsByChannel(c.guild_id, c.channel_id);
-            return new SubscribedChannel(c, items);
+            return new SubscribedChannel(c, items, logger);
 
         }
         catch(err) {
-            logMessage('Error creating subscribed channel class', err, true);
+            logger.error('Error creating subscribed channel class', err);
             throw new Error('Unable to create subscribed channel class');
         }
     }
@@ -71,7 +72,7 @@ export class SubscribedChannel implements ISubscribedChannel {
             return newSub;
         }
         catch(err) {
-            logMessage('Could not create subscription', err, true);
+            this.logger.error('Could not create subscription', err);
             throw err;
         }
 
@@ -83,7 +84,7 @@ export class SubscribedChannel implements ISubscribedChannel {
             return updatedSub;
         }
         catch(err) {
-            logMessage('Could not update subscription', err, true);
+            this.logger.error('Could not update subscription', err);
             throw err;
         }
     }
@@ -329,7 +330,7 @@ export enum UserEmbedType {
     NewVideo = 'new-video'
 }
 
-export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false, userEmbedType: UserEmbedType | null = null): Promise<EmbedBuilder> {
+export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: Logger, entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false, userEmbedType: UserEmbedType | null = null): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder();
     const compact: boolean = sub.compact;
     switch (sub.type) {
@@ -352,8 +353,8 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                 .setAuthor({ name: `Mod Updated (${mod.game.name})`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
                 .setTimestamp(new Date(lastestFile ? lastestFile.date * 1000 : mod.updatedAt))
                 if (lastestFile && lastestFile.changelogText.length) {
-                    const changelog = trimModChangelog(lastestFile.changelogText, 1000);
-                    if (changelog?.length) embed.addFields({ name: `Changelog (v${lastestFile.version})`, value: trimModChangelog(lastestFile.changelogText, 1000)});
+                    const changelog = trimModChangelog(lastestFile.changelogText, 1000, logger);
+                    if (changelog?.length) embed.addFields({ name: `Changelog (v${lastestFile.version})`, value: trimModChangelog(lastestFile.changelogText, 1000, logger)});
                 }
             }
             else {
@@ -381,7 +382,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
         case SubscribedItemType.Mod: {
             const modWithFiles: IModWithFiles = entity as IModWithFiles;
             const file: IModFile = modWithFiles.files![0];
-            let changelog = file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
+            let changelog = file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000, logger) : undefined;
             embed.setColor('#2dd4bf')
             .setAuthor({ 
                 name: modWithFiles.uploader.name, 
@@ -468,7 +469,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(entity: 
                     const userWithMod = entity as UserEntityType<UserEmbedType.UpdatedMod>;
                     const mod = userWithMod.mod;
                     const file = mod.files?.length ? mod.files[0] : undefined;
-                    const changelog: string | undefined = file?.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000) : undefined;
+                    const changelog: string | undefined = file?.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000, logger) : undefined;
                     embed.setColor('#2dd4bf')
                     .setAuthor(
                         {
@@ -678,10 +679,10 @@ function trimCollectionChangelog(markdown: string, maxLength: number = 2000): st
 
 }
 
-function trimModChangelog(raw: string[], limit: number = 1000): string {
+function trimModChangelog(raw: string[], limit: number = 1000, logger: Logger): string {
     // THIS FEATURE IS BROKEN IN THE API, WE'LL CHECK IF IT'S STILL INVALID AND RETURN NULL IF IT IS.
     if (raw[0].startsWith('#<ModChangelog')) {
-        logMessage('Mod changelogs are still broken, returning an empty string', null, true);
+        logger.warn('Mod changelogs are still broken, returning a generic message.');
         return 'View the mod page for the changelog.';
     }
     let changelog = '';

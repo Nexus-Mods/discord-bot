@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
 
 interface IResult {
@@ -61,6 +61,7 @@ query DiscordBotGetUpdatedMods($count: Int!, $filter: ModsFilter, $sort: [ModsSo
 
 export async function updatedMods(
     headers: Record<string,string>, 
+    logger: Logger,
     newSince: Date | number | string, 
     includeAdult: boolean, 
     gameIds?: number | number[], 
@@ -99,7 +100,7 @@ export async function updatedMods(
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'updated mods');
-        logMessage('Error in updated mods v2 request', error, true);
+        logger.error('Error in updated mods v2 request', error);
         return { nodes: [], totalCount: 0 };
     }
 }

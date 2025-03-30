@@ -1,5 +1,5 @@
 import { request, gql, Variables } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, ICollectionSearchResult, NexusGQLError } from './v2';
 import * as GQLTypes from '../../types/GQLTypes';
 
@@ -64,7 +64,7 @@ query DiscordBotSearchCollections(
 }
 `;
 
-export async function collections(headers: Record<string,string>, filters: GQLTypes.ICollectionsFilter, sort: GQLTypes.CollectionsSort = {endorsements: { direction: 'DESC' }}, adultContent: boolean = true): Promise<ICollectionSearchResult> {
+export async function collections(headers: Record<string,string>, logger: Logger, filters: GQLTypes.ICollectionsFilter, sort: GQLTypes.CollectionsSort = {endorsements: { direction: 'DESC' }}, adultContent: boolean = true): Promise<ICollectionSearchResult> {
     const variables: IQueryVariables = {
         filters,
         sort,
@@ -81,7 +81,7 @@ export async function collections(headers: Record<string,string>, filters: GQLTy
     }
     catch(err) {
       const error = new NexusGQLError(err as any, 'collections');
-      logMessage('Error in collections v2 request', error, true);
+      logger.error('Error in collections v2 request', error, true);
       return { nodes: [], nodesCount: 0, nodesFilter: '', searchURL: websiteLink(variables) };
     }
 }

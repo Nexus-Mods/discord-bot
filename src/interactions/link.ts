@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
-import { KnownDiscordServers, logMessage } from '../api/util';
+import { KnownDiscordServers, Logger } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
@@ -20,17 +20,17 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     try {
         let userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
-        const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = await linkingEmbed(userData, discordId, client);
+        const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = await linkingEmbed(userData, discordId, client, logger);
         return interaction.editReply(response).catch(undefined);
     }
     catch(err) {
-        logMessage('Error in /link command', err, true);
+        logger.warn('Error in /link command', err);
         return interaction.editReply('Unexpected error! '+(err as Error).message);
     }
 
@@ -44,7 +44,7 @@ const linkButton = (discordId: string) => new ActionRowBuilder()
             .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
         );
 
-const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, client: Client): Promise<{ embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] }> => {
+const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, client: Client, logger: Logger): Promise<{ embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] }> => {
     let components = [];
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
@@ -61,7 +61,7 @@ const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, c
             // logMessage('Authorisation success for /link', { user: user.NexusModsUsername, discord: user.DiscordId });
         }
         catch(err) {
-            logMessage('Authorisation failed for /link', { user: user.NexusModsUsername, discord: user.DiscordId, err });
+            logger.warn('Authorisation failed for /link', { user: user.NexusModsUsername, discord: user.DiscordId, err });
             embed.setTitle('Re-authorise your Discord account')
             .setDescription('Your Nexus Mods authorisation has expired, use the button below to re-link');
             return { embeds: [embed], components: [ linkButton(discordId) as ActionRowBuilder<ButtonBuilder> ] };

@@ -1,11 +1,14 @@
 import { 
     Client, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
-    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction 
+    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction, 
+    InteractionContextType,
+    MessageFlags
 } from "discord.js";
-import { DiscordInteraction, } from "../types/DiscordTypes";
+import { DiscordInteraction } from "../types/DiscordTypes";
 import { getAllUsers, getAllGameFeeds } from '../api/bot-db';
 import { NexusUser } from "../types/users";
 import { GameFeed } from "../types/feeds";
+import { Logger } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -16,7 +19,7 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('Only show to me.')
         .setRequired(false)
     )
-    .setDMPermission(true)
+    .setContexts([InteractionContextType.Guild, InteractionContextType.BotDM])
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages) as SlashCommandBuilder,
     public: true,
     action
@@ -41,15 +44,13 @@ const minPermissions: { name: string, code: string }[] = [
     }
 ];
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
     const option: boolean | null = interaction.options.getBoolean('private');
     const ephemeral: boolean = option !== null ? option : true;
 
-    // logMessage('About interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, ephemeral });
-
-    await interaction.deferReply({ ephemeral }).catch((err) => { throw err });
+    await interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined }).catch((err) => { throw err });
     
     const upTime: string = calcUptime(process.uptime());
     const allUsers: NexusUser[] = await getAllUsers();
@@ -65,11 +66,6 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     .setThumbnail(client.user?.avatarURL() || '')
     .setDescription(`Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`)
     .addFields([
-        // {
-        //     name: 'Minimum Permissions',
-        //     value: permissionsList,
-        //     inline: true
-        // },
         {
             name: 'Stats',
             value: `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+

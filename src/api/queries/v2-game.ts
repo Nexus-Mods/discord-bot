@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { NexusGQLError, v2API } from './v2';
 
 interface IResult {
@@ -27,7 +27,7 @@ query DiscordBotGame {
 }
 `;
 
-export async function game(headers: Record<string,string>, id: number): Promise<IGame|undefined> {
+export async function game(headers: Record<string,string>, logger: Logger, id: number): Promise<IGame|undefined> {
     // Games can't be queried by domain name at the moment. 
     try {
         const result: IResult = await request(v2API, query, { id }, headers);
@@ -35,7 +35,7 @@ export async function game(headers: Record<string,string>, id: number): Promise<
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'games');
-        logMessage('Error in games v2 request', error, true);
+        logger.error('Error in games v2 request', error, true);
         return undefined;
     }
 }

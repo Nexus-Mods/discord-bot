@@ -4,12 +4,40 @@ import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser";
 import { IModsFilter } from "./queries/v2";
 import { ICollectionsFilter } from "../types/GQLTypes";
 
-export const logMessage  = (msg: string, obj?: any, error?: boolean) => {
+const logMessage  = (msg: string, obj?: any, error?: boolean) => {
     const message = `${new Date().toLocaleString()} - ${msg}`;
     error === true ? console.error(message, obj || '') : console.log(message, obj || '');
 };
 
-export async function autocompleteGameName(client: ClientExt, acInteraction: AutocompleteInteraction) {
+export class Logger {
+    private shardId: string;
+    private isTesting: boolean;
+
+    constructor(shardId: string) {
+        this.shardId = shardId;
+        this.isTesting = process.env.NODE_ENV === 'test';
+    }
+
+    public info(message: string, data?: any) {
+        const formatted = `${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}`;
+        data ? console.log(formatted, data) : console.log(formatted);
+    }
+    public error(message: string, data?: any, ...args: any[]) {
+        const formatted = `\x1b[31m${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}\x1b[0m`;
+        data ? console.error(formatted, data) : console.error(formatted);
+    }
+    public warn(message: string, data?: any, ...args: any[]) {
+        const formatted = `\x1b[33m${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}\x1b[0m`;
+        data ? console.warn(formatted, data) : console.warn(formatted);
+    }
+    public debug(message: string, data?: any) {
+        if (this.isTesting === false) return; // Don't log debug messages in production
+        const formatted = `\x1b[36m${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}\x1b[0m`;
+        data ? console.debug(formatted, data) : console.debug(formatted);
+    }
+}
+
+export async function autocompleteGameName(client: ClientExt, acInteraction: AutocompleteInteraction, logger: Logger) {
     const focused = acInteraction.options.getFocused().toLowerCase();
     try {
         var games = await client.gamesList!.getGames();
@@ -19,16 +47,16 @@ export async function autocompleteGameName(client: ClientExt, acInteraction: Aut
         );
     }
     catch(err) {
-        logMessage('Error autocompleting games', {err}, true);
+        logger.warn('Error autocompleting games', {err});
         throw err;
     }
 }
 
-export async function autoCompleteModSearch(acInteraction: AutocompleteInteraction, gameDomain?: string) {
+export async function autoCompleteModSearch(acInteraction: AutocompleteInteraction, logger: Logger, gameDomain?: string) {
     const focused = acInteraction.options.getFocused();
     if (focused.length < 3) return await acInteraction.respond([]);
     try {
-        const user = new DiscordBotUser(DummyNexusModsUser);
+        const user = new DiscordBotUser(DummyNexusModsUser, logger);
         const modFilter: IModsFilter = {};
         if (focused) modFilter.name = { value: focused, op: 'WILDCARD' };
         if (gameDomain) modFilter.gameDomainName = { value: gameDomain, op: 'EQUALS' };
@@ -41,16 +69,16 @@ export async function autoCompleteModSearch(acInteraction: AutocompleteInteracti
         );
     }
     catch(err) {
-        logMessage('Error autocompleting mods', {err}, true);
+        logger.warn('Error autocompleting mods', {err});
         throw err;
     }
 }
 
-export async function autoCompleteCollectionSearch(acInteraction: AutocompleteInteraction, gameDomain?: string) {
+export async function autoCompleteCollectionSearch(acInteraction: AutocompleteInteraction, logger: Logger, gameDomain?: string) {
     const focused = acInteraction.options.getFocused();
     if (focused.length < 3) return await acInteraction.respond([]);
     try {
-        const user = new DiscordBotUser(DummyNexusModsUser);
+        const user = new DiscordBotUser(DummyNexusModsUser, logger);
         const filter: ICollectionsFilter = {};
         if (focused) filter.generalSearch = { value: focused, op: 'WILDCARD' };
         if (gameDomain) filter.gameDomain = { value: gameDomain, op: 'EQUALS' };
@@ -60,23 +88,23 @@ export async function autoCompleteCollectionSearch(acInteraction: AutocompleteIn
         );
     }
     catch(err) {
-        logMessage('Error autocompleting mods', {err}, true);
+        logger.warn('Error autocompleting mods', {err});
         throw err;
     }
 }
 
-export async function autoCompleteUserSearch(acInteraction: AutocompleteInteraction) {
+export async function autoCompleteUserSearch(acInteraction: AutocompleteInteraction, logger: Logger) {
     const focused = acInteraction.options.getFocused();
     if (focused.length < 3) return await acInteraction.respond([]);
     try {
-        const user = new DiscordBotUser(DummyNexusModsUser);
+        const user = new DiscordBotUser(DummyNexusModsUser, logger);
         const search = await user.NexusMods.API.v2.Users(focused);
         await acInteraction.respond(
             search.map(u => ({ name: u.name, value: u.memberId.toString() }))
         );
     }
     catch(err) {
-        logMessage('Error autocompleting mods', {err}, true);
+        logger.warn('Error autocompleting users', {err});
         throw err;
     }
 }

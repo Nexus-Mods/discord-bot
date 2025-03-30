@@ -1,12 +1,15 @@
-import { SlashCommandBuilder, PermissionFlagsBits, Client, CommandInteraction, ChatInputCommandInteraction, MessageFlags } from "discord.js";
+import { 
+    SlashCommandBuilder, PermissionFlagsBits, CommandInteraction, 
+    ChatInputCommandInteraction, MessageFlags, InteractionContextType 
+} from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
-import { KnownDiscordServers } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('commandupdate')
     .setDescription('Update the commands used by this bot.')
-    .setDMPermission(true)
+    .setContexts(InteractionContextType.Guild)
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     public: false,
     guilds: [
@@ -16,7 +19,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch((err) => { throw err });

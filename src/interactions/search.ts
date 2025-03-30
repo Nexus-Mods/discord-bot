@@ -8,7 +8,7 @@ import { customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
-import { KnownDiscordServers, logMessage, nexusModsTrackingUrl } from "../api/util";
+import { KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util";
 import { ICollectionsFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
@@ -125,9 +125,8 @@ interface IModFieldResult {
     game: IGameStatic|undefined;
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    // logMessage('Search interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString() });
 
     const searchType: string = interaction.options.getSubcommand(true).toUpperCase();
     
@@ -149,21 +148,21 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         else throw new Error('No account link exists');
     }
     catch(err) {
-        logMessage('Search cancelled, no account link or invalid token', { err, user: user?.NexusModsUsername, discord: interaction.user.tag });
+        logger.debug('Search cancelled, no account link or invalid token', { err, user: user?.NexusModsUsername, discord: interaction.user.tag });
         return interaction.editReply({ embeds: [searchCancelled()] });
     }
 
     switch(searchType) {
-        case 'MODS' : return searchMods(query, gameQuery, showToAll, client, interaction, user, server);
-        case 'GAMES' : return searchGames(query, showToAll, client, interaction, user, server);
-        case 'USERS' : return searchUsers(query, userId, showToAll, client, interaction, user, server);
-        case 'COLLECTIONS' : return searchCollections(query, gameQuery, showToAll, client, interaction, user, server);
+        case 'MODS' : return searchMods(query, gameQuery, showToAll, client, interaction, user, server, logger);
+        case 'GAMES' : return searchGames(query, showToAll, client, interaction, user, server, logger);
+        case 'USERS' : return searchUsers(query, userId, showToAll, client, interaction, user, server, logger);
+        case 'COLLECTIONS' : return searchCollections(query, gameQuery, showToAll, client, interaction, user, server, logger);
         default: return interaction.followUp('Search error: Invalid search type.');
     }
 }
 
-async function searchCollections(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
-    logMessage('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+async function searchCollections(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
+    logger.debug('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
     let gameIdFilter: number = parseInt(server?.game_filter ?? '0') || 0;
@@ -210,7 +209,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             const info: ICollection|undefined = await user.NexusMods.API.v2.Collection(res.slug, res?.game.domainName, nsfw);
             if (!info) throw new Error(`Could not retrieve collection data for ${res.game.domainName}\\${res.slug}`);
             const embed = collectionEmbed(client, info, nsfw);
-            return postResult(interaction, embed, ephemeral);
+            return postResult(interaction, embed, ephemeral, logger);
         }
         else {
             // Multiple results
@@ -262,7 +261,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
                     return;
                 }
                 const collection = await  user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName!, true).catch(() => undefined);
-                postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral);
+                postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
             });
 
             collector.on('end', ic => {
@@ -271,13 +270,13 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
         }
     }
     catch(err) {
-        logMessage('Failed collection search', err, true);
+        logger.warn('Failed collection search', err);
         interaction.editReply({ content: 'Error!'+((err as Error).message|| err) })
     }
 }
 
-async function searchMods(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
-    logMessage('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+async function searchMods(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
+    logger.debug('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
     let gameIdFilter: number = parseInt(server?.game_filter || '0') || 0;
@@ -324,7 +323,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             // const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( res.game_name, res.mod_id ))?.[0] : undefined;
             const gameForMod: IGameStatic|undefined = filterGame || allGames.find(g => g.domain_name === mod.game.domainName);
             const singleResult = singleModEmbed(client, mod, gameForMod);
-            postResult(interaction, singleResult, ephemeral);
+            postResult(interaction, singleResult, ephemeral, logger);
         }
         else {
             // Multiple results
@@ -369,7 +368,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
                     interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
                     return;
                 }
-                postResult(interaction, singleModEmbed(client, mod, found?.game), ephemeral);
+                postResult(interaction, singleModEmbed(client, mod, found?.game), ephemeral, logger);
             });
 
             collector.on('end', ic => {
@@ -380,29 +379,29 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
         }
     }
     catch(err) {
-        logMessage('Mod Search failed!', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, err}, true);
+        logger.warn('Mod Search failed!', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, err});
         await interaction.deleteReply().catch(() => undefined);
         return interaction.followUp({ content: 'Search failed!', embeds:[], components: [], ephemeral: true});
     }
 
 }
 
-async function searchGames(query: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
-    logMessage('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+async function searchGames(query: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
+    logger.debug('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
 
     const allGames = await user.NexusMods.API.Other.Games().catch(() => []);
     const fuse = new Fuse(allGames, options);
 
     const results: IGameStatic[] = fuse.search(query).map(r => r.item);
-    if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral);
-    else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral);
-    else return postResult(interaction, multiGameResult(client, results, query), ephemeral);
+    if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral, logger);
+    else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral, logger);
+    else return postResult(interaction, multiGameResult(client, results, query), ephemeral, logger);
 
 }
 
-async function searchUsers(query: string, userId: number, ephemeral: boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null) {
-    logMessage('User search', {query, userId, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
+async function searchUsers(query: string, userId: number, ephemeral: boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
+    logger.debug('User search', {query, userId, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', flags: ephemeral ? MessageFlags.Ephemeral: undefined });
 
     const invalidSearch = () => new EmbedBuilder()
@@ -426,10 +425,10 @@ async function searchUsers(query: string, userId: number, ephemeral: boolean, cl
     .setFooter({ text: `Nexus Mods - Requested by ${interaction.user.displayName}`, iconURL: client.user?.avatarURL() || '' });
 
     const searchTerm: string | number = query ?? userId;
-    if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, invalidSearch(), true);
+    if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, invalidSearch(), true, logger);
     const foundUser = await user.NexusMods.API.v2.FindUser(searchTerm);
-    if (!foundUser) return postResult(interaction, noUserFound(), true);
-    else return postResult(interaction, userResult(foundUser), ephemeral);
+    if (!foundUser) return postResult(interaction, noUserFound(), true, logger);
+    else return postResult(interaction, userResult(foundUser), ephemeral, logger);
 }
 
 function createModResultField(item: IModFieldResult): EmbedField {
@@ -616,26 +615,26 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
 }
 
 
-async function postResult(interaction: ChatInputCommandInteraction, embed: EmbedBuilder, ephemeral: boolean) {
+async function postResult(interaction: ChatInputCommandInteraction, embed: EmbedBuilder, ephemeral: boolean, logger: Logger) {
     const editReply: boolean = (interaction.deferred || interaction.replied)// ? interaction.editReply : interaction.reply;
 
     if (ephemeral) {
         if (editReply) return interaction.editReply({content: undefined, embeds: [embed]})
-            .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+            .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
         else return interaction.reply({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
     }
 
     if (editReply) interaction.editReply({ content: 'Search result posted!', embeds:[], components: []})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
     else interaction.reply({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
-    .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+    .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
     return interaction.followUp({content: '', embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e)});
+        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
 }
 
 export { discordInteraction };

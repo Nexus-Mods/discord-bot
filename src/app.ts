@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { logMessage } from './api/util';
+import { Logger } from './api/util';
 import { DiscordBot } from './DiscordBot';
 import { AuthSite } from './server/server';
 
@@ -11,7 +11,7 @@ async function start() {
     // Log the shard ID (if running in a shard)
     if (bot.client.shard) {
         const shardId = bot.client.shard.ids[0];
-        logMessage(`Starting shard ${shardId}`);
+        bot.logger.info(`Starting shard ${shardId}`);
     }
 
     // Login with the Discord bot. 
@@ -19,7 +19,7 @@ async function start() {
         await bot.connect();
     }
     catch(err) {
-        logMessage('Failed to connect Discord bot', err, true);
+        bot.logger.error('Failed to connect Discord bot', err);
         process.exit();
     }
 
@@ -28,15 +28,15 @@ async function start() {
         await bot.setupInteractions();
     }
     catch(err) {
-        logMessage('Failed to set up Discord bot interactions', err, true);
+        bot.logger.error('Failed to set up Discord bot interactions', err);
         process.exit();
     }
 
     // Set up the OAuth portal
     try {
-        const site = AuthSite.getInstance(bot.client);
+        const site = AuthSite.getInstance(bot.client, bot.logger);
     }
     catch(err) {
-        logMessage('Failed to set up Auth website', err, true);
+        bot.logger.error('Failed to set up Auth website', err);
     }
 }

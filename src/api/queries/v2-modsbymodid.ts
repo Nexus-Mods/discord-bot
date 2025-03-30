@@ -1,5 +1,5 @@
 import { request, gql, ClientError } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError } from './v2';
 
 export interface IResult {
@@ -47,7 +47,7 @@ query DiscordBotModsByDomain($mods: [CompositeDomainWithIdInput!]!, $count: Int!
 }
 `;
 
-export async function mods(headers: Record<string,string>, mods: IModRequest | IModRequest[]): Promise<IMod[]> {
+export async function mods(headers: Record<string,string>, logger: Logger, mods: IModRequest | IModRequest[]): Promise<IMod[]> {
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const ids: IModRequest[] = (!Array.isArray(mods)) ? [mods] : mods;
     if (!ids.length) return [];
@@ -63,20 +63,20 @@ export async function mods(headers: Record<string,string>, mods: IModRequest | I
 
     for (const page of pages) {
         try {
-            const pageData = await modsQuery(headers, page);
-            if (pageData.length != page.length) logMessage('Did not get back the same number of mods as sent', { sent: page.length, got: pageData.length }, true);
+            const pageData = await modsQuery(headers, logger, page);
+            if (pageData.length != page.length) logger.warn('Did not get back the same number of mods as sent', { sent: page.length, got: pageData.length }, true);
             results = [...results, ...pageData];
         }
         catch(err) {
             const error = new NexusGQLError(err as any, 'mods');
-            logMessage('Error fetching mod data', { error, auth: headers['apikey'] ? 'APIKEY' : 'OAUTH' }, true);
+            logger.error('Error fetching mod data', { error, auth: headers['apikey'] ? 'APIKEY' : 'OAUTH' }, true);
         }
     }
 
     return results;
 }
 
-async function modsQuery(headers: Record<string,string>, mods: IModRequest[], offset: Number = 0, count: Number = 50): Promise<IMod[]> {
+async function modsQuery(headers: Record<string,string>, logger: Logger, mods: IModRequest[], offset: Number = 0, count: Number = 50): Promise<IMod[]> {
     if (!mods.length) return [];
 
     try {
@@ -97,7 +97,7 @@ async function modsQuery(headers: Record<string,string>, mods: IModRequest[], of
             }
             else throw new Error('GraphQLError '+error);
         }
-        logMessage('Unkown Mod Lookup Error!', err);
+        logger.error('Unkown Mod Lookup Error!', err);
         throw new Error('Could not find some or all of the mods.');
     }
 

@@ -1,5 +1,5 @@
 import { request, gql, Variables } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, NexusGQLError } from './v2';
 import * as GQLTypes from '../../types/GQLTypes';
 
@@ -59,7 +59,7 @@ query DiscordBotGetTotalDownloadsForCollections(
 }
 `;
 
-export async function collectionsDownloadTotals(headers: Record<string,string>, id: number): Promise<ITotals> {
+export async function collectionsDownloadTotals(headers: Record<string,string>, logger: Logger, id: number): Promise<ITotals> {
     const variables: IQueryVariables = {
         filters : {
           userId:  { value: id.toString(), op: 'EQUALS' }
@@ -77,7 +77,7 @@ export async function collectionsDownloadTotals(headers: Record<string,string>, 
         const total = result.collectionsV2.nodesCount;
         while (total > stats.length) {
           // Fetch additional pages
-          logMessage('Fetching additional collections page', { id, total, totalRequested });
+          logger.info('Fetching additional collections page', { id, total, totalRequested });
           variables.offset += 20;
           totalRequested += 20;
           const extraPage: IResult = await request(v2API, query, variables, headers);
@@ -93,7 +93,7 @@ export async function collectionsDownloadTotals(headers: Record<string,string>, 
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'collectionsDownloadTotals');
-        logMessage('Error in collectionsDownloadTotals v2 request', error, true);
+        logger.error('Error in collectionsDownloadTotals v2 request', error, true);
         return { totalDownloads: 0, uniqueDownloads: 0 };
     }
 }

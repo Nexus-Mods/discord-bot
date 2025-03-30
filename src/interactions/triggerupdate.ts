@@ -1,6 +1,6 @@
 import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits, MessageFlags } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { logMessage } from "../api/util";
+import { Logger } from "../api/util";
 import { getSubscribedChannel, setDateForAllSubsInChannel, updateSubscribedChannel } from "../api/subscriptions";
 
 const timezones = [
@@ -49,7 +49,7 @@ const discordInteraction: DiscordInteraction = {
     action,
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({flags: MessageFlags.Ephemeral }).catch(err => { throw err });
     // Get any passed options
@@ -83,13 +83,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         if (!channel) return interaction.editReply('No subscribed items in this channel.');
         const update = await setDateForAllSubsInChannel(timeToUse, interaction.guildId!, interaction.channelId);
         channel = await updateSubscribedChannel(channel, timeToUse);
-        logMessage('Subsription update triggered', { guild: interaction.guild?.name, channel: (interaction.channel as GuildChannel)?.name, timeToUse});
+        logger.info('Subscription update triggered', { guild: interaction.guild?.name, channel: (interaction.channel as GuildChannel)?.name, timeToUse});
         await interaction.editReply(`Updates for all tracked items since <t:${epoch}:f> will be posted shortly.\n${update.map(i => i.title).join('\n')}`);
         await channel.webHookClient.send(`-# Update triggered by ${interaction.user.toString()} for updates since <t:${epoch}:f> for ${update.length} tracked item(s).`);
         await client.subscriptions?.getUpdatesForChannel(channel);
     }
     catch(err) {
-        logMessage('Error updating subsriptions', err, true);
+        logger.warn('Error updating subsriptions', err);
         return interaction.editReply('An error occurred updating subscriptions: '+(err as Error).message);
     }
 }

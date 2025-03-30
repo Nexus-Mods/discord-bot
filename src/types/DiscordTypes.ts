@@ -7,6 +7,7 @@ import { NewsFeedManager } from "../feeds/NewsFeedManager";
 import { GameListCache, TipCache } from "./util";
 import { AutoModManager } from "../feeds/AutoModManager";
 import { SubscriptionManger } from "../feeds/SubscriptionManager";
+import { Logger } from "../api/util";
 
 interface ClientExt extends Client {
     config?: any;
@@ -24,19 +25,19 @@ interface ClientExt extends Client {
 interface DiscordEventInterface {
     name: string;
     once: boolean;
-    execute: (client: Client, ...args: any) => Promise<void> | void;
+    execute: (client: Client, logger: Logger, ...args: any) => Promise<void> | void;
 }
 
 interface DiscordInteraction {
     command: SlashCommandBuilder | ContextMenuCommandBuilder;
-    action: (client: Client, interact: CommandInteraction) => Promise<void>;
+    action: (client: Client, interact: CommandInteraction, logger: Logger) => Promise<void>;
     public: boolean;
     guilds?: Snowflake[];
     permissions?: PermissionsExt[];
     // Optional to add aliases
     aliases?: string[];
     // Optional for autocomplete commands
-    autocomplete?: (client: Client, interact: AutocompleteInteraction) => Promise<void>,
+    autocomplete?: (client: Client, interact: AutocompleteInteraction, logger: Logger) => Promise<void>,
 }
 
 interface PermissionsExt {

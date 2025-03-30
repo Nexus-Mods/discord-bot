@@ -3,7 +3,7 @@ import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 import { IStatusPageFullResponse } from "../types/util";
-import { KnownDiscordServers } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -19,11 +19,11 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const discordId = interaction.user.id;
-    const botuser: DiscordBotUser = await getUserByDiscordId(discordId) ?? new DiscordBotUser(DummyNexusModsUser);
+    const botuser: DiscordBotUser = await getUserByDiscordId(discordId) ?? new DiscordBotUser(DummyNexusModsUser, logger);
 
     try {
         const statusPage: IStatusPageFullResponse = await botuser.NexusMods.API.Other.WebsiteStatus(true) as IStatusPageFullResponse;

@@ -1,7 +1,7 @@
 import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction, ContextMenuCommandType, MessageFlags } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId, userProfileEmbed, userEmbed } from '../api/bot-db';
-import { KnownDiscordServers, logMessage } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
@@ -14,7 +14,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseinteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseinteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseinteraction as any as ContextMenuCommandInteraction);
     await interaction.deferReply( { flags: MessageFlags.Ephemeral });
     const member = interaction.targetId;
@@ -31,7 +31,7 @@ async function action(client: Client, baseinteraction: CommandInteraction): Prom
         const isMe: boolean = interaction.user.id === user.DiscordId;
         if (isAdmin || isMe || inGuild) return interaction.editReply({ embeds: [await userProfileEmbed(user, client)] });
             else {
-                logMessage('Profile view not authorised', {requester: interaction.user.tag, target: user, isAdmin, isMe, inGuild});
+                logger.info('Profile view not authorised', {requester: interaction.user.tag, target: user, isAdmin, isMe, inGuild});
                 return interaction.editReply({ embeds: [ notAllowed(client) ] });
             };
     }

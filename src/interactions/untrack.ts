@@ -7,6 +7,7 @@ import {
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { SubscribedItem, SubscribedItemType } from "../types/subscriptions";
 import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "../api/subscriptions";
+import { Logger } from "../api/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -19,7 +20,7 @@ const discordInteraction: DiscordInteraction = {
     action
 };
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });
 

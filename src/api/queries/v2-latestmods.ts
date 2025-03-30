@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
 
 interface IResult {
@@ -44,7 +44,7 @@ query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function latestMods(headers: Record<string,string>, startDate: Date, gameIds?: number | number[], sort: IModsSort = { createdAt: { direction: 'DESC' }}): Promise<IModResults> {
+export async function latestMods(headers: Record<string,string>, logger: Logger, startDate: Date, gameIds?: number | number[], sort: IModsSort = { createdAt: { direction: 'DESC' }}): Promise<IModResults> {
 
     if (typeof startDate === 'string') {
         startDate = new Date(startDate)
@@ -76,7 +76,7 @@ export async function latestMods(headers: Record<string,string>, startDate: Date
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'mods');
-        logMessage('Error in latestmods v2 request', error, true);
+        logger.error('Error in latestmods v2 request', error, true);
         return { nodes: [], totalCount: 0 };
     }
 }

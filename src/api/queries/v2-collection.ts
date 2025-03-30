@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, ICollection, NexusGQLError } from './v2';
 
 interface IResult {
@@ -50,7 +50,7 @@ query DiscordBotGetCollectionData($slug: String, $adult: Boolean, $domain: Strin
   }
 `;
 
-export async function collection(headers: Record<string,string>, slug: string, domain: string, adult: boolean): Promise<ICollection | undefined> {
+export async function collection(headers: Record<string,string>, logger: Logger, slug: string, domain: string, adult: boolean): Promise<ICollection | undefined> {
     const vars = { slug, adult, domain };
     
     try {
@@ -59,7 +59,7 @@ export async function collection(headers: Record<string,string>, slug: string, d
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'collection');
-        logMessage('Error in collection v2 request', error, true);
+        logger.error('Error in collection v2 request', error, true);
         return undefined;
     }
 }

@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { logMessage } from '../api/util';
+import { Logger } from '../api/util';
 import { getModAuthor } from '../api/nexus-discord';
 
 interface OAuthURL {
@@ -32,13 +32,13 @@ interface NexusUserData {
   membership_roles: NexusMembershipRoles[];
 }
 
-export function getOAuthUrl(sharedState: string): OAuthURL {
+export function getOAuthUrl(sharedState: string, logger: Logger): OAuthURL {
     
     const state = sharedState ?? crypto.randomUUID();
 
     const { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI } = process.env;
     if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI) {
-      logMessage('Could not generate Nexus Mods OAUTH URL', { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI }, true);
+      logger.warn('Could not generate Nexus Mods OAUTH URL', { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI });
       return { url: '/oauth-error', state };
     };
   
@@ -82,7 +82,7 @@ export async function getOAuthTokens(code: string): Promise<NexusOAuthTokens> {
     }
 }
 
-export async function getUserData(tokens: NexusOAuthTokens): Promise<NexusUserData> {
+export async function getUserData(tokens: NexusOAuthTokens, logger: Logger): Promise<NexusUserData> {
     const url = 'https://users.nexusmods.com/oauth/userinfo';
     const response = await fetch(url, {
       headers: {
@@ -91,7 +91,7 @@ export async function getUserData(tokens: NexusOAuthTokens): Promise<NexusUserDa
     });
     if (response.ok) {
       const data = await response.json();
-      const modauthor: boolean = await getModAuthor(parseInt(data.sub)).catch(() => false);
+      const modauthor: boolean = await getModAuthor(parseInt(data.sub), logger).catch(() => false);
       if (modauthor === true) data.membership_roles?.push('modauthor');
       return data;
     } else {

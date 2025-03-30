@@ -1,7 +1,7 @@
 import query from '../api/dbConnect';
 import { BotServer } from '../types/servers';
 import { Guild } from 'discord.js';
-import { logMessage } from './util';
+import { logger } from '../DiscordBot';
 
 async function getAllServers(): Promise<BotServer[]> {
     try {
@@ -16,7 +16,7 @@ async function getServer(guild: Guild): Promise<BotServer> {
     try {
         const result = await query<BotServer>('SELECT * FROM servers WHERE id = $1', [guild.id], 'GetServer');
         if (!result?.rows || result.rows.length === 0) {
-            logMessage('Server lookup. Guild not found: ', guild.name);
+            logger.warn('Server lookup. Guild not found: ', guild.name);
             try {
                 await addServer(guild);
                 const newResult = await getServer(guild);

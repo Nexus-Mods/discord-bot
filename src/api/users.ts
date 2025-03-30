@@ -1,8 +1,9 @@
 import query from '../api/dbConnect';
-import { NexusUser, NexusLinkedMod } from '../types/users';
+import { NexusUser } from '../types/users';
 import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
-import { logMessage, nexusModsTrackingUrl } from './util';
+import { nexusModsTrackingUrl } from './util';
 import { DiscordBotUser } from './DiscordBotUser';
+import { logger } from '../DiscordBot';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     try {
@@ -10,7 +11,7 @@ async function getAllUsers(): Promise<NexusUser[]> {
         return result.rows;
     }
     catch (err) {
-        logMessage('Error getting all users', err, true);
+        logger.error('Error getting all users', err);
         return [];
     }
 }
@@ -20,12 +21,12 @@ async function getUserByDiscordId(discordId: Snowflake | string): Promise<Discor
         const result = await query<NexusUser>('SELECT * FROM users WHERE d_id = $1', [discordId]);
         const user: NexusUser = result?.rows[0];
         if (user) {
-            return new DiscordBotUser(user);
+            return new DiscordBotUser(user, logger);
         }
         return undefined;
     }
     catch (err) {
-        logMessage('Error in user lookup by Discord ID', { err, discordId }, true);
+        logger.error('Error in user lookup by Discord ID', { err, discordId });
         return undefined;
     }
 }
@@ -35,12 +36,12 @@ async function getUserByNexusModsName(username: string): Promise<DiscordBotUser 
         const result = await query<NexusUser>('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username]);
         const user: NexusUser = result?.rows[0];
         if (user) {
-            return new DiscordBotUser(user);
+            return new DiscordBotUser(user, logger);
         }
         return undefined;
     }
     catch (err) {
-        logMessage('Error in user lookup by Nexus Mods username', { err, username }, true);
+        logger.error('Error in user lookup by Nexus Mods username', { err, username });
         return undefined;
     }
 }
@@ -50,12 +51,12 @@ async function getUserByNexusModsId(id: number): Promise<DiscordBotUser | undefi
         const result = await query<NexusUser>('SELECT * FROM users WHERE id = $1', [id]);
         const user: NexusUser = result?.rows[0];
         if (user) {
-            return new DiscordBotUser(user);
+            return new DiscordBotUser(user, logger);
         }
         return undefined;
     }
     catch (err) {
-        logMessage('Error in user lookup by Nexus Mods ID', { err, id }, true);
+        logger.error('Error in user lookup by Nexus Mods ID', { err, id });
         return undefined;
     }
 }
@@ -76,10 +77,10 @@ async function createUser(user: NexusUser): Promise<DiscordBotUser> {
                 new Date()
             ]
         );
-        return new DiscordBotUser(result?.rows[0]);
+        return new DiscordBotUser(result?.rows[0], logger);
     }
     catch (err) {
-        logMessage('Error inserting new user', err, true);
+        logger.error('Error inserting new user', err);
         throw err;
     }
 }
@@ -89,7 +90,7 @@ async function deleteUser(discordId: string): Promise<void> {
         await query('DELETE FROM users WHERE d_id = $1', [discordId]);
     }
     catch (err) {
-        logMessage('Error deleting user', { discordId, err }, true);
+        logger.error('Error deleting user', { discordId, err });
         throw err;
     }
 }
@@ -109,10 +110,10 @@ async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promi
 
     try {
         const result = await query<NexusUser>(updateQuery, values);
-        return new DiscordBotUser(result?.rows[0]);
+        return new DiscordBotUser(result?.rows[0], logger);
     }
     catch (err) {
-        logMessage('Error updating user', { discordId, err }, true);
+        logger.error('Error updating user', { discordId, err });
         throw err;
     }
 }
@@ -139,7 +140,7 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
         return embed;
     }
     catch (err) {
-        logMessage('Error creating user embed', { userData, err }, true);
+        logger.error('Error creating user embed', { userData, err });
         throw err;
     }
 }
@@ -170,7 +171,7 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
         return embed;
     }
     catch (err) {
-        logMessage('Error creating user profile embed', { user, err }, true);
+        logger.error('Error creating user profile embed', { user, err });
         throw err;
     }
 }

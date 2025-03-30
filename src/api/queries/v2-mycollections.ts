@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, ICollection, NexusGQLError } from './v2';
 
 interface IResult {
@@ -56,14 +56,14 @@ query DiscordBotMyCollections {
   }
 `;
 
-export async function myCollections(headers: Record<string,string>): Promise<ICollection[]> {
+export async function myCollections(headers: Record<string,string>, logger: Logger,): Promise<ICollection[]> {
     try {
         const result: IResult = await request(v2API, query, {}, headers);
         return result.myCollections.nodes;
     }
     catch(err) {
       const error = new NexusGQLError(err as any, 'mycollections');
-        logMessage('Error in mycollections v2 request', error, true);
+        logger.error('Error in mycollections v2 request', error);
         return [];
     }
 }

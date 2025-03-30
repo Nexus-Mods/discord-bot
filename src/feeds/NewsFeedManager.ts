@@ -2,7 +2,7 @@ import { News, SavedNewsData } from '../types/feeds';
 import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import { EmbedBuilder, TextChannel, WebhookClient } from 'discord.js';
-import { logMessage, nexusModsTrackingUrl } from '../api/util';
+import { Logger, nexusModsTrackingUrl } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IGameStatic } from '../api/queries/other';
 
@@ -14,28 +14,30 @@ export class NewsFeedManager {
     private LatestNews: SavedNewsData | undefined = undefined;
     private client: ClientExt;
     private updateTimer: NodeJS.Timeout;
+    private logger: Logger
 
-    static async getInstance(client: ClientExt): Promise<NewsFeedManager> {
+    static async getInstance(client: ClientExt, logger: Logger): Promise<NewsFeedManager> {
         if (!NewsFeedManager.instance) {
-            await ensureNewsDB();
+            await ensureNewsDB(logger);
             let saved = undefined;
             try {
-                saved = await getSavedNews();
+                saved = await getSavedNews(logger);
             }
             catch(err) {
-                logMessage('Error fetching news', (err as Error).message, true);
+                logger.error('Error fetching news', (err as Error).message);
             }
-            logMessage('Initialised news feed, checking every hour.')
-            NewsFeedManager.instance = new NewsFeedManager(client, pollTime, saved);
+            logger.info('Initialised news feed, checking every hour.')
+            NewsFeedManager.instance = new NewsFeedManager(client, pollTime, logger, saved);
             await NewsFeedManager.instance.postLatestNews();
         }
         
         return NewsFeedManager.instance;
     }
 
-    private constructor(client: ClientExt, pollTime: number, savedNews?: SavedNewsData) {
+    private constructor(client: ClientExt, pollTime: number, logger: Logger, savedNews?: SavedNewsData) {
         // Save the client for later
         this.client = client;
+        this.logger = logger;
         // Set the update interval.
         this.updateTimer = setInterval(async () => {
             try {
@@ -43,21 +45,21 @@ export class NewsFeedManager {
                 await this.postLatestNews();
             }
             catch(err) {
-                logMessage('Failed to check for latest news updates', err, true);
+                this.logger.warn('Failed to check for latest news updates', err);
             }
         }, pollTime);
         this.LatestNews = savedNews;
     }
 
     private async postLatestNews(domain?: string): Promise<EmbedBuilder> {
-        const dummyUser = new DiscordBotUser(DummyNexusModsUser);
+        const dummyUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
         const stored: SavedNewsData | undefined = NewsFeedManager.instance.LatestNews;
         const game: IGameStatic | undefined = domain ? ((await this.client.gamesList?.getGames())?.find(g => g.domain_name === domain)) : undefined;
 
         try {
             const news = await dummyUser.NexusMods.API.v2.News(game?.id);
             if (stored?.title === news[0].title && stored?.date.getTime() === news[0].publishDate.getTime()) {
-                logMessage('No news updates since last check.');
+                this.logger.info('No news updates since last check.');
                 return newsPostEmbed(news[0], game?.domain_name);
             }
             // We need to post a new article! Let's set up a webhook.
@@ -79,16 +81,16 @@ export class NewsFeedManager {
 
             if (message.crosspostable) {
                 await message.crosspost();
-                logMessage('News crossposted');
+                this.logger.info('News crossposted');
             }
-            else logMessage('Could not crosspost news');
+            else this.logger.warn('Could not crosspost news');
 
             // Update saved news.
             const latest: SavedNewsData = { title: news[0].title, date: news[0].publishDate, id: parseInt(news[0].id) };
 
             if (!domain) {
                 // Only update the saved news if this wasn't run against a game domain!
-                await updateSavedNews(latest.title, latest.date, latest.id);
+                await updateSavedNews(this.logger, latest.title, latest.date, latest.id);
                 this.LatestNews = latest;
             }           
 
@@ -96,7 +98,7 @@ export class NewsFeedManager {
 
         }
         catch(err) {
-            logMessage('Error posting latest news', err, true);
+            this.logger.warn('Error posting latest news', err);
             throw err;
         }
     }
@@ -105,7 +107,7 @@ export class NewsFeedManager {
         clearInterval(NewsFeedManager.instance.updateTimer);
         NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.postLatestNews(), pollTime);
         // NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
-        logMessage('Forced news feed update check', domain || 'all');
+        this.logger.info('Forced news feed update check', domain || 'all');
         // return NewsFeedManager.instance.checkNews(domain);
         return NewsFeedManager.instance.postLatestNews(domain);
     }

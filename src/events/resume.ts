@@ -1,12 +1,12 @@
 import { Client } from "discord.js";
-import { logMessage } from "../api/util";
+import { Logger } from "../api/util";
 import { DiscordEventInterface } from '../types/DiscordTypes';
 
 const main: DiscordEventInterface = {
     name: 'resume',
     once: false,
-    execute(client: Client, replayed: number) {
-        logMessage(`Reconnected successfully, replaying ${replayed} events.`);
+    execute(client: Client, logger: Logger, replayed: number) {
+        logger.info(`Reconnected successfully, replaying ${replayed} events.`);
     }
 }
 

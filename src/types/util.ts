@@ -5,7 +5,7 @@ import {
     ActionRow, MessageActionRowComponent, EmbedBuilder
 } from "discord.js";
 import { other } from "../api/queries/all";
-import { logMessage } from "../api/util";
+import { Logger } from "../api/util";
 import { IGameStatic } from "../api/queries/other";
 import { getAllTips, ITip } from "../api/tips";
 
@@ -154,13 +154,13 @@ export class GameListCache {
         this.games = [];
     }
 
-    async init(): Promise<GameListCache> {
+    async init(logger: Logger): Promise<GameListCache> {
         try {
             await this.getGames();
             return this;
         }
         catch(err) {
-            logMessage('Error initialising game cache', err, true);
+            logger.error('Error initialising game cache', err);
             return this;
         }
     }

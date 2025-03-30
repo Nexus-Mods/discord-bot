@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError } from './v2';
 
 interface IResult {
@@ -49,7 +49,7 @@ query DiscordBotModsByUid($uids: [ID!]!) {
 
 type IModWithoutCategory = Omit<IMod,'modcategory'>;
 
-export async function modsByUid(headers: Record<string,string>, uids: string[]): Promise<IModWithoutCategory[]> {
+export async function modsByUid(headers: Record<string,string>, logger: Logger, uids: string[]): Promise<IModWithoutCategory[]> {
 
     const vars = {
         uids
@@ -61,7 +61,7 @@ export async function modsByUid(headers: Record<string,string>, uids: string[]):
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'modsByUid');
-        logMessage('Error in modsbyuid v2 request', error, true);
+        logger.error('Error in modsbyuid v2 request', error, true);
         return [];
     }
 }

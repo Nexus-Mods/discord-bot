@@ -2,10 +2,11 @@ import {
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
     TextChannel, Collection, Snowflake, Webhook,
     PermissionFlagsBits,
-    MessageFlags
+    MessageFlags,
+    InteractionContextType
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, logMessage } from "../api/util";
+import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, Logger } from "../api/util";
 import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions";
 import { createSubscribedChannel, getSubscribedChannel } from "../api/subscriptions";
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
@@ -13,7 +14,7 @@ import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('track')
-    .setDMPermission(false)
+    .setContexts(InteractionContextType.Guild)
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .setDescription('Track a game, mod, collection or user in this channel.')
     .addSubcommand(sc => 
@@ -122,22 +123,22 @@ const discordInteraction: DiscordInteraction = {
     autocomplete,
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });
 
     const subCommand: SubscribedItemType = interaction.options.getSubcommand(true) as SubscribedItemType;
     switch (subCommand) {
-        case SubscribedItemType.Game: return trackGame(client, interaction);
-        case SubscribedItemType.Mod: return trackMod(client, interaction);
-        case SubscribedItemType.Collection: return trackCollection(client, interaction);
-        case SubscribedItemType.User: return trackUser(client, interaction);
+        case SubscribedItemType.Game: return trackGame(client, interaction, logger);
+        case SubscribedItemType.Mod: return trackMod(client, interaction, logger);
+        case SubscribedItemType.Collection: return trackCollection(client, interaction, logger);
+        case SubscribedItemType.User: return trackUser(client, interaction, logger);
         default: throw new Error(`Tracking for ${subCommand} is not implemented yet.`)
     }
 }
 
-async function trackGame(client: ClientExt, interaction: ChatInputCommandInteraction) {
-    const channel = await ensureChannelisSubscribed(client, interaction);
+async function trackGame(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
+    const channel = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const gameDomain = interaction.options.getString('game', true);
     const compact = interaction.options.getBoolean('compact') ?? false;
@@ -169,11 +170,11 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
     try { 
         if (currentGameSub) {
             currentGameSub = await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updated existing game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Updated existing game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
             currentGameSub = await channel.subscribe(newData);
-            logMessage('Created new game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Created new game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
         const embed = new EmbedBuilder()
         .setTitle('Game Tracked!')
@@ -187,20 +188,20 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
         
     }
     catch(err) {
-        logMessage('Failed to track game', err, true);
+        logger.warn('Failed to track game', err);
         await interaction.editReply('Failed to track game!');
         throw err;
     }
 }
 
-async function trackMod(client: ClientExt, interaction: ChatInputCommandInteraction) {
-    const channel = await ensureChannelisSubscribed(client, interaction);
+async function trackMod(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
+    const channel = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const moduid: string = interaction.options.getString('mod', true);
     const compact: boolean = interaction.options.getBoolean('compact') ?? false;
     const message: string | null = interaction.options.getString('message');
     // Get the mod info
-    const dummyUser = new DiscordBotUser(DummyNexusModsUser);
+    const dummyUser = new DiscordBotUser(DummyNexusModsUser, logger);
     try {
         const queryRes = await dummyUser.NexusMods.API.v2.ModsByUid([moduid]);
         const mod = queryRes[0];
@@ -223,11 +224,11 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
 
         if (currentGameSub) {
             currentGameSub = await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updated existing mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Updated existing mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
             currentGameSub = await channel.subscribe(newData);
-            logMessage('Created new mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Created new mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
 
         const embed = new EmbedBuilder()
@@ -242,21 +243,21 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
 
     }
     catch(err) {
-        logMessage('Failed to track mod', err, true);
+        logger.warn('Failed to track mod', err);
         await interaction.editReply('Failed to track mod!');
         throw err;
     }
 }
 
-async function trackCollection(client: ClientExt, interaction: ChatInputCommandInteraction) {
-    const channel = await ensureChannelisSubscribed(client, interaction);
+async function trackCollection(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
+    const channel = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const collectionSlugAndDomain = interaction.options.getString('collection', true);
     const [domain, collectionSlug] = collectionSlugAndDomain.split(':');
     const compact = interaction.options.getBoolean('compact') ?? false;
     const message = interaction.options.getString('message');
     // Get the mod info
-    const dummyUser = new DiscordBotUser(DummyNexusModsUser);
+    const dummyUser = new DiscordBotUser(DummyNexusModsUser, logger);
     try {
         const collection = await dummyUser.NexusMods.API.v2.Collection(collectionSlug, domain, true);
         if (!collection) throw new Error(`No collection exists for ID:${collectionSlugAndDomain}`);
@@ -278,11 +279,11 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
 
         if (currentGameSub) {
             currentGameSub = await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updated existing collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Updated existing collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
             currentGameSub = await channel.subscribe(newData);
-            logMessage('Created new collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Created new collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
 
         const embed = new EmbedBuilder()
@@ -297,20 +298,20 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
 
     }
     catch(err) {
-        logMessage('Failed to track collection', err, true);
+        logger.warn('Failed to track collection', err);
         await interaction.editReply('Failed to track collection!');
         throw err;
     }
 }
 
-async function trackUser(client: ClientExt, interaction: ChatInputCommandInteraction) {
-    const channel = await ensureChannelisSubscribed(client, interaction);
+async function trackUser(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
+    const channel = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const userId: number = parseInt(interaction.options.getString('user', true));
     const compact = interaction.options.getBoolean('compact') ?? false;
     const message = interaction.options.getString('message');
     // Get the mod info
-    const dummyUser = new DiscordBotUser(DummyNexusModsUser);
+    const dummyUser = new DiscordBotUser(DummyNexusModsUser, logger);
     try {
         const user = await dummyUser.NexusMods.API.v2.FindUser(userId);
         if (!user) throw new Error(`No user exists for ID:${userId}`);
@@ -331,11 +332,11 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
 
         if (currentGameSub) {
             currentGameSub = await channel.updateSub(currentGameSub.id, newData);
-            logMessage('Updated existing user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Updated existing user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
             currentGameSub = await channel.subscribe(newData);
-            logMessage('Created new user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
+            logger.info('Created new user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
 
         const embed = new EmbedBuilder()
@@ -350,13 +351,13 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
 
     }
     catch(err) {
-        logMessage('Failed to track user', err, true);
+        logger.warn('Failed to track user', err);
         await interaction.editReply('Failed to track user!');
         throw err;
     }
 }
 
-async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<SubscribedChannel> {
+async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<SubscribedChannel> {
     const guild_id = interaction.guildId!;
     const existingChannel = await getSubscribedChannel(guild_id, interaction.channelId);
     if (existingChannel) return existingChannel;
@@ -377,7 +378,7 @@ async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInp
             })
         }
         catch(err) {
-            logMessage('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err}, true);
+            logger.warn('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err});
             throw new Error(`Failed to create Webhook for tracking feed. Please make sure the bot has the correct permissions.\n Error: ${(err as Error).message || err}`);
         }
     }
@@ -391,14 +392,14 @@ async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInp
     return newChannel;
 }
 
-async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction) {
+async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger: Logger) {
     const focused = interaction.options.getFocused(true);
 
     switch (focused.name) {
-        case 'game': return autocompleteGameName(client, interaction);
-        case 'mod': return autoCompleteModSearch(interaction);
-        case 'collection': return autoCompleteCollectionSearch(interaction);
-        case 'user': return autoCompleteUserSearch(interaction);
+        case 'game': return autocompleteGameName(client, interaction, logger);
+        case 'mod': return autoCompleteModSearch(interaction, logger);
+        case 'collection': return autoCompleteCollectionSearch(interaction, logger);
+        case 'user': return autoCompleteUserSearch(interaction, logger);
     }
 }
 

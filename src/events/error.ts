@@ -1,12 +1,12 @@
 import { Client } from 'discord.js';
-import { logMessage } from '../api/util';
+import { Logger } from '../api/util';
 import { DiscordEventInterface } from '../types/DiscordTypes';
 
 const main: DiscordEventInterface = {
     name: 'error',
     once: false,
-    execute(client: Client, error: Error) {
-        logMessage('The bot has encountered an unexpected error', error , true);
+    execute(client: Client, logger: Logger, error: Error) {
+        logger.error('The bot has encountered an unexpected error', error);
         process.exit();
     }
 }

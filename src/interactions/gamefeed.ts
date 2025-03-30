@@ -2,12 +2,13 @@ import {
     CommandInteraction, Snowflake, EmbedBuilder, Client, 
     Interaction, Message, TextChannel, Webhook, Collection,
     ButtonBuilder, InteractionCollector, APIEmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction, AutocompleteInteraction,
+    SlashCommandBuilder, ButtonStyle, ActionRowBuilder, ComponentType, ModalBuilder, 
+    ModalActionRowComponentBuilder, TextInputBuilder, TextInputStyle, ButtonInteraction,
     MessageFlags
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId, createGameFeed, getGameFeedsForServer, getGameFeed, deleteGameFeed, updateGameFeed } from '../api/bot-db';
-import { logMessage } from '../api/util';
+import { Logger } from '../api/util';
 import { GameFeed } from "../types/feeds";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
@@ -56,16 +57,15 @@ const discordInteraction: DiscordInteraction = {
     autocomplete: autocompleteGameName,
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    // logMessage('Gamefeed interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, subCommand: interaction.options.getSubcommand() });
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });;
 
     if (!interaction.memberPermissions?.toArray().includes('ManageChannels')) {
         // User is not a moderator. 
         await interaction.editReply('Gamefeeds can only be created or managed by server moderators with the "Manage Channels" permission.');
-        return logMessage('Permission to create gamefeed denied', { user: interaction.user.tag, guild: interaction.guild?.name });
+        return logger.info('Permission to create gamefeed denied', { user: interaction.user.tag, guild: interaction.guild?.name });
     }
 
     const userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
@@ -73,15 +73,15 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     const interactionSubCommand = interaction.options.getSubcommand();
 
     switch (interactionSubCommand) {
-        case 'about': return aboutGameFeeds(client, interaction, userData);
-        case 'create': return createGameFeedDisabled(client, interaction, userData);
-        case 'list' : return listFeeds(client, interaction, userData);
-        case 'manage': return manageFeed(client, interaction, userData);
+        case 'about': return aboutGameFeeds(client, interaction, userData, logger);
+        case 'create': return createGameFeedDisabled(client, interaction, userData, logger);
+        case 'list' : return listFeeds(client, interaction, userData, logger);
+        case 'manage': return manageFeed(client, interaction, userData, logger);
         default: await interaction.editReply('Unknown SubCommand!');
     }
 }
 
-async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<void> {
+async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined, logger: Logger): Promise<void> {
     const aboutEmbed = new EmbedBuilder()
     .setTitle('Game Feeds')
     .setDescription("Using this feature you can create a feed in this channel which will periodically report new and updated mods posted for the specfied game."+
@@ -104,11 +104,11 @@ async function aboutGameFeeds(client: Client, interaction: ChatInputCommandInter
     interaction.editReply({ content: null, embeds: [aboutEmbed] });
 }
 
-async function createGameFeedDisabled(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<any> {
+async function createGameFeedDisabled(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined, logger: Logger): Promise<any> {
     return rejectMessage('The game feeds feature is being deprecated, please use `/track` for new feeds.', interaction);
 }
 
-async function createFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<any> {
+async function createFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined, logger: Logger): Promise<any> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     // Check the user's auth is valid.
@@ -178,7 +178,7 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
                     gameHook = await (interaction.channel as TextChannel).createWebhook({ name: 'Nexus Mods Game Feed', avatar: client.user?.avatarURL() || '', reason: 'Game feed' });
                 }
                 catch(err) {
-                    logMessage('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err}, true);
+                    logger.error('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err});
                     throw new Error(`Failed to create Webhook for game feed. Please make sure the bot has the correct permissions.\n Error: ${(err as Error).message || err}`);
                 }
             }
@@ -198,12 +198,12 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
             }
 
             try {
-                logMessage('Creating new game feed', { game: game.name, guild: interaction.guild?.name });
+                logger.info('Creating new game feed', { game: game.name, guild: interaction.guild?.name });
                 const id = await createGameFeed(newFeed);
                 await interaction.editReply({ content: 'Game Feed created successfully', components: [], embeds: [] });
-                logMessage('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).name, owner: interaction.user.tag });
-                const infoMsg = await interaction?.followUp({ content: '', embeds: [successEmbed(interaction, newFeed, game, id)], flags: MessageFlags.Ephemeral }).catch((err) => logMessage('Followup error', err, true));
-                if (perms.includes('ManageMessages')) await (infoMsg as Message)?.pin().catch((err) => logMessage('Pinning post error', err, true));
+                logger.info('Game Feed Created', { id, game: game.name, guild: interaction.guild?.name, channel: (interaction.channel as TextChannel).name, owner: interaction.user.tag });
+                const infoMsg = await interaction?.followUp({ content: '', embeds: [successEmbed(interaction, newFeed, game, id)], flags: MessageFlags.Ephemeral }).catch((err) => logger.warn('Followup error', err));
+                if (perms.includes('ManageMessages')) await (infoMsg as Message)?.pin().catch((err) => logger.warn('Pinning post error', err));
                 return;
             }
             catch(err) {
@@ -216,12 +216,12 @@ async function createFeed(client: Client, interaction: ChatInputCommandInteracti
         });
     }
     catch(err) {
-        if (!(err as Error).message?.startsWith('No matching games')) logMessage('Error creating game feed', {err}, true);
+        if (!(err as Error).message?.startsWith('No matching games')) logger.error('Error creating game feed', err);
         rejectMessage((err as any).message || err, interaction);
     }
 }
 
-async function listFeeds(client: Client, interaction: CommandInteraction, user: DiscordBotUser|undefined): Promise<void> {
+async function listFeeds(client: Client, interaction: CommandInteraction, user: DiscordBotUser|undefined, logger: Logger): Promise<void> {
     const guildId = interaction.guildId;
     const feeds: GameFeed[] = guildId ? await getGameFeedsForServer(guildId) : [];
     const displayableFeeds = feeds.slice(0, 23);
@@ -245,7 +245,7 @@ async function listFeeds(client: Client, interaction: CommandInteraction, user: 
     interaction.editReply({ content: null, embeds: [embed] });
 }
 
-async function manageFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined): Promise<void> {
+async function manageFeed(client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser|undefined, logger: Logger): Promise<void> {
     if (!user) return rejectMessage('This feature requires a linked Nexus Mods account. See /link.', interaction);
 
     // Check the user's auth is valid.
@@ -447,7 +447,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                     ).catch(undefined);
                     break;
                 }
-                default: logMessage('Missed all cases for button press', undefined, true);
+                default: logger.warn('Missed all cases for button press', {id});
             }
 
         });
@@ -457,23 +457,23 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
                 try {
                     if (Object.keys(newData).length) {
                         await updateGameFeed(feed._id, newData);
-                        logMessage(`Game feed #${feed._id} for ${feed.title} in ${interaction.guild?.name} edited by ${ic.first()?.user?.tag}`);                    
+                        logger.info(`Game feed #${feed._id} for ${feed.title} in ${interaction.guild?.name} edited by ${ic.first()?.user?.tag}`);                    
                     }
                     await interaction.editReply({ content: 'Game Feed updated.', embeds: [embed({...feed, ...newData})], components: [] });
                 }
                 catch(err) {
-                    logMessage(`Failed to update Game Feed #${feed._id}`, {err}, true);
+                    logger.warn(`Failed to update Game Feed #${feed._id}`, {err});
                     rejectMessage('Unable to update Game Feed:\n'+((err as Error).message || err), interaction)
                 }
             }
             else if (ic.find(i => i.customId === 'delete')) {
                 try {
                     await deleteGameFeed(feed._id);
-                    logMessage(`Game feed #${feed._id} for ${feed.title} in ${interaction.guild?.name} deleted by ${ic.first()?.user?.tag}`);
+                    logger.info(`Game feed #${feed._id} for ${feed.title} in ${interaction.guild?.name} deleted by ${ic.first()?.user?.tag}`);
                     await interaction.editReply({ content: 'Game Feed deleted.', embeds: [], components: [] });
                 }
                 catch(err) {
-                    logMessage(`Failed to delete Game Feed #${feed._id}`, {err}, true);
+                    logger.warn(`Failed to delete Game Feed #${feed._id}`, {err});
                     rejectMessage('Unable to delete Game Feed:\n'+((err as Error).message || err), interaction)
                 }
             }
@@ -483,7 +483,7 @@ async function manageFeed(client: Client, interaction: ChatInputCommandInteracti
 
     }
     catch(err) {
-        logMessage('Game Feed management error', err, true);
+        logger.warn('Game Feed management error', err);
         rejectMessage('Something went wrong when trying to manage the Game Feed.\n'+((err as Error).message || err), interaction);
     }
 }

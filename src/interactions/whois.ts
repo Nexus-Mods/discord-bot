@@ -2,7 +2,7 @@ import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { NexusUser, NexusUserServerLink } from "../types/users";
 import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
 import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags } from "discord.js";
-import { KnownDiscordServers, logMessage } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 
@@ -33,7 +33,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
@@ -80,7 +80,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
         if (!foundUser) interaction.followUp({content: 'No members found for your query.', ephemeral: true});
         else {
-            const botUser = new DiscordBotUser(foundUser);
+            const botUser = new DiscordBotUser(foundUser, logger);
             // check the linked servers for the found user
             const foundServers: NexusUserServerLink[] = await getLinksByUser(botUser.NexusModsId).catch(() => []);
 
@@ -90,7 +90,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
             if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });
             else {
-                logMessage('Whois not authorised', {requester: userData, target: botUser, isAdmin, isMe, inGuild});
+                logger.info('Whois not authorised', {requester: userData, target: botUser, isAdmin, isMe, inGuild});
                 interaction.followUp({ embeds: [ notAllowed(client) ], flags: MessageFlags.Ephemeral });
             };
         }
@@ -98,7 +98,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     }
     catch (err) {
         interaction.followUp({ content: 'Error looking up users.', flags: MessageFlags.Ephemeral});
-        logMessage('Error looking up users from slash command', err, true);
+        logger.warn('Error looking up users from slash command', err);
         return;
     }
 

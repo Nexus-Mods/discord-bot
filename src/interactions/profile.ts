@@ -1,7 +1,7 @@
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, CommandInteractionOption, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { KnownDiscordServers, logMessage } from '../api/util';
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, CommandInteractionOption, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from "discord.js";
+import { KnownDiscordServers, Logger } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
@@ -13,7 +13,7 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('Make your card visible to all users?')
         .setRequired(false) 
     )
-    .setDMPermission(true) as SlashCommandBuilder,
+    .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM) as SlashCommandBuilder,
     public: true,
     guilds: [
         KnownDiscordServers.BotDemo
@@ -21,13 +21,11 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('public');
     const show: boolean = !!showValue ? (showValue.value as boolean) : false;
-
-    // logMessage('Profile interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, show: showValue });
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
@@ -44,7 +42,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
         }
     }
     catch(err) {
-        logMessage('Error checking if user exists in DB when linking', err, true);
+        logger.warn('Error checking if user exists in DB when linking', err);
         interaction.followUp('An error occurred fetching your account details.');
     }
 

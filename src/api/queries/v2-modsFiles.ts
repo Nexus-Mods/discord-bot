@@ -1,5 +1,5 @@
 import { request, gql, Variables } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, NexusGQLError, IModFile } from './v2';
 
 interface IResult {
@@ -26,7 +26,7 @@ query DiscordBotModFiles($modId: ID!, $gameId: ID!) {
 }
 `;
 
-export async function modFiles(headers: Record<string,string>, gameId: number, modId: number): Promise<IModFile[]> {
+export async function modFiles(headers: Record<string,string>, logger: Logger, gameId: number, modId: number): Promise<IModFile[]> {
 
     const vars: IVariables = {
         gameId,
@@ -39,7 +39,7 @@ export async function modFiles(headers: Record<string,string>, gameId: number, m
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'modFiles');
-        logMessage('Error in modFiles v2 request', error, true);
+        logger.error('Error in modFiles v2 request', error, true);
         return [];
     }
 }

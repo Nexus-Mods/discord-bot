@@ -13,7 +13,7 @@ import {
 import { TipCache } from "../types/util";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { addTip, getAllTips, editTip } from '../api/bot-db';
-import { KnownDiscordServers, logMessage } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 import { deleteTip, ITip, setApprovedTip } from "../api/tips";
 
 const discordInteraction: DiscordInteraction = {
@@ -50,16 +50,16 @@ const discordInteraction: DiscordInteraction = {
 
 type SubCommandType = 'add' | 'edit' | 'approve' | 'delete';
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const subCommand: SubCommandType = interaction.options.getSubcommand(true) as SubCommandType;
 
     const tips: ITip[] = await getAllTips().catch(() => []);
 
     switch(subCommand) {
-        case 'add' : return addNewTip(client, interaction, tips);
-        case 'edit': return editExistingTip(client, interaction, tips);
-        case 'approve': return reviewTipsPendingApproval(client, interaction, tips);
+        case 'add' : return addNewTip(client, interaction, tips, logger);
+        case 'edit': return editExistingTip(client, interaction, tips, logger);
+        case 'approve': return reviewTipsPendingApproval(client, interaction, tips, logger);
         default: return interaction.editReply('Error!');
     }
 }
@@ -101,7 +101,7 @@ const approvalButtons: ActionRowBuilder<ButtonBuilder>[] = [
     )
 ];
 
-async function addNewTip(client: Client, interaction: ChatInputCommandInteraction, tips: ITip[]) {   
+async function addNewTip(client: Client, interaction: ChatInputCommandInteraction, tips: ITip[], logger: Logger) {   
 
     await interaction.showModal(tipModal());
     const submit = await interaction.awaitModalSubmit({ time: 90_000 });
@@ -117,7 +117,7 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
     let temp: {tip: Partial<ITip>, embedData?: EmbedData};
     
     try {
-        temp = validateModalResponse(submit);
+        temp = validateModalResponse(submit, logger);
         if (temp.embedData) {
             newEmbed = new EmbedBuilder(temp.embedData)
             .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
@@ -151,10 +151,10 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
             }
         };
     })
-    collector.on('end', () => { message.edit({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
+    collector.on('end', () => { message.edit({ components: [] }).catch(e => logger.warn('Error ending collector', e)) });
 }
 
-async function editExistingTip(client: Client, interaction: ChatInputCommandInteraction, tips: ITip[]) {
+async function editExistingTip(client: Client, interaction: ChatInputCommandInteraction, tips: ITip[], logger: Logger) {
     const prompt: string = interaction.options.getString('prompt', true);
     const existingTip = tips.find(t => t.prompt === prompt.toLowerCase());
     if (!existingTip) return interaction.reply(`No tip found for ${prompt}.`);
@@ -167,7 +167,7 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
     const submit = await interaction.awaitModalSubmit({ time: 90_000 });
     
     try {
-        temp = validateModalResponse(submit);
+        temp = validateModalResponse(submit, logger);
         if (temp.embedData) {
             newEmbed = new EmbedBuilder(temp.embedData)
             .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
@@ -201,24 +201,24 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
             }
         };
     })
-    collector.on('end', () => { message.edit({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
+    collector.on('end', () => { message.edit({ components: [] }).catch(e => logger.warn('Error ending collector', e)) });
 }
 
-async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInputCommandInteraction, tips: ITip[]) {
+async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInputCommandInteraction, tips: ITip[], logger: Logger) {
     await interaction.deferReply();
 
     if (!client.tipCache) client.tipCache = new TipCache();
     const unapprovedTips = await client.tipCache?.getPendingTips();
-    logMessage("Tips to approve "+unapprovedTips.length);
+    logger.debug("Tips to approve "+unapprovedTips.length);
 
     if (!unapprovedTips.length) return interaction.editReply("No tips to approve");  
 
     const collector = (await interaction.fetchReply()).createMessageComponentCollector({componentType: ComponentType.Button, time: 120000});
-    collector.on('end', () => { interaction.editReply({ components: [] }).catch(e => logMessage('Error ending collector', e, true)) });
+    collector.on('end', () => { interaction.editReply({ components: [] }).catch(e => logger.warn('Error ending collector', e)) });
 
     for (const tip of unapprovedTips) {
         if (collector.ended) break;  
-        logMessage('Displaying Tip', { prompt: tip.prompt, title: tip.title });
+        logger.info('Displaying Tip', { prompt: tip.prompt, title: tip.title });
         const postable: InteractionEditReplyOptions = { components: approvalButtons };
 
         if (tip.embed) {
@@ -237,18 +237,18 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
         const collectPromise = new Promise((resolve, reject) => {
 
             collector.once('collect', async (i: ButtonInteraction) => { 
-                logMessage('Button press', { customId: i.customId });
+                logger.debug('Button press', { customId: i.customId });
                 try {
                     await i.deferUpdate();
                     switch (i.customId) {
-                        case 'approve': return resolve(await setApprovedTip(tip.prompt, true).catch(e => logMessage(e, true)));
+                        case 'approve': return resolve(await setApprovedTip(tip.prompt, true).catch(e => logger.warn(e)));
                         case 'skip': return resolve(null);
-                        case 'delete': return resolve(await deleteTip(tip.prompt).catch(e => logMessage(e, true)));
+                        case 'delete': return resolve(await deleteTip(tip.prompt).catch(e => logger.warn(e)));
                         default: reject('Unrecognised button interaction '+i.customId);
                     }
                 }
                 catch(err) {
-                    logMessage('Error with ButtonInteraction', err, true);
+                    logger.warn('Error with ButtonInteraction', err);
                 }
             });
         });
@@ -257,7 +257,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
             await collectPromise;
         }
         catch(err) {
-            logMessage('Failed to process collectPromise', err, true);
+            logger.warn('Failed to process collectPromise', err);
         }
 
         continue;
@@ -266,7 +266,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
     await client.tipCache.bustCache().catch(() => null);
 
     if (!collector.ended) collector.stop();
-    await interaction.editReply({ content: 'All tips reviewed', embeds:[], components: [] }).catch(e => logMessage("Failed to finish tip review", e, true));
+    await interaction.editReply({ content: 'All tips reviewed', embeds:[], components: [] }).catch(e => logger.warn("Failed to finish tip review", e));
 
 }
 
@@ -324,7 +324,7 @@ function tipModal(existingTip?: ITip): ModalBuilder {
     return modal;
 }
 
-function validateModalResponse(submit: ModalSubmitInteraction<CacheType>): {tip: Partial<ITip>, embedData?: EmbedData} {
+function validateModalResponse(submit: ModalSubmitInteraction<CacheType>, logger: Logger): {tip: Partial<ITip>, embedData?: EmbedData} {
     const prompt = submit.fields.getTextInputValue('prompt-input');
     const title = submit.fields.getTextInputValue('title-input');
     const message = submit.fields.getTextInputValue('message-input');
@@ -343,7 +343,7 @@ function validateModalResponse(submit: ModalSubmitInteraction<CacheType>): {tip:
             delete embed.color;
         }
         catch {
-            logMessage('Invalid JSON submitted');
+            logger?.info('Invalid JSON submitted');
             throw new Error('Invalid JSON for embed')
         }
     }
@@ -361,7 +361,7 @@ function validateModalResponse(submit: ModalSubmitInteraction<CacheType>): {tip:
     
 }
 
-async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction) {
+async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger?: Logger) {
     const focused = interaction.options.getFocused().toLowerCase();
     try {
         if (!client.tipCache) client.tipCache = new TipCache();
@@ -372,7 +372,7 @@ async function autocomplete(client: ClientExt, interaction: AutocompleteInteract
         );
     }
     catch(err) {
-        logMessage('Error autocompleting tips', {err}, true);
+        logger?.warn('Error autocompleting tips', {err});
         throw err;
     }
 }

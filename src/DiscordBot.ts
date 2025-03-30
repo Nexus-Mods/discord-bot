@@ -1,10 +1,14 @@
 import { REST, Client, Collection, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import * as fs from 'fs';
 import path from 'path';
-import { logMessage } from './api/util';
+import { Logger } from './api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
 import { GameListCache } from './types/util';
 import { fileURLToPath, pathToFileURL } from 'url';
+
+// Set up logger
+const shardId = process.env.SHARD_ID || 'Main';
+export const logger = new Logger(shardId);
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +26,7 @@ export class DiscordBot {
     private token: Snowflake = process.env.DISCORD_TOKEN as Snowflake;
     private clientId: Snowflake = process.env.DISCORD_CLIENT_ID as Snowflake;
     public client: ClientExt = new Client({ intents });
+    public logger: Logger = logger;
     private rest: REST = new REST({ version: '10' }).setToken(this.token);
 
     private constructor() {
@@ -37,7 +42,7 @@ export class DiscordBot {
     }
 
     private initializeClient(): void {
-        if (!this.client) return logMessage('Could not initialise DiscordBot, client is not defined.', {}, true);
+        if (!this.client) return logger.error('Could not initialise DiscordBot, client is not defined.');
         
         this.client.config = { 
             testing: process.env.NODE_ENV === 'test', 
@@ -48,23 +53,23 @@ export class DiscordBot {
     }
 
     public async connect(): Promise<void> {
-        logMessage('Attempting to log in.')
+        logger.info('Attempting to log in.')
         try {
             await this.client.login(this.token);
-            logMessage('Connected to Discord');
+            logger.info('Connected to Discord');
             await this.client.application?.fetch();
             this.client.updateInteractions = this.setupInteractions.bind(this)
         }
         catch(err) {
-            logMessage('Failed to connect to Discord during bot setup', { error: (err as Error).message }, true);
+            logger.error('Failed to connect to Discord during bot setup', { error: (err as Error).message });
             return process.exit();
         }
 
         try {
-            this.client.gamesList = await new GameListCache().init();
+            this.client.gamesList = await new GameListCache().init(logger);
         }
         catch(err) {
-            logMessage('Could not pre-cache the games list', err, true);
+            logger.warn('Could not pre-cache the games list', err);
         }
     }
 
@@ -73,7 +78,7 @@ export class DiscordBot {
             await this.setInteractions(force);
         }
         catch(err) {
-            logMessage('Failed to set interactions', err, true);
+            logger.error('Failed to set interactions', err);
             if (force === true) return Promise.reject(err);
         }
     }
@@ -88,23 +93,23 @@ export class DiscordBot {
                     const event: DiscordEventInterface = (await import(eventPath)).default;
                     const eventName: string = file.split(".")[0];
                     if (!event.execute) return;
-                    if (event.once) this.client.once(eventName, event.execute.bind(null, this.client));
-                    else this.client.on(eventName, event.execute.bind(null, this.client));
+                    if (event.once) this.client.once(eventName, (...args) => event.execute(this.client, logger, ...args));
+                    else this.client.on(eventName, (...args) => event.execute(this.client, logger, ...args));
                 }
                 catch(err) {
-                    logMessage('Failed to register event '+file, err);
+                    logger.warn('Failed to register event '+file, err);
                 }
             });
-            logMessage('Registered to receive events:', events.map(e => path.basename(e, '.js')).join(', '));
+            logger.info('Registered to receive events:', events.map(e => path.basename(e, '.js')).join(', '));
         }
         catch(err) {
-            return logMessage('Error reading events directory during startup.', err, true);
+            return logger.error('Error reading events directory during startup.', err);
         }
     }
 
     private async setInteractions(forceUpdate?: boolean): Promise<void> {
         if (!this.client.updateInteractions) this.client.updateInteractions = this.setInteractions;
-        logMessage('Setting interaction commands');
+        logger.info('Setting interaction commands');
         if (!this.client.interactions) this.client.interactions = new Collection();
         if (!this.client.application?.owner) await this.client.application?.fetch();
         
@@ -138,14 +143,14 @@ export class DiscordBot {
             // Set up aliases
             if (interaction.aliases?.length) {
                 for (const alias of interaction.aliases) {
-                    logMessage('Adding alias', { alias, name: interaction.command.name });
+                    logger.info('Adding alias', { alias, name: interaction.command.name });
                     this.client.interactions?.set(alias, interaction);
                 }
             }
         }
 
         // Now we have the commands organised, time to set them up. 
-        logMessage('Setting up interactions', { count: allInteractions.length });
+        logger.info('Setting up interactions', { count: allInteractions.length });
 
         // Set global commands
         try {
@@ -164,15 +169,15 @@ export class DiscordBot {
                         { body: globalCommandsToSet }
                     );
 
-                    logMessage('Global interactions set up', { commands: globalCommandsToSet.map(c => c.name).join(', ') });
+                    logger.info('Global interactions set up', { commands: globalCommandsToSet.map(c => c.name).join(', ') });
                 }
-                else logMessage('Global interactions did not require changes');
+                else logger.info('Global interactions did not require changes');
             }
-            else logMessage('No global interactions to set', {}, true);
+            else logger.warn('No global interactions to set', {});
         }
         catch(err) {
-            logMessage('Error setting global interactions', {err, commands: globalCommandsToSet.map(c => c.name)}, true);
-            await this.client.application?.commands.set(globalCommandsToSet).catch(() => logMessage('Failed fallback command setter.'));
+            logger.error('Error setting global interactions', {err, commands: globalCommandsToSet.map(c => c.name)});
+            await this.client.application?.commands.set(globalCommandsToSet).catch(() => logger.error('Failed fallback command setter.'));
         }
 
         // Set guild commands
@@ -195,10 +200,10 @@ export class DiscordBot {
                     Routes.applicationGuildCommands(this.clientId, guildId),
                     { body: guildCommandsToSet[guildId] }
                 );
-                logMessage('Guild interactions set up', { guild: guild?.name || guildId, commands: guildCommandsToSet[guildId].map(c => c.name).join(', ') });
+                logger.info('Guild interactions set up', { guild: guild?.name || guildId, commands: guildCommandsToSet[guildId].map(c => c.name).join(', ') });
             }
             catch(err) {
-                logMessage('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) }, true);
+                logger.error('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) });
             }
         }
 

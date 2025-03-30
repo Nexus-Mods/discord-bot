@@ -2,7 +2,7 @@ import express from 'express';
 import cookieparser from 'cookie-parser';
 import * as DiscordOAuth from './DiscordOAuth';
 import * as NexusModsOAuth from './NexusModsOAuth';
-import { logMessage } from '../api/util';
+import { Logger } from '../api/util';
 import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users';
 import { NexusUser } from '../types/users';
 import path from 'path';
@@ -19,18 +19,20 @@ export class AuthSite {
     private static instance: AuthSite;
     private app = express();
     private client: ClientExt;
+    private logger: Logger;
     private port = process.env.AUTH_PORT || 3000;
     public TempStore: Map<string, { name: string, id: string, tokens: any }> = new Map();
 
-    private constructor(client: ClientExt) {
+    private constructor(client: ClientExt, logger: Logger) {
         this.client = client;
-        if (client.shard && client.shard.ids[0] !== 0) logMessage('Skipping AuthSite initialization, not on shard 0', undefined, true);
+        this.logger = logger;
+        if (client.shard && client.shard.ids[0] !== 0) logger.debug('Skipping AuthSite initialization, not on shard 0');
         else this.initialize();
     }
 
-    static getInstance(client: ClientExt): AuthSite {
+    static getInstance(client: ClientExt, logger: Logger): AuthSite {
         if (!AuthSite.instance) {
-            AuthSite.instance = new AuthSite(client);
+            AuthSite.instance = new AuthSite(client, logger);
         }
 
         return AuthSite.instance;
@@ -86,7 +88,7 @@ export class AuthSite {
 
         this.app.get('*', (req, res) => res.redirect('/'));
 
-        this.app.listen(this.port, () => logMessage(`Auth website listening on port ${this.port}`));
+        this.app.listen(this.port, () => this.logger.info(`Auth website listening on port ${this.port}`));
     }
 
     success(req: express.Request, res: express.Response) {
@@ -139,7 +141,7 @@ export class AuthSite {
 
             const { clientState } = req.signedCookies;
             if (clientState != discordState) {
-                logMessage('Discord OAuth state verification failed.');
+                this.logger.warn('Discord OAuth state verification failed.');
                 res.sendStatus(403);
                 return;
             }
@@ -152,11 +154,11 @@ export class AuthSite {
             this.TempStore.set(clientState, { id: userId, name: `${meData.user.username}#${meData.user.discriminator}`, tokens });
 
             // Forward to Nexus Mods auth.
-            const { url } = NexusModsOAuth.getOAuthUrl(clientState);
+            const { url } = NexusModsOAuth.getOAuthUrl(clientState, this.logger);
             res.redirect(url);
         }
         catch(err) {
-            logMessage('Discord OAuth Error', err, true);
+            this.logger.warn('Discord OAuth Error', err);
             res.cookie('ErrorDetail', `Discord OAuth Error: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
             return res.redirect('/oauth-error');
             // return res.sendStatus(500);
@@ -170,7 +172,7 @@ export class AuthSite {
 
         const { clientState } = req.signedCookies;
         if (clientState != discordState) {
-            logMessage('Nexus Mods OAuth state verification failed.');
+            this.logger.warn('Nexus Mods OAuth state verification failed.');
             res.sendStatus(403);
             return;
         }
@@ -178,7 +180,7 @@ export class AuthSite {
         // Get the Discord data from the store
         const discordData = this.TempStore.get(clientState);
         if (!discordData) {
-            logMessage('Could not find matching Discord Auth to pair accounts', req.url, true);
+            this.logger.warn('Could not find matching Discord Auth to pair accounts', req.url);
             res.sendStatus(403);
             return;
         }
@@ -187,18 +189,18 @@ export class AuthSite {
             const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);
             const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
             // logMessage('Got tokens for Nexus Mods', tokens);
-            const userData = await NexusModsOAuth.getUserData(tokens);
+            const userData = await NexusModsOAuth.getUserData(tokens, this.logger);
             if (!existingUser) {
                 const nexusUser = await getUserByNexusModsId(parseInt(userData.sub));
                 // logMessage('Existing Nexus Mods user lookup', nexusUser?.NexusModsUsername);
                 if (!!nexusUser) {
                     // If their Discord is linked to another account, remove that link. 
-                    logMessage('Deleting link to a different Discord account!', { user: nexusUser.NexusModsUsername, discord: nexusUser.DiscordId });
+                    this.logger.info('Deleting link to a different Discord account!', { user: nexusUser.NexusModsUsername, discord: nexusUser.DiscordId });
                     try {
                         await nexusUser.Discord.Revoke();
                         await nexusUser.NexusMods.Revoke();
                     }
-                    catch(err) { logMessage('Error revoking tokens for alternate account', err, true); }
+                    catch(err) { this.logger.warn('Error revoking tokens for alternate account', err); }
                     await deleteUser(nexusUser.DiscordId);
                 }
             }
@@ -225,7 +227,7 @@ export class AuthSite {
             if (!user.nexus_access) throw new Error('No Token in new user data!');
             const updatedUser = !!existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id, updatedUser);
-            logMessage('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
+            this.logger.info('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
             const params: Record<string, string> =  {
                 nexus: user.name || '',
                 n_id: user.id?.toString() || '0',
@@ -239,7 +241,7 @@ export class AuthSite {
 
         }
         catch(err) {
-            logMessage('Nexus Mods OAuth Error', err, true);
+            this.logger.warn('Nexus Mods OAuth Error', err);
             res.cookie('ErrorDetail', `Neuxs Mods OAuth Error: ${(err as Error).message || err}`, { maxAge: 1000 * 60 * 2, signed: true });
             res.redirect('/oauth-error');
         }
@@ -254,7 +256,7 @@ export class AuthSite {
         catch(err) {
             // res.cookie('ErrorDetail', `Error pushing role metadata to Discord: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
             // res.redirect('/oauth-error');
-            logMessage('Error in update-meta endpoint', err, true);
+            this.logger.warn('Error in update-meta endpoint', err);
             res.statusCode = 500;
             res.send(`Error in update-meta request: ${(err as Error)?.message}`);
         }
@@ -286,7 +288,7 @@ export class AuthSite {
             metadata = await user.Discord.BuildMetaData();
         }
         catch(err) {
-            logMessage(`Error updating role metadata: [[${(err as Error).message}]]`, err, true);
+            this.logger.warn(`Error updating role metadata: [[${(err as Error).message}]]`, err);
         }
 
         await user.Discord.PushMetaData(metadata);
@@ -308,12 +310,12 @@ export class AuthSite {
             // Delete from database
             await deleteUser(id);
 
-            logMessage('Revoke successful for user', user.NexusModsUsername);
+            this.logger.info('Revoke successful for user', user.NexusModsUsername);
             res.statusCode = 200;
             res.render('revoked', { pageTitle: 'Link Removed' });
         }
         catch(err) {
-            logMessage('Error removing account link', err, true);
+            this.logger.warn('Error removing account link', err);
             res.cookie('ErrorDetail', `Error unlinking accounts: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
             res.redirect('/unlink-error');
         }

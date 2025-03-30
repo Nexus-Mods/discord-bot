@@ -1,6 +1,6 @@
 import { ClientExt } from "../types/DiscordTypes";
 import { DiscordAPIError, EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
-import { logMessage } from '../api/util';
+import { Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
@@ -13,14 +13,17 @@ export class SubscriptionManger {
     private pollTime: number = 0; //10 mins
     private channels: SubscribedChannel[];
     private cache: SubscriptionCache = new SubscriptionCache();
-    private fakeUser: DiscordBotUser = new DiscordBotUser(DummyNexusModsUser);
+    private fakeUser: DiscordBotUser;
+    private logger: Logger;
 
-    private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[]) {
+    private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
+        this.logger = logger;
+        this.fakeUser = new DiscordBotUser(DummyNexusModsUser, logger);
         // Save the client for later
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
             this.channels=[];
-            logMessage('Subscriptions only run on the first shard.'); // Only run on the first shard
+            this.logger.info('Subscriptions only run on the first shard.'); // Only run on the first shard
             return this;
         }        
         this.pollTime = pollTime;
@@ -29,7 +32,7 @@ export class SubscriptionManger {
                 await this.updateSubscriptions();
             }
             catch(err){
-                logMessage('Failed to run subscription event', err, true);
+                this.logger.error('Failed to run subscription event', err);
             }
         }, pollTime)
         this.channels = channels;
@@ -37,22 +40,22 @@ export class SubscriptionManger {
         this.updateSubscriptions(true);
     }
 
-    static async getInstance(client: ClientExt, pollTime: number = (1000*60*5)): Promise<SubscriptionManger> {
+    static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*5)): Promise<SubscriptionManger> {
         if (!SubscriptionManger.instance) {
-            await SubscriptionManger.initialiseInstance(client, pollTime);
+            await SubscriptionManger.initialiseInstance(client, pollTime, logger);
             const guilds = await client.guilds.fetch()
-            logMessage('Subscription Manager has guilds', { guilds: guilds.map(g => g.name), count: guilds.size });
+            logger.info('Subscription Manager has guilds', { guilds: guilds.map(g => g.name), count: guilds.size });
         }
-        logMessage('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length, pollTime});
+        logger.info('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length, pollTime});
         return SubscriptionManger.instance;
     }
 
-    private static async initialiseInstance(client: ClientExt, pollTime: number): Promise<void> {
+    private static async initialiseInstance(client: ClientExt, pollTime: number, logger: Logger): Promise<void> {
         // Set up any missing tables
         try {
             await ensureSubscriptionsDB();
             const channels = await getSubscribedChannels();
-            SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels);
+            SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels, logger);
         }
         catch(err) {
             throw err;
@@ -70,7 +73,7 @@ export class SubscriptionManger {
         // Prepare the cache
         await this.prepareCache();
 
-        logMessage('Running subscription updates');
+        this.logger.info('Running subscription updates');
 
         // Process the channels and their subscribed items.
         for (const channel of this.channels) {
@@ -78,14 +81,14 @@ export class SubscriptionManger {
                 await this.getUpdatesForChannel(channel);
             }
             catch(err) {
-                logMessage('Error processing updates for channel', err, true);
+                this.logger.warn('Error processing updates for channel', err);
                 continue;
             }
         }
 
         // Empty the cache
         this.cache = new SubscriptionCache();    
-        logMessage('Subscription updates complete');    
+        this.logger.info('Subscription updates complete');    
     }
 
     public async getUpdatesForChannel(channel: SubscribedChannel) {
@@ -93,7 +96,7 @@ export class SubscriptionManger {
         const guild = await this.client.guilds.fetch(channel.guild_id).catch(() => null);
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
         if (guild === null || discordChannel === null) {
-            logMessage('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id, subChannelId: channel.id }, true);
+            this.logger.warn('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id, subChannelId: channel.id });
             await deleteSubscribedChannel(channel);
             throw new Error('Discord channel no longer exists')
             return;
@@ -125,7 +128,7 @@ export class SubscriptionManger {
                 // logMessage(`Returning ${updates.length} updates for ${item.title} (${item.type})`);
             }
             catch(err) {
-                logMessage('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
+                this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
                 continue;
             }           
             
@@ -158,7 +161,7 @@ export class SubscriptionManger {
         }
 
         // Send the updates to the webhook!
-        logMessage(`Posting ${blocks.length} webhook updates to ${discordChannel.name} in ${guild.name}`);
+        this.logger.info(`Posting ${blocks.length} webhook updates to ${discordChannel.name} in ${guild.name}`);
         for (const block of blocks) {
             // logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
@@ -173,7 +176,7 @@ export class SubscriptionManger {
                     await deleteSubscribedChannel(channel);
                     throw Error('Webhook no longer exists');
                 }
-                logMessage('Failed to send webhook message', { embeds: block.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) }, true);
+                this.logger.warn('Failed to send webhook message', { embeds: block.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
             }
         }
 
@@ -183,7 +186,7 @@ export class SubscriptionManger {
             await updateSubscribedChannel(channel, lastUpdate);
         }
         catch(err) {
-            logMessage('Failed to update channel date', err, true);
+            this.logger.warn('Failed to update channel date', err);
         }
     }
 
@@ -206,7 +209,7 @@ export class SubscriptionManger {
         // Map into the generic format.
         const formattedNew: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         for (const mod of newMods) {
-            const embed = await subscribedItemEmbed(mod, item, guild);
+            const embed = await subscribedItemEmbed(this.logger, mod, item, guild);
             formattedNew.push({ 
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.createdAt), 
@@ -241,7 +244,7 @@ export class SubscriptionManger {
         // Map into the generic format.
         const formattedUpdates: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         for (const mod of updatedMods) {
-            const embed = await subscribedItemEmbed(mod, item, guild, true);
+            const embed = await subscribedItemEmbed(this.logger, mod, item, guild, true);
             formattedUpdates.push({ 
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.updatedAt), 
@@ -274,7 +277,7 @@ export class SubscriptionManger {
         const mod: IModWithFiles = res[0];
         if (!mod) throw new Error(`Mod not found for ${modUid}`);
         if (['hidden', 'under_moderation'].includes(mod.status)) {
-            logMessage('Mod is temporarily unavailable:', mod.status);
+            this.logger.info('Mod is temporarily unavailable:', mod.status);
             if (item.last_status === 'published') {
                 results.push(unavailableUpdate(mod, SubscribedItemType.Mod, item, mod.status))
                 await saveLastUpdatedForSub(item.id, results[0].date, mod.status);
@@ -282,7 +285,7 @@ export class SubscriptionManger {
             return results;
         }
         else if (['deleted', 'wastebinned'].includes(mod.status)){
-            logMessage('Mod is permanently unavailable:', mod.status);
+            this.logger.info('Mod is permanently unavailable:', mod.status);
             if (item.last_status === 'published') {
                 results.push(unavailableUpdate(mod, SubscribedItemType.Mod, item, mod.status))
                 await deleteSubscription(item.id);
@@ -303,7 +306,7 @@ export class SubscriptionManger {
         if (!newFiles.length) return results;
         // Map the newly uploaded files
         for (const file of newFiles) {
-            const embed = await subscribedItemEmbed({...mod, files: [file]}, item, guild);
+            const embed = await subscribedItemEmbed(this.logger, {...mod, files: [file]}, item, guild);
             results.push({
                 type: SubscribedItemType.Mod, 
                 date: new Date(file.date * 1000), 
@@ -330,7 +333,7 @@ export class SubscriptionManger {
         const collection = await this.fakeUser.NexusMods.API.v2.Collection(slug, gameDomain, true);
         if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
         if (collection.collectionStatus === CollectionStatus.Moderated) {
-            logMessage('Collection under moderation', item.title);
+            this.logger.info('Collection under moderation', item.title);
             if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.last_status as CollectionStatus)) {
                 results.push(unavailableUpdate(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
                 await saveLastUpdatedForSub(item.id, results[0].date, collection.collectionStatus);
@@ -338,7 +341,7 @@ export class SubscriptionManger {
             return results;
         }
         else if (collection.collectionStatus === CollectionStatus.Discarded) {
-            logMessage('Collection has been discarded', item.title);
+            this.logger.info('Collection has been discarded', item.title);
             if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.last_status as CollectionStatus)) {
                 results.push(unavailableUpdate(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
                 await deleteSubscription(item.id);
@@ -360,7 +363,7 @@ export class SubscriptionManger {
         // Map into updates
         for(const rev of revisions) {
             const merged = { ...collection, revisions: [rev] }
-            const embed = await subscribedItemEmbed(merged, item, guild);
+            const embed = await subscribedItemEmbed(this.logger, merged, item, guild);
             results.push({
                 type: SubscribedItemType.Collection,
                 entity: merged,
@@ -388,12 +391,12 @@ export class SubscriptionManger {
         const user = await this.fakeUser.NexusMods.API.v2.FindUser(userId);
         if (!user) throw new Error(`User not found for ${userId}`);
         if (user.banned === true || user.deleted == true) {
-            logMessage(`${user.name} has been banned or deleted from Nexus Mods`);
+            this.logger.info(`${user.name} has been banned or deleted from Nexus Mods`);
             results.push(unavailableUserUpdate(user, item));
             await deleteSubscription(item.id);
         }
         if (user.name !== item.title) {
-            logMessage(`${item.title} changed their username to ${user.name}`);
+            this.logger.info(`${item.title} changed their username to ${user.name}`);
             const usernameEmbed = new EmbedBuilder().setTitle('Username changed!')
             .setDescription(`${item.title} changed their username to ${user.name}`)
             .setColor('Random');
@@ -415,7 +418,7 @@ export class SubscriptionManger {
             { createdAt: { direction: 'ASC' } }
         );
         for (const mod of newMods.nodes) {
-            const embed = await subscribedItemEmbed({...user, mod: mod}, item, guild, undefined, UserEmbedType.NewMod);
+            const embed = await subscribedItemEmbed(this.logger, {...user, mod: mod}, item, guild, undefined, UserEmbedType.NewMod);
             results.push({
                 type: SubscribedItemType.User,
                 entity:{ ...user, mod: mod },
@@ -435,7 +438,7 @@ export class SubscriptionManger {
         for (const mod of updatedMods.nodes) {
             const modFiles: IModFile[] = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
             const modWithFile = { ...mod, file: modFiles.filter(f => Math.floor(f.date *1000) > last_update.getTime()) }
-            const embed = await subscribedItemEmbed({...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
+            const embed = await subscribedItemEmbed(this.logger, {...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
             results.push({
                 type: SubscribedItemType.User,
                 entity:{ ...user, mod: mod },
@@ -513,7 +516,7 @@ export class SubscriptionManger {
                 { createdAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain);
-            if (mods.totalCount > 0) logMessage(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain}`)
+            if (mods.totalCount > 0) this.logger?.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain}`)
         });
         promises.push(...newGamePromises);
 
@@ -531,7 +534,7 @@ export class SubscriptionManger {
                 { updatedAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain, true);
-            if (mods.totalCount > 0) logMessage(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain}`)
+            if (mods.totalCount > 0) this.logger.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain}`)
         });
         promises.push(...updatedGamePromises);
 

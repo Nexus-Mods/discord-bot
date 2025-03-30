@@ -1,12 +1,12 @@
 import { Client } from "discord.js";
-import { logMessage } from "../api/util";
+import { Logger } from "../api/util";
 import { DiscordEventInterface } from '../types/DiscordTypes';
 
 const main: DiscordEventInterface = {
     name: 'reconnecting',
     once: false,
-    execute(client: Client) {
-        logMessage('Reconnecting to Discord...');
+    execute(client: Client, logger: Logger) {
+        logger.info('Reconnecting to Discord...');
     }
 }
 

@@ -1,23 +1,23 @@
-import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, MessageFlags, InteractionContextType } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { ConditionType } from "../types/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { getUserByDiscordId, getServer, getConditionsForRole } from "../api/bot-db";
 import { BotServer } from "../types/servers";
-import { logMessage } from "../api/util";
+import { Logger } from "../api/util";
 import { IConditionForRole } from "../api/server_role_conditions";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('claimrole')
     .setDescription('Claim a role in this server.')
-    .setDMPermission(false) as SlashCommandBuilder,
+    .setContexts(InteractionContextType.Guild) as SlashCommandBuilder,
     public: true,
     guilds: [],
     action
 }
 
-async function action(client: ClientExt, interaction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, interaction: CommandInteraction, logger: Logger): Promise<any> {
     if (!interaction.guild) return interaction.reply('This command only works in servers.');
     
     // Defer while we check this out.
@@ -33,7 +33,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
         
     }
     catch(err) {
-        logMessage('Failed to get user info', err, true);
+        logger.warn('Failed to get user info', err);
         return interaction.editReply('An error occured while verifying your account. Please [link your Nexus Mods account](https://discordbot.nexusmods.com/linked-role), to claim a role.')
     }
 
@@ -116,7 +116,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
     try {
         const member = await interaction.guild.members.fetch({ user: interaction.user })
         await member.roles.add(role);
-        logMessage(`Assigned role ${role.name} to ${member.nickname}`);
+        logger.info(`Assigned role ${role.name} to ${member.nickname}`);
         embed.setTitle('Role added!')
         .setColor("DarkGreen");
         return interaction.editReply({ content: null, embeds: [embed] });
@@ -127,7 +127,7 @@ async function action(client: ClientExt, interaction: CommandInteraction): Promi
             .setColor('Red');
             return interaction.editReply({content: 'Failed to add role due to a permissions error. Please ensure this bot has the correct permissions.', embeds: [embed]});
         }
-        logMessage('Failed to add role due to an error', err, true);
+        logger.error('Failed to add role due to an error', err);
         return interaction.editReply('Failed to add role due to an error');
     }
 

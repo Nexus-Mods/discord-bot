@@ -1,11 +1,11 @@
 import { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo, IValidateKeyResponse } from '@nexusmods/nexus-api';
 import axios, { AxiosError } from 'axios';
 import { NexusAPIServerError, NexusSearchResult } from '../../types/util';
-import { logMessage } from "../util";
+import { Logger } from "../util";
 
 const nexusAPI: string = 'https://api.nexusmods.com/';
 
-export default async function v1APIQuery (path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<any> {
+export default async function v1APIQuery (logger: Logger, path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<any> {
     const authType = headers['apikey'] ? 'APIKEY' : 'OAUTH';
     try {
         const query = await axios({
@@ -19,7 +19,7 @@ export default async function v1APIQuery (path: string, headers: Record<string, 
     }
     catch(err) {
         if (err as AxiosError) return Promise.reject(new NexusAPIServerError(err as AxiosError, authType, path));
-        logMessage('Unexpected API error', err, true);
+        logger.error('Unexpected API error', err, true);
         return Promise.reject(new Error(`Unexpected API error: ${(err as Error)?.message}`));
     }
 }
@@ -54,30 +54,30 @@ export async function quicksearch(query: string, bIncludeAdult: boolean, game_id
     }
 }
 
-export async function updatedMods(headers: Record<string,string>, gameDomain: string, period: string = '1w', ) {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/updated.json`, headers, { period });
+export async function updatedMods(headers: Record<string,string>, logger: Logger, gameDomain: string, period: string = '1w', ) {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/updated.json`, headers, { period });
 }
 
-export async function modInfo(headers: Record<string,string>, gameDomain: string, modId: number): Promise<IModInfo> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}.json`, headers);
+export async function modInfo(headers: Record<string,string>, logger: Logger, gameDomain: string, modId: number): Promise<IModInfo> {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/${modId}.json`, headers);
 }
 
-export async function modFiles(headers: Record<string,string>, gameDomain: string, modId: number): Promise<IModFiles> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/files.json`, headers);
+export async function modFiles(headers: Record<string,string>, logger: Logger, gameDomain: string, modId: number): Promise<IModFiles> {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/${modId}/files.json`, headers);
 }
 
-export async function modChangelogs(headers: Record<string,string>, gameDomain: string, modId: number): Promise<IChangelogs> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/changelogs.json`, headers);
+export async function modChangelogs(headers: Record<string,string>, logger: Logger, gameDomain: string, modId: number): Promise<IChangelogs> {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/${modId}/changelogs.json`, headers);
 }
 
-export async function games(headers: Record<string,string>): Promise<IGameInfo[]> {
-    return v1APIQuery(`/v1/games.json`, headers);
+export async function games(headers: Record<string,string>, logger: Logger,): Promise<IGameInfo[]> {
+    return v1APIQuery(logger, `/v1/games.json`, headers);
 } 
 
-export async function game(headers: Record<string,string>, domain: string): Promise<IGameListEntry> {
-    return v1APIQuery(`/v1/games/${domain}.json`, headers);
+export async function game(headers: Record<string,string>, logger: Logger, domain: string): Promise<IGameListEntry> {
+    return v1APIQuery(logger, `/v1/games/${domain}.json`, headers);
 } 
 
-export async function validate(headers: Record<string,string>): Promise<IValidateKeyResponse> {
-    return v1APIQuery('/v1/users/validate.json', headers);
+export async function validate(headers: Record<string,string>, logger: Logger,): Promise<IValidateKeyResponse> {
+    return v1APIQuery(logger, '/v1/users/validate.json', headers);
 }

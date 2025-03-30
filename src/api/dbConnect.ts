@@ -1,6 +1,6 @@
 import pg, { PoolConfig, PoolClient, QueryResult, QueryResultRow } from 'pg';
 const { Pool, DatabaseError } = pg;
-import { logMessage } from './util';
+import { logger } from '../DiscordBot';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -37,8 +37,8 @@ export async function queryPromise<T extends QueryResultRow>(query: string, valu
         
     }
     catch(err) {
-        if (!client) logMessage('Error acquiring client', { query, err: (err as Error).message }, true);
-        else logMessage('Error in query', { query, values, err }, true);
+        if (!client) logger.error('Error acquiring client', { query, err: (err as Error).message });
+        else logger.error('Error in query', { query, values, err });
         throw handleDatabaseError(err);
     }
     finally {
@@ -48,34 +48,34 @@ export async function queryPromise<T extends QueryResultRow>(query: string, valu
 
 export function handleDatabaseError(error: Error | any): string {
     if (error instanceof DatabaseError) {
-        logMessage('Database error', { error }, true);
+        logger.debug('Database error', { error });
         switch (error.code) {
             case '23505': // Unique violation
-              logMessage('Database error - Duplicate entry:', error.detail, true);
+              logger.error('Database error - Duplicate entry:', error.detail);
               return 'Duplicate record found. Please try again.';
             case '23503': // Foreign key violation
-              logMessage('Database error - Foreign key violation:', error.detail, true);
+              logger.error('Database error - Foreign key violation:', error.detail);
               return 'Invalid reference. Please check your data.';
             case '22001': // String data too long
-              console.error('Database error - Value too long:', error.detail, true);
+              logger.error('Database error - Value too long:', error.detail);
               return 'Input value is too long. Please shorten the text.';
             case '42601': // Syntax error in SQL
-              logMessage('Database error - Syntax error:', error.detail, true);
+              logger.error('Database error - Syntax error:', error.detail);
               return 'An unexpected error occurred. Please try again later.';
             case '42703': // Undefined column
-              logMessage('Database error - Undefined column:', error.detail, true);
+              logger.error('Database error - Undefined column:', error.detail);
               return 'An unexpected error occurred. Please try again later.';
             default:
-              logMessage(`Unhandled database error [${error.code}]:`, error.message, true);
+              logger.error(`Unhandled database error [${error.code}]:`, error.message);
               return 'An unexpected error occurred. Please try again later.';
           }
     } else if (error.message === 'The server does not support SSL connections') { 
         return 'SSL connection error. Please report this issue as it is a problem with the database settings.';
     } else if (error.message.includes('no pg_hba.conf entry for host')) {
-        logMessage('Database connection error - pg_hba.conf issue:', error.message, true);
+        logger.error('Database connection error - pg_hba.conf issue:', error.message);
         return 'Database connection error: Access denied. Please report this issue as it is a problem with the database settings.';
     } else {
-        logMessage('Unknown error', { error: error.message, code: error.code }, true);
+        logger.error('Unknown error', { error: error.message, code: error.code });
         return 'An unknown error occurred. Please try again later.';
     }
 }

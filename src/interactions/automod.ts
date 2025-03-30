@@ -1,15 +1,14 @@
-import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { KnownDiscordServers, logMessage } from "../api/util";
-import { createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile } from "../api/bot-db";
+import { KnownDiscordServers, Logger } from "../api/util";
+import { createAutomodRule, deleteAutomodRule, addBadFile } from "../api/bot-db";
 import { IAutomodRule, IBadFileRule } from "../types/util";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('automod')
     .setDescription('Automatic Moderator Command.')
-    .setDMPermission(false)
-    // .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setContexts(InteractionContextType.Guild)
     .addSubcommand(sc =>
         sc.setName('report')
         .setDescription('See the last few mods checked by the automod.')
@@ -113,7 +112,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -124,25 +123,25 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     // Handle command
     if (commandGroup === 'rules') {
         switch (command) {
-            case 'add': return addRule(client, interaction);
-            case 'list': return listRules(client, interaction);
-            case 'remove': return removeRule(client, interaction);
+            case 'add': return addRule(client, interaction, logger);
+            case 'list': return listRules(client, interaction, logger);
+            case 'remove': return removeRule(client, interaction, logger);
             default: throw new Error('Subcommand not implemented: '+command)
         }
     }
     else if (commandGroup === 'filerules') {
         switch (command) {
-            case 'add': return addFileRule(client, interaction);
-            case 'list': return listFileRules(client, interaction);
+            case 'add': return addFileRule(client, interaction, logger);
+            case 'list': return listFileRules(client, interaction, logger);
             // case 'remove': return removeFileRule(client, interaction);
             default: throw new Error('Subcommand not implemented: '+command)
         }
     }
-    else if (commandGroup === null && command === 'report') return showReport(client, interaction);
+    else if (commandGroup === null && command === 'report') return showReport(client, interaction, logger);
     else throw new Error(`Unrecognised command - Group: ${commandGroup} Command: ${command}`);
 }
 
-async function addRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function addRule(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {
     // Is an admin?
     const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) return interaction.editReply({ content: 'Adding rules is only available to admins.' })
@@ -153,14 +152,14 @@ async function addRule(client: ClientExt, interaction: ChatInputCommandInteracti
     const note: string = interaction.options.getString('note', true);
     let id = -1 // Update this once created.
 
-    logMessage('Adding automod rule', { level, filter, note });
+    logger.info('Adding automod rule', { level, filter, note });
 
     try {
         id = await createAutomodRule(level, filter, note);
-        logMessage('Added new rule with ID', id);
+        logger.info('Added new rule with ID', id);
     }
     catch(err) {
-        logMessage('Failed to add automod rule', err);
+        logger.warn('Failed to add automod rule', err);
         throw new Error('Failed to create rule: '+(err as Error).message)
     }
 
@@ -175,7 +174,7 @@ async function addRule(client: ClientExt, interaction: ChatInputCommandInteracti
     return interaction.editReply({ content: null, embeds: [success] });
 }
 
-async function listRules(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function listRules(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {
     const rules = await client.automod?.retrieveRules() ?? [];
 
     // Cut up the array into pages for Discord's character limit.
@@ -215,7 +214,7 @@ async function listRules(client: ClientExt, interaction: ChatInputCommandInterac
 
 }
 
-async function removeRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function removeRule(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {
     // Is an admin?
     const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) return interaction.editReply({ content: 'Adding rules is only available to admins.' })
@@ -225,7 +224,7 @@ async function removeRule(client: ClientExt, interaction: ChatInputCommandIntera
     const rules = await client.automod?.retrieveRules() ?? [];
 
     const ruleToRemove = rules.find(r => r.id == id);
-    logMessage("Attempting to delete automod rule", { id , ruleToRemove, rules });
+    logger.info("Attempting to delete automod rule", { id , ruleToRemove, rules });
 
     if (!ruleToRemove) {
         return interaction.editReply('Nothing to delete. No rule with ID '+id)
@@ -242,7 +241,7 @@ async function removeRule(client: ClientExt, interaction: ChatInputCommandIntera
     return interaction.editReply({ content: `Rule Deleted\n\`\`\`${JSON.stringify(ruleToRemove, null, 2)}\`\`\``})
 }
 
-async function addFileRule(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function addFileRule(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {
     // Is an admin?
     const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) return interaction.editReply({ content: 'Adding file rules is only available to admins.' })
@@ -254,14 +253,14 @@ async function addFileRule(client: ClientExt, interaction: ChatInputCommandInter
     const note: string = interaction.options.getString('message', true);
     let id = -1 // Update this once created.
 
-    logMessage('Adding automod file rule', { level, filter, functionName, note });
+    logger.info('Adding automod file rule', { level, filter, functionName, note });
 
     try {
         id = await addBadFile(level, functionName, filter, note);
-        logMessage('Added new file rule with ID', id);
+        logger.info('Added new file rule with ID', id);
     }
     catch(err) {
-        logMessage('Failed to add automod rule file', err);
+        logger.warn('Failed to add automod rule file', err);
         throw new Error('Failed to create file rule: '+(err as Error).message)
     }
 
@@ -276,7 +275,7 @@ async function addFileRule(client: ClientExt, interaction: ChatInputCommandInter
     return interaction.editReply({ content: null, embeds: [success] });
 }
 
-async function listFileRules(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function listFileRules(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {
     const rules = await client.automod?.retrieveFileRules() ?? [];
 
     // Cut up the array into pages for Discord's character limit.
@@ -315,13 +314,13 @@ async function listFileRules(client: ClientExt, interaction: ChatInputCommandInt
     }
 }
 
-async function showReport(client: ClientExt, interaction: ChatInputCommandInteraction): Promise<any> {
+async function showReport(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {
     const report = client.automod?.lastReports
     const reportsMerged = report?.reduce((prev, cur) => {
         if (cur.length) prev = [...prev, ...cur];
         return prev;
     }, [])
-    logMessage('Generating automod report', { reportCount: reportsMerged?.length });
+    logger.info('Generating automod report', { reportCount: reportsMerged?.length });
 
     if (!report) return interaction.editReply({ content: 'Report not available' })
 

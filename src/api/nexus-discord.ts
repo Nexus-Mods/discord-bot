@@ -4,8 +4,8 @@ import { request, gql } from 'graphql-request'; // For interacting with API v2.
 import { NexusUser } from '../types/users';
 import { IGameListEntry, IValidateKeyResponse, IModInfo, IModFiles, IUpdateEntry, IChangelogs, IGameInfo } from '@nexusmods/nexus-api'
 import { ModDownloadInfo, NexusSearchResult, NexusAPIServerError } from '../types/util';
-import { logMessage } from './util';
 import { getAccessToken } from '../server/NexusModsOAuth';
+import { Logger } from './util';
 
 const nexusAPI: string = 'https://api.nexusmods.com/'; //for all regular API functions
 const nexusGraphAPI: string = nexusAPI+'/v2/graphql';
@@ -32,7 +32,7 @@ const v1headers = (token: string | undefined, apiKey?: string): IRequestHeaders 
     }
 );
 
-async function v1APIQuery (path: string, user: NexusUser, params?: { [key: string]: any }): Promise<any> {
+async function v1APIQuery (logger: Logger, path: string, user: NexusUser, params?: { [key: string]: any }): Promise<any> {
     // Build request header using API key or tokens
     let headers = {};
     let authType: 'OAUTH' | 'APIKEY';
@@ -44,7 +44,7 @@ async function v1APIQuery (path: string, user: NexusUser, params?: { [key: strin
             headers = v1headers(newTokens.access_token);
         }
         catch(err) {
-            logMessage('Could not validate tokens for user', { user: user.name, error: err });
+            logger.warn('Could not validate tokens for user', { user: user.name, error: err });
         }
     }
     else if (!!user.apikey) {
@@ -65,24 +65,24 @@ async function v1APIQuery (path: string, user: NexusUser, params?: { [key: strin
     }
     catch(err) {
         if (err as AxiosError) return Promise.reject(new NexusAPIServerError(err as AxiosError, authType, path));
-        logMessage('Unexpected API error', err, true);
+        logger.error('Unexpected API error', err, true);
         return Promise.reject(new Error(`Unexpected API error: ${(err as Error)?.message}`));
     }
 }
 
-async function games(user: NexusUser, bUnapproved?: boolean): Promise<IGameInfo[]>  {
-    return v1APIQuery('/v1/games', user, { include_unapproved: bUnapproved });
+async function games(logger: Logger, user: NexusUser, bUnapproved?: boolean): Promise<IGameInfo[]>  {
+    return v1APIQuery(logger, '/v1/games', user, { include_unapproved: bUnapproved });
 }
 
-async function gameInfo(user: NexusUser, domainQuery: string): Promise<IGameListEntry> {
-    return v1APIQuery(`/v1/games/${domainQuery}`, user);
+async function gameInfo(logger: Logger, user: NexusUser, domainQuery: string): Promise<IGameListEntry> {
+    return v1APIQuery(logger, `/v1/games/${domainQuery}`, user);
 }
 
 export interface IValidateResponse extends IValidateKeyResponse {
     is_ModAuthor: boolean;
 }
 
-async function validate(apiKey: string): Promise<IValidateResponse> {
+async function validate(apiKey: string, logger: Logger): Promise<IValidateResponse> {
     // const baseCheck: IValidateKeyResponse = await v1APIQuery('/v1/users/validate.json', apiKey);
     const query = await axios({
         baseURL: nexusAPI,
@@ -92,11 +92,11 @@ async function validate(apiKey: string): Promise<IValidateResponse> {
     });
     const baseCheck: IValidateKeyResponse = query.data;
     // We need to talk to GraphQL to see if this user is a mod author. 
-    const is_ModAuthor: boolean = await getModAuthor(baseCheck.user_id);
+    const is_ModAuthor: boolean = await getModAuthor(baseCheck.user_id, logger);
     return { is_ModAuthor, ...baseCheck };
 }
 
-export async function getModAuthor(id: number): Promise<boolean> {
+export async function getModAuthor(id: number, logger: Logger): Promise<boolean> {
     const query = gql`
     query getModAuthorStatus($id: Int!) {
         user(id: $id) {
@@ -113,7 +113,7 @@ export async function getModAuthor(id: number): Promise<boolean> {
         return data?.user?.recognizedAuthor ?? (data?.user?.uniqueModDownloads || 0) >= 1000 ?? false;
     }
     catch(err) {
-        logMessage('GraphQL request for mod author status failed', { error: (err as Error).message, userId: id }, true);
+        logger.warn('GraphQL request for mod author status failed', { error: (err as Error).message, userId: id }, true);
         return false;
     }
 }
@@ -148,20 +148,20 @@ async function quicksearch(query: string, bIncludeAdult: boolean, game_id: numbe
     }
 }
 
-async function updatedMods(user: NexusUser, gameDomain: string, period: string = '1d'): Promise<IUpdateEntry[]> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/updated.json`, user, { period });
+async function updatedMods(logger: Logger, user: NexusUser, gameDomain: string, period: string = '1d'): Promise<IUpdateEntry[]> {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/updated.json`, user, { period });
 }
 
-async function modInfo(user: NexusUser, gameDomain: string, modId: number): Promise<IModInfo> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}.json`, user);
+async function modInfo(logger: Logger, user: NexusUser, gameDomain: string, modId: number): Promise<IModInfo> {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/${modId}.json`, user);
 }
 
-async function modFiles(user: NexusUser, gameDomain: string, modId: number): Promise<IModFiles> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/files.json`, user);
+async function modFiles(logger: Logger, user: NexusUser, gameDomain: string, modId: number): Promise<IModFiles> {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/${modId}/files.json`, user);
 }
 
-async function modChangelogs(user: NexusUser, gameDomain: string, modId: number): Promise<IChangelogs> {
-    return v1APIQuery(`/v1/games/${gameDomain}/mods/${modId}/changelogs.json`, user);
+async function modChangelogs(logger: Logger, user: NexusUser, gameDomain: string, modId: number): Promise<IChangelogs> {
+    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/${modId}/changelogs.json`, user);
 }
 
 class downloadStatsCache {
@@ -185,7 +185,6 @@ class downloadStatsCache {
         // Check if it has expired
         if (!!game && game.expires < new Date()) {
             delete this.downloadStats[gameId];
-            logMessage('Clearing cached download stats for Game ID:', gameId);
             return undefined;
         }
         // If there's no game data or mod ID return whatever we found.
@@ -204,21 +203,19 @@ class downloadStatsCache {
         .map(([key, entry]: [string, { data: ModDownloadInfo[], expires: Date }]) => {
             const id: number = parseInt(key);
             if (entry.expires < new Date()) {
-                logMessage('Removing expired cache data for game ', id);
                 delete this.downloadStats[id]
             };
         });
         const endSize = JSON.stringify(this.downloadStats).length;
         const change = endSize - startSize;
-        if (startSize != endSize) logMessage('Clean up of download stats cache done', { change });
     }
 }
 
 const downloadCache = new downloadStatsCache();
 
-async function getDownloads(user: NexusUser, gameDomain: string, gameId: number = -1, modId: number = -1): Promise<ModDownloadInfo | ModDownloadInfo[]> {
+async function getDownloads(logger: Logger, user: NexusUser, gameDomain: string, gameId: number = -1, modId: number = -1): Promise<ModDownloadInfo | ModDownloadInfo[]> {
     try {
-        const gameList: IGameListEntry[] = await games(user, false);
+        const gameList: IGameListEntry[] = await games(logger, user, false);
         const game: IGameListEntry | undefined = gameList.find(game => (gameId !== -1 && game.id === gameId) || (gameDomain === game.domain_name));
         if (!game) return Promise.reject(`Unable to resolve game for ${gameId}, ${gameDomain}`);
         gameId = game.id;
@@ -238,7 +235,7 @@ async function getDownloads(user: NexusUser, gameDomain: string, gameId: number 
                 const values = row.split(',');
                 if (values.length != 4) {
                     // Since 2021-04-28 the CSV now includes page views as the 4th value.
-                    logMessage(`Invalid CSV row for ${game.domain_name} (${gameId}): ${row}`);
+                    logger.warn(`Invalid CSV row for ${game.domain_name} (${gameId}): ${row}`);
                     return;
                 }
                 return {

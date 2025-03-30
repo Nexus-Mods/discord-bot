@@ -1,5 +1,5 @@
 import { request, gql, Variables } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, NexusGQLError } from './v2';
 import { BaseFilterValue, BaseSortValue, FilterLogicalOperator } from "../../types/GQLTypes";
 
@@ -51,7 +51,7 @@ query DiscordBotUserSearch($filter: UsersSearchFilter, $sort: [UsersSearchSort!]
 }
 `;
 
-export async function users(headers: Record<string,string>, name: string): Promise<IUser[]> {
+export async function users(headers: Record<string,string>, logger: Logger, name: string): Promise<IUser[]> {
 
     const vars: IVariables = {
         filter : {
@@ -73,7 +73,7 @@ export async function users(headers: Record<string,string>, name: string): Promi
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'users');
-        logMessage('Error in users v2 request', error, true);
+        logger.error('Error in users v2 request', error, true);
         return [];
     }
 }

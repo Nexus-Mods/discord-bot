@@ -1,7 +1,7 @@
 import { Snowflake } from 'discord.js';
-import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, SubscribedItemType } from '../types/subscriptions';
+import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem } from '../types/subscriptions';
 import { queryPromise } from './dbConnect';
-import { logMessage } from './util';
+import { logger } from '../DiscordBot';
 
 // CHANNEL HANDLERS
 
@@ -11,7 +11,7 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
             'SELECT * FROM SubscribedChannels',
             []
         );
-        const promises = data.rows.map(async r => { return await SubscribedChannel.create(r) });
+        const promises = data.rows.map(async r => { return await SubscribedChannel.create(r, logger) });
         const channels = await Promise.all(promises);
         
         return channels;
@@ -31,7 +31,7 @@ async function getSubscribedChannel(guild: Snowflake, channel: Snowflake): Promi
             [guild, channel]
         );
         if (data.rows.length === 0) return undefined;
-        else return await SubscribedChannel.create(data.rows[0]);
+        else return await SubscribedChannel.create(data.rows[0], logger);
 
     }
     catch(err) {
@@ -48,7 +48,7 @@ async function createSubscribedChannel(c: Omit<ISubscribedChannel, 'id' | 'creat
                 VALUES ($1, $2, $3, $4) RETURNING *`,
             [c.guild_id, c.channel_id, c.webhook_id, c.webhook_token]
         );
-        return new SubscribedChannel(data.rows[0], []);
+        return new SubscribedChannel(data.rows[0], [], logger);
     }
     catch(err) {
         const error: Error = (err as Error);
@@ -64,7 +64,7 @@ async function updateSubscribedChannel(c: ISubscribedChannel, date: Date): Promi
                 WHERE id=$2 RETURNING *`,
             [date, c.id]
         );
-        return new SubscribedChannel(data.rows[0], []);
+        return new SubscribedChannel(data.rows[0], [], logger);
     }
     catch(err) {
         const error: Error = (err as Error);
@@ -262,7 +262,7 @@ async function ensureSubscriptionsDB() {
 
     }
     catch(err) {
-        logMessage('Critial Error creating tables for subscriptions!', err, true);
+        logger.error('Critial Error creating tables for subscriptions!', err);
         throw new Error('Failed to create database tables for subscriptions')
     }
 }

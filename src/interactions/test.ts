@@ -1,7 +1,7 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
-import { KnownDiscordServers, logMessage } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { customEmojis } from "../types/util";
 
@@ -9,7 +9,7 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('test')
     .setDescription('Testing Command.')
-    .setDMPermission(false)
+    .setContexts(InteractionContextType.Guild)
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     public: false,
     guilds: [
@@ -20,7 +20,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const discordId = interaction.user.id;
@@ -28,7 +28,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     if (!botuser) return interaction.editReply({ content: 'Error! No linked user!' });
     try {
         await botuser.NexusMods.Auth();
-        logMessage('Nexus Mods Auth verfied.');
+        logger.info('Nexus Mods Auth verfied.');
         const v1test = {
             Games: (await botuser.NexusMods.API.v1.Games()).length > 2000,
             Game: (await botuser.NexusMods.API.v1.Game('skyrim')).name === 'Skyrim',
@@ -61,7 +61,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             WebsiteStatus: !!(await botuser.NexusMods.API.Other.WebsiteStatus()),
         }
         
-        logMessage('API tests complete', { v1test, v2test });
+        logger.info('API tests complete', { v1test, v2test });
 
         const format = (input: {[key: string]: boolean}): string => 
             Object.entries(input).reduce((prev: string, cur: [string, boolean]) => {

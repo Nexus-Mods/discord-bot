@@ -10,7 +10,7 @@ import {
 import { getUserByDiscordId, updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';
 import { BotServer } from "../types/servers";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
-import { KnownDiscordServers, logMessage } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
@@ -116,7 +116,7 @@ interface IBotServerChange {
     data: Partial<BotServer>;
 };
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -144,19 +144,19 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         const gameList: IGameStatic[] = await client.gamesList?.getGames() ?? [];
 
         // Viewing the current settings
-        if (!subComGroup && subCom === 'view') return viewServerInfo(client, interaction, guild, gameList, server);
+        if (!subComGroup && subCom === 'view') return viewServerInfo(client, interaction, guild, gameList, server, logger);
         // Update 
         else if (subComGroup === 'update') {
             let newData: Partial<IBotServerChange> = {};
 
             // Handle the subcommand
             switch (subCom) {
-                case 'searchfilter': newData = await updateSearchFilter(interaction, gameList, server);
+                case 'searchfilter': newData = await updateSearchFilter(interaction, gameList, server, logger);
                 break;
-                case 'role': newData = await updateClaimableRole(interaction, gameList, server, guild);
+                case 'role': newData = await updateClaimableRole(interaction, gameList, server, guild, logger);
                 break;
-                case 'add-role-conditions': return addRoleConditions(interaction, gameList, server, guild);
-                case 'remove-role-conditions': return removeRoleConditions(interaction, gameList, server, guild);
+                case 'add-role-conditions': return addRoleConditions(interaction, gameList, server, guild, logger);
+                case 'remove-role-conditions': return removeRoleConditions(interaction, gameList, server, guild, logger);
                 default: throw new Error('Unrecognised SubCommand: '+subCom);
             }
 
@@ -178,13 +178,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
     }
 }
 
-async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, ) {
+async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, logger: Logger) {
     const filterGame: IGameStatic|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
     const view: EmbedBuilder = await serverEmbed(client, guild, server, gameList, filterGame?.name);
     return interaction.editReply({ embeds: [view] });
 }
 
-async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer): Promise<Partial<IBotServerChange>> {
+async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, logger: Logger): Promise<Partial<IBotServerChange>> {
     const gameQuery: string | null = interaction.options.getString('game' as OptionNames);
     let foundGame : IGameStatic | undefined;
     if (!!gameQuery) {
@@ -199,7 +199,7 @@ async function updateSearchFilter(interaction: ChatInputCommandInteraction, game
     }
 }
 
-async function updateClaimableRole(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild): Promise<Partial<IBotServerChange>> {
+async function updateClaimableRole(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild, logger: Logger): Promise<Partial<IBotServerChange>> {
     // Need to get the role the user picked
     const newRole: Role | APIRole | null = interaction.options.getRole('role', false);
     const currentRole: Role | null = server.role_author ? await guild.roles.fetch(server.role_author) : null;
@@ -212,21 +212,21 @@ async function updateClaimableRole(interaction: ChatInputCommandInteraction, gam
             await deleteAllConditionsForRole(guild.id, server.role_author!);
         }
         catch(err) {
-            logMessage('Error deleting conditions for role', err, true);
+            logger.warn('Error deleting conditions for role', err);
         }
     }
     // If we're swapping the role, swap the conditions
     else if (!!newRole  && !!currentRole && newRole!.id !== currentRole!.id) {
         try {
-            logMessage('Changing role for conditions', { cur: currentRole!.id, new:newRole!.id });
+            logger.info('Changing role for conditions', { cur: currentRole!.id, new:newRole!.id });
             await changeRoleForConditions(guild.id, currentRole!.id, newRole!.id);
 
         }
         catch(err) {
-            logMessage('Error updating role for conditions', err, true);
+            logger.warn('Error updating role for conditions', err);
         }
     }
-    else logMessage('No changes needed for conditions');
+    else logger.debug('No changes needed for conditions');
     
 
     return {
@@ -237,7 +237,7 @@ async function updateClaimableRole(interaction: ChatInputCommandInteraction, gam
     }
 }
 
-async function addRoleConditions(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild) {    
+async function addRoleConditions(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild, logger: Logger) {    
     // Get the role for the server
     const roleId: string | undefined = server.role_author;
     if (roleId === undefined) return interaction.editReply('No role configured. Use the `/settings update role` option to set a role.');
@@ -257,7 +257,7 @@ async function addRoleConditions(interaction: ChatInputCommandInteraction, gameL
     const gameInfo = gameList.find(g => g.domain_name === game);
     if (!gameInfo) return interaction.editReply(`Invalid game: ${game}`);
 
-    logMessage('Adding role condition', { roleId, type, game, minCount, op });
+    logger.info('Adding role condition', { roleId, type, game, minCount, op });
 
     try {
         const newCondition = await addConditionForRole(guild.id, roleId!, type, game, minCount, op);
@@ -272,12 +272,12 @@ async function addRoleConditions(interaction: ChatInputCommandInteraction, gameL
         return interaction.editReply({ content: 'Role conditions updated', embeds: [embed] });
     }
     catch(err) {
-        logMessage('Error adding role condition', err, true);
+        logger.warn('Error adding role condition', err);
         return interaction.editReply('Error adding role condition');
     }
 }
 
-async function removeRoleConditions(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild) {
+async function removeRoleConditions(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, guild: Guild, logger: Logger) {
     // Get conditions
     const roleId: string | null = server.role_author ?? null;
     if (!roleId) return interaction.editReply('Not claimable role set!');
@@ -305,12 +305,12 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
 
     // throw new Error('Not implemented');
     const collector = (await interaction.fetchReply()).createMessageComponentCollector({ max: conditionWithEmoji.length, time: 60_000, componentType: ComponentType.Button });
-    collector.on('end', () => logMessage('Collector ended'))
+    collector.on('end', () => logger.debug('Collector ended'))
     collector.on('collect', async (i: ButtonInteraction) => {
         await i.deferUpdate();
         const selection = i.customId;
         const conditionToRemove = conditionWithEmoji.find(c => c.emoji === selection);
-        if (!conditionToRemove) return logMessage('Could not find condition to remove!', selection, true);
+        if (!conditionToRemove) return logger.warn('Could not find condition to remove!', selection);
         try {
             await deleteConditionForRole(conditionToRemove!.id);
             // filter out the removed condition;
@@ -319,7 +319,7 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
             await i.editReply({embeds: [embed(conditionWithEmoji)], components: [buttons(conditionWithEmoji)]});
         }
         catch(err) {
-            logMessage('Error removing condition', err, true);
+            logger.warn('Error removing condition', err);
         }
     })
 
@@ -335,7 +335,6 @@ const updateEmbed = (data: IBotServerChange): EmbedBuilder => {
 }
 
 function resolveFilter(games: IGameStatic[], term: string|null|undefined): IGameStatic|undefined {
-    logMessage('Resolve game', { term, total: games.length });
     if (!term || !games.length) return;
     const game = games.find(g => g.name.toLowerCase() === term.toLowerCase() || g.domain_name.toLowerCase() === term.toLowerCase() || g.id === parseInt(term));
     return game;

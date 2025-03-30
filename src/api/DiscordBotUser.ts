@@ -2,7 +2,7 @@ import * as NexusModsOAuth from '../server/NexusModsOAuth';
 import * as DiscordOAuth from '../server/DiscordOAuth';
 import { IUpdateEntry, IValidateKeyResponse } from '@nexusmods/nexus-api';
 import { NexusUser } from '../types/users';
-import { logMessage } from './util';
+import { Logger } from './util';
 import { updateUser } from './users';
 import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v1, v2 } from './queries/all';
@@ -60,8 +60,10 @@ export class DiscordBotUser {
     public NexusModsRoles: Set<NexusMembershipRoles> = new Set();
     public readonly DiscordId: Readonly<string>;
     public LastUpdated: Date;
+    private logger: Logger;
 
-    constructor(user: NexusUser) {
+    constructor(user: NexusUser, logger: Logger) {
+        this.logger = logger;
         this.NexusModsId = user.id;
         this.DiscordId = user.d_id;
         this.NexusModsUsername = user.name;
@@ -133,51 +135,51 @@ export class DiscordBotUser {
         Revoke: () => this.NexusModsAuthType === 'OAUTH' && !!this.NexusModsOAuthTokens ? NexusModsOAuth.revoke(this.NexusModsOAuthTokens) : null,
         API: {
             v1: {
-                Validate: async () => v1.validate(this.headers()),
-                Game: async (domain: string) => v1.game(this.headers(), domain),
-                Games: async () => v1.games(this.headers()),
+                Validate: async () => v1.validate(this.headers(), this.logger),
+                Game: async (domain: string) => v1.game(this.headers(), this.logger, domain),
+                Games: async () => v1.games(this.headers(), this.logger),
                 ModQuickSearch: 
                     async (query: string, adult: boolean, gameId?: number) => 
                         v1.quicksearch(query, adult, gameId),
                 UpdatedMods: 
                     async (domain: string, period?: string): Promise<IUpdateEntry[]> => 
-                        v1.updatedMods(this.headers(), domain, period),
+                        v1.updatedMods(this.headers(), this.logger, domain, period),
                 Mod: 
                     async (domain: string, id: number) => 
-                        v1.modInfo(this.headers(), domain, id),
+                        v1.modInfo(this.headers(), this.logger, domain, id),
                 ModFiles: 
                     async (domain: string, id: number) => 
-                        v1.modFiles(this.headers(), domain, id),
+                        v1.modFiles(this.headers(), this.logger, domain, id),
                 ModChangelogs: 
                     async (domain: string, id: number) => 
-                        v1.modChangelogs(this.headers(), domain, id),
+                        v1.modChangelogs(this.headers(), this.logger, domain, id),
             },
             v2: {
-                IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), id),
-                Game: async (id: number) => v2.game(this.headers(), id),
-                Games: async () => v2.games(this.headers()),
-                Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), [{ gameDomain, modId }]),
-                Mods: async (filter: IModsFilter, sort?: IModsSort ) => v2.mods(this.headers(), filter, sort),
+                IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), this.logger, id),
+                Game: async (id: number) => v2.game(this.headers(), this.logger, id),
+                Games: async () => v2.games(this.headers(), this.logger),
+                Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), this.logger, [{ gameDomain, modId }]),
+                Mods: async (filter: IModsFilter, sort?: IModsSort ) => v2.mods(this.headers(), this.logger, filter, sort),
                 UpdatedMods: 
                     async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
-                        v2.updatedMods(this.headers(), since, includeAdult, gameId, sort),
+                        v2.updatedMods(this.headers(), this.logger, since, includeAdult, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
-                        v2.modsById(this.headers(), mods),
-                ModsByUid: async (uids: string[]) => v2.modsByUid(this.headers(), uids),
-                MyCollections: async () => v2.myCollections(this.headers()),
+                        v2.modsById(this.headers(), this.logger, mods),
+                ModsByUid: async (uids: string[]) => v2.modsByUid(this.headers(), this.logger, uids),
+                MyCollections: async () => v2.myCollections(this.headers(), this.logger),
                 Collections: 
                     async (filters: GQLTypes.ICollectionsFilter, sort?: GQLTypes.CollectionsSort, adultContent?: boolean) => 
-                        v2.collections(this.headers(), filters, sort, adultContent),
-                Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), slug, domain, adult),
-                CollectionsByUser: async (userId: number) => v2.collections(this.headers(), { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),
-                CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), userId),
-                FindUser: async (query: string | number) => v2.findUser(this.headers(), query),
-                LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), since, gameIds, sort),
-                News: async (gameId?: number) => v2.news(this.headers(), gameId),
-                ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), gameId, modId),
-                Users: async (name: string) => v2.users(this.headers(), name),
-                CollectionRevisions: async (domain: string, slug: string) => v2.collectionRevisions(this.headers(), slug, domain)
+                        v2.collections(this.headers(), this.logger, filters, sort, adultContent),
+                Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), this.logger, slug, domain, adult),
+                CollectionsByUser: async (userId: number) => v2.collections(this.headers(), this.logger, { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),
+                CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), this.logger, userId),
+                FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
+                LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), this.logger, since, gameIds, sort),
+                News: async (gameId?: number) => v2.news(this.headers(), this.logger, gameId),
+                ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), this.logger, gameId, modId),
+                Users: async (name: string) => v2.users(this.headers(), this.logger, name),
+                CollectionRevisions: async (domain: string, slug: string) => v2.collectionRevisions(this.headers(), this.logger, slug, domain)
             },
             Other: {
                 // Games pulled from the static Games.json file.
@@ -185,7 +187,7 @@ export class DiscordBotUser {
                 // Mod stats from the static CSV files.
                 ModDownloads: async (gameId: number, modId?: number) => other.ModDownloads(gameId, modId),
                 SiteStats: async () => other.SiteStats(this.headers()),
-                WebsiteStatus: async (full: boolean = false) => other.WebsiteStatus(this.headers(), full),
+                WebsiteStatus: async (full: boolean = false) => other.WebsiteStatus(this.headers(), this.logger, full),
             }     
         }
     }
@@ -205,7 +207,7 @@ export class DiscordBotUser {
         }
         else if (this.NexusModsOAuthTokens) {
             try {
-                const data = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens)
+                const data = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens, this.logger)
                 updated = await this.updateUserDataFromOAuth(data);
             }
             catch(err) {
@@ -222,7 +224,7 @@ export class DiscordBotUser {
             collectiondownloads = newTotals.uniqueDownloads ?? savedMeta?.metadata.collectiondownloads;
         }
         catch(err) {
-            logMessage('Error getting Collection download totals', { name: this.NexusModsUsername, err });
+            this.logger.warn('Error getting Collection download totals', { name: this.NexusModsUsername, err });
         }
 
         // Update Discord Metadata
@@ -236,6 +238,7 @@ export class DiscordBotUser {
                 };
 
                 await DiscordOAuth.pushMetadata(
+                this.logger,
                 this.DiscordId, 
                 this.NexusModsUsername, 
                 this.DiscordOAuthTokens, 
@@ -245,7 +248,7 @@ export class DiscordBotUser {
 
         }
         catch(err) {
-            logMessage('Failed to update Discord role metadata', err, true);
+            this.logger.warn('Failed to update Discord role metadata', err, true);
         }
 
         return updated;
@@ -293,7 +296,7 @@ export class DiscordBotUser {
 
         }
         catch(err) {
-            logMessage('Could not check for mod author status', err);
+            this.logger.warn('Could not check for mod author status', err);
         }
 
         try {
@@ -359,7 +362,7 @@ export class DiscordBotUser {
 
         }
         catch(err) {
-            logMessage('Could not check for mod author status', err);
+            this.logger.warn('Could not check for mod author status', err);
         }
 
 
@@ -404,18 +407,18 @@ export class DiscordBotUser {
 
     public Discord = {
         Auth: async () => {
-            if (this.DiscordOAuthTokens) return DiscordOAuth.getAccessToken(this.DiscordId, this.DiscordOAuthTokens)
+            if (this.DiscordOAuthTokens) return DiscordOAuth.getAccessToken(this.DiscordId, this.DiscordOAuthTokens, this.logger)
             else throw new Error('Discord not authorised');
         },
         ID: (): string => this.DiscordId,
         User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId),
         Revoke: () => !!this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
         BuildMetaData: () => this.getDiscordMetaData(),
-        GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens) : undefined,
+        GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens, this.logger) : undefined,
         PushMetaData: 
         async (meta: { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1' | '0', collectiondownloads?: number, moddownloads?: number }) => 
             this.DiscordOAuthTokens 
-            ? DiscordOAuth.pushMetadata(this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) 
+            ? DiscordOAuth.pushMetadata(this.logger, this.DiscordId, this.NexusModsUsername, this.DiscordOAuthTokens, meta) 
             : new Error('Not Authorised')
     }
 
@@ -426,7 +429,7 @@ export class DiscordBotUser {
             oldData = await this.Discord.GetRemoteMetaData();
         }
         catch(err) {
-            logMessage('Could not fetch saved Discord metadata', { user: this.NexusModsUsername, err });
+            this.logger.warn('Could not fetch saved Discord metadata', { user: this.NexusModsUsername, err });
         }
 
         // Get collection downloads
@@ -437,10 +440,10 @@ export class DiscordBotUser {
             collectiondownloads = collectionTotals.uniqueDownloads;
             const modTotals = await this.NexusMods.API.v2.FindUser(this.NexusModsId);
             moddownloads = modTotals?.uniqueModDownloads ?? 0;
-            logMessage('Download totals', { name: this.NexusModsUsername, collectiondownloads, moddownloads })
+            this.logger.info('Download totals', { name: this.NexusModsUsername, collectiondownloads, moddownloads })
         }
         catch(err) {
-            logMessage('Failed to get collection/mod downloads to build Discord metadata', { user: this.NexusModsUsername, err });
+            this.logger.warn('Failed to get collection/mod downloads to build Discord metadata', { user: this.NexusModsUsername, err });
         }
 
         return {

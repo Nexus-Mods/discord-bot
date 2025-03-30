@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { autocompleteGameName, KnownDiscordServers, logMessage } from "../api/util";
+import { autocompleteGameName, KnownDiscordServers, Logger } from "../api/util";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 
 const discordInteraction: DiscordInteraction = {
@@ -23,12 +23,12 @@ const discordInteraction: DiscordInteraction = {
     autocomplete: autocompleteGameName
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const domain: string|null = interaction.options.getString('domain'); 
-    const newsInst: NewsFeedManager = await NewsFeedManager.getInstance(client);
+    const newsInst: NewsFeedManager = await NewsFeedManager.getInstance(client, logger);
 
     try {
         const latest = await newsInst.forceUpdate(domain?.toLowerCase());
@@ -37,7 +37,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
         await interaction.editReply({ content: 'Update successful', embeds: [embed]});
     }
     catch(err) {
-        logMessage('Failed to update news', err, true);
+        logger.warn('Failed to update news', err);
         return interaction.editReply('Failed to update news:'+(err as Error).message);
     }
 }

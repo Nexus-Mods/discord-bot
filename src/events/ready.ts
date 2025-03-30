@@ -1,7 +1,7 @@
 import { EmbedBuilder, Guild, TextChannel, GuildBasedChannel } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
-import { logMessage } from '../api/util';
+import { Logger } from '../api/util';
 import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
 
 import { NewsFeedManager } from '../feeds/NewsFeedManager';
@@ -18,30 +18,30 @@ const onlineEmbed = new EmbedBuilder()
 const main: DiscordEventInterface = {
     name: 'ready',
     once: true,
-    async execute(client: ClientExt) {
+    async execute(client: ClientExt, logger: Logger) {
         if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
 
         // Pre-cache games list
         try {
-            client.gamesList = await new GameListCache().init();
+            client.gamesList = await new GameListCache().init(logger);
         }
         catch(err) {
-            logMessage('Could not pre-cache the games list', err, true);
+            logger.warn('Could not pre-cache the games list', err);
         }
 
         // Start up the feeds
         try {
-            client.gameFeeds = GameFeedManager.getInstance(client);
-            client.newsFeed = await NewsFeedManager.getInstance(client);
-            client.automod = AutoModManager.getInstance(client);
-            client.subscriptions = await SubscriptionManger.getInstance(client);
+            client.gameFeeds = GameFeedManager.getInstance(client, logger);
+            client.newsFeed = await NewsFeedManager.getInstance(client, logger);
+            client.automod = await AutoModManager.getInstance(client, logger);
+            client.subscriptions = await SubscriptionManger.getInstance(client, logger);
         }
         catch(err) {
-            logMessage('Error starting up feeds', err, true);
+            logger.error('Error starting up feeds', err);
         }
 
         // Publish online message to servers. (Cache server listing?)
-        if (client.config.testing) return logMessage('Testing mode - did not send online message');
+        if (client.config.testing) return logger.debug('Testing mode - did not send online message');
 
         try {
             // Set the startup time
@@ -52,8 +52,8 @@ const main: DiscordEventInterface = {
                 // Check the server still exists (i.e. we are a member)
                 const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
                 if (!guild) {
-                    logMessage(`Deleting non-existent server: ${server.id}`);
-                    await deleteServer(server.id).catch((err) => logMessage('Could not delete server', err, true));
+                    logger.info(`Deleting non-existent server: ${server.id}`);
+                    await deleteServer(server.id).catch((err) => logger.warn('Could not delete server', err));
                     continue;
                 }
                 if (!server.channel_nexus) continue;
@@ -65,18 +65,18 @@ const main: DiscordEventInterface = {
                 }
                 catch(err) {
                     if (!['Missing Permissions', 'Missing Access'].includes((err as Error).message)) {
-                        logMessage(`Error posting online notice to log channel in ${guild.name}`, { error: (err as Error).message }, true);
+                        logger.warn(`Error posting online notice to log channel in ${guild.name}`, { error: (err as Error).message });
                     }
                 }
             }
 
         }
         catch(err) {
-            logMessage('Sending online message failed', err, true);
+            logger.warn('Sending online message failed', err);
 
         }
 
-        logMessage(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
+        logger.info(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
 
     }
 }

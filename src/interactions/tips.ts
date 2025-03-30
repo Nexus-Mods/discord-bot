@@ -4,7 +4,7 @@ import {
     EmbedData, InteractionEditReplyOptions
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { logMessage } from "../api/util";
+import { Logger } from "../api/util";
 import { ITip } from "../api/tips";
 import { TipCache } from "../types/util";
 
@@ -30,7 +30,7 @@ const discordInteraction: DiscordInteraction = {
     autocomplete
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply().catch(err => { throw err });
     
@@ -71,7 +71,7 @@ function embedBulderWithOverrides(tip: ITip, data: EmbedData, interaction: ChatI
     .setColor(0xda8e35);
 }
 
-async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction) {
+async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger: Logger) {
     const focused = interaction.options.getFocused().toLowerCase();
     try {
         if (!client.tipCache) client.tipCache = new TipCache();
@@ -82,7 +82,7 @@ async function autocomplete(client: ClientExt, interaction: AutocompleteInteract
         );
     }
     catch(err) {
-        logMessage('Error autocompleting tips', {err}, true);
+        logger.warn('Error autocompleting tips', {err});
         throw err;
     }
 }

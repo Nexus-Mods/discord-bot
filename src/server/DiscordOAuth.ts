@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { logMessage } from '../api/util';
+import { Logger } from '../api/util';
 
 interface OAuthURL {
     url: string;
@@ -111,13 +111,13 @@ export async function getUserData(tokens: OAuthTokens): Promise<DiscordUserData>
  * Given metadata that matches the schema, push that data to Discord on behalf
  * of the current user.
  */
-export async function pushMetadata(userId: string, username: string, tokens: OAuthTokens, metadata: BotMetaData, retry?: boolean): Promise<void> {
+export async function pushMetadata(logger: Logger, userId: string, username: string, tokens: OAuthTokens, metadata: BotMetaData, retry?: boolean): Promise<void> {
 
     const { DISCORD_CLIENT_ID } = process.env;
     if (!DISCORD_CLIENT_ID) throw new Error('Cannot push Discord metadata, ENVARS invalid');
     // GET/PUT /users/@me/applications/:id/role-connection
     const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;
-    const accessTokens = await getAccessToken(userId, tokens);
+    const accessTokens = await getAccessToken(userId, tokens, logger);
     const body = {
       platform_name: 'Nexus Mods',
       platform_username: username,
@@ -136,14 +136,14 @@ export async function pushMetadata(userId: string, username: string, tokens: OAu
       if (response.status === 429) {
         const rateLimitResetAfter = response.headers.get('X-RateLimit-Reset-After');
         if (!retry && rateLimitResetAfter && parseFloat(rateLimitResetAfter) < 10) {
-          logMessage('Rate limited when updating metadata, retrying in ', rateLimitResetAfter);
+          logger.warn('Rate limited when updating metadata, retrying in ', rateLimitResetAfter);
           await sleep(parseFloat(rateLimitResetAfter || '10'));
-          return pushMetadata(userId, username, tokens, metadata, true);      
+          return pushMetadata(logger, userId, username, tokens, metadata, true);      
         }
         const resetSecs = rateLimitResetAfter ? (Math.ceil(parseInt(rateLimitResetAfter))) : 10;
         const headers: Record<string,string> = {};
         response.headers.forEach((value, key) => { headers[key] = value });
-        logMessage('Discord rate limit hit', { retry, body: await response.json(), name: body.platform_username });
+        logger.warn('Discord rate limit hit', { retry, body: await response.json(), name: body.platform_username });
         const errMsg = `The Discord API is currently rate limit metadata updates ${resetSecs ? `- please try again after: ${resetSecs} second(s)` : '' } [${response.status}].`;
         throw new Error(errMsg);
       }
@@ -165,11 +165,11 @@ interface IRemoteMetaData {
  * Fetch the metadata currently pushed to Discord for the currently logged
  * in user, for this specific bot.
  */
-export async function getMetadata(userId: string, tokens: OAuthTokens): Promise<IRemoteMetaData> {
+export async function getMetadata(userId: string, tokens: OAuthTokens, logger: Logger): Promise<IRemoteMetaData> {
   // GET/PUT /users/@me/applications/:id/role-connection
   const { DISCORD_CLIENT_ID } = process.env;
   const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;
-  const accessToken = await getAccessToken(userId, tokens);
+  const accessToken = await getAccessToken(userId, tokens, logger);
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken.access_token}`,
@@ -188,14 +188,14 @@ export async function getMetadata(userId: string, tokens: OAuthTokens): Promise<
  * token.  Check if the access token has expired, and if it has, use the
  * refresh token to acquire a new, fresh access token.
  */
-export async function getAccessToken(userId: string, tokens: OAuthTokens): Promise<OAuthTokens> {
+export async function getAccessToken(userId: string, tokens: OAuthTokens, logger: Logger): Promise<OAuthTokens> {
     const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } = process.env;
 
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) throw new Error('Error getting Discord access token, ENV VARS are undefined.');
 
 
     if (Date.now() > tokens.expires_at) {
-      logMessage('RENEW DISCORD ACCESS TOKENS', new Date(tokens.expires_at));
+      logger.info('RENEW DISCORD ACCESS TOKENS', new Date(tokens.expires_at));
       const url = 'https://discord.com/api/v10/oauth2/token';
       const body = new URLSearchParams({
         client_id: DISCORD_CLIENT_ID,

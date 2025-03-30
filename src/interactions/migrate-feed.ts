@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder, WebhookClient } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { createSubscribedChannel, createSubscription, getSubscribedChannel } from "../api/subscriptions";
-import { KnownDiscordServers, logMessage } from "../api/util";
+import { KnownDiscordServers, Logger } from "../api/util";
 import { SubscribedItemType } from "../types/subscriptions";
 import { deleteGameFeed } from "../api/game_feeds";
 
@@ -18,17 +18,17 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = baseInteraction as ChatInputCommandInteraction;
     await interaction.deferReply();
 
     const feeds = client.gameFeeds?.getAllFeeds();
     let migratable = feeds?.filter(f => f.show_updates === false) ?? [];
 
-    logMessage('Migration cancelled. Review this function!')
+    logger.warn('Migration cancelled. Review this function!')
     migratable = [];
 
-    logMessage('Migrating feeds', migratable.length);
+    logger.info('Migrating feeds', migratable.length);
 
     for (const feed of migratable) {
         const guild_id = feed.guild;
@@ -47,13 +47,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
             await whClient.deleteMessage(testMessage);
         }
         catch(err) {
-            console.log('Webhook test failed', {err, feed});
+            logger.warn('Webhook test failed', {err, feed});
             await interaction.editReply(`Webhook test failed. Could not migrate. Feed ${feed._id} for ${feed.domain} in ${guild.name}`);
             continue;
         }
         let subscribedChannel = await getSubscribedChannel(guild_id, channel_id);
         if (!subscribedChannel) {
-            logMessage('Creating subscribed channel');
+            logger.info('Creating subscribed channel');
             subscribedChannel = await createSubscribedChannel({ guild_id: guild_id, channel_id: channel_id, webhook_id: whId, webhook_token: whToken  });
         }
         // Convert to subscribed item
@@ -71,14 +71,14 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction): P
                 show_new: feed.show_new,
                 show_updates: feed.show_updates
             });
-            logMessage('Migration successful', { feed, newSub });
+            logger.info('Migration successful', { feed, newSub });
             await whClient.send(`-# The game feed for ${newSub.title} has been successfully migrated to a tracked game. Use \`/track\` and \`/untrack\` to manage these feeds in future.`);
             await deleteGameFeed(feed._id);
             await interaction.followUp(`Migration complete! Feed ${feed._id} for ${feed.domain} in ${guild.name}`)
             continue;
         }
         catch(err) {
-            logMessage('Failed to migrate game feed', err, true);
+            logger.warn('Failed to migrate game feed', { err, feed });
             await interaction.followUp(`Migration failed! Feed ${feed._id} for ${feed.domain} in ${guild.name}`);
             continue;
         }

@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { NexusGQLError, v2API } from './v2';
 
 export interface IResult {
@@ -18,7 +18,7 @@ query DiscordBotGetModAuthorStatus($id: Int!) {
 }
 `;
 
-export async function isModAuthor(headers: Record<string,string>, id: number): Promise<boolean> {
+export async function isModAuthor(headers: Record<string,string>, logger: Logger, id: number): Promise<boolean> {
     const vars = { id };
 
     try {
@@ -27,7 +27,7 @@ export async function isModAuthor(headers: Record<string,string>, id: number): P
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'isModAuthor');
-        logMessage('Error in isModAuthor v2 request', error, true);
+        logger.error('Error in isModAuthor v2 request', error, true);
         return false;
     }
 }

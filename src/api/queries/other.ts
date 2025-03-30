@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { StatusPageResponse, ModDownloadInfo } from '../../types/util';
-import { logMessage } from '../util';
+import { Logger } from '../util';
+import { logger } from '../../DiscordBot';
 
 export interface IGameStatic {
     approved_date: number;
@@ -48,7 +49,7 @@ export async function Games(headers: Record<string, string>): Promise<IGameStati
         return gameList.data as IGameStatic[];
     }
     catch(err) {
-        logMessage('Error getting games list from static file', err, true);
+        logger.error('Error getting games list from static file', err, true);
         return [];
     }
 }
@@ -70,7 +71,7 @@ export async function SiteStats(headers: Record<string, string>): Promise<ISiteS
         return stats;
     }
     catch(err) {
-        logMessage('Error getting games list from static file', err, true);
+        logger.error('Error getting games list from static file', err, true);
         (err as AxiosError).message = `Error getting site stats from static file: ${(err as AxiosError).message}`;
         throw err;
     }
@@ -97,7 +98,7 @@ class downloadStatsCache {
         // Check if it has expired
         if (!!game && game.expires < new Date()) {
             delete this.downloadStats[gameId];
-            logMessage('Clearing cached download stats for Game ID:', gameId);
+            logger.info('Clearing cached download stats for Game ID:', gameId);
             return undefined;
         }
         // If there's no game data or mod ID return whatever we found.
@@ -116,13 +117,13 @@ class downloadStatsCache {
         .map(([key, entry]: [string, { data: ModDownloadInfo[], expires: Date }]) => {
             const id: number = parseInt(key);
             if (entry.expires < new Date()) {
-                logMessage('Removing expired cache data for game ', id);
+                logger.info('Removing expired cache data for game ', id);
                 delete this.downloadStats[id]
             };
         });
         const endSize = JSON.stringify(this.downloadStats).length;
         const change = endSize - startSize;
-        if (startSize != endSize) logMessage('Clean up of download stats cache done', { change });
+        if (startSize != endSize) logger.info('Clean up of download stats cache done', { change });
     }
 }
 
@@ -146,7 +147,7 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
                 const values = row.split(',');
                 if (values.length != 4) {
                     // Since 2021-04-28 the CSV now includes page views as the 4th value.
-                    logMessage(`Invalid CSV row for Game (${gameId}): ${row}`);
+                    logger.warn(`Invalid CSV row for Game (${gameId}): ${row}`);
                     return;
                 }
                 return {
@@ -167,7 +168,7 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
     }
 }
 
-export async function WebsiteStatus<B extends boolean>(headers: Record<string, string>, full: B): Promise <StatusPageResponse<B>> {
+export async function WebsiteStatus<B extends boolean>(headers: Record<string, string>, logger: Logger, full: B): Promise <StatusPageResponse<B>> {
     try {
         const response = await axios({
             url: full ? nexusModsFullStatus : nexusModsStatus,
@@ -177,7 +178,7 @@ export async function WebsiteStatus<B extends boolean>(headers: Record<string, s
         return response.data;
     }
     catch(err) {
-        logMessage('Error fetching Nexus Mods status page data', err, true);
+        logger.error('Error fetching Nexus Mods status page data', err, true);
         throw err;
     }
 }

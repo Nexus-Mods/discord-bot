@@ -1,5 +1,5 @@
 import { request, gql, Variables } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, NexusGQLError } from './v2';
 import { INews, News } from "../../types/feeds";
 
@@ -38,7 +38,7 @@ query DiscordBotNews($gameId: Int) {
 }
 `;
 
-export async function news(headers: Record<string, string>, gameId?: number): Promise<News[]> {
+export async function news(headers: Record<string, string>, logger: Logger, gameId?: number): Promise<News[]> {
 
     let vars: INewsVariables = {}
     
@@ -53,7 +53,7 @@ export async function news(headers: Record<string, string>, gameId?: number): Pr
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'news');
-        logMessage('Error in news v2 request', error, true);
+        logger.error('Error in news v2 request', error, true);
         return [];
     }
 }

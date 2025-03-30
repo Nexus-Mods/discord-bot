@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import { logMessage } from "../util";
+import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
 
 interface IResult {
@@ -51,7 +51,7 @@ query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, filter: IModsFilter, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
+export async function mods(headers: Record<string,string>, logger: Logger, filter: IModsFilter, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
 
     const vars = {
         filter,
@@ -65,7 +65,7 @@ export async function mods(headers: Record<string,string>, filter: IModsFilter, 
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'mods');
-        logMessage('Error in mods v2 request', error, true);
+        logger.error('Error in mods v2 request', error, true);
         return { nodes: [], totalCount: 0 };
     }
 }

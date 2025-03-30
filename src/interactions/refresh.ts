@@ -1,8 +1,8 @@
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { NexusUser } from "../types/users";
 import { getUserByDiscordId } from '../api/bot-db';
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { KnownDiscordServers, logMessage } from '../api/util';
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from "discord.js";
+import { KnownDiscordServers, Logger } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const cooldown: number = (1*60*1000);
@@ -11,7 +11,7 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('refresh')
     .setDescription('Update your profile card.')
-    .setDMPermission(true),
+    .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM),
     public: true,
     guilds: [
         KnownDiscordServers.BotDemo
@@ -24,7 +24,6 @@ interface MetaData { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1'
 const updateMeta = (prev: MetaData, cur: MetaData): boolean => {
     for (const key of Object.keys(prev)) {
         if (prev[key as keyof MetaData] != cur[key as keyof MetaData]) {
-            logMessage('No match for metadata key', { key, prev, cur });
             return true;
         }
     }
@@ -53,13 +52,10 @@ const cancelCard = (client: Client, nexus: DiscordBotUser, discord: User) => {
     })
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    // logMessage('Refresh interaction triggered', { user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
-
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    // logMessage('Deferring reply');
     await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
     // Check if they are already linked.
     let userData : DiscordBotUser | undefined;
@@ -76,25 +72,21 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
             return interaction.editReply({ content: 'There was a problem authorising your Nexus Mods account. Use /link to refresh your tokens.' });
         }
         if (!userData) {
-            // logMessage('Editing reply, no user data');
             await interaction.editReply('You haven\'t linked your account yet. Use the /link command to get started.');
             return;
         }
         else if (nextUpdate > new Date()) {
-            // logMessage('Editing reply, too soon.');
-            await interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+            await interaction.editReply({ embeds: [ cancelCard(client, userData, interaction.user) ] }).catch((err) => logger.warn('Error updating interaction reply', { err }));;
             return;
         }
         else {
             card = replyCard(client, userData, interaction.user);
-            // logMessage('Editing reply, first reply');
-            await interaction.editReply({ embeds: [ card ] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+            await interaction.editReply({ embeds: [ card ] }).catch((err) => logger.warn('Error updating interaction reply', { err }));;
         }
     }
     catch(err) {
-        logMessage('Error checking if user exists in DB when linking', err, true);
-        // logMessage('Editing reply, error');
-        await interaction.editReply('An error occurred fetching your account details.').catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+        logger.warn('Error checking if user exists in DB when linking', err);
+        await interaction.editReply('An error occurred fetching your account details.').catch((err) => logger.warn('Error updating interaction reply', { err }));;
         return;
     }
 
@@ -122,7 +114,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
                 else card.addFields({ name: 'Linked Roles', value: 'No changes required'});
             }
             catch(err) {
-                logMessage('Discord metadata update error', (err as Error).message, true);
+                logger.warn('Discord metadata update error', (err as Error).message);
                 if ((err as Error).message === 'No Discord tokens') card.addFields({ name: 'Linked Roles', value: 'If you would like to use linked roles, please [re-authorise here](https://discordbot.nexusmods.com/linked-role).'})
                 else card.addFields({ name: 'Linked Roles', value: 'Could not update metadata due to an unexpected error'});                
             }
@@ -133,22 +125,19 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
 
     }
     catch(err) {
-        logMessage('Error updating using info', { err, stack: (err as Error)?.stack }, true);
+        logger.warn('Error updating using info', { err, stack: (err as Error)?.stack });
         card.addFields({ name: 'User Info', value: `Error updating user info: \n${err}`});
     }
 
     // Update the interaction
-    // logMessage('Editing reply, updating mod stats');
     card.setTitle('Updating mod stats...');
-    await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));;
+    await interaction.editReply({ embeds: [card] }).catch((err) => logger.warn('Error updating interaction reply', { err }));;
 
     // Update the interaction
     card.setTitle('Update complete');
-    // logMessage('Editing reply, update complete');
-    await interaction.editReply({ embeds: [card] }).catch((err) => logMessage('Error updating interaction reply', { err }, true));
+    await interaction.editReply({ embeds: [card] }).catch((err) => logger.warn('Error updating interaction reply', { err }));
     // // Recheck roles, if we have changed something.
     // if (updateRoles === true) await updateAllRoles(client, userData, interaction.user, false);
-    // else logMessage('User data has not changed, no role update needed', { user: interaction.user.tag });
 
 }
 

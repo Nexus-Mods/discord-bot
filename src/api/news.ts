@@ -1,8 +1,8 @@
 import { queryPromise } from './dbConnect';
-import { logMessage } from './util';
+import { Logger } from './util';
 import { SavedNewsData } from '../types/feeds';
 
-async function getSavedNews(): Promise<SavedNewsData> {
+async function getSavedNews(logger: Logger): Promise<SavedNewsData> {
     try {
         const data = await queryPromise<SavedNewsData>(
             'SELECT * FROM news',
@@ -11,12 +11,12 @@ async function getSavedNews(): Promise<SavedNewsData> {
         return data.rows[0];
     }
     catch(err) {
-        logMessage('Error getting saved news', err, true);
+        logger.error('Error getting saved news', err, true);
         throw err;
     }
 }
 
-async function updateSavedNews(title: string, date: Date, id: number): Promise<boolean> {
+async function updateSavedNews(logger: Logger, title: string, date: Date, id: number): Promise<boolean> {
     try {
         await queryPromise(
             'DELETE FROM news', 
@@ -29,12 +29,12 @@ async function updateSavedNews(title: string, date: Date, id: number): Promise<b
         return true;
     }
     catch(err) {
-        logMessage('Error updating news', err, true);
+        logger.error('Error updating news', err, true);
         throw err;
     }
 }
 
-async function ensureNewsDB() {
+async function ensureNewsDB(logger: Logger): Promise<void> {
     try {
         await queryPromise(
             `CREATE TABLE IF NOT EXISTS public.news
@@ -49,7 +49,7 @@ async function ensureNewsDB() {
 
     }
     catch(err) {
-        logMessage('Error creating news table', err, true);
+        logger.error('Error creating news table', err, true);
         throw err;
     }
 }
