@@ -92,7 +92,7 @@ export class GameFeedManager {
         await manager.getFeeds();
         const client: ClientExt = manager.client;
         if (!manager.GameFeeds.length) return this.logger.info('No game feeds, update check skipped');
-        this.logger.info(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
+        this.logger?.info(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
 
         for (const feed of manager.GameFeeds) {
             try {
