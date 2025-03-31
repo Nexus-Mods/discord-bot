@@ -26,6 +26,10 @@ async function action(client: ClientExt, interaction: CommandInteraction, logger
     // Check if the user has linked their accounts
     let user : DiscordBotUser|undefined = undefined;
 
+    // Get server info
+    const server : BotServer = await getServer(interaction.guild);
+    if (!server.role_author) return interaction.editReply('No claimable role in this server. Please check <id:customize> or [Linked Roles](https://support.discord.com/hc/en-us/articles/8063233404823-Connections-Linked-Roles-Community-Members#h_01GK286J648XF4HPGKZYW9AMQF) for more options.');
+
     try {
         user = await getUserByDiscordId(interaction.user.id);
         if (!user) return interaction.editReply('Please [link your Nexus Mods account](https://discordbot.nexusmods.com/linked-role), to claim a role.')
@@ -36,12 +40,6 @@ async function action(client: ClientExt, interaction: CommandInteraction, logger
         logger.warn('Failed to get user info', err);
         return interaction.editReply('An error occured while verifying your account. Please [link your Nexus Mods account](https://discordbot.nexusmods.com/linked-role), to claim a role.')
     }
-
-
-
-    // Get server info
-    const server : BotServer = await getServer(interaction.guild);
-    if (!server.role_author) return interaction.editReply('No claimable role in this server');
 
     const role: Role | null = await interaction.guild.roles.fetch(server.role_author);
     if (!role) return interaction.editReply('The claimable role in this server doesn\'t seem to exist anymore. \n-# ID: '+server.role_author);
