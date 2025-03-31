@@ -20,7 +20,7 @@ export class GameFeedManager {
 
     private GameFeeds: GameFeed[] = [];
     private client: ClientExt;
-    private logger: Logger;
+    private logger: Logger | undefined;
     private updateTimer: NodeJS.Timeout;
 
     static getInstance(client: ClientExt, logger: Logger): GameFeedManager {
@@ -91,7 +91,7 @@ export class GameFeedManager {
         const manager: GameFeedManager = GameFeedManager.instance;
         await manager.getFeeds();
         const client: ClientExt = manager.client;
-        if (!manager.GameFeeds.length) return this.logger.info('No game feeds, update check skipped');
+        if (!manager.GameFeeds.length) return this.logger?.info('No game feeds, update check skipped');
         this.logger?.info(`Checking for updates in ${manager.GameFeeds.length} game feeds`);
 
         for (const feed of manager.GameFeeds) {
@@ -99,16 +99,16 @@ export class GameFeedManager {
                 await checkForGameUpdates(client, feed, this.logger);
             }
             catch(err) {
-                this.logger.warn(`UpdateFeeds(): Error checking game feed ${feed._id}`, err);
+                this.logger?.warn(`UpdateFeeds(): Error checking game feed ${feed._id}`, err);
             }
         }
 
-        this.logger.info('Finished checking game feeds.');
+        this.logger?.info('Finished checking game feeds.');
         allGames = [];
     }
 }
 
-async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger: Logger): Promise<void> {
+async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger?: Logger): Promise<void> {
 
     // Gather all the setup information.
     const discordUser: User|null = await client.users.fetch(feed.owner)  //resolve(feed.owner);
@@ -128,7 +128,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger: Lo
         webHook?.destroy();
         if (client.config.testing) return;
         await deleteGameFeed(feed._id);
-        logger.info(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${user?.NexusModsUsername || '???' }`);
+        logger?.info(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${user?.NexusModsUsername || '???' }`);
         if (channel) channel.send(`Cancelled feed for ${feed.title} in this channel as I can no longer reach the user who set it up. Discord <@${feed.owner}>, Nexus: ${user?.NexusModsUsername || '???' }`).catch(() => undefined);
         return Promise.reject(`Deleted game update #${feed._id} (${feed.title}) due to missing guild or channel data. Discord user: ${discordUser} Nexus User: ${user?.NexusModsUsername || '???' }`);
     }
@@ -161,7 +161,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger: Lo
             // Add an error entry
             const newErrorCount: number = feed.error_count + 1;
             await updateGameFeed(feed._id, { error_count: newErrorCount }).catch(() => undefined);
-            logger.warn('Auth error for Gamefeed', { id: feed._id, err: (err as Error).message, count: newErrorCount, user: user.NexusModsUsername, discord: discordUser.tag });
+            logger?.warn('Auth error for Gamefeed', { id: feed._id, err: (err as Error).message, count: newErrorCount, user: user.NexusModsUsername, discord: discordUser.tag });
             if (newErrorCount === 1) {
                 const oAuthErrorEmbed = new EmbedBuilder()
                 .setColor('DarkOrange')
@@ -194,12 +194,12 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger: Lo
                 );
                 
                 // Send to the user.
-                logger.warn('Informing user of OAuth Error in GameFeed', { user: user?.NexusModsUsername, discord: discordUser.tag, feed: feed._id });
+                logger?.warn('Informing user of OAuth Error in GameFeed', { user: user?.NexusModsUsername, discord: discordUser.tag, feed: feed._id });
                 await discordUser.send({ embeds: [oAuthErrorEmbed], components: [buttons] }).catch(() => undefined);
                 return;
             }
             else if (newErrorCount >= 1000) {
-                logger.warn('Game feed has failed to post over 1,000 times, deleting', { id: feed._id, user: user.NexusModsUsername, discord: discordUser.tag });
+                logger?.warn('Game feed has failed to post over 1,000 times, deleting', { id: feed._id, user: user.NexusModsUsername, discord: discordUser.tag });
                 await deleteGameFeed(feed._id);
                 await channel?.send(
                     `Game feed deleted due to repeated auth errors. ${discordUser.toString()} may need to re-link their Nexus Mods account to re-create this feed. (ID: ${feed._id}) \n\n`+
@@ -306,13 +306,13 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger: Lo
         
         try {
             const message = await webHook?.send({ embeds: modEmbeds, content: feed.message });
-            logger.info(`Posted ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
+            logger?.info(`Posted ${modEmbeds.length} updates for ${feed.title} in ${guild?.name} (#${feed._id})`);
             if (feed.crosspost === true && user.NexusModsRoles.has('premium')) await crossPost(feed, channel as GuildBasedChannel, message?.id, logger);
             webHook?.destroy();
             // logMessage(`Webhook for ${feed.title} in ${guild?.name} (#${feed._id}) destroyed.`);
         }
         catch(err) {
-            logger.warn(`Error posting via webhook for ${feed.title} in ${guild?.name} (#${feed._id})`, (err as Error)?.message);
+            logger?.warn(`Error posting via webhook for ${feed.title} in ${guild?.name} (#${feed._id})`, (err as Error)?.message);
             if (feed.message) await channel?.send(feed.message).catch(() => undefined);
             const warnEmbed = new EmbedBuilder()
             .setColor('DarkRed')
@@ -327,7 +327,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger: Lo
         webHook?.destroy();
         const error: string = (err as Error)?.message || (err as string);
         if (error.indexOf('Nexus Mods API responded with 429.') !== -1) {
-            logger.warn('Failed to process game feed due to rate limiting', { name: user?.NexusModsUsername, id: feed._id, guild: guild?.name });
+            logger?.warn('Failed to process game feed due to rate limiting', { name: user?.NexusModsUsername, id: feed._id, guild: guild?.name });
             return;
         }
         return Promise.reject(err);
@@ -336,7 +336,7 @@ async function checkForGameUpdates(client: ClientExt, feed: GameFeed, logger: Lo
 
 }
 
-async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: Snowflake | undefined, logger: Logger): Promise<void> {
+async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: Snowflake | undefined, logger?: Logger): Promise<void> {
     // Auto-publish the message if it's an announcement channel. Only available to Premium users. 
     // https://github.com/Vedinsoh/discord-auto-publisher/blob/main/src/crosspost/crosspost.ts#L13
     
@@ -346,10 +346,10 @@ async function crossPost(feed: GameFeed, channel: GuildBasedChannel, messageId: 
         const latest = newsChannel.messages.resolve(messageId);
         if (!!latest?.crosspostable) throw new Error('Message is not cross-postable');
         await latest?.crosspost();
-        logger.info('Cross-posting Message for Feed', { feedId: feed._id });
+        logger?.info('Cross-posting Message for Feed', { feedId: feed._id });
     }
     catch(err) {
-        logger.warn('Cross-posting Message for Feed failed', { feedId: feed._id, err: (err as Error).message });
+        logger?.warn('Cross-posting Message for Feed failed', { feedId: feed._id, err: (err as Error).message });
     }
 }
 
