@@ -1,7 +1,7 @@
 import { REST, Client, Collection, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import * as fs from 'fs';
 import path from 'path';
-import { Logger } from './api/util';
+import { isTesting, Logger } from './api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
 import { GameListCache } from './types/util';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -43,9 +43,10 @@ export class DiscordBot {
 
     private initializeClient(): void {
         if (!this.client) return logger.error('Could not initialise DiscordBot, client is not defined.');
+        if (this.client.shard) logger.setShardId(this.client.shard?.ids[0].toString() || 'Main');
         
         this.client.config = { 
-            testing: process.env.NODE_ENV === 'test', 
+            testing: isTesting, 
             ownerIDs: process.env.OWNER_IDS?.split(',') || [] 
         };
         this.client.application?.fetch();

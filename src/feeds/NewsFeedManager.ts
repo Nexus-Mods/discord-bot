@@ -13,7 +13,7 @@ export class NewsFeedManager {
 
     private LatestNews: SavedNewsData | undefined = undefined;
     private client: ClientExt;
-    private updateTimer: NodeJS.Timeout;
+    private updateTimer: NodeJS.Timeout | undefined;
     private logger: Logger
 
     static async getInstance(client: ClientExt, logger: Logger): Promise<NewsFeedManager> {
@@ -26,9 +26,9 @@ export class NewsFeedManager {
             catch(err) {
                 logger.error('Error fetching news', (err as Error).message);
             }
-            logger.info('Initialised news feed, checking every hour.')
             NewsFeedManager.instance = new NewsFeedManager(client, pollTime, logger, saved);
-            await NewsFeedManager.instance.postLatestNews();
+            // Only trigger the news check if we have set up polling.
+            if (NewsFeedManager.instance.updateTimer) await NewsFeedManager.instance.postLatestNews();
         }
         
         return NewsFeedManager.instance;
@@ -38,6 +38,15 @@ export class NewsFeedManager {
         // Save the client for later
         this.client = client;
         this.logger = logger;
+        this.LatestNews = savedNews;
+        if (client.shard) {
+            const guild = client.guilds.cache.get(process.env['NEWS_WEBHOOK_GUILD']!);
+            if (!guild) {
+                this.logger.warn('News webhook guild not found shard cache. Will not send news from here.');
+                return;
+            }
+        }
+        
         // Set the update interval.
         this.updateTimer = setInterval(async () => {
             try {
@@ -48,10 +57,30 @@ export class NewsFeedManager {
                 this.logger.warn('Failed to check for latest news updates', err);
             }
         }, pollTime);
-        this.LatestNews = savedNews;
+        logger.info('Initialised news feed, checking every hour.')
     }
 
     private async postLatestNews(domain?: string): Promise<EmbedBuilder> {
+        if (this.client.shard) {
+            if (!this.client.guilds.cache.has(process.env['NEWS_WEBHOOK_GUILD']!)) {
+                this.logger.warn('News webhook guild not found shard cache. Attempting to pass request to the correct shard.');
+                const otherShards = await this.client.shard.broadcastEval(async (client: ClientExt, { guildId }) => {
+                    if (client.guilds.cache.has(guildId)) {
+                        return client.newsFeed!.postLatestNews(domain);
+                    }
+                }, { context: { guildId: process.env['NEWS_WEBHOOK_GUILD']! } });
+                const results = otherShards.filter((r: any) => r !== undefined);
+                if (results.length) {
+                    if (results.length > 1) this.logger.warn('Multiple shards returned results for news updates. This is unexpected.');
+                    return new EmbedBuilder(results[0]);
+                }
+                else {
+                    this.logger.warn('No other shards able to post news updates.')
+                    throw new Error('No shards able to post news updates.');
+                }
+            }
+        }
+
         const dummyUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
         const stored: SavedNewsData | undefined = NewsFeedManager.instance.LatestNews;
         const game: IGameStatic | undefined = domain ? ((await this.client.gamesList?.getGames())?.find(g => g.domain_name === domain)) : undefined;

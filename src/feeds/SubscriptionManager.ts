@@ -1,10 +1,10 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { DiscordAPIError, EmbedBuilder, Guild, TextChannel,  WebhookMessageCreateOptions } from 'discord.js';
+import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError } from 'discord.js';
 import { Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
-import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
+import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -18,6 +18,7 @@ export class SubscriptionManger {
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
+        this.channels = channels;
         this.fakeUser = new DiscordBotUser(DummyNexusModsUser, logger);
         // Save the client for later
         this.client = client;
@@ -35,15 +36,14 @@ export class SubscriptionManger {
                 this.logger.error('Failed to run subscription event', err);
             }
         }, pollTime)
-        this.channels = channels;
         // Kick off an update.
         this.updateSubscriptions(true);
     }
 
-    static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*5)): Promise<SubscriptionManger> {
+    static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime, logger);
-            const guilds = await client.guilds.fetch()
+            const guilds = client.guilds.cache;
             logger.info('Subscription Manager has guilds', { guilds: guilds.map(g => g.name), count: guilds.size });
         }
         logger.info('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length, pollTime});
@@ -73,15 +73,39 @@ export class SubscriptionManger {
         // Prepare the cache
         await this.prepareCache();
 
-        this.logger.info('Running subscription updates');
+        this.logger.info(`Running subscription updates for ${this.channels.length} channels`);
 
         // Process the channels and their subscribed items.
         for (const channel of this.channels) {
             try {
+                this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
+                if (this.client.shard) {
+                    if (!this.client.guilds.cache.get(channel.guild_id)) {
+                        // This shard doesn't have the guild.
+                        this.logger.info('This shard does not have the guild', { guild: channel.guild_id, channelId: channel.channel_id });
+                        const shards = await this.client.shard.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake }) => {
+                            if (client.guilds.cache.has(context.guildId)) {
+                                const channel = await getSubscribedChannel(context.guildId, context.channelId);
+                                if (channel) await client.subscriptions?.getUpdatesForChannel(channel);
+                                return true;
+                            }
+                            else return false;
+                        }, { context: { guildId: channel.guild_id, channelId: channel.channel_id } });
+                        if (!shards.includes(true)) {
+                            this.logger.info('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
+                            continue;
+                        }
+                    }
+                    else this.logger.debug('This shard has the guild', { guild: channel.guild_id, channelId: channel.channel_id });
+                }
                 await this.getUpdatesForChannel(channel);
             }
             catch(err) {
-                this.logger.warn('Error processing updates for channel', err);
+                if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
+                    this.logger.warn('Shards are not ready to process updates');
+                    continue;
+                }
+                this.logger.warn('Error processing updates for channel: '+(err as Error).message, err);
                 continue;
             }
         }
@@ -146,16 +170,17 @@ export class SubscriptionManger {
         }
 
         // Got all the updates - break them into groups by type and limit to 10 (API limit).
-        const blocks: WebhookMessageCreateOptions[] = [{ embeds: [] }];
+        const blocks: {message: WebhookMessageCreateOptions, crosspost: boolean}[] = [{ message: { embeds: [] }, crosspost: false }];   
         const maxBlockSize = 10;
         let currentType: SubscribedItemType = postableUpdates[0].type;
         let currentSub: number = postableUpdates[0].subId;
         for (const update of postableUpdates) {
             // If we've swapped type, sub or we've got more than 5 embeds already
-            if (update.type !== currentType || update.subId != currentSub || blocks[blocks.length - 1].embeds!.length === maxBlockSize) blocks.push({ embeds: [] })
+            if (update.type !== currentType || update.subId != currentSub || blocks[blocks.length - 1].message.embeds!.length === maxBlockSize) blocks.push({ message: { embeds: [] }, crosspost: false});
             const myBlock = blocks[blocks.length - 1];
-            myBlock.embeds = myBlock.embeds ? [...myBlock.embeds, update.embed] : [update.embed];
-            if (!myBlock.content && update.message) myBlock.content = update.message;
+            myBlock.message.embeds = myBlock.message.embeds ? [...myBlock.message.embeds, update.embed] : [update.embed];
+            if (!myBlock.message.content && update.message) myBlock.message.content = update.message;
+            myBlock.crosspost = update.crosspost ?? false;
             currentType = update.type;
             currentSub = update.subId;
         }
@@ -165,7 +190,15 @@ export class SubscriptionManger {
         for (const block of blocks) {
             // logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
-                await webHookClient.send(block);
+                const msg = await webHookClient.send(block.message);
+                if (block.crosspost) {
+                    const message = await discordChannel.messages.fetch(msg.id).catch(() => null);
+                    if (message && message.crosspostable) {
+                        await message.crosspost();
+                        this.logger.info('Webhook crossposted', { channel: discordChannel.name, guild: guild.name });
+                    }
+                    else this.logger.warn('Failed to crosspost webhook message', { channel: discordChannel.name, guild: guild.name });
+                }
             }
             catch(err) {
                 if ((err as DiscordAPIError).message === 'Unknown Webhook') {
@@ -176,7 +209,7 @@ export class SubscriptionManger {
                     await deleteSubscribedChannel(channel);
                     throw Error('Webhook no longer exists');
                 }
-                this.logger.warn('Failed to send webhook message', { embeds: block.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
+                this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
             }
         }
 
@@ -216,7 +249,8 @@ export class SubscriptionManger {
                 entity: mod, 
                 subId: item.id,
                 embed: embed.data,
-                message: item.message ?? null
+                message: item.message ?? null,
+                crosspost: item.crosspost ?? false,
             })
         }
         results.push(...formattedNew);
@@ -251,7 +285,8 @@ export class SubscriptionManger {
                 entity: mod, 
                 subId: item.id,
                 embed: embed.data,
-                message: item.message ?? null
+                message: item.message ?? null,
+                crosspost: item.crosspost ?? false,
             })
         }
         results.push(...formattedUpdates);
@@ -313,7 +348,8 @@ export class SubscriptionManger {
                 entity: {...mod, files: [file]}, 
                 subId: item.id,
                 embed: embed.data,
-                message: item.message ?? null
+                message: item.message ?? null,
+                crosspost: item.crosspost ?? false,
             });
         }
         // Order the array so the newest is first and the oldest is last
@@ -371,6 +407,7 @@ export class SubscriptionManger {
                 date: new Date(rev.updatedAt),
                 message: item.message,
                 embed: embed.data,
+                crosspost: item.crosspost ?? false,
             })
         }
 
@@ -406,6 +443,7 @@ export class SubscriptionManger {
                 date: new Date(),
                 subId: item.id,
                 embed: usernameEmbed.data,
+                crosspost: item.crosspost ?? false,
             })
             await updateSubscription(item.id, item.parent, {...item, title: user.name});
         }
@@ -424,7 +462,8 @@ export class SubscriptionManger {
                 entity:{ ...user, mod: mod },
                 date: new Date(mod.createdAt),
                 subId: item.id,
-                embed: embed.data
+                embed: embed.data,
+                crosspost: item.crosspost ?? false,
             });
         }
         const updatedMods = await this.fakeUser.NexusMods.API.v2.Mods(
@@ -444,7 +483,8 @@ export class SubscriptionManger {
                 entity:{ ...user, mod: mod },
                 date: new Date(mod.updatedAt),
                 subId: item.id,
-                embed: embed.data
+                embed: embed.data,
+                crosspost: item.crosspost ?? false,
             });
         }
         // // COLLECTIONS FILTERING BY DATE IS BROKEN ON THE V2 API 

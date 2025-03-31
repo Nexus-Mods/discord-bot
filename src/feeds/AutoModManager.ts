@@ -3,7 +3,7 @@ import { getAutomodRules, getBadFiles } from "../api/automod";
 import { ISlackMessage, PublishToDiscord, PublishToSlack } from "../api/moderationWebhooks";
 import { IMod, IModFile } from "../api/queries/v2";
 import { IModResults } from "../api/queries/v2-latestmods";
-import { Logger } from "../api/util";
+import { isTesting, Logger } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
 import { IAutomodRule, IBadFileRule } from "../types/util";
 import { tall } from 'tall';
@@ -62,7 +62,6 @@ export class AutoModManager {
                 const rules = await getAutomodRules();
                 const badFiles = await getBadFiles();
                 AutoModManager.instance = new AutoModManager(client, logger, rules, badFiles, pollTime);
-                logger.info(`Automod started with ${AutoModManager.instance.AutoModRules.length} rules, checking every ${AutoModManager.instance.pollTime/1000/60} minutes. Last check ${AutoModManager.instance.lastCheck}`);
 
             }
             catch(err){
@@ -84,11 +83,16 @@ export class AutoModManager {
         this.AutoModRules = rules || [];
         this.BadFiles = badFiles || [];
         // Set the update interval. Unless testing
-        if (client.config?.testing == true) {
+        if (isTesting) {
             logger.debug('Skipping automod setup due to testing env')
             return;
         };
+        if (this.client.shard && this.client.shard.ids[0] !== 0) {
+            logger.debug('Skipping automod setup due to sharding')
+            return;
+        }
         this.updateTimer = setInterval(this.runAutomod.bind(this), pollTime);
+        logger.info(`Automod started with ${this.AutoModRules.length} rules, checking every ${this.pollTime/1000/60} minutes. Last check ${this.lastCheck}`);
         this.runAutomod().catch((err) => logger.error(`Error running automod`, err));
     }
 

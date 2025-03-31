@@ -306,6 +306,7 @@ export interface IPostableSubscriptionUpdate<T extends SubscribedItemType> {
     entity: EntityType<T>;
     subId: any;
     message?: string | null;
+    crosspost: boolean;
 }
 
 export type IModWithFiles = IMod & { files?: IModFile[] };
@@ -622,7 +623,8 @@ export function unavailableUpdate<T extends SubscribedItemType>(entity: EntityTy
         embed: embed.data,
         entity,
         subId: sub.id,
-        message: sub.message
+        message: sub.message,
+        crosspost: sub.crosspost ?? false,
     }
 }
 
@@ -644,7 +646,8 @@ export function unavailableUserUpdate(entity: IUser, sub: SubscribedItem): IPost
         type: SubscribedItemType.User,
         date: new Date(),
         subId: sub.id,
-        embed: embed.data
+        embed: embed.data,
+        crosspost: sub.crosspost ?? false,
     }
 }
 

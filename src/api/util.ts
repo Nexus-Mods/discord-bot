@@ -1,38 +1,57 @@
-import { AutocompleteInteraction, EmbedBuilder } from "discord.js";
+import { AutocompleteInteraction, EmbedBuilder, ShardClientUtil } from "discord.js";
 import { ClientExt } from "../types/DiscordTypes";
 import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser";
 import { IModsFilter } from "./queries/v2";
 import { ICollectionsFilter } from "../types/GQLTypes";
 
-const logMessage  = (msg: string, obj?: any, error?: boolean) => {
-    const message = `${new Date().toLocaleString()} - ${msg}`;
-    error === true ? console.error(message, obj || '') : console.log(message, obj || '');
-};
+export const isTesting = process.env.NODE_ENV === 'testing';
+export const isProduction = process.env.NODE_ENV === 'production';
+
+const colors = [
+    '\x1b[32m', // Green
+    '\x1b[34m', // Blue
+    '\x1b[35m', // Magenta
+    '\x1b[90m', // Bright Black (Gray)
+    '\x1b[92m', // Bright Green
+    '\x1b[93m', // Bright Yellow
+    '\x1b[94m', // Bright Blue
+    '\x1b[95m', // Bright Magenta
+    '\x1b[96m', // Bright Cyan
+];
 
 export class Logger {
     private shardId: string;
-    private isTesting: boolean;
+    private shardColor: string;
 
     constructor(shardId: string) {
         this.shardId = shardId;
-        this.isTesting = process.env.NODE_ENV === 'test';
+        this.shardColor = shardId === 'Main' ? '\x1b[0m' : colors[parseInt(this.shardId) % colors.length]
+    }
+    public setShardId(shardId: string) {
+        this.shardId = shardId;
+        this.shardColor = shardId === 'Main' ? '\x1b[0m' : colors[parseInt(this.shardId) % colors.length]
+    }
+
+    private prefix(colourCode: string = '\x1b[0m'): string {
+        if (this.shardId === 'Main') return `${colourCode}${new Date().toLocaleString()} - `;
+        return `${new Date().toLocaleString()} - ${this.shardColor}[Shard ${this.shardId}]${colourCode}`;
     }
 
     public info(message: string, data?: any) {
-        const formatted = `${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}`;
+        const formatted = `${this.prefix()} ${message}`;
         data ? console.log(formatted, data) : console.log(formatted);
     }
     public error(message: string, data?: any, ...args: any[]) {
-        const formatted = `\x1b[31m${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}\x1b[0m`;
+        const formatted = `${this.prefix('\x1b[31m')} ${message}\x1b[0m`;
         data ? console.error(formatted, data) : console.error(formatted);
     }
     public warn(message: string, data?: any, ...args: any[]) {
-        const formatted = `\x1b[33m${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}\x1b[0m`;
+        const formatted = `${this.prefix('\x1b[33m')} ${message}\x1b[0m`;
         data ? console.warn(formatted, data) : console.warn(formatted);
     }
     public debug(message: string, data?: any) {
-        if (this.isTesting === false) return; // Don't log debug messages in production
-        const formatted = `\x1b[36m${new Date().toLocaleString()} - [Shard ${this.shardId}] ${message}\x1b[0m`;
+        if (isTesting === false) return; // Don't log debug messages in production
+        const formatted = `${this.prefix('\x1b[36m')} ${message}\x1b[0m`;
         data ? console.debug(formatted, data) : console.debug(formatted);
     }
 }

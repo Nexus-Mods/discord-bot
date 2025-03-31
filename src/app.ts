@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { Logger } from './api/util';
 import { DiscordBot } from './DiscordBot';
 import { AuthSite } from './server/server';
 
