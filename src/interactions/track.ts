@@ -127,6 +127,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });
 
+    const channel = interaction.channel;
+    if (channel?.isThread() || channel?.isDMBased()) {
+        return interaction.editReply('This command cannot be used in threads or DMs. Please use it in a channel.');
+    }
+
     const subCommand: SubscribedItemType = interaction.options.getSubcommand(true) as SubscribedItemType;
     switch (subCommand) {
         case SubscribedItemType.Game: return trackGame(client, interaction, logger);

@@ -2,7 +2,8 @@ import {
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction,
     PermissionFlagsBits, GuildChannel, APIEmbedField,ActionRowBuilder, StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder, ComponentType,
-    MessageFlags
+    MessageFlags,
+    InteractionContextType
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { SubscribedItem, SubscribedItemType } from "../types/subscriptions";
@@ -12,7 +13,7 @@ import { Logger } from "../api/util";
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('untrack')
-    .setDMPermission(false)
+    .setContexts(InteractionContextType.Guild)
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .setDescription('Untrack a game, mod, collection or user in this channel'),
     public: true,
@@ -23,6 +24,11 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });
+
+    const channel = interaction.channel;
+    if (channel?.isThread() || channel?.isDMBased()) {
+        return interaction.editReply('This command cannot be used in threads or DMs. Please use it in a channel.');
+    }
 
     // Check if we have a subbed channel
     const subbedChannel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
