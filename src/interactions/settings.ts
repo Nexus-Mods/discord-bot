@@ -214,6 +214,12 @@ async function updateClaimableRole(interaction: ChatInputCommandInteraction, gam
         catch(err) {
             logger.warn('Error deleting conditions for role', err);
         }
+        return {
+            name: 'Claimable Role',
+            cur: currentRole,
+            new: null,
+            data: { role_author: undefined }
+        }
     }
     // If we're swapping the role, swap the conditions
     else if (!!newRole  && !!currentRole && newRole!.id !== currentRole!.id) {
