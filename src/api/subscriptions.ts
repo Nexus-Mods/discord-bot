@@ -11,7 +11,8 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
             'SELECT * FROM SubscribedChannels',
             []
         );
-        const promises = data.rows.map(async r => { return await SubscribedChannel.create(r, logger) });
+        const subs = await getAllSubscriptions()
+        const promises = data.rows.map(async r => { return await SubscribedChannel.create(r, logger, subs.filter(s => s.parent === r.id)) });
         const channels = await Promise.all(promises);
         
         return channels;

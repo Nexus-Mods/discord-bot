@@ -45,9 +45,9 @@ export class SubscribedChannel implements ISubscribedChannel {
         this.webHookClient = new WebhookClient({ id: this.webhook_id, token: this.webhook_token});
     }
 
-    public static async create(c: ISubscribedChannel, logger: Logger): Promise<SubscribedChannel> {
+    public static async create(c: ISubscribedChannel, logger: Logger, items: SubscribedItem[] = []): Promise<SubscribedChannel> {
         try {
-            const items = await getSubscriptionsByChannel(c.guild_id, c.channel_id);
+            if (items.length === 0) items = await getSubscriptionsByChannel(c.guild_id, c.channel_id);
             return new SubscribedChannel(c, items, logger);
 
         }
