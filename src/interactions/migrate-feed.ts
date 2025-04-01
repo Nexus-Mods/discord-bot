@@ -25,6 +25,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     const feeds = client.gameFeeds?.getAllFeeds() || [];
 
     logger.info('Migrating feeds', feeds.length);
+    client.subscriptions?.pause();
 
     for (const feed of feeds) {
         const guild_id = feed.guild;
@@ -82,6 +83,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         }
     }
 
+    client.subscriptions?.resume();
     return interaction.editReply('Migration done!')
     
 }

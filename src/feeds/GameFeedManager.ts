@@ -21,7 +21,7 @@ export class GameFeedManager {
     private GameFeeds: GameFeed[] = [];
     private client: ClientExt;
     private logger: Logger | undefined;
-    private updateTimer: NodeJS.Timeout;
+    private updateTimer: NodeJS.Timeout | undefined;
 
     static getInstance(client: ClientExt, logger: Logger): GameFeedManager {
         if (!GameFeedManager.instance) {
@@ -35,14 +35,15 @@ export class GameFeedManager {
         // Save the client for later
         this.client = client;
         this.logger = logger;
+        logger.warn('GameFeedManager is disabled', { client: client.user?.tag, id: client.user?.id });
         // Set the update interval.
-        this.updateTimer = setInterval(this.updateFeeds, pollTime);
-        this.getFeeds()
-            .then(() => {
-                logger.info(`Initialised with ${this.GameFeeds.length} game feeds, checking every ${pollTime/1000/60} minutes`);
-                this.updateFeeds().catch((err) => logger.error(`Error updating game feeds`, err));
-            })
-            .catch((err) => logger.error('Error in GameFeedManager constructor', err));
+        // this.updateTimer = setInterval(this.updateFeeds, pollTime);
+        // this.getFeeds()
+            // .then(() => {
+            //     logger.info(`Initialised with ${this.GameFeeds.length} game feeds, checking every ${pollTime/1000/60} minutes`);
+            //     this.updateFeeds().catch((err) => logger.error(`Error updating game feeds`, err));
+            // })
+            // .catch((err) => logger.error('Error in GameFeedManager constructor', err));
     }
 
     private async getFeeds(): Promise<GameFeed[]> {

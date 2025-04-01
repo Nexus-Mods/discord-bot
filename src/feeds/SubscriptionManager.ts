@@ -62,6 +62,29 @@ export class SubscriptionManger {
         }
     }
 
+    public isPaused = (): boolean => this.updateTimer === undefined;
+
+    public async pause() {
+        if (this.updateTimer) clearInterval(this.updateTimer);
+        this.updateTimer = undefined;
+        this.logger.info('Subscription Manager paused');
+    }
+
+    public async resume() {
+        if (this.updateTimer) clearInterval(this.updateTimer);
+        this.updateTimer = setInterval(async () => {
+            try {
+                await this.updateSubscriptions();
+            }
+            catch(err){
+                this.logger.error('Failed to run subscription event', err);
+            }
+        }, this.pollTime)
+        this.logger.info('Subscription Manager resumed');
+    }
+
+
+
     private async updateChannels() {
         this.channels = await getSubscribedChannels();
         return;
@@ -186,7 +209,7 @@ export class SubscriptionManger {
         }
 
         // Send the updates to the webhook!
-        this.logger.info(`Posting ${blocks.length} webhook updates to ${discordChannel.name} in ${guild.name}`);
+        this.logger.info(`Posting ${blocks.length} blocks containing ${postableUpdates.length} updates to ${discordChannel.name} in ${guild.name}`);
         for (const block of blocks) {
             // logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
@@ -228,8 +251,8 @@ export class SubscriptionManger {
         const domain: string = item.entityid as string;
         const last_update = item.last_update;
         let newMods = item.show_new 
-        ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) >= last_update && modCanShow(m, item) )
-        : [];
+            ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) >= last_update && modCanShow(m, item) )
+            : [];
         // If there's nothing in the cache, we'll double check
         if (!newMods.length && item.show_new) {
             const filters: IModsFilter = { 
@@ -237,9 +260,9 @@ export class SubscriptionManger {
                 createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
             }
             // Hide SFW content
-            if (item.sfw === false) filters.adultContent = { value: true, op: 'EQUALS' };
+            if (item.sfw === false && item.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
             // Hide NSFW content
-            if (item.nsfw === false) filters.adultContent = { value: false, op: 'EQUALS' };
+            if (item.nsfw === false && item.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
@@ -264,8 +287,8 @@ export class SubscriptionManger {
         results.push(...formattedNew);
 
         let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates 
-        ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) >= last_update && modCanShow(m, item) )
-        : [];
+            ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) >= last_update && modCanShow(m, item) )
+            : [];
         // If there's nothing in the cache, we'll double check
         if (!updatedMods.length && item.show_updates) {
             const filters: IModsFilter = { 
