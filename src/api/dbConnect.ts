@@ -74,8 +74,11 @@ export function handleDatabaseError(error: Error | any): string {
     } else if (error.message.includes('no pg_hba.conf entry for host')) {
         logger.error('Database connection error - pg_hba.conf issue:', error.message);
         return 'Database connection error: Access denied. Please report this issue as it is a problem with the database settings.';
+    } else if (error.message.includes('timeout exceeded when trying to connect')) {
+        logger.error('Database connection timed out.', { error });
+        return 'Database connection timed out.'
     } else {
-        logger.error('Unknown error', { error: error.message, code: error.code });
+        logger.error('Unknown error', { message: error.message, code: error.code, error });
         return 'An unknown error occurred. Please try again later.';
     }
 }

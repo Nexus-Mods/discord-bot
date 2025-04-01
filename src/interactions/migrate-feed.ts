@@ -22,9 +22,12 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     const interaction = baseInteraction as ChatInputCommandInteraction;
     await interaction.deferReply();
 
-    const feeds = client.gameFeeds?.getAllFeeds() || [];
+    let feeds = client.gameFeeds?.getAllFeeds() || [];
+    feeds = []
+    await interaction.editReply('Migration no longer possible.');
 
-    logger.info('Migrating feeds', feeds.length);
+
+    // logger.info('Migrating feeds', feeds.length);
     client.subscriptions?.pause();
 
     for (const feed of feeds) {

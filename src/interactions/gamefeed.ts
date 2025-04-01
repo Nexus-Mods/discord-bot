@@ -51,7 +51,7 @@ const discordInteraction: DiscordInteraction = {
         //     .setRequired(false)
         // )
     ) as SlashCommandBuilder,
-    public: true,
+    public: false,
     guilds: [],
     action,
     autocomplete: autocompleteGameName,
