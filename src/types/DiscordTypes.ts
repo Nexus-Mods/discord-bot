@@ -2,7 +2,6 @@ import {
     Snowflake, CommandInteraction, Collection, 
     Client, ContextMenuCommandBuilder, SlashCommandBuilder, AutocompleteInteraction,
 } from "discord.js";
-import { GameFeedManager } from "../feeds/GameFeedManager";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 import { GameListCache, TipCache } from "./util";
 import { AutoModManager } from "../feeds/AutoModManager";
@@ -13,7 +12,6 @@ interface ClientExt extends Client {
     config?: any;
     commands?: Collection<any, any>;
     interactions?: Collection<any, any>;
-    gameFeeds?: GameFeedManager;
     newsFeed?: NewsFeedManager;
     automod?: AutoModManager;
     subscriptions?: SubscriptionManger;

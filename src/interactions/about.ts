@@ -5,10 +5,10 @@ import {
     MessageFlags
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
-import { getAllUsers, getAllGameFeeds } from '../api/bot-db';
+import { getAllUsers } from '../api/bot-db';
 import { NexusUser } from "../types/users";
-import { GameFeed } from "../types/feeds";
 import { Logger } from "../api/util";
+import { getAllSubscriptions } from "../api/subscriptions";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -54,7 +54,8 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     
     const upTime: string = calcUptime(process.uptime());
     const allUsers: NexusUser[] = await getAllUsers();
-    const allFeeds: GameFeed[] = await getAllGameFeeds();
+    const allFeeds = await getAllSubscriptions();
+
 
     const botPermsissons: string[] = interaction.guild?.members.me?.permissions.toArray() || [];
 
@@ -70,7 +71,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             name: 'Stats',
             value: `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+
             `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
-            `Game Feeds: ${allFeeds.length.toLocaleString()}`,
+            `Subscribed Items: ${allFeeds.length.toLocaleString()}`,
             inline: true
         },
     ])

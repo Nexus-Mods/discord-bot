@@ -9,9 +9,6 @@ import { getAllServers, getServer, addServer, updateServer, deleteServer } from 
 // NEWS MANAGEMENT FUNCTIONS
 import { getSavedNews, updateSavedNews, ensureNewsDB } from './news';
 
-// GAME FEED MANAGEMENT
-import { getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed } from './game_feeds';
-
 // USER SERVER LINK MANAGEMENT
 import { getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, deleteAllServerLinksByUser, modUniqueDLTotal } from './user_servers';
 
@@ -28,7 +25,6 @@ export {
     getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
     getAllServers, getServer, addServer, updateServer, deleteServer,
     getSavedNews, updateSavedNews, ensureNewsDB,
-    getAllGameFeeds, getGameFeed, getGameFeedsForServer, createGameFeed, updateGameFeed, deleteGameFeed,
     getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, 
     deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, modUniqueDLTotal,
     getAutomodRules, createAutomodRule, deleteAutomodRule,
