@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder, WebhookClient } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder, TextChannel, WebhookClient } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { createSubscribedChannel, createSubscriptionFromFeed, getSubscribedChannel } from "../api/subscriptions";
 import { KnownDiscordServers, Logger } from "../api/util";
@@ -46,6 +46,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         catch(err) {
             logger.warn('Webhook test failed', {err, feed});
             await interaction.followUp(`Webhook test failed. Could not migrate. Feed ${feed._id} for ${feed.domain} in ${guild.name}`);
+            const ch = await guild.channels.fetch(channel_id).catch(() => null);
+            if (ch) (ch as TextChannel).send(`-# Game feed ${feed._id} for ${feed.domain} cancelled as the webhook no longer exists. Use the /track command to set it back up again.`).catch(() => null);
+            await deleteGameFeed(feed._id);
             continue;
         }
         let subscribedChannel = await getSubscribedChannel(guild_id, channel_id);
