@@ -45,7 +45,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         }
         catch(err) {
             logger.warn('Webhook test failed', {err, feed});
-            await interaction.editReply(`Webhook test failed. Could not migrate. Feed ${feed._id} for ${feed.domain} in ${guild.name}`);
+            await interaction.followUp(`Webhook test failed. Could not migrate. Feed ${feed._id} for ${feed.domain} in ${guild.name}`);
             continue;
         }
         let subscribedChannel = await getSubscribedChannel(guild_id, channel_id);

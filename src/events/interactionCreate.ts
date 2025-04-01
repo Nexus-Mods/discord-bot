@@ -2,7 +2,7 @@ import {
     InteractionReplyOptions, GuildChannel, CommandInteraction, AutocompleteInteraction, 
     MessageFlags
 } from 'discord.js';
-import { Logger, unexpectedErrorEmbed } from '../api/util';
+import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
 
 const ignoreErrors: string[] = [ 
@@ -44,7 +44,8 @@ async function handleAutoComplete(client: ClientExt, interaction: AutocompleteIn
         await command.autocomplete(client, interaction, logger);
     }
     catch(err) {
-        logger.warn('Failed to handle autocomplete', {err, command: interaction.commandName});
+        if (!isTesting) logger.warn(`Failed to handle autocomplete: ${(err as Error).message}`, {command: interaction.commandName});
+        else logger.debug('Failed to handle autocomplete', {err, command: interaction.commandName});
     }
 }
 

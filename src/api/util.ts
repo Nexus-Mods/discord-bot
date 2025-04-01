@@ -84,7 +84,7 @@ export async function autoCompleteModSearch(acInteraction: AutocompleteInteracti
             { endorsements: { direction: 'DESC' }}
         )
         await acInteraction.respond(
-            modSearch.nodes.map(m => ({ name: `${m.name} (${m.game.name})`, value: m.uid }))
+            modSearch.nodes.map(m => ({ name: `${m.name} (${m.game.name})`.substring(0, 99), value: m.uid }))
         );
     }
     catch(err) {
@@ -103,7 +103,7 @@ export async function autoCompleteCollectionSearch(acInteraction: AutocompleteIn
         if (gameDomain) filter.gameDomain = { value: gameDomain, op: 'EQUALS' };
         const search = await user.NexusMods.API.v2.Collections(filter);
         await acInteraction.respond(
-            search.nodes.map(c => ({ name: `${c.name} (${c.game.name})`, value: `${c.game.domainName}:${c.slug}` }))
+            search.nodes.map(c => ({ name: `${c.name} (${c.game.name})`.substring(0, 99), value: `${c.game.domainName}:${c.slug}` }))
         );
     }
     catch(err) {

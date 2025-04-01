@@ -83,8 +83,6 @@ export class SubscriptionManger {
         this.logger.info('Subscription Manager resumed');
     }
 
-
-
     private async updateChannels() {
         this.channels = await getSubscribedChannels();
         return;
@@ -100,6 +98,7 @@ export class SubscriptionManger {
 
         // Process the channels and their subscribed items.
         for (const channel of this.channels) {
+            if (this.isPaused()) break;
             try {
                 this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
                 if (this.client.shard) {
@@ -136,6 +135,8 @@ export class SubscriptionManger {
         // Empty the cache
         this.cache = new SubscriptionCache();    
         this.logger.info('Subscription updates complete');    
+        // Reset the cache
+        this.cache = new SubscriptionCache();
     }
 
     public async getUpdatesForChannel(channel: SubscribedChannel) {
@@ -189,6 +190,7 @@ export class SubscriptionManger {
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
             // logMessage(`No updates for ${discordChannel.name} in ${guild.name}`);
+            await updateSubscribedChannel(channel, new Date());
             return;
         }
 
