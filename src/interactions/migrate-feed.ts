@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, CommandInteraction, PermissionFlagsBits, SlashCommandBuilder, WebhookClient } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
-import { createSubscribedChannel, createSubscription, getSubscribedChannel } from "../api/subscriptions";
+import { createSubscribedChannel, createSubscriptionFromFeed, getSubscribedChannel } from "../api/subscriptions";
 import { KnownDiscordServers, Logger } from "../api/util";
 import { SubscribedItemType } from "../types/subscriptions";
 import { deleteGameFeed } from "../api/game_feeds";
@@ -22,15 +22,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     const interaction = baseInteraction as ChatInputCommandInteraction;
     await interaction.deferReply();
 
-    const feeds = client.gameFeeds?.getAllFeeds();
-    let migratable = feeds?.filter(f => f.show_updates === false) ?? [];
+    const feeds = client.gameFeeds?.getAllFeeds() || [];
 
-    // logger.warn('Migration cancelled. Review this function!')
-    // migratable = [];
+    logger.info('Migrating feeds', feeds.length);
 
-    logger.info('Migrating feeds', migratable.length);
-
-    for (const feed of migratable) {
+    for (const feed of feeds) {
         const guild_id = feed.guild;
         const guild = await client.guilds.fetch(guild_id);
         if (!guild) continue;
@@ -58,7 +54,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         }
         // Convert to subscribed item
         try {
-            const newSub = await createSubscription(subscribedChannel.id, {
+            const newSub = await createSubscriptionFromFeed(subscribedChannel.id, {
                 title: feed.title,
                 type: SubscribedItemType.Game,
                 entityid: feed.domain,
@@ -69,7 +65,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
                 nsfw: feed.nsfw,
                 sfw: feed.sfw,
                 show_new: feed.show_new,
-                show_updates: feed.show_updates
+                show_updates: feed.show_updates,
+                last_update: feed.last_timestamp,
+                created: feed.created
             });
             logger.info('Migration successful', { feed, newSub });
             await whClient.send(`-# The game feed for ${newSub.title} has been successfully migrated to a tracked game. Use \`/track\` and \`/untrack\` to manage these feeds in future.`);
