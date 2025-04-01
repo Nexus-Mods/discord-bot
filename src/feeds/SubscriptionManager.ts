@@ -44,7 +44,7 @@ export class SubscriptionManger {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime, logger);
             const guilds = client.guilds.cache;
-            logger.info('Subscription Manager has guilds', { guilds: guilds.map(g => g.name), count: guilds.size });
+            if (client.shard) logger.info('Subscription Manager has guilds', { count: guilds.size });
         }
         logger.info('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length, pollTime});
         return SubscriptionManger.instance;

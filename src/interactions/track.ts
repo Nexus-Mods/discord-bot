@@ -1,14 +1,11 @@
 import { 
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    TextChannel, Collection, Snowflake, Webhook,
-    PermissionFlagsBits,
-    MessageFlags,
-    InteractionContextType
+    TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, MessageFlags, InteractionContextType
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, Logger } from "../api/util";
 import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions";
-import { createSubscribedChannel, getSubscribedChannel } from "../api/subscriptions";
+import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions";
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
@@ -133,12 +130,20 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     }
 
     const subCommand: SubscribedItemType = interaction.options.getSubcommand(true) as SubscribedItemType;
-    switch (subCommand) {
-        case SubscribedItemType.Game: return trackGame(client, interaction, logger);
-        case SubscribedItemType.Mod: return trackMod(client, interaction, logger);
-        case SubscribedItemType.Collection: return trackCollection(client, interaction, logger);
-        case SubscribedItemType.User: return trackUser(client, interaction, logger);
-        default: throw new Error(`Tracking for ${subCommand} is not implemented yet.`)
+    try {
+        switch (subCommand) {
+            case SubscribedItemType.Game: return trackGame(client, interaction, logger);
+            case SubscribedItemType.Mod: return trackMod(client, interaction, logger);
+            case SubscribedItemType.Collection: return trackCollection(client, interaction, logger);
+            case SubscribedItemType.User: return trackUser(client, interaction, logger);
+            default: throw new Error(`Tracking for ${subCommand} is not implemented yet.`)
+        }
+    }
+    catch(err) {
+        if ((err as Error).message === 'Channel already subscribed to maximum number of items.') {
+            await interaction.editReply('This channel is already subscribed to the maximum number of items. Please unsubscribe from an item before subscribing to a new one.');
+            return;
+        }
     }
 }
 
@@ -365,7 +370,13 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
 async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<SubscribedChannel> {
     const guild_id = interaction.guildId!;
     const existingChannel = await getSubscribedChannel(guild_id, interaction.channelId);
-    if (existingChannel) return existingChannel;
+    if (existingChannel) {
+        // Check if the guild has over 20 items.
+        const total = await totalItemsInGuild(guild_id);
+        logger.info('Total items in guild', { guild: interaction.guild?.name, total });
+        if (total > 20) throw new Error('Channel already subscribed to maximum number of items.');
+        return existingChannel
+    };
     // Channel isn't set up yet.
     const AllWebHooks: Collection<Snowflake, Webhook> = await (interaction.channel as TextChannel)?.fetchWebhooks().catch(() => new Collection()) || new Collection();
     let webHook = AllWebHooks.find(

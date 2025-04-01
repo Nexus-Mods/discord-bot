@@ -91,6 +91,31 @@ async function deleteSubscribedChannel(c: ISubscribedChannel): Promise<void> {
     }
 }
 
+async function totalItemsInGuild(guild: Snowflake): Promise<number> {
+    try {
+        const result = await queryPromise(
+            `SELECT COALESCE(SUM(si.item_count), 0) AS tracked_items_for_guild
+            FROM (
+                SELECT COUNT(*) AS item_count
+                FROM SubscribedItems si
+                WHERE si.parent IN (
+                    SELECT id FROM SubscribedChannels WHERE guild_id = $1
+                )
+            ) si;`,
+            [guild]
+        );
+        if (result.rows.length === 0) return 0;
+        return parseInt(result.rows[0].tracked_items_for_guild, 10);
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to fetch total items in guild.\n${error.message}`;
+        throw error;
+    }
+
+}
+
 // SUBSCRIBED ITEM HANDLERS
 
 async function getAllSubscriptions(): Promise<SubscribedItem[]> {
@@ -269,7 +294,7 @@ async function ensureSubscriptionsDB() {
 
 
 export { 
-    ensureSubscriptionsDB, 
+    ensureSubscriptionsDB, totalItemsInGuild,
     getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, getSubscriptionsByChannel, createSubscription, updateSubscription, saveLastUpdatedForSub, deleteSubscription,
     setDateForAllSubsInChannel, deleteSubscribedChannel
