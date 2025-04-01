@@ -25,8 +25,8 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     const feeds = client.gameFeeds?.getAllFeeds();
     let migratable = feeds?.filter(f => f.show_updates === false) ?? [];
 
-    logger.warn('Migration cancelled. Review this function!')
-    migratable = [];
+    // logger.warn('Migration cancelled. Review this function!')
+    // migratable = [];
 
     logger.info('Migrating feeds', migratable.length);
 
