@@ -64,13 +64,13 @@ export class SubscriptionManger {
 
     public isPaused = (): boolean => this.updateTimer === undefined;
 
-    public async pause() {
+    public pause() {
         if (this.updateTimer) clearInterval(this.updateTimer);
         this.updateTimer = undefined;
         this.logger.info('Subscription Manager paused');
     }
 
-    public async resume() {
+    public resume() {
         if (this.updateTimer) clearInterval(this.updateTimer);
         this.updateTimer = setInterval(async () => {
             try {
