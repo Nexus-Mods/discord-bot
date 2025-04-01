@@ -144,6 +144,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
             await interaction.editReply('This channel is already subscribed to the maximum number of items. Please unsubscribe from an item before subscribing to a new one.');
             return;
         }
+        else throw err;
     }
 }
 
