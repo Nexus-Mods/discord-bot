@@ -38,7 +38,7 @@ export class GameFeedManager {
         logger.warn('GameFeedManager is disabled', { client: client.user?.tag, id: client.user?.id });
         // Set the update interval.
         // this.updateTimer = setInterval(this.updateFeeds, pollTime);
-        // this.getFeeds()
+        this.getFeeds()
             // .then(() => {
             //     logger.info(`Initialised with ${this.GameFeeds.length} game feeds, checking every ${pollTime/1000/60} minutes`);
             //     this.updateFeeds().catch((err) => logger.error(`Error updating game feeds`, err));
