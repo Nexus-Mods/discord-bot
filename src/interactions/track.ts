@@ -157,6 +157,9 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
     const nsfw = interaction.options.getBoolean('nsfw') ?? (interaction.channel as TextChannel).nsfw;
     const sfw = interaction.options.getBoolean('sfw') ?? true;
     const message = interaction.options.getString('message');
+    if (nsfw === false && sfw === false) {
+        return interaction.editReply('You have selected to hide both NSFW and SFW content, so no mods will show. Please try again.\n-# Note: When NSFW is not defined, the "Age-Restricted Channel" flag on this channel is used.');
+    }
     // Get the game object for selected domain
     const game = (await client.gamesList!.getGames()).find(g => g.domain_name === gameDomain);
 

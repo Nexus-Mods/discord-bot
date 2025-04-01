@@ -2,7 +2,7 @@ import { ClientExt } from "../types/DiscordTypes";
 import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError } from 'discord.js';
 import { Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
-import { CollectionStatus, IMod, IModFile, ModFileCategory } from '../api/queries/v2';
+import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
 import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
 
@@ -227,14 +227,21 @@ export class SubscriptionManger {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         const domain: string = item.entityid as string;
         const last_update = item.last_update;
-        let newMods = item.show_new ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) >= last_update ): [];
+        let newMods = item.show_new 
+        ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) >= last_update && modCanShow(m, item) )
+        : [];
         // If there's nothing in the cache, we'll double check
         if (!newMods.length && item.show_new) {
+            const filters: IModsFilter = { 
+                gameDomainName: { value: domain, op: 'EQUALS' },
+                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+            }
+            // Hide SFW content
+            if (item.sfw === false) filters.adultContent = { value: true, op: 'EQUALS' };
+            // Hide NSFW content
+            if (item.nsfw === false) filters.adultContent = { value: false, op: 'EQUALS' };
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
-                { 
-                    gameDomainName: { value: domain, op: 'EQUALS' },
-                    createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
-                }, 
+                filters, 
                 { createdAt: { direction: 'ASC' } }
             );
             newMods = res.nodes;
@@ -255,15 +262,22 @@ export class SubscriptionManger {
         }
         results.push(...formattedNew);
 
-        let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) >= last_update ): [];
+        let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates 
+        ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) >= last_update && modCanShow(m, item) )
+        : [];
         // If there's nothing in the cache, we'll double check
         if (!updatedMods.length && item.show_updates) {
+            const filters: IModsFilter = { 
+                gameDomainName: { value: domain, op: 'EQUALS' },
+                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+                hasUpdated: { value: true, op: 'EQUALS' }
+            }
+            // Hide SFW content
+            if (item.sfw === false && item.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
+            // Hide NSFW content
+            if (item.nsfw === false && item.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
-                { 
-                    gameDomainName: { value: domain, op: 'EQUALS' },
-                    updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
-                    hasUpdated: { value: true, op: 'EQUALS' }
-                }, 
+                filters, 
                 { createdAt: { direction: 'ASC' } }
             );
             updatedMods = res.nodes;
@@ -594,4 +608,10 @@ function getMaxiumDatesForGame(subs: ISubscribedItem[], games: Set<string>) {
         return prev;
         },
     {});
+}
+
+function modCanShow(mod: IMod, item: SubscribedItem) {
+    if (item.nsfw === false && mod.adult === true) return false;
+    if (item.sfw === false && mod.adult === false) return false;
+    return true;
 }
