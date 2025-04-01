@@ -246,6 +246,7 @@ export class SubscriptionManger {
             );
             newMods = res.nodes;
         }
+        else this.logger.debug('Using cached new mods', { domain, count: newMods.length });
         // Map into the generic format.
         const formattedNew: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         for (const mod of newMods) {
@@ -283,6 +284,7 @@ export class SubscriptionManger {
             updatedMods = res.nodes;
             // Get the file lists (including changelogs)
         }
+        else this.logger.debug('Using cached updated mods', { domain, count: updatedMods.length });
         // Attach a list of files
         for (const mod of updatedMods) {
             const files = this.cache.getCachedModFiles(mod.uid) ?? await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
