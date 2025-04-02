@@ -176,7 +176,8 @@ export class SubscriptionManger {
                     if (channel) await client.subscriptions?.addChannelToShard(channel);
                     return true;
                 }
-                else return false;
+                console.warn(`[Shard ${client.shard!.ids[0]}] - Could not match shard ID with`, context.targetShardId)
+                return false;
             }, { context: { guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
             this.logger.info('Shard responses', { shards, guild: channel.guild_id });
             if (!shards.includes(true)) {
