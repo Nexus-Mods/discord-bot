@@ -158,7 +158,7 @@ export class SubscriptionManger {
     }
 
     public async addChannelToShard(channel: SubscribedChannel) {
-        this.logger.info('Adding channel to SubscriptionManager Instance', { guild: channel.guild_id, channel: channel.channel_id });
+        this.logger.info('Adding channel to SubscriptionManager Instance', channel.guild_id);
         if(!this.channelIdSet.has(channel.id)) {
             this.channels.push(channel);
             this.channelIdSet.add(channel.id);
@@ -166,7 +166,7 @@ export class SubscriptionManger {
     }
 
     private async passChannelToShard(channel: SubscribedChannel): Promise<boolean> {
-        this.logger.info('This shard does not have the guild', { guild: channel.guild_id, channelId: channel.channel_id });
+        this.logger.info('This shard does not have the guild', channel.guild_id);
         try {
             const targetShardId = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard!.count);
             const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
@@ -183,6 +183,7 @@ export class SubscriptionManger {
             }
             else {
                 // Remove this channel from our main instance if it made it over to a shard.
+                this.logger.info('Shard found for channel. Removing from this instance.', channel.guild_id);
                 this.channels = this.channels.filter(c => c.id !== channel.id);
                 this.channelIdSet.delete(channel.id);
                 return true;
@@ -201,7 +202,7 @@ export class SubscriptionManger {
         const guild = await this.client.guilds.fetch(channel.guild_id).catch(() => null);
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
         if (guild === null || discordChannel === null) {
-            this.logger.warn('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id, subChannelId: channel.id });
+            this.logger.warn('Discord channel not found to post subscriptions', { guild: guild?.name, guildId: channel.guild_id, channelId: channel.channel_id, subChannelId: channel.id });
             // await deleteSubscribedChannel(channel);
             // throw new Error('Discord channel no longer exists')
             return;
