@@ -41,7 +41,7 @@ export class SubscriptionManger {
         // this.pause();
     }
 
-    static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*30*1)): Promise<SubscriptionManger> {
+    static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime, logger);
             const guilds = client.guilds.cache;
