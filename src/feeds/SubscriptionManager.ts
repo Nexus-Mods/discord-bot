@@ -1,6 +1,6 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError } from 'discord.js';
-import { Logger } from '../api/util';
+import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError, Client } from 'discord.js';
+import { isTesting, Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
@@ -37,11 +37,11 @@ export class SubscriptionManger {
             }
         }, pollTime)
         // Kick off an update.
-        // this.updateSubscriptions(true);
-        this.pause();
+        this.updateSubscriptions(true);
+        // this.pause();
     }
 
-    static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
+    static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*30*1)): Promise<SubscriptionManger> {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime, logger);
             const guilds = client.guilds.cache;
@@ -102,24 +102,9 @@ export class SubscriptionManger {
             if (this.isPaused()) break;
             try {
                 this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
-                if (this.client.shard) {
-                    if (!this.client.guilds.cache.get(channel.guild_id)) {
-                        // This shard doesn't have the guild.
-                        this.logger.info('This shard does not have the guild', { guild: channel.guild_id, channelId: channel.channel_id });
-                        const shards = await this.client.shard.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake }) => {
-                            if (client.guilds.cache.has(context.guildId)) {
-                                const channel = await getSubscribedChannel(context.guildId, context.channelId);
-                                if (channel) await client.subscriptions?.getUpdatesForChannel(channel);
-                                return true;
-                            }
-                            else return false;
-                        }, { context: { guildId: channel.guild_id, channelId: channel.channel_id } });
-                        if (!shards.includes(true)) {
-                            this.logger.info('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
-                            continue;
-                        }
-                    }
-                    else this.logger.debug('This shard has the guild', { guild: channel.guild_id, channelId: channel.channel_id });
+                if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id)) {
+                    await this.passChannelToShard(channel);
+                    continue;
                 }
                 await this.getUpdatesForChannel(channel);
             }
@@ -138,6 +123,46 @@ export class SubscriptionManger {
         this.logger.info('Subscription updates complete');    
         // Reset the cache
         this.cache = new SubscriptionCache();
+        // Trigger the update on other shards
+        if (this.client.shard) {
+            this.client.shard.broadcastEval((client: ClientExt, context) => {
+                if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions();
+            }, { context: { mainId: this.client.shard.ids[0] } })
+        }
+    }
+
+    public async addChannelToShard(channel: SubscribedChannel) {
+        this.logger.info('Adding channel to SubscriptionManager Instance', { guild: channel.guild_id, channel: channel.channel_id });
+        if(!this.channels.find(c => c.id === channel.id)) this.channels.push(channel);
+    }
+
+    private async passChannelToShard(channel: SubscribedChannel): Promise<boolean> {
+        this.logger.info('This shard does not have the guild', { guild: channel.guild_id, channelId: channel.channel_id });
+        try {
+            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake }) => {
+                if (client.guilds.cache.has(context.guildId)) {
+                    const channel = await getSubscribedChannel(context.guildId, context.channelId);
+                    if (channel) await client.subscriptions?.addChannelToShard(channel);
+                    return true;
+                }
+                else return false;
+            }, { context: { guildId: channel.guild_id, channelId: channel.channel_id } });
+            if (!shards.includes(true)) {
+                this.logger.info('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
+                return false;
+            }
+            else {
+                // Remove this channel from our main instance if it made it over to a shard.
+                this.channels = this.channels.filter(c => c.id !== channel.id);
+                return true;
+            };
+        }
+        catch(err) {
+            if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
+                this.logger.warn('Shards are not ready to process updates');
+            }
+            return false;
+        }
     }
 
     public async getUpdatesForChannel(channel: SubscribedChannel) {
@@ -146,8 +171,8 @@ export class SubscriptionManger {
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
         if (guild === null || discordChannel === null) {
             this.logger.warn('Discord channel not found to post subscriptions', { guild: guild?.name, channelId: channel.channel_id, subChannelId: channel.id });
-            await deleteSubscribedChannel(channel);
-            throw new Error('Discord channel no longer exists')
+            // await deleteSubscribedChannel(channel);
+            // throw new Error('Discord channel no longer exists')
             return;
         }
         // Grab the WH Client
@@ -252,6 +277,7 @@ export class SubscriptionManger {
     private async getGameUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Game>[]> {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         const domain: string = item.entityid as string;
+        if (domain !== 'cyberpunk2077') return results;
         const last_update = item.last_update;
         let newMods = item.show_new 
             ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) >= last_update && modCanShow(m, item) )
@@ -598,7 +624,7 @@ export class SubscriptionManger {
                 { createdAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain);
-            if (mods.totalCount > 0) this.logger?.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain}`)
+            if (isTesting || mods.totalCount > 0) this.logger?.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain} since ${date}`)
         });
         promises.push(...newGamePromises);
 
@@ -616,7 +642,7 @@ export class SubscriptionManger {
                 { updatedAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain, true);
-            if (mods.totalCount > 0) this.logger.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain}`)
+            if (isTesting || mods.totalCount > 0) this.logger.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain} since ${date}`)
         });
         promises.push(...updatedGamePromises);
 
@@ -631,8 +657,9 @@ function getMaxiumDatesForGame(subs: ISubscribedItem[], games: Set<string>) {
     return [...games].reduce<{ [domain: string]: Date }>(
         (prev, cur) => {
         const subsForDomain = subs.filter(g => g.entityid === cur);
-        const oldest = subsForDomain.sort((a,b) => a.last_update.getTime() - b.last_update.getTime())[0]
-        prev[cur] = oldest.last_update;
+        const oldest = subsForDomain.sort((a,b) => a.last_update.getTime() - b.last_update.getTime());
+        console.log('Dates in order (Oldest first)', { game: cur, dates: oldest.map(i => i.last_update) })
+        prev[cur] = oldest[0].last_update;
         return prev;
         },
     {});
