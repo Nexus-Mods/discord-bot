@@ -4,10 +4,7 @@ import { BotServer } from '../types/servers';
 import { Logger } from '../api/util';
 import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
 
-import { NewsFeedManager } from '../feeds/NewsFeedManager';
-import { AutoModManager } from '../feeds/AutoModManager';
 import { GameListCache } from '../types/util';
-import { SubscriptionManger } from '../feeds/SubscriptionManager';
 
 // Prepare the online status embed for quick reuse.
 const onlineEmbed = new EmbedBuilder()
@@ -28,18 +25,13 @@ const main: DiscordEventInterface = {
             logger.warn('Could not pre-cache the games list', err);
         }
 
-        // Start up the feeds
-        try {
-            client.newsFeed = await NewsFeedManager.getInstance(client, logger);
-            client.automod = await AutoModManager.getInstance(client, logger);
-            client.subscriptions = await SubscriptionManger.getInstance(client, logger);
-        }
-        catch(err) {
-            logger.error('Error starting up feeds', err);
-        }
-
         // Publish online message to servers. (Cache server listing?)
-        if (client.config.testing) return logger.debug('Testing mode - did not send online message');
+        if (client.config.testing) {
+            logger.debug('Testing mode - did not send online message');
+            logger.info(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
+            client.emit('readyForAction');
+            return;
+        }
 
         try {
             // Set the startup time
@@ -75,6 +67,7 @@ const main: DiscordEventInterface = {
         }
 
         logger.info(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
+        client.emit('readyForAction');
 
     }
 }
