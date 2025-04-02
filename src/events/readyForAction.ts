@@ -9,7 +9,7 @@ const main: DiscordEventInterface = {
     name: 'readyForAction',
     once: true,
     async execute(client: ClientExt, logger: Logger) {
-        logger.info('ReadyForAction triggered')
+        logger.info('Setting up feeds')
         // Start up the feeds
         try {
             client.newsFeed = await NewsFeedManager.getInstance(client, logger);
