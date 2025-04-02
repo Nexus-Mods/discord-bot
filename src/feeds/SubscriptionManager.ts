@@ -120,7 +120,7 @@ export class SubscriptionManger {
                             await this.passChannelToShard(channel);
                             return;
                         }
-                        else this.logger.debug('Guild found for shard', { id: this.client.shard!.ids[0], guild: channel.guild_id })
+                        else this.logger.debug('Guild found for shard', { guild: channel.guild_id })
                         await this.getUpdatesForChannel(channel);
                     }
                     catch(err) {
