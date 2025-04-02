@@ -37,7 +37,8 @@ export class SubscriptionManger {
             }
         }, pollTime)
         // Kick off an update.
-        this.updateSubscriptions(true);
+        // this.updateSubscriptions(true);
+        this.pause();
     }
 
     static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
