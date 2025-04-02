@@ -16,7 +16,7 @@ export class SubscriptionManger {
     private cache: SubscriptionCache = new SubscriptionCache();
     private fakeUser: DiscordBotUser;
     private logger: Logger;
-    private batchSize: number = 5;
+    private batchSize: number = 10;
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
@@ -102,7 +102,7 @@ export class SubscriptionManger {
 
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
-            this.logger.info('Batched channels', batch.map(c => c.id));
+            this.logger.debug('Batched channels', batch.map(c => c.id));
 
             // Process a batch in parallel
             await Promise.allSettled(
@@ -128,7 +128,7 @@ export class SubscriptionManger {
                 })
             )
 
-            this.logger.info('Batch done', batch.map(c => c.id));
+            this.logger.debug('Batch done', batch.map(c => c.id));
         }
 
         // Process the channels and their subscribed items.
