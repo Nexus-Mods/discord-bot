@@ -40,12 +40,14 @@ export class SubscriptionManger {
                 this.logger.error('Failed to run subscription event', err);
             }
         }, pollTime)
-        // Kick off an update.
-        this.updateSubscriptions(true);
-        // this.pause();
+        // Kick off an update. Removed to give the system a chance to spin up.
+        // this.updateSubscriptions(true);
+        // Trigger an update 1 minute after booting up.
+        setTimeout(() => this.updateSubscriptions(), 60000);
     }
 
     static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
+        if (isTesting) pollTime = 30000;
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime, logger);
             const guilds = client.guilds.cache;
@@ -89,18 +91,21 @@ export class SubscriptionManger {
     }
 
     private async updateChannels() {
+        if (this.client.shard && this.client.shard.ids[0] !== 0) return;
         this.channels = await getSubscribedChannels();
         return;
     }
 
-    private async updateSubscriptions(firstRun: boolean = false) {
+    private async updateSubscriptions(reloadChannels: boolean = false) {
         // Update the channels
-        if (!firstRun) await this.updateChannels();
+        if (!reloadChannels) await this.updateChannels();
         // Prepare the cache
         await this.prepareCache();
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels`);
-
+        this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
+        
+        // Process the channels and their subscribed items in batches.
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
             this.logger.debug('Batched channels', batch.map(c => c.id));
@@ -115,6 +120,7 @@ export class SubscriptionManger {
                             await this.passChannelToShard(channel);
                             return;
                         }
+                        else this.logger.debug('Guild found for shard', { id: this.client.shard!.ids[0], guild: channel.guild_id })
                         await this.getUpdatesForChannel(channel);
                     }
                     catch(err) {
@@ -132,35 +138,22 @@ export class SubscriptionManger {
             this.logger.debug('Batch done', batch.map(c => c.id));
         }
 
-        // Process the channels and their subscribed items.
-        // for (const channel of this.channels) {
-        //     if (this.isPaused()) break;
-        //     try {
-        //         this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
-        //         if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id)) {
-        //             await this.passChannelToShard(channel);
-        //             continue;
-        //         }
-        //         await this.getUpdatesForChannel(channel);
-        //     }
-        //     catch(err) {
-        //         if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
-        //             this.logger.warn('Shards are not ready to process updates');
-        //             continue;
-        //         }
-        //         this.logger.warn('Error processing updates for channel: '+(err as Error).message, err);
-        //         continue;
-        //     }
-        // }
-
         this.logger.info('Subscription updates complete');    
         // Reset the cache
         this.cache = new SubscriptionCache();
         // Trigger the update on other shards
-        if (this.client.shard) {
-            this.client.shard.broadcastEval((client: ClientExt, context) => {
-                if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions();
-            }, { context: { mainId: this.client.shard.ids[0] } })
+        if (this.client.shard && this.client.shard.ids[0] === 0) {
+            try {
+                await this.client.shard.broadcastEval((client: ClientExt, context) => {
+                    if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions(false);
+                }, { context: { mainId: this.client.shard.ids[0] } })
+            }
+            catch(err) {
+                if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
+                    this.logger.warn('Shards are not ready to process updates');
+                }
+                else this.logger.error('Error sending update to other shards!', err);
+            }
         }
     }
 
@@ -275,7 +268,7 @@ export class SubscriptionManger {
         }
 
         // Send the updates to the webhook!
-        this.logger.info(`Posting ${blocks.length} blocks containing ${postableUpdates.length} updates to ${discordChannel.name} in ${guild.name} (ID: ${channel.id})`);
+        this.logger.info(`Posting ${postableUpdates.length} updates (Blocks:${blocks.length}) to ${discordChannel.name} in ${guild.name} (ID: ${channel.id})`);
         for (const block of blocks) {
             // logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
@@ -321,6 +314,7 @@ export class SubscriptionManger {
             : [];
         // If there's nothing in the cache, we'll double check
         if (!newMods.length && item.show_new) {
+            this.logger.debug('Re-fetching new mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
                 gameDomainName: { value: domain, op: 'EQUALS' },
                 createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
@@ -335,7 +329,7 @@ export class SubscriptionManger {
             );
             newMods = res.nodes;
         }
-        else this.logger.debug('Using cached new mods', { domain, count: newMods.length });
+        else if (item.show_new) this.logger.debug('Using cached new mods', { domain, count: newMods.length, itemId: item.id, parent: item.parent });
         // Map into the generic format.
         const formattedNew: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         for (const mod of newMods) {
@@ -357,6 +351,7 @@ export class SubscriptionManger {
             : [];
         // If there's nothing in the cache, we'll double check
         if (!updatedMods.length && item.show_updates) {
+            this.logger.debug('Re-fetching updated mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
                 gameDomainName: { value: domain, op: 'EQUALS' },
                 updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
@@ -373,7 +368,7 @@ export class SubscriptionManger {
             updatedMods = res.nodes;
             // Get the file lists (including changelogs)
         }
-        else this.logger.debug('Using cached updated mods', { domain, count: updatedMods.length });
+        else if (item.show_updates) this.logger.debug('Using cached updated mods', { domain, count: updatedMods.length, itemId: item.id, parent: item.parent });
         // Attach a list of files
         for (const mod of updatedMods) {
             const files = this.cache.getCachedModFiles(mod.uid) ?? await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
