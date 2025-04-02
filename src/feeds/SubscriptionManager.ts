@@ -102,6 +102,7 @@ export class SubscriptionManger {
 
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
+            this.logger.info('Batched channels', batch.map(c => c.id));
 
             // Process a batch in parallel
             await Promise.allSettled(
@@ -109,7 +110,7 @@ export class SubscriptionManger {
                     if (this.isPaused()) return;
                     try {
                         this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
-                        if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id)) {
+                        if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id) && this.client.shard.ids[0] === 0) {
                             await this.passChannelToShard(channel);
                             return;
                         }
@@ -126,6 +127,8 @@ export class SubscriptionManger {
 
                 })
             )
+
+            this.logger.info('Batch done', batch.map(c => c.id));
         }
 
         // Process the channels and their subscribed items.
@@ -271,7 +274,7 @@ export class SubscriptionManger {
         }
 
         // Send the updates to the webhook!
-        this.logger.info(`Posting ${blocks.length} blocks containing ${postableUpdates.length} updates to ${discordChannel.name} in ${guild.name}`);
+        this.logger.info(`Posting ${blocks.length} blocks containing ${postableUpdates.length} updates to ${discordChannel.name} in ${guild.name} (ID: ${channel.id})`);
         for (const block of blocks) {
             // logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
