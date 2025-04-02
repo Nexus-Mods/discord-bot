@@ -277,7 +277,6 @@ export class SubscriptionManger {
     private async getGameUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Game>[]> {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         const domain: string = item.entityid as string;
-        if (domain !== 'cyberpunk2077') return results;
         const last_update = item.last_update;
         let newMods = item.show_new 
             ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) > last_update && modCanShow(m, item) )
@@ -360,7 +359,10 @@ export class SubscriptionManger {
         results.push(...formattedUpdates);
 
         // Exit if there's nothing to post
-        if (!results.length) return results;
+        if (!results.length) {
+            await saveLastUpdatedForSub(item.id, new Date());
+            return results
+        };
         // Order the array so the newest is first and the oldest is last
         results.sort((a,b) => a.date.getTime() - b.date.getTime())
         // Save the last date so we know where to start next time!
@@ -658,7 +660,6 @@ function getMaxiumDatesForGame(subs: ISubscribedItem[], games: Set<string>) {
         (prev, cur) => {
         const subsForDomain = subs.filter(g => g.entityid === cur);
         const oldest = subsForDomain.sort((a,b) => a.last_update.getTime() - b.last_update.getTime());
-        if (cur === 'cyberpunk2077') console.log('Dates in order (Oldest first)', { game: cur, dates: oldest.map(i => i.last_update) })
         prev[cur] = oldest[0].last_update;
         return prev;
         },
