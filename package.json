@@ -8,7 +8,7 @@
     "build": "npm run clean && npx tsc --build tsconfig.json && node add-js-extensions.cjs && npm run copy-assets",
     "copy-assets": "copyfiles -f -a ./src/server/views/* dist/server/views && copyfiles -f -a ./src/server/public/css/* dist/server/public/css && copyfiles -f -a ./src/server/public/images/* dist/server/public/images",
     "startSingle": "node dist/app.js",
-    "dev": "npm run build && npm run start",
+    "dev": "npm run build && npm run startSingle",
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "node clean.cjs",
     "start": "node dist/shards.js"

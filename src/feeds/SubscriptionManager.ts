@@ -157,7 +157,7 @@ export class SubscriptionManger {
         }
     }
 
-    public async addChannelToShard(channel: SubscribedChannel) {
+    public addChannelToShard(channel: SubscribedChannel) {
         this.logger.info('Adding channel to SubscriptionManager Instance', channel.guild_id);
         if(!this.channelIdSet.has(channel.id)) {
             this.channels.push(channel);
@@ -172,18 +172,16 @@ export class SubscriptionManger {
             this.logger.info('This shard does not have the guild. Target shard:'+targetShardId, channel.guild_id);
             const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
                 if (client.shard!.ids[0] === context.targetShardId) {
-                    console.log(`[Shard ${client.shard!.ids[0]}] - Matched with shard, sending command`, context.targetShardId)
                     const channel = await getSubscribedChannel(context.guildId, context.channelId);
                     if (channel) {
                         console.info(`[Shard ${client.shard!.ids[0]}] - Channel found`)
-                        await client.subscriptions?.addChannelToShard(channel);
+                        client.subscriptions?.addChannelToShard(channel);
                         console.info(`[Shard ${client.shard!.ids[0]}] - Send addChannelToShard event`)
                         return true;
                     }
                     console.error(`[Shard ${client.shard!.ids[0]}] - Correct shard but channel not found`, {context, channel})
                     return false;
                 }
-                console.warn(`[Shard ${client.shard!.ids[0]}] - Could not match shard ID with`, context.targetShardId)
                 return false;
             }, { context: { guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
             this.logger.info('Shard responses', { shards, guild: channel.guild_id });
