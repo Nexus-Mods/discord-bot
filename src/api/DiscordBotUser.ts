@@ -429,7 +429,8 @@ export class DiscordBotUser {
             oldData = await this.Discord.GetRemoteMetaData();
         }
         catch(err) {
-            this.logger.warn('Could not fetch saved Discord metadata', { user: this.NexusModsUsername, err });
+            if ((err as Error).message.includes('Too Many Requests')) this.logger.warn('Could not fetch saved Discord metadata', { user: this.NexusModsUsername, err: '429 - Rate limited' })
+            else this.logger.warn('Could not fetch saved Discord metadata', { user: this.NexusModsUsername, err });
         }
 
         // Get collection downloads

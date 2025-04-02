@@ -17,6 +17,7 @@ export class SubscriptionManger {
     private fakeUser: DiscordBotUser;
     private logger: Logger;
     private batchSize: number = 10;
+    public maxSubsPerGuild = 5;
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
@@ -688,7 +689,7 @@ export class SubscriptionManger {
         // TODO - We could cache the values of common mods, users and collections here, but it's an improvement.
 
         // Let all the promises resolve
-        return await Promise.all(promises);
+        return await Promise.allSettled(promises);
     }
 }
 

@@ -378,7 +378,7 @@ async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInp
         // Check if the guild has over 20 items.
         const total = await totalItemsInGuild(guild_id);
         logger.info('Total items in guild', { guild: interaction.guild?.name, total });
-        if (total > 20) throw new Error('Channel already subscribed to maximum number of items.');
+        if (total > (client.subscriptions?.maxSubsPerGuild || 5)) throw new Error('Channel already subscribed to maximum number of items.');
         return existingChannel
     };
     // Channel isn't set up yet.
