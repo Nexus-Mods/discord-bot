@@ -280,7 +280,7 @@ export class SubscriptionManger {
         if (domain !== 'cyberpunk2077') return results;
         const last_update = item.last_update;
         let newMods = item.show_new 
-            ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) >= last_update && modCanShow(m, item) )
+            ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) > last_update && modCanShow(m, item) )
             : [];
         // If there's nothing in the cache, we'll double check
         if (!newMods.length && item.show_new) {
@@ -316,7 +316,7 @@ export class SubscriptionManger {
         results.push(...formattedNew);
 
         let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates 
-            ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) >= last_update && modCanShow(m, item) )
+            ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) > last_update && modCanShow(m, item) )
             : [];
         // If there's nothing in the cache, we'll double check
         if (!updatedMods.length && item.show_updates) {
