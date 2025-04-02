@@ -157,11 +157,13 @@ export class SubscriptionManger {
         }
     }
 
-    public addChannelToShard(channel: SubscribedChannel) {
-        this.logger.info('Adding channel to SubscriptionManager Instance', channel.guild_id);
-        if(!this.channelIdSet.has(channel.id)) {
+    public async addChannelToShard(id: number, guild_id: Snowflake, channel_id: Snowflake) {
+        this.logger.info('Adding channel to SubscriptionManager Instance', guild_id);
+        if(!this.channelIdSet.has(id)) {
+            const channel = await getSubscribedChannel(guild_id, channel_id);
+            if (!channel) return this.logger.error('Could not find channel', { guild_id, channel_id })
             this.channels.push(channel);
-            this.channelIdSet.add(channel.id);
+            this.channelIdSet.add(id);
         };
     }
 
@@ -170,20 +172,17 @@ export class SubscriptionManger {
         try {
             const targetShardId = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard!.count);
             this.logger.info('This shard does not have the guild. Target shard:'+targetShardId, channel.guild_id);
-            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
+            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { id: number, guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
                 if (client.shard!.ids[0] === context.targetShardId) {
-                    const channel = await getSubscribedChannel(context.guildId, context.channelId);
-                    if (channel) {
-                        console.info(`[Shard ${client.shard!.ids[0]}] - Channel found`)
-                        client.subscriptions?.addChannelToShard(channel);
-                        console.info(`[Shard ${client.shard!.ids[0]}] - Send addChannelToShard event`)
+                    try {
+                        await client.subscriptions?.addChannelToShard(context.id, context.guildId, context.channelId);
+                        console.info(`[Shard ${client.shard!.ids[0]}] - Sent addChannelToShard event`)
                         return true;
                     }
-                    console.error(`[Shard ${client.shard!.ids[0]}] - Correct shard but channel not found`, {context, channel})
-                    return false;
+                    catch(err) {return false}
                 }
                 return false;
-            }, { context: { guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
+            }, { context: { id: channel.id, guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
             this.logger.info('Shard responses', { shards, guild: channel.guild_id });
             if (!shards.includes(true)) {
                 this.logger.info('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
