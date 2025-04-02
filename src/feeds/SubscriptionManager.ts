@@ -12,13 +12,16 @@ export class SubscriptionManger {
     private updateTimer?: NodeJS.Timeout;
     private pollTime: number = 0; //10 mins
     private channels: SubscribedChannel[];
+    private channelIdSet: Set<number>;
     private cache: SubscriptionCache = new SubscriptionCache();
     private fakeUser: DiscordBotUser;
     private logger: Logger;
+    private batchSize: number = 5;
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
         this.channels = channels;
+        this.channelIdSet = new Set(channels.map(c => c.id));
         this.fakeUser = new DiscordBotUser(DummyNexusModsUser, logger);
         // Save the client for later
         this.client = client;
@@ -97,29 +100,55 @@ export class SubscriptionManger {
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels`);
 
-        // Process the channels and their subscribed items.
-        for (const channel of this.channels) {
-            if (this.isPaused()) break;
-            try {
-                this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
-                if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id)) {
-                    await this.passChannelToShard(channel);
-                    continue;
-                }
-                await this.getUpdatesForChannel(channel);
-            }
-            catch(err) {
-                if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
-                    this.logger.warn('Shards are not ready to process updates');
-                    continue;
-                }
-                this.logger.warn('Error processing updates for channel: '+(err as Error).message, err);
-                continue;
-            }
+        for (let i=0; i < this.channels.length; i += this.batchSize) {
+            const batch = this.channels.slice(i, i + this.batchSize);
+
+            // Process a batch in parallel
+            await Promise.allSettled(
+                batch.map(async (channel) => {
+                    if (this.isPaused()) return;
+                    try {
+                        this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
+                        if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id)) {
+                            await this.passChannelToShard(channel);
+                            return;
+                        }
+                        await this.getUpdatesForChannel(channel);
+                    }
+                    catch(err) {
+                        if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
+                            this.logger.warn('Shards are not ready to process updates');
+                            return;
+                        }
+                        this.logger.warn('Error processing updates for channel: '+(err as Error).message, err);
+                        return;
+                    }
+
+                })
+            )
         }
 
-        // Empty the cache
-        this.cache = new SubscriptionCache();    
+        // Process the channels and their subscribed items.
+        // for (const channel of this.channels) {
+        //     if (this.isPaused()) break;
+        //     try {
+        //         this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
+        //         if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id)) {
+        //             await this.passChannelToShard(channel);
+        //             continue;
+        //         }
+        //         await this.getUpdatesForChannel(channel);
+        //     }
+        //     catch(err) {
+        //         if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
+        //             this.logger.warn('Shards are not ready to process updates');
+        //             continue;
+        //         }
+        //         this.logger.warn('Error processing updates for channel: '+(err as Error).message, err);
+        //         continue;
+        //     }
+        // }
+
         this.logger.info('Subscription updates complete');    
         // Reset the cache
         this.cache = new SubscriptionCache();
@@ -133,20 +162,24 @@ export class SubscriptionManger {
 
     public async addChannelToShard(channel: SubscribedChannel) {
         this.logger.info('Adding channel to SubscriptionManager Instance', { guild: channel.guild_id, channel: channel.channel_id });
-        if(!this.channels.find(c => c.id === channel.id)) this.channels.push(channel);
+        if(!this.channelIdSet.has(channel.id)) {
+            this.channels.push(channel);
+            this.channelIdSet.add(channel.id);
+        };
     }
 
     private async passChannelToShard(channel: SubscribedChannel): Promise<boolean> {
         this.logger.info('This shard does not have the guild', { guild: channel.guild_id, channelId: channel.channel_id });
         try {
-            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake }) => {
-                if (client.guilds.cache.has(context.guildId)) {
+            const targetShardId = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard!.count);
+            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
+                if (client.shard!.ids[0] === context.targetShardId) {
                     const channel = await getSubscribedChannel(context.guildId, context.channelId);
                     if (channel) await client.subscriptions?.addChannelToShard(channel);
                     return true;
                 }
                 else return false;
-            }, { context: { guildId: channel.guild_id, channelId: channel.channel_id } });
+            }, { context: { guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
             if (!shards.includes(true)) {
                 this.logger.info('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
                 return false;
@@ -154,6 +187,7 @@ export class SubscriptionManger {
             else {
                 // Remove this channel from our main instance if it made it over to a shard.
                 this.channels = this.channels.filter(c => c.id !== channel.id);
+                this.channelIdSet.delete(channel.id);
                 return true;
             };
         }

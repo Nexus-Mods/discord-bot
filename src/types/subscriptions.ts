@@ -685,7 +685,7 @@ function trimCollectionChangelog(markdown: string, maxLength: number = 2000): st
 function trimModChangelog(raw: string[], limit: number = 1000, logger: Logger): string {
     // THIS FEATURE IS BROKEN IN THE API, WE'LL CHECK IF IT'S STILL INVALID AND RETURN NULL IF IT IS.
     if (raw[0].startsWith('#<ModChangelog')) {
-        logger.warn('Mod changelogs are still broken, returning a generic message.');
+        logger.debug('Mod changelogs are still broken, returning a generic message.');
         return '_Changelog could not be rendered due to [an API bug](https://forums.nexusmods.com/topic/13512031-changelogs-on-the-modfiles-endpoint-are-not-showing-the-correct-data/). \n Please use the Logs tab on the mod page to view the changelog._';
     }
     let changelog = '';
