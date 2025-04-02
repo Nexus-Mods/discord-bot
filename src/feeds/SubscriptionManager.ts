@@ -658,7 +658,7 @@ function getMaxiumDatesForGame(subs: ISubscribedItem[], games: Set<string>) {
         (prev, cur) => {
         const subsForDomain = subs.filter(g => g.entityid === cur);
         const oldest = subsForDomain.sort((a,b) => a.last_update.getTime() - b.last_update.getTime());
-        console.log('Dates in order (Oldest first)', { game: cur, dates: oldest.map(i => i.last_update) })
+        if (cur === 'cyberpunk2077') console.log('Dates in order (Oldest first)', { game: cur, dates: oldest.map(i => i.last_update) })
         prev[cur] = oldest[0].last_update;
         return prev;
         },
