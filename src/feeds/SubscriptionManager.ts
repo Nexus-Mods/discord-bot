@@ -42,8 +42,8 @@ export class SubscriptionManger {
         }, pollTime)
         // Kick off an update. Removed to give the system a chance to spin up.
         // this.updateSubscriptions(true);
-        // Trigger an update 1 minute after booting up.
-        setTimeout(() => this.updateSubscriptions(), 60000);
+        // Trigger an update 2 minutes after booting up.
+        setTimeout(() => this.updateSubscriptions(), 120000);
     }
 
     static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
@@ -169,6 +169,7 @@ export class SubscriptionManger {
         this.logger.info('This shard does not have the guild', channel.guild_id);
         try {
             const targetShardId = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard!.count);
+            this.logger.info('This shard does not have the guild. Target shard:'+targetShardId, channel.guild_id);
             const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
                 if (client.shard!.ids[0] === context.targetShardId) {
                     const channel = await getSubscribedChannel(context.guildId, context.channelId);
@@ -177,6 +178,7 @@ export class SubscriptionManger {
                 }
                 else return false;
             }, { context: { guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
+            this.logger.info('Shard responses', { shards, guild: channel.guild_id });
             if (!shards.includes(true)) {
                 this.logger.info('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
                 return false;
