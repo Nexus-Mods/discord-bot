@@ -165,12 +165,11 @@ export class SubscriptionManger {
         const currentGuilds = new Set(...this.client.guilds.cache.map((guild) => guild.id));
         this.channelGuildSet = new Set([ ...currentGuilds].filter(g => this.channels.find(c => c.guild_id === g) !== undefined));
         this.logger.info('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
-        const channelsToDistribute = [...this.channels].filter(c => !currentGuilds.has(c.guild_id));
+        const channelsToDistribute = this.channels.filter(c => !currentGuilds.has(c.guild_id));
         const guildsToDistribute = new Set(channelsToDistribute.map(c => c.guild_id));
         this.logger.info('Channels to distribute to other shards', guildsToDistribute.size);
         const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
         await Promise.allSettled(distribution);
-        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id));
         if (guildsToDistribute.size) this.logger.info('Distributed guilds. Remaining channels', { channels: this.channels.length });
     }
 
@@ -210,7 +209,6 @@ export class SubscriptionManger {
                 this.logger.debug('Shard found for channel. Removing from this instance.', guild_id);
                 this.channels = this.channels.filter(c => c.guild_id !== guild_id);
                 this.channelGuildSet.delete(guild_id);
-                this.logger.debug('Remaining guilds is this instance', this.channels.length);
                 return true;
             };
         }
