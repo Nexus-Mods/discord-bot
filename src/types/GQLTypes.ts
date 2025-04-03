@@ -1,7 +1,15 @@
-import { Base, GuildMember } from "discord.js";
+import { GuildMember } from "discord.js";
 
 type ID = number | string | bigint;
-type ModStatus = 'under_moderation' | 'published' | 'not_published' | 'publish_with_game' | 'removed' | 'wastebinned' | 'hidden';
+export enum ModStatus {
+    Moderated = 'under_moderation',
+    Published = 'published',
+    Draft =  'not_published',
+    AwaitingGameApproval = 'publish_with_game',
+    RemovedByAuthor = 'removed',
+    RemovedByModerator = 'wastebinned',
+    Hidden = 'hidden'
+}
 
 
 interface Mod {

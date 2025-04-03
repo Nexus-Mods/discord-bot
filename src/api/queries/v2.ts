@@ -1,4 +1,3 @@
-import { ModStatus } from "@nexusmods/nexus-api";
 import { GuildMember } from "discord.js";
 import { ClientError } from "graphql-request";
 import * as GQLTypes from '../../types/GQLTypes';
@@ -83,7 +82,7 @@ export interface IMod {
     updatedAt: Date;
     summary: string;
     description: string;
-    status: ModStatus;
+    status: GQLTypes.ModStatus;
     downloads: number;
     author: string;
     uploader: {

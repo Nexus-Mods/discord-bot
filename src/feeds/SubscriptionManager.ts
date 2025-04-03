@@ -158,17 +158,18 @@ export class SubscriptionManger {
     }
 
     public async addChannelToShard(id: number, guild_id: Snowflake, channel_id: Snowflake) {
-        this.logger.info('Adding channel to SubscriptionManager Instance', guild_id);
+        this.logger.debug('Adding channel to SubscriptionManager Instance', guild_id);
         if(!this.channelIdSet.has(id)) {
             const channel = await getSubscribedChannel(guild_id, channel_id);
             if (!channel) return this.logger.error('Could not find channel', { guild_id, channel_id })
             this.channels.push(channel);
             this.channelIdSet.add(id);
-        };
+            this.logger.info(`This instance now includes ${this.channels.length} channels`)
+        }
+        else this.logger.info('Channel already managed', {guild_id, set: this.channelIdSet});
     }
 
     private async passChannelToShard(channel: SubscribedChannel): Promise<boolean> {
-        this.logger.info('This shard does not have the guild', channel.guild_id);
         try {
             const targetShardId = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard!.count);
             this.logger.info('This shard does not have the guild. Target shard:'+targetShardId, channel.guild_id);
@@ -176,16 +177,15 @@ export class SubscriptionManger {
                 if (client.shard!.ids[0] === context.targetShardId) {
                     try {
                         await client.subscriptions?.addChannelToShard(context.id, context.guildId, context.channelId);
-                        console.info(`[Shard ${client.shard!.ids[0]}] - Sent addChannelToShard event`)
                         return true;
                     }
                     catch(err) {return false}
                 }
                 return false;
             }, { context: { id: channel.id, guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
-            this.logger.info('Shard responses', { shards, guild: channel.guild_id });
+            this.logger.debug('Shard responses', { shards, guild: channel.guild_id });
             if (!shards.includes(true)) {
-                this.logger.info('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
+                this.logger.warn('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
                 return false;
             }
             else {
@@ -193,6 +193,7 @@ export class SubscriptionManger {
                 this.logger.info('Shard found for channel. Removing from this instance.', channel.guild_id);
                 this.channels = this.channels.filter(c => c.id !== channel.id);
                 this.channelIdSet.delete(channel.id);
+                this.logger.info('Remaining channels is this instance', this.channels.length)
                 return true;
             };
         }

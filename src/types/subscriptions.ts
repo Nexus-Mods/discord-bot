@@ -4,9 +4,9 @@ import { createSubscription, getSubscriptionsByChannel, updateSubscription } fro
 import { Logger, nexusModsTrackingUrl } from '../api/util';
 import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
-import { ModStatus } from '@nexusmods/nexus-api';
 import { IUser } from '../api/queries/v2-finduser';
 import { customEmojis } from './util';
+import { ModStatus } from './GQLTypes';
 
 export interface ISubscribedChannel {
     id: number;

@@ -407,7 +407,6 @@ const nonPlayableExtensions: string[] = [
 
 async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFiles: IBadFileRule[], logger: Logger): Promise<IModWithFlags> {
     const flags: { high: string[], low: string[] } = { high: [], low: [] };
-    // const modFiles = await user.NexusMods.API.v1.ModFiles(mod.game!.domainName!, mod.modId!);
     const modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
     const latestFile = modFiles.sort((a, b) => a.date - b.date)[0];
     const previewUrl = getContentPreviewLink(mod.game!.id, mod.modId!, latestFile).toString();
