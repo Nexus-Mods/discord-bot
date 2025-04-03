@@ -164,14 +164,14 @@ export class SubscriptionManger {
     private async distributeGuildsToShards() {
         const currentGuilds = new Set(...this.client.guilds.cache.map((guild) => guild.id));
         this.channelGuildSet = new Set([ ...currentGuilds].filter(g => this.channels.find(c => c.guild_id === g) !== undefined));
-        this.logger.debug('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
-        const channelsToDistribute = this.channels.filter(c => !currentGuilds.has(c.guild_id));
+        this.logger.info('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
+        const channelsToDistribute = [...this.channels].filter(c => !currentGuilds.has(c.guild_id));
         const guildsToDistribute = new Set(channelsToDistribute.map(c => c.guild_id));
         this.logger.info('Channels to distribute to other shards', guildsToDistribute.size);
         const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
         await Promise.allSettled(distribution);
-        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id))
-        if (guildsToDistribute.size) this.logger.info('Distributed guilds', { channels: this.channels.length });
+        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id));
+        if (guildsToDistribute.size) this.logger.info('Distributed guilds. Remaining channels', { channels: this.channels.length });
     }
 
     public async addGuildToShard(guild_id: Snowflake) {
@@ -685,7 +685,7 @@ export class SubscriptionManger {
                 { createdAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain);
-            if (isTesting || mods.totalCount > 0) this.logger?.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain} since ${date}`)
+            if (isTesting || mods.totalCount > 0) this.logger.debug(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain} since ${date}`)
         });
         promises.push(...newGamePromises);
 
@@ -703,7 +703,7 @@ export class SubscriptionManger {
                 { updatedAt: { direction: 'ASC' } }
             );
             this.cache.add('games', mods.nodes, domain, true);
-            if (isTesting || mods.totalCount > 0) this.logger.info(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain} since ${date}`)
+            if (isTesting || mods.totalCount > 0) this.logger.debug(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain} since ${date}`)
         });
         promises.push(...updatedGamePromises);
 

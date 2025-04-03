@@ -6,7 +6,7 @@ import { Logger, nexusModsTrackingUrl } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IGameStatic } from '../api/queries/other';
 
-const pollTime = (1000*60*60)*1; //1 hour
+const pollTime = (1000*60*30)*1; //30 mins hour
 
 export class NewsFeedManager {
     private static instance: NewsFeedManager;
@@ -57,7 +57,7 @@ export class NewsFeedManager {
                 this.logger.warn('Failed to check for latest news updates', err);
             }
         }, pollTime);
-        logger.info('Initialised news feed, checking every hour.')
+        logger.info('Initialised news feed, checking every 30mins.')
     }
 
     private async postLatestNews(domain?: string): Promise<EmbedBuilder> {

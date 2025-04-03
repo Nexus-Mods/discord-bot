@@ -93,7 +93,7 @@ export class AutoModManager {
         }
         this.updateTimer = setInterval(this.runAutomod.bind(this), pollTime);
         logger.info(`Automod started with ${this.AutoModRules.length} rules, checking every ${this.pollTime/1000/60} minutes. Last check ${this.lastCheck}`);
-        this.runAutomod().catch((err) => logger.error(`Error running automod`, err));
+        // this.runAutomod().catch((err) => logger.error(`Error running automod`, err));
     }
 
     public async retrieveRules(): Promise<IAutomodRule[]> {
