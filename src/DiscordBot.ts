@@ -150,10 +150,11 @@ export class DiscordBot {
             }
         }
 
-        if (this.client.shard && this.client.shard.ids[0] !== 0 && !forceUpdate) return logger.debug('Only register with Discord on shard 0 during startup');
-
         // Now we have the commands organised, time to set them up. 
         logger.info('Setting up interactions', { count: allInteractions.length });
+
+        if (this.client.shard && this.client.shard.ids[0] !== 0 && !forceUpdate) return logger.debug('Only register with Discord on shard 0 during startup');
+
 
         // Set global commands
         try {
