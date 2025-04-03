@@ -163,15 +163,15 @@ export class SubscriptionManger {
 
     private async distributeGuildsToShards() {
         const currentGuilds = new Set(...this.client.guilds.cache.map((guild) => guild.id));
-        this.logger.info('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
+        this.logger.debug('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
         const channelsToDistribute = this.channels.filter(c => !currentGuilds.has(c.guild_id));
-        const guildsToDistribute = new Set(...channelsToDistribute.map(c => c.guild_id));
+        const guildsToDistribute = new Set(channelsToDistribute.map(c => c.guild_id));
         this.logger.info('Channels to distribute to other shards', guildsToDistribute.size);
         const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
         await Promise.allSettled(distribution);
         this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id))
         this.channelGuildSet = currentGuilds;
-        this.logger.info('Distributed guilds', { channels: this.channels.length });
+        if (guildsToDistribute.size) this.logger.info('Distributed guilds', { channels: this.channels.length });
     }
 
     public async addGuildToShard(guild_id: Snowflake) {
