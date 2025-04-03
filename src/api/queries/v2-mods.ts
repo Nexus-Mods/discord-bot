@@ -65,7 +65,8 @@ export async function mods(headers: Record<string,string>, logger: Logger, filte
     }
     catch(err) {
         const error = new NexusGQLError(err as any, 'mods');
-        logger.error('Error in mods v2 request', error, true);
+        if (error.errors) logger.error('Error in mods v2 request', error, true);
+        else logger.warn('Server error in mods v2 request', error, true);
         return { nodes: [], totalCount: 0 };
     }
 }

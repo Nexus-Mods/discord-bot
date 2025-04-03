@@ -16,7 +16,7 @@ export class SubscriptionManger {
     private cache: SubscriptionCache = new SubscriptionCache();
     private fakeUser: DiscordBotUser;
     private logger: Logger;
-    private batchSize: number = 15;
+    private batchSize: number = 10;
     public maxSubsPerGuild = 5;
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
@@ -39,10 +39,8 @@ export class SubscriptionManger {
                 this.logger.error('Failed to run subscription event', err);
             }
         }, pollTime)
-        // Kick off an update. Removed to give the system a chance to spin up.
-        // this.updateSubscriptions(true);
-        // Trigger an update 2 minutes after booting up.
-        setTimeout(() => this.updateSubscriptions(), 120000);
+        // Trigger an update 1 minute after booting up. This lets the other shards spin up.
+        setTimeout(() => this.updateSubscriptions(), 90000);
     }
 
     static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
@@ -227,7 +225,8 @@ export class SubscriptionManger {
             this.logger.warn('Discord channel not found to post subscriptions', { guild: guild?.name, guildId: channel.guild_id, channelId: channel.channel_id, subChannelId: channel.id });
             await deleteSubscribedChannel(channel);
             this.channels = this.channels.filter(c => c.id !== channel.id);
-            throw new Error('Discord channel no longer exists');
+            return;
+            // throw new Error('Discord channel no longer exists');
         }
         // Grab the WH Client
         const webHookClient = channel.webHookClient;
