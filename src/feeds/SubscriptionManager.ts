@@ -1,6 +1,6 @@
 import { ClientExt } from "../types/DiscordTypes";
 import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError, Client } from 'discord.js';
-import { isTesting, Logger } from '../api/util';
+import { isTesting, KnownDiscordServers, Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
@@ -267,6 +267,7 @@ export class SubscriptionManger {
     }
 
     public async getUpdatesForChannel(channel: SubscribedChannel, skipCache = false) {
+        if (channel.guild_id === KnownDiscordServers.Main) this.logger.info('Main server update triggered', channel);
         // Verify the channel exists
         const guild = await this.client.guilds.fetch(channel.guild_id).catch(() => null);
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
