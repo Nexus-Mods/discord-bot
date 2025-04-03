@@ -21,16 +21,17 @@ export class SubscriptionManger {
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
-        this.channels = channels;
-        this.channelIdSet = new Set(channels.map(c => c.id));
         this.fakeUser = new DiscordBotUser(DummyNexusModsUser, logger);
         // Save the client for later
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
             this.channels=[];
+            this.channelIdSet= new Set();
             this.logger.info('Subscriptions only run on the first shard.'); // Only run on the first shard
             return this;
-        }        
+        }
+        this.channels = channels;
+        this.channelIdSet = new Set(channels.map(c => c.id));        
         this.pollTime = pollTime;
         this.updateTimer = setInterval(async () => {
             try {
@@ -166,7 +167,7 @@ export class SubscriptionManger {
             this.channelIdSet.add(id);
             this.logger.info(`This instance now includes ${this.channels.length} channels`)
         }
-        else this.logger.info('Channel already managed', {guild_id, set: this.channelIdSet});
+        else this.logger.info('Channel already managed', {guild_id, set: this.channelIdSet.size});
     }
 
     private async passChannelToShard(channel: SubscribedChannel): Promise<boolean> {

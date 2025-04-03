@@ -110,6 +110,7 @@ export class DiscordBot {
 
     private async setInteractions(forceUpdate?: boolean): Promise<void> {
         if (!this.client.updateInteractions) this.client.updateInteractions = this.setInteractions;
+        if (this.client.shard && this.client.shard.ids[0] !== 0 && !forceUpdate) return logger.debug('Only register interactions on shard 0 during startup');
         logger.info('Setting interaction commands');
         if (!this.client.interactions) this.client.interactions = new Collection();
         if (!this.client.application?.owner) await this.client.application?.fetch();
