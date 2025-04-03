@@ -117,7 +117,7 @@ export class SubscriptionManger {
                 batch.map(async (channel) => {
                     if (this.isPaused()) return;
                     try {
-                        this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
+                        this.logger.info('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
                         await this.getUpdatesForChannel(channel);
                     }
                     catch(err) {
