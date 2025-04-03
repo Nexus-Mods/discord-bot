@@ -15,7 +15,7 @@ const poolConfig: PoolConfig = {
     ssl: isProduction 
         ? { rejectUnauthorized: false } 
         : false,
-    statement_timeout: 10000,
+    // statement_timeout: 10000,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 2000,
     max: 10
