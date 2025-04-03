@@ -10,7 +10,7 @@ export class SubscriptionManger {
     private static instance: SubscriptionManger;
     private client: ClientExt;
     private updateTimer?: NodeJS.Timeout;
-    private pollTime: number = 0; //10 mins
+    private pollTime: number = 0;
     private channels: SubscribedChannel[];
     private channelGuildSet: Set<string>;
     private cache: SubscriptionCache = new SubscriptionCache();
@@ -18,6 +18,7 @@ export class SubscriptionManger {
     private logger: Logger;
     private batchSize: number = 10;
     public maxSubsPerGuild = 5;
+    public paused: boolean = false;
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
@@ -70,16 +71,16 @@ export class SubscriptionManger {
         }
     }
 
-    public isPaused = (): boolean => this.updateTimer === undefined;
-
     public pause() {
         if (this.updateTimer) clearInterval(this.updateTimer);
+        this.paused = true;
         this.updateTimer = undefined;
         this.logger.info('Subscription Manager paused');
     }
 
     public resume() {
         if (this.updateTimer) clearInterval(this.updateTimer);
+        this.paused = false;
         this.updateTimer = setInterval(async () => {
             try {
                 await this.updateSubscriptions();
@@ -115,8 +116,7 @@ export class SubscriptionManger {
             // Process a batch in parallel
             await Promise.allSettled(
                 batch.map(async (channel) => {
-                    if(this.client.shard && this.client.shard.ids[0] !== 0)  this.logger.info('Can we proceed here?', { paused: this.isPaused(), id: channel.id })
-                    if (this.isPaused()) return;
+                    if (this.paused === true) return;
                     try {
                         this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
                         await this.getUpdatesForChannel(channel);
@@ -319,7 +319,6 @@ export class SubscriptionManger {
 
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
-            if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info(`No updates for ${discordChannel.name} in ${guild.name}`);
             this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
             await updateSubscribedChannel(channel, new Date());
             return;
