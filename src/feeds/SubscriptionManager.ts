@@ -171,6 +171,9 @@ export class SubscriptionManger {
         const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
         await Promise.allSettled(distribution);
         if (guildsToDistribute.size) this.logger.info('Distributed guilds. Remaining channels', { channels: this.channels.length });
+        this.logger.info('Channels before cleanup', this.channels.length);
+        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id));
+        this.logger.info('Channels after cleanup', this.channels.length);
     }
 
     public async addGuildToShard(guild_id: Snowflake) {
@@ -206,9 +209,9 @@ export class SubscriptionManger {
             }
             else {
                 // Remove this channel from our main instance if it made it over to a shard.
-                this.logger.debug('Shard found for channel. Removing from this instance.', guild_id);
-                this.channels = this.channels.filter(c => c.guild_id !== guild_id);
-                this.channelGuildSet.delete(guild_id);
+                this.logger.debug('Shard found for guild. Removing from this instance.', guild_id);
+                // this.channels = this.channels.filter(c => c.guild_id !== guild_id);
+                // this.channelGuildSet.delete(guild_id);
                 return true;
             };
         }
