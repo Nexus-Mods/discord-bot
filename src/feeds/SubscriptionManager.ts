@@ -104,20 +104,20 @@ export class SubscriptionManger {
         await this.prepareCache();
         if (this.client.shard && this.client.shard.ids[0] === 0) await this.distributeGuildsToShards();
 
-        this.logger.info(`Running subscription updates for ${this.channels.length} channels`);
+        this.logger.info(`Running subscription updates for ${this.channels.length} channels in batches of ${this.batchSize}`);
         this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
         
         // Process the channels and their subscribed items in batches.
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
-            this.logger.debug('Batched channels', batch.map(c => c.id));
+            if(this.client.shard && this.client.shard.ids[0] !== 0)  this.logger.info('Batched channels', batch.map(c => c.id));
 
             // Process a batch in parallel
             await Promise.allSettled(
                 batch.map(async (channel) => {
                     if (this.isPaused()) return;
                     try {
-                        this.logger.info('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
+                        this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
                         await this.getUpdatesForChannel(channel);
                     }
                     catch(err) {
@@ -267,7 +267,6 @@ export class SubscriptionManger {
     }
 
     public async getUpdatesForChannel(channel: SubscribedChannel, skipCache = false) {
-        if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info('Getting updates', channel.id);
         // Verify the channel exists
         const guild = await this.client.guilds.fetch(channel.guild_id).catch(() => null);
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
@@ -282,7 +281,6 @@ export class SubscriptionManger {
         const webHookClient = channel.webHookClient;
         // Grab the subscribed items
         const items = await channel.getSubscribedItems(skipCache);
-        if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info('SubscribedItems', { titles: items.map(i => i.title), id: channel.id });
         if (!items.length) {
             await deleteSubscribedChannel(channel);
             return;
