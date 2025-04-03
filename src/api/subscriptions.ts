@@ -24,6 +24,28 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
         throw error;
     }
 }
+async function getSubscribedChannelsForGuild(guild: Snowflake): Promise<SubscribedChannel[]> {
+    try {
+        const data = await queryPromise<ISubscribedChannel>(
+            'SELECT * FROM SubscribedChannels WHERE guild_id=$1',
+            [guild]
+        );
+        if (data.rows.length === 0) return [];
+        else {
+            const channels = Promise.all(
+                data.rows.map(async r => await SubscribedChannel.create(r, logger))
+            )
+            return (await channels).filter(c => c);
+        }
+
+    }
+    catch(err) {
+        const error: Error = (err as Error);
+        error.message = `Failed to fetch subscribed channels for guild.\n${error.message}`;
+        throw error;
+    }
+
+}
 
 async function getSubscribedChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedChannel | undefined> {
     try {
@@ -312,7 +334,7 @@ async function ensureSubscriptionsDB() {
 
 
 export { 
-    ensureSubscriptionsDB, totalItemsInGuild,
+    ensureSubscriptionsDB, totalItemsInGuild, getSubscribedChannelsForGuild,
     getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, getSubscriptionsByChannel, createSubscription, createSubscriptionFromFeed,
     updateSubscription, saveLastUpdatedForSub, deleteSubscription,

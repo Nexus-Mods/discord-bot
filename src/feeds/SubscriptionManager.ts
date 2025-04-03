@@ -4,7 +4,7 @@ import { isTesting, Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
-import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
+import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, getSubscribedChannelsForGuild, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -12,7 +12,7 @@ export class SubscriptionManger {
     private updateTimer?: NodeJS.Timeout;
     private pollTime: number = 0; //10 mins
     private channels: SubscribedChannel[];
-    private channelIdSet: Set<number>;
+    private channelGuildSet: Set<string>;
     private cache: SubscriptionCache = new SubscriptionCache();
     private fakeUser: DiscordBotUser;
     private logger: Logger;
@@ -21,17 +21,15 @@ export class SubscriptionManger {
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
+        this.channels = channels;
+        this.channelGuildSet = new Set(channels.map(c => c.guild_id)); 
         this.fakeUser = new DiscordBotUser(DummyNexusModsUser, logger);
         // Save the client for later
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
-            this.channels=[];
-            this.channelIdSet= new Set();
-            this.logger.info('Subscriptions only run on the first shard.'); // Only run on the first shard
+            // Return here if we're not on the main shard. 
             return this;
-        }
-        this.channels = channels;
-        this.channelIdSet = new Set(channels.map(c => c.id));        
+        }       
         this.pollTime = pollTime;
         this.updateTimer = setInterval(async () => {
             try {
@@ -61,8 +59,12 @@ export class SubscriptionManger {
     private static async initialiseInstance(client: ClientExt, pollTime: number, logger: Logger): Promise<void> {
         // Set up any missing tables
         try {
-            await ensureSubscriptionsDB();
-            const channels = await getSubscribedChannels();
+            let channels: SubscribedChannel[] = []
+            if (!client.shard || client.shard?.ids[0] === 0) {
+                // Only hit the database if we're either not running sharded or we're on shard 0;
+                await ensureSubscriptionsDB();
+                channels = await getSubscribedChannels();
+            }
             SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels, logger);
         }
         catch(err) {
@@ -158,16 +160,16 @@ export class SubscriptionManger {
         }
     }
 
-    public async addChannelToShard(id: number, guild_id: Snowflake, channel_id: Snowflake) {
-        this.logger.debug('Adding channel to SubscriptionManager Instance', guild_id);
-        if(!this.channelIdSet.has(id)) {
-            const channel = await getSubscribedChannel(guild_id, channel_id);
-            if (!channel) return this.logger.error('Could not find channel', { guild_id, channel_id })
-            this.channels.push(channel);
-            this.channelIdSet.add(id);
-            this.logger.info(`This instance now includes ${this.channels.length} channels`)
+    public async addGuildToShard(guild_id: Snowflake) {
+        this.logger.debug('Adding guild to SubscriptionManager Instance', guild_id);
+        if(!this.channelGuildSet.has(guild_id)) {
+            const channels = await getSubscribedChannelsForGuild(guild_id).catch(() => []);
+            if (!channels.length) return this.logger.error('Could not find channels', { guild_id })
+            this.channels.push(...channels);
+            this.channelGuildSet.add(guild_id);
+            this.logger.debug(`This instance now includes ${this.channels.length} channels`);
         }
-        else this.logger.info('Channel already managed', {guild_id, set: this.channelIdSet.size});
+        else this.logger.info('Guild already managed', {guild_id, set: this.channelGuildSet.size});
     }
 
     private async passChannelToShard(channel: SubscribedChannel): Promise<boolean> {
@@ -177,7 +179,7 @@ export class SubscriptionManger {
             const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { id: number, guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
                 if (client.shard!.ids[0] === context.targetShardId) {
                     try {
-                        await client.subscriptions?.addChannelToShard(context.id, context.guildId, context.channelId);
+                        await client.subscriptions?.addGuildToShard(context.guildId);
                         return true;
                     }
                     catch(err) {return false}
@@ -191,10 +193,10 @@ export class SubscriptionManger {
             }
             else {
                 // Remove this channel from our main instance if it made it over to a shard.
-                this.logger.info('Shard found for channel. Removing from this instance.', channel.guild_id);
-                this.channels = this.channels.filter(c => c.id !== channel.id);
-                this.channelIdSet.delete(channel.id);
-                this.logger.info('Remaining channels is this instance', this.channels.length)
+                this.logger.debug('Shard found for channel. Removing from this instance.', channel.guild_id);
+                this.channels = this.channels.filter(c => c.guild_id !== channel.guild_id);
+                this.channelGuildSet.delete(channel.guild_id);
+                this.logger.debug('Remaining guilds is this instance', this.channels.length);
                 return true;
             };
         }
