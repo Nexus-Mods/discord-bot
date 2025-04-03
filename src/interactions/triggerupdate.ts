@@ -81,12 +81,10 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         const epoch: number = Math.floor(timeToUse.getTime()/1000);
         let channel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
         if (!channel) return interaction.editReply('No subscribed items in this channel.');
-        const update = await setDateForAllSubsInChannel(timeToUse, interaction.guildId!, interaction.channelId);
-        channel = await updateSubscribedChannel(channel, timeToUse);
         logger.info('Subscription update triggered', { guild: interaction.guild?.name, channel: (interaction.channel as GuildChannel)?.name, timeToUse});
-        await interaction.editReply(`Updates for all tracked items since <t:${epoch}:f> will be posted shortly.\n${update.map(i => i.title).join('\n')}`);
-        await channel.webHookClient.send(`-# Update triggered by ${interaction.user.toString()} for updates since <t:${epoch}:f> for ${update.length} tracked item(s).`);
-        await client.subscriptions?.getUpdatesForChannel(channel);
+        await channel.webHookClient.send(`-# Update triggered by ${interaction.user.toString()} for updates since <t:${epoch}:f> for ${(await channel.getSubscribedItems()).length} tracked item(s).`);
+        await client.subscriptions?.forceChannnelUpdate(channel,timeToUse);
+        await interaction.editReply(`Updates for all tracked items since <t:${epoch}:f> will be posted shortly.`);
     }
     catch(err) {
         logger.warn('Error updating subsriptions', err);

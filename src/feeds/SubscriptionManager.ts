@@ -4,7 +4,7 @@ import { isTesting, Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
-import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, getSubscribedChannelsForGuild, saveLastUpdatedForSub, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
+import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, getSubscribedChannelsForGuild, saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -111,7 +111,7 @@ export class SubscriptionManger {
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
             this.logger.debug('Batched channels', batch.map(c => c.id));
-            
+
             // Process a batch in parallel
             await Promise.allSettled(
                 batch.map(async (channel) => {
@@ -216,7 +216,56 @@ export class SubscriptionManger {
         }
     }
 
-    public async getUpdatesForChannel(channel: SubscribedChannel) {
+    public async forceChannnelUpdate(channel: SubscribedChannel, date: Date) {
+        try {
+            if (!this.client.shard) return this.getUpdatesForChannel(channel, true);
+            else {
+                const shardForGuild = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard.count);
+                if (shardForGuild === this.client.shard.ids[0]) return this.getUpdatesForChannel(channel, true);
+                this.logger.info('Sending forceChannelUpdate', { target: shardForGuild });
+                const res = await this.client.shard.broadcastEval(async (client: ClientExt, context) => {
+                    if (client.shard?.ids[0] === context.shardId) {
+                        await client.subscriptions?.handleForceUpdate(context);
+                        return 'Success';
+                    }
+                    else return null;
+                }, { 
+                    context: { 
+                        type: 'forceChannelUpdate',
+                        id: channel.id,
+                        guild_id: channel.guild_id,
+                        channel_id: channel.channel_id,
+                        date: date.toISOString(),
+                        shardId: shardForGuild 
+
+                    } 
+                });
+                if (res.filter(r => r).length) return;
+                else throw new Error('Unable to handle update');
+            }
+        }
+        catch(err) {
+            this.logger.warn('Failed to force updates', err);
+            throw new Error('Unable to force-update all subs in channel.')
+        }
+    }
+
+    public async handleForceUpdate(message: { type: string, date: string, id: number, guild_id: Snowflake, channel_id: Snowflake, shardId: number }) {
+        if (message.shardId !== this.client.shard!.ids[0]) return;
+        if (message.type !== 'forceChannelUpdate') return;
+        this.logger.info('Recieved message')
+        try {
+            await setDateForAllSubsInChannel(new Date(message.date), message.guild_id, message.channel_id);
+            const channel = this.channels.find(c => c.channel_id === c.channel_id) || await getSubscribedChannel(message.guild_id, message.channel_id);
+            if (!channel) throw Error('Channel not found');
+            return this.getUpdatesForChannel(channel);
+        }
+        catch(err) {
+            this.logger.warn('Error forcing update of a channel', err);
+        }
+    }
+
+    public async getUpdatesForChannel(channel: SubscribedChannel, skipCache = false) {
         // Verify the channel exists
         const guild = await this.client.guilds.fetch(channel.guild_id).catch(() => null);
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
@@ -230,7 +279,7 @@ export class SubscriptionManger {
         // Grab the WH Client
         const webHookClient = channel.webHookClient;
         // Grab the subscribed items
-        const items = await channel.getSubscribedItems();
+        const items = await channel.getSubscribedItems(skipCache);
         if (!items.length) {
             await deleteSubscribedChannel(channel);
             return;
