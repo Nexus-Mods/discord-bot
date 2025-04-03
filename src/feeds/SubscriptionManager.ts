@@ -1,6 +1,6 @@
 import { ClientExt } from "../types/DiscordTypes";
 import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError, Client } from 'discord.js';
-import { isTesting, KnownDiscordServers, Logger } from '../api/util';
+import { isTesting, Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
@@ -267,7 +267,7 @@ export class SubscriptionManger {
     }
 
     public async getUpdatesForChannel(channel: SubscribedChannel, skipCache = false) {
-        if (channel.guild_id === KnownDiscordServers.Main) this.logger.info('Main server update triggered', channel);
+        if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info('Getting updates', channel.id);
         // Verify the channel exists
         const guild = await this.client.guilds.fetch(channel.guild_id).catch(() => null);
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
@@ -282,6 +282,7 @@ export class SubscriptionManger {
         const webHookClient = channel.webHookClient;
         // Grab the subscribed items
         const items = await channel.getSubscribedItems(skipCache);
+        if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info('SubscribedItems', { titles: items.map(i => i.title), id: channel.id });
         if (!items.length) {
             await deleteSubscribedChannel(channel);
             return;
@@ -319,6 +320,7 @@ export class SubscriptionManger {
 
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
+            if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info(`No updates for ${discordChannel.name} in ${guild.name}`);
             this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
             await updateSubscribedChannel(channel, new Date());
             return;
