@@ -110,11 +110,12 @@ export class SubscriptionManger {
         // Process the channels and their subscribed items in batches.
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
-            if(this.client.shard && this.client.shard.ids[0] !== 0)  this.logger.info('Batched channels', batch.map(c => c.id));
+            this.logger.debug('Batched channels', batch.map(c => c.id));
 
             // Process a batch in parallel
             await Promise.allSettled(
                 batch.map(async (channel) => {
+                    if(this.client.shard && this.client.shard.ids[0] !== 0)  this.logger.info('Can we proceed here?', { paused: this.isPaused(), id: channel.id })
                     if (this.isPaused()) return;
                     try {
                         this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
