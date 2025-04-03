@@ -111,8 +111,7 @@ export class SubscriptionManger {
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
             this.logger.debug('Batched channels', batch.map(c => c.id));
-            if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info('Batched channels', batch.map(c => c.id))
-
+            
             // Process a batch in parallel
             await Promise.allSettled(
                 batch.map(async (channel) => {

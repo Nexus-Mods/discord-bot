@@ -18,7 +18,7 @@ const poolConfig: PoolConfig = {
     statement_timeout: 10000,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 5000,
-    max: 10
+    max: 25
 };
 
 const pool = new Pool(poolConfig);
