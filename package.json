@@ -7,11 +7,11 @@
   "scripts": {
     "build": "npm run clean && npx tsc --build tsconfig.json && node add-js-extensions.cjs && npm run copy-assets",
     "copy-assets": "copyfiles -f -a ./src/server/views/* dist/server/views && copyfiles -f -a ./src/server/public/css/* dist/server/public/css && copyfiles -f -a ./src/server/public/images/* dist/server/public/images",
-    "start": "node dist/app.js",
+    "start": "node dist/shards.js",
     "dev": "npm run build && npm run startSingle",
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "node clean.cjs",
-    "startShards": "node dist/shards.js"
+    "startSingle": "node dist/app.js"
   },
   "author": "Pickysaurus",
   "license": "ISC",
