@@ -171,9 +171,10 @@ export class SubscriptionManger {
         const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
         await Promise.allSettled(distribution);
         if (guildsToDistribute.size) this.logger.info('Distributed guilds. Remaining channels', { channels: this.channels.length });
-        this.logger.info('Channels before cleanup', this.channels.length);
-        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id));
-        this.logger.info('Channels after cleanup', this.channels.length);
+        this.logger.info('Channels before cleanup', {count: this.channels.length});
+        const cleaned = this.channels.filter(c => currentGuilds.has(c.guild_id));
+        this.channels = cleaned;
+        this.logger.info('Channels after cleanup', {count: this.channels.length});
     }
 
     public async addGuildToShard(guild_id: Snowflake) {
