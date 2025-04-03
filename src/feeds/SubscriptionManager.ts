@@ -221,6 +221,7 @@ export class SubscriptionManger {
             if (!this.client.shard) return this.getUpdatesForChannel(channel, true);
             else {
                 const shardForGuild = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard.count);
+                this.logger.info('Force update sending for Shard', shardForGuild);
                 if (shardForGuild === this.client.shard.ids[0]) return this.getUpdatesForChannel(channel, true);
                 this.logger.info('Sending forceChannelUpdate', { target: shardForGuild });
                 const res = await this.client.shard.broadcastEval(async (client: ClientExt, context) => {

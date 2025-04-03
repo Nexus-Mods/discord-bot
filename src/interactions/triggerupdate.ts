@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits, MessageFlags } from "discord.js";
+import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits, MessageFlags, InteractionContextType } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { Logger } from "../api/util";
 import { getSubscribedChannel, setDateForAllSubsInChannel, updateSubscribedChannel } from "../api/subscriptions";
@@ -23,7 +23,7 @@ const discordInteraction: DiscordInteraction = {
     .setName('trigger-update')
     .setDescription('Return a quick info message on a number of topics.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
-    .setDMPermission(false)
+    .setContexts(InteractionContextType.Guild)
     .addStringOption(o =>
         o.setName('date')
         .setDescription('YYYY-MM-DD')
