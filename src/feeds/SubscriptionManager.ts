@@ -104,6 +104,7 @@ export class SubscriptionManger {
         if (!reloadChannels) await this.updateChannels();
         // Prepare the cache
         await this.prepareCache();
+        if (this.client.shard && this.client.shard.ids[0] === 0) await this.distributeGuildsToShards();
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels`);
         this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
@@ -119,11 +120,11 @@ export class SubscriptionManger {
                     if (this.isPaused()) return;
                     try {
                         this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
-                        if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id) && this.client.shard.ids[0] === 0) {
-                            await this.passChannelToShard(channel);
-                            return;
-                        }
-                        else this.logger.debug('Guild found for shard', { guild: channel.guild_id })
+                        // if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id) && this.client.shard.ids[0] === 0) {
+                        //     await this.passGuildToShard(channel.guild_id);
+                        //     return;
+                        // }
+                        // else this.logger.debug('Guild found for shard', { guild: channel.guild_id })
                         await this.getUpdatesForChannel(channel);
                     }
                     catch(err) {
@@ -160,6 +161,19 @@ export class SubscriptionManger {
         }
     }
 
+    private async distributeGuildsToShards() {
+        const currentGuilds = new Set(...this.client.guilds.cache.keys());
+        this.logger.info('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
+        const channelsToDistribute = this.channels.filter(c => !currentGuilds.has(c.guild_id));
+        const guildsToDistribute = new Set(...channelsToDistribute.map(c => c.guild_id));
+        this.logger.info('Channels to distribute to other shards', guildsToDistribute.size);
+        const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
+        await Promise.allSettled(distribution);
+        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id))
+        this.channelGuildSet = currentGuilds;
+        this.logger.info('Distributed guilds', { channels: this.channels.length });
+    }
+
     public async addGuildToShard(guild_id: Snowflake) {
         this.logger.debug('Adding guild to SubscriptionManager Instance', guild_id);
         if(!this.channelGuildSet.has(guild_id)) {
@@ -172,30 +186,30 @@ export class SubscriptionManger {
         else this.logger.info('Guild already managed', {guild_id, set: this.channelGuildSet.size});
     }
 
-    private async passChannelToShard(channel: SubscribedChannel): Promise<boolean> {
+    private async passGuildToShard(guild_id: Snowflake): Promise<boolean> {
         try {
-            const targetShardId = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard!.count);
-            this.logger.info('This shard does not have the guild. Target shard:'+targetShardId, channel.guild_id);
-            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { id: number, guildId: Snowflake, channelId: Snowflake, targetShardId: number }) => {
+            const targetShardId = ShardClientUtil.shardIdForGuildId(guild_id, this.client.shard!.count);
+            this.logger.debug('This shard does not have the guild. Target shard:'+targetShardId, guild_id);
+            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guild_id: Snowflake, targetShardId: number }) => {
                 if (client.shard!.ids[0] === context.targetShardId) {
                     try {
-                        await client.subscriptions?.addGuildToShard(context.guildId);
+                        await client.subscriptions?.addGuildToShard(context.guild_id);
                         return true;
                     }
                     catch(err) {return false}
                 }
                 return false;
-            }, { context: { id: channel.id, guildId: channel.guild_id, channelId: channel.channel_id, targetShardId } });
-            this.logger.debug('Shard responses', { shards, guild: channel.guild_id });
+            }, { context: {  guild_id, targetShardId } });
+            this.logger.debug('Shard responses', { shards, guild: guild_id });
             if (!shards.includes(true)) {
-                this.logger.warn('Shard not found for channel', { guild: channel.guild_id, channelId: channel.channel_id });
+                this.logger.warn('Shard not found for guild', { guild: guild_id });
                 return false;
             }
             else {
                 // Remove this channel from our main instance if it made it over to a shard.
-                this.logger.debug('Shard found for channel. Removing from this instance.', channel.guild_id);
-                this.channels = this.channels.filter(c => c.guild_id !== channel.guild_id);
-                this.channelGuildSet.delete(channel.guild_id);
+                this.logger.debug('Shard found for channel. Removing from this instance.', guild_id);
+                this.channels = this.channels.filter(c => c.guild_id !== guild_id);
+                this.channelGuildSet.delete(guild_id);
                 this.logger.debug('Remaining guilds is this instance', this.channels.length);
                 return true;
             };
