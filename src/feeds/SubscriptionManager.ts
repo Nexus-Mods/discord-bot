@@ -16,7 +16,7 @@ export class SubscriptionManger {
     private cache: SubscriptionCache = new SubscriptionCache();
     private fakeUser: DiscordBotUser;
     private logger: Logger;
-    private batchSize: number = 10;
+    private batchSize: number = 15;
     public maxSubsPerGuild = 5;
 
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
@@ -113,6 +113,7 @@ export class SubscriptionManger {
         for (let i=0; i < this.channels.length; i += this.batchSize) {
             const batch = this.channels.slice(i, i + this.batchSize);
             this.logger.debug('Batched channels', batch.map(c => c.id));
+            if (this.client.shard && this.client.shard.ids[0] !== 0) this.logger.info('Batched channels', batch.map(c => c.id))
 
             // Process a batch in parallel
             await Promise.allSettled(
@@ -120,11 +121,6 @@ export class SubscriptionManger {
                     if (this.isPaused()) return;
                     try {
                         this.logger.debug('Processing channel', { channelId: channel.id, guildId: channel.guild_id });
-                        // if (this.client.shard && !this.client.guilds.cache.get(channel.guild_id) && this.client.shard.ids[0] === 0) {
-                        //     await this.passGuildToShard(channel.guild_id);
-                        //     return;
-                        // }
-                        // else this.logger.debug('Guild found for shard', { guild: channel.guild_id })
                         await this.getUpdatesForChannel(channel);
                     }
                     catch(err) {
@@ -165,16 +161,15 @@ export class SubscriptionManger {
         const currentGuilds = new Set(this.client.guilds.cache.map((guild) => guild.id));
         if (currentGuilds.size !== this.client.guilds.cache.size) return this.logger.warn('Mismatch guild sizes', { currentGuilds: currentGuilds, client: this.client.guilds.cache.size });
         this.channelGuildSet = new Set([ ...currentGuilds].filter(g => this.channels.find(c => c.guild_id === g) !== undefined));
-        this.logger.info('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
+        this.logger.debug('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
         const channelsToDistribute = this.channels.filter(c => !currentGuilds.has(c.guild_id));
         const guildsToDistribute = new Set(channelsToDistribute.map(c => c.guild_id));
-        this.logger.info('Channels to distribute to other shards', guildsToDistribute.size);
+        this.logger.debug('Channels to distribute to other shards', guildsToDistribute.size);
+        if (!guildsToDistribute.size) return;
         const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
         await Promise.allSettled(distribution);
-        this.logger.info('Channels before cleanup', {count: this.channels.length, currentGuilds, channels: this.channels.map(g => g.guild_id)});
-        const cleaned = this.channels.filter(c => currentGuilds.has(c.guild_id));
-        this.channels = cleaned;
-        this.logger.info('Channels after cleanup', {count: this.channels.length});
+        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id));;
+        this.logger.info('Channels after distribution', {count: this.channels.length});
     }
 
     public async addGuildToShard(guild_id: Snowflake) {
@@ -230,16 +225,18 @@ export class SubscriptionManger {
         const discordChannel: TextChannel | null = guild ? await guild.channels.fetch(channel.channel_id).catch(() => null) as TextChannel : null;
         if (guild === null || discordChannel === null) {
             this.logger.warn('Discord channel not found to post subscriptions', { guild: guild?.name, guildId: channel.guild_id, channelId: channel.channel_id, subChannelId: channel.id });
-            // await deleteSubscribedChannel(channel);
-            // throw new Error('Discord channel no longer exists')
-            return;
+            await deleteSubscribedChannel(channel);
+            this.channels = this.channels.filter(c => c.id !== channel.id);
+            throw new Error('Discord channel no longer exists');
         }
         // Grab the WH Client
         const webHookClient = channel.webHookClient;
         // Grab the subscribed items
         const items = await channel.getSubscribedItems();
-        if (!items.length) return;
-        // logMessage(`Processing ${items.length} subscribed items for ${discordChannel.name} in ${guild.name}`)
+        if (!items.length) {
+            await deleteSubscribedChannel(channel);
+            return;
+        }
         // Get the postable info for each subscribed item
         const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
         for (const item of items) {
@@ -258,7 +255,8 @@ export class SubscriptionManger {
                     break;
                     default: throw new Error('Unregcognised SubscribedItemType');
                 }
-                // logMessage(`Returning ${updates.length} updates for ${item.title} (${item.type})`);
+                
+                this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type})`);
             }
             catch(err) {
                 this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
@@ -270,11 +268,9 @@ export class SubscriptionManger {
             postableUpdates.push(...updates);
         }
 
-        // TODO! Update the last_update for the channel
-
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
-            // logMessage(`No updates for ${discordChannel.name} in ${guild.name}`);
+            this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
             await updateSubscribedChannel(channel, new Date());
             return;
         }
