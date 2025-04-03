@@ -162,7 +162,8 @@ export class SubscriptionManger {
     }
 
     private async distributeGuildsToShards() {
-        const currentGuilds = new Set(...this.client.guilds.cache.map((guild) => guild.id));
+        const currentGuilds = new Set(this.client.guilds.cache.map((guild) => guild.id));
+        if (currentGuilds.size !== this.client.guilds.cache.size) return this.logger.warn('Mismatch guild sizes', { currentGuilds: currentGuilds, client: this.client.guilds.cache.size });
         this.channelGuildSet = new Set([ ...currentGuilds].filter(g => this.channels.find(c => c.guild_id === g) !== undefined));
         this.logger.info('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
         const channelsToDistribute = this.channels.filter(c => !currentGuilds.has(c.guild_id));
@@ -170,8 +171,7 @@ export class SubscriptionManger {
         this.logger.info('Channels to distribute to other shards', guildsToDistribute.size);
         const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
         await Promise.allSettled(distribution);
-        if (guildsToDistribute.size) this.logger.info('Distributed guilds. Remaining channels', { channels: this.channels.length });
-        this.logger.info('Channels before cleanup', {count: this.channels.length});
+        this.logger.info('Channels before cleanup', {count: this.channels.length, currentGuilds, channels: this.channels.map(g => g.guild_id)});
         const cleaned = this.channels.filter(c => currentGuilds.has(c.guild_id));
         this.channels = cleaned;
         this.logger.info('Channels after cleanup', {count: this.channels.length});
@@ -186,7 +186,7 @@ export class SubscriptionManger {
             this.channelGuildSet.add(guild_id);
             this.logger.debug(`This instance now includes ${this.channels.length} channels`);
         }
-        else this.logger.info('Guild already managed', {guild_id, set: this.channelGuildSet.size});
+        else this.logger.debug('Guild already managed', {guild_id, set: this.channelGuildSet.size});
     }
 
     private async passGuildToShard(guild_id: Snowflake): Promise<boolean> {
