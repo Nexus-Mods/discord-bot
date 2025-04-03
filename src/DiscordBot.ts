@@ -110,13 +110,12 @@ export class DiscordBot {
 
     private async setInteractions(forceUpdate?: boolean): Promise<void> {
         if (!this.client.updateInteractions) this.client.updateInteractions = this.setInteractions;
-        if (this.client.shard && this.client.shard.ids[0] !== 0 && !forceUpdate) return logger.debug('Only register interactions on shard 0 during startup');
         logger.info('Setting interaction commands');
         if (!this.client.interactions) this.client.interactions = new Collection();
         if (!this.client.application?.owner) await this.client.application?.fetch();
         
         const interactionFiles: string[] = fs.readdirSync(path.join(__dirname, 'interactions'))
-            .filter(i => i.toLowerCase().endsWith('.js'));6
+            .filter(i => i.toLowerCase().endsWith('.js'));
 
         let globalCommandsToSet : RESTPostAPIApplicationCommandsJSONBody[] = []; //Collect all global commands
         const commandsReg = await this.client.application?.commands.fetch(); // Collection of global commands that are already registered.
@@ -150,6 +149,8 @@ export class DiscordBot {
                 }
             }
         }
+
+        if (this.client.shard && this.client.shard.ids[0] !== 0 && !forceUpdate) return logger.debug('Only register with Discord on shard 0 during startup');
 
         // Now we have the commands organised, time to set them up. 
         logger.info('Setting up interactions', { count: allInteractions.length });
