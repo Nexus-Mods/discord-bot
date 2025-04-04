@@ -1,5 +1,5 @@
 
-import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient } from 'discord.js';
+import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient, ShardClientUtil, Client } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
 import { Logger, nexusModsTrackingUrl } from '../api/util';
 import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
@@ -44,6 +44,8 @@ export class SubscribedChannel implements ISubscribedChannel {
 
         this.webHookClient = new WebhookClient({ id: this.webhook_id, token: this.webhook_token});
     }
+
+    public shardId = (client: Client): number => ShardClientUtil.shardIdForGuildId(this.guild_id, client.shard?.count ?? 1);
 
     public static async create(c: ISubscribedChannel, logger: Logger, items: SubscribedItem[] = []): Promise<SubscribedChannel> {
         try {

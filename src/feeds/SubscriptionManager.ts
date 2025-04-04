@@ -1,5 +1,5 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError, Client } from 'discord.js';
+import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError } from 'discord.js';
 import { isTesting, Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
@@ -29,6 +29,7 @@ export class SubscriptionManger {
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
             // Return here if we're not on the main shard. 
+            logger.info('Subscription Manager initialised', { channels: this.channels.length, pollTime: this.pollTime});
             return this;
         }       
         this.pollTime = pollTime;
@@ -42,6 +43,7 @@ export class SubscriptionManger {
         }, pollTime)
         // Trigger an update 1 minute after booting up. This lets the other shards spin up.
         setTimeout(() => this.updateSubscriptions(), 90000);
+        logger.info('Subscription Manager initialised', { channels: this.channels.length, pollTime: this.pollTime});
     }
 
     static async getInstance(client: ClientExt, logger: Logger, pollTime: number = (1000*60*10)): Promise<SubscriptionManger> {
@@ -51,19 +53,23 @@ export class SubscriptionManger {
             const guilds = client.guilds.cache;
             if (client.shard) logger.info('Subscription Manager has guilds', { count: guilds.size });
         }
-        logger.info('Subscription Manager initialised', { channels: SubscriptionManger.instance.channels.length, pollTime});
         return SubscriptionManger.instance;
     }
 
     private static async initialiseInstance(client: ClientExt, pollTime: number, logger: Logger): Promise<void> {
         // Set up any missing tables
         try {
-            let channels: SubscribedChannel[] = []
             if (!client.shard || client.shard?.ids[0] === 0) {
                 // Only hit the database if we're either not running sharded or we're on shard 0;
                 await ensureSubscriptionsDB();
-                channels = await getSubscribedChannels();
+                
             }
+            let channels: SubscribedChannel[] = await getSubscribedChannels();
+            if (client.shard) {
+                // If we're sharded, we'll filter out the channels we can't manage.
+                const shardId = client.shard.ids[0];
+                channels = channels.filter(c => c.shardId(client) === shardId);
+            }            
             SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels, logger);
         }
         catch(err) {
@@ -93,9 +99,15 @@ export class SubscriptionManger {
     }
 
     private async updateChannels() {
-        if (this.client.shard && this.client.shard.ids[0] !== 0) return;
-        this.channels = await getSubscribedChannels();
-        return;
+        const allChannels = await getSubscribedChannels();
+        if (this.client.shard) {
+            // Only add channels for my current shard!
+            const shardId = this.client.shard.ids[0];
+            const shardChannels = allChannels.filter(c => c.shardId(this.client) === shardId);
+            this.logger.debug('Shard channels', { shardId, channels: shardChannels.length });
+            return;
+        }
+        else this.channels = allChannels;
     }
 
     private async updateSubscriptions(reloadChannels: boolean = false) {
@@ -103,7 +115,7 @@ export class SubscriptionManger {
         if (!reloadChannels) await this.updateChannels();
         // Prepare the cache
         await this.prepareCache();
-        if (this.client.shard && this.client.shard.ids[0] === 0) await this.distributeGuildsToShards();
+        // if (this.client.shard && this.client.shard.ids[0] === 0) await this.distributeGuildsToShards();
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels in batches of ${this.batchSize}`);
         this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
@@ -143,7 +155,7 @@ export class SubscriptionManger {
         if (this.client.shard && this.client.shard.ids[0] === 0) {
             try {
                 await this.client.shard.broadcastEval((client: ClientExt, context) => {
-                    if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions(false);
+                    if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions(true);
                 }, { context: { mainId: this.client.shard.ids[0] } })
             }
             catch(err) {
@@ -153,21 +165,6 @@ export class SubscriptionManger {
                 else this.logger.error('Error sending update to other shards!', err);
             }
         }
-    }
-
-    private async distributeGuildsToShards() {
-        const currentGuilds = new Set(this.client.guilds.cache.map((guild) => guild.id));
-        if (currentGuilds.size !== this.client.guilds.cache.size) return this.logger.warn('Mismatch guild sizes', { currentGuilds: currentGuilds, client: this.client.guilds.cache.size });
-        this.channelGuildSet = new Set([ ...currentGuilds].filter(g => this.channels.find(c => c.guild_id === g) !== undefined));
-        this.logger.debug('Distributing guilds to shards', {channels: this.channels.length, guilds: currentGuilds.size});
-        const channelsToDistribute = this.channels.filter(c => !currentGuilds.has(c.guild_id));
-        const guildsToDistribute = new Set(channelsToDistribute.map(c => c.guild_id));
-        this.logger.debug('Channels to distribute to other shards', guildsToDistribute.size);
-        if (!guildsToDistribute.size) return;
-        const distribution = [ ...guildsToDistribute].map(async (id) => await this.passGuildToShard(id));
-        await Promise.allSettled(distribution);
-        this.channels = this.channels.filter(c => currentGuilds.has(c.guild_id));;
-        this.logger.info('Channels after distribution', {count: this.channels.length});
     }
 
     public async addGuildToShard(guild_id: Snowflake) {
@@ -180,41 +177,6 @@ export class SubscriptionManger {
             this.logger.debug(`This instance now includes ${this.channels.length} channels`);
         }
         else this.logger.debug('Guild already managed', {guild_id, set: this.channelGuildSet.size});
-    }
-
-    private async passGuildToShard(guild_id: Snowflake): Promise<boolean> {
-        try {
-            const targetShardId = ShardClientUtil.shardIdForGuildId(guild_id, this.client.shard!.count);
-            this.logger.debug('This shard does not have the guild. Target shard:'+targetShardId, guild_id);
-            const shards = await this.client.shard!.broadcastEval(async (client: ClientExt, context: { guild_id: Snowflake, targetShardId: number }) => {
-                if (client.shard!.ids[0] === context.targetShardId) {
-                    try {
-                        await client.subscriptions?.addGuildToShard(context.guild_id);
-                        return true;
-                    }
-                    catch(err) {return false}
-                }
-                return false;
-            }, { context: {  guild_id, targetShardId } });
-            this.logger.debug('Shard responses', { shards, guild: guild_id });
-            if (!shards.includes(true)) {
-                this.logger.warn('Shard not found for guild', { guild: guild_id });
-                return false;
-            }
-            else {
-                // Remove this channel from our main instance if it made it over to a shard.
-                this.logger.debug('Shard found for guild. Removing from this instance.', guild_id);
-                // this.channels = this.channels.filter(c => c.guild_id !== guild_id);
-                // this.channelGuildSet.delete(guild_id);
-                return true;
-            };
-        }
-        catch(err) {
-            if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
-                this.logger.warn('Shards are not ready to process updates');
-            }
-            return false;
-        }
     }
 
     public async forceChannnelUpdate(channel: SubscribedChannel, date: Date) {
@@ -284,6 +246,7 @@ export class SubscriptionManger {
         const items = await channel.getSubscribedItems(skipCache);
         if (!items.length) {
             await deleteSubscribedChannel(channel);
+            this.channels.splice(this.channels.findIndex(c => c.id === channel.id), 1);
             return;
         }
         // Get the postable info for each subscribed item
@@ -320,7 +283,7 @@ export class SubscriptionManger {
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
             this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
-            await updateSubscribedChannel(channel, new Date());
+            channel = await updateSubscribedChannel(channel, new Date());
             return;
         }
 
@@ -371,7 +334,7 @@ export class SubscriptionManger {
         // Update the last updated time for the channel.
         const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
         try {
-            await updateSubscribedChannel(channel, lastUpdate);
+            channel = await updateSubscribedChannel(channel, lastUpdate);
         }
         catch(err) {
             this.logger.warn('Failed to update channel date', err);
@@ -714,7 +677,13 @@ export class SubscriptionManger {
     } 
 
     private async prepareCache() {
-        const subs = await getAllSubscriptions();
+        let subs = await getAllSubscriptions();
+        if (this.client.shard) {
+            // We're only managing some of the subs, so we don't need to cache everything;
+            const shardChannelIds = this.channels.map(c => (typeof(c.id) === 'number') ? c.id: parseInt(c.id));
+            subs = subs.filter(s => shardChannelIds.includes(s.parent));
+        }
+        this.logger.debug('Preparing cache for subscriptions', { subs: subs.length, channels: this.channels.length });
 
         const promises: Promise<void>[] = [];
 

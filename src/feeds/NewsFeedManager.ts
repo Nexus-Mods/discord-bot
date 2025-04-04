@@ -42,7 +42,7 @@ export class NewsFeedManager {
         if (client.shard) {
             const guild = client.guilds.cache.get(process.env['NEWS_WEBHOOK_GUILD']!);
             if (!guild) {
-                this.logger.warn('News webhook guild not found shard cache. Will not send news from here.');
+                this.logger.debug('News webhook guild not found shard cache. Will not send news from here.');
                 return;
             }
         }

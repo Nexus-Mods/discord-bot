@@ -8,8 +8,9 @@ import { NexusUser } from '../types/users';
 import path from 'path';
 import { DiscordBotUser } from '../api/DiscordBotUser';
 import { ClientExt } from '../types/DiscordTypes';
-import { getSubscriptionsByChannel } from '../api/subscriptions';
+import { getSubscribedChannelsForGuild } from '../api/subscriptions';
 import { fileURLToPath } from 'url';
+import { SubscribedItem } from '../types/subscriptions';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -328,14 +329,17 @@ export class AuthSite {
 
     async tracking(req: express.Request, res: express.Response) {
         const guild = req.query['guild'] as string;
-        const channel = req.query['channel'] as string;
-        if (!guild || !channel) return res.redirect('/')
+        if (!guild) return res.redirect('/')
         const knownGuild = await this.client.guilds.fetch(guild);
         if (!knownGuild) return res.redirect('/');
         const guildImage = knownGuild.iconURL();
-        const knownChannel = await knownGuild.channels.fetch(channel);
-        if (!knownChannel) return res.redirect('/');
-        const subs = (await getSubscriptionsByChannel(guild, channel)).sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
+        const subbedChannels = await getSubscribedChannelsForGuild(guild);
+        const channels = await Promise.all(subbedChannels.map(async c => await knownGuild.channels.fetch(c.channel_id)));
+        const subs: (SubscribedItem & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
+            const channelName = channels.find(ch => ch?.id === c.channel_id)?.name || 'Unknown Channel';
+            return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem & { channelName?: string }));
+        }))).flat().sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
+        
 
         const timeAgo = (timestamp: string) => {
             const now = new Date();
@@ -351,7 +355,7 @@ export class AuthSite {
             return `${days} days ago`;
         }
 
-        res.render('tracking', { pageTitle: 'Tracking Summary', guild: knownGuild.name, channel: knownChannel.name, guildImage, subs, timeAgo });
+        res.render('tracking', { pageTitle: 'Tracking Summary', guild: knownGuild.name, guildImage, subs, timeAgo });
     }
 
 

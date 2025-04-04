@@ -1,14 +1,15 @@
 {
   "name": "nexus-bot-typescript",
   "type": "module",
-  "version": "3.12.4",
+  "version": "3.12.5",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
     "build": "npm run clean && npx tsc --build tsconfig.json && node add-js-extensions.cjs && npm run copy-assets",
     "copy-assets": "copyfiles -f -a ./src/server/views/* dist/server/views && copyfiles -f -a ./src/server/public/css/* dist/server/public/css && copyfiles -f -a ./src/server/public/images/* dist/server/public/images",
-    "startShared": "node dist/shards.js",
-    "dev": "npm run build && npm run startSingle",
+    "startSharded": "node dist/shards.js",
+    "dev": "npm run build && npm run start",
+    "devShard": "npm run build && npm run startSharded",
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "node clean.cjs",
     "start": "node dist/app.js"

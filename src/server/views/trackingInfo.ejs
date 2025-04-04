@@ -5,7 +5,7 @@
             <img src="<%=guildImage%>" style="border-radius: 16px; width: 64px; height: 64px;"/>
         </div>
         <div style="margin: 8px; padding-right:4px;">
-            Summary for <strong>#<%=channel%></strong> in <strong><%=guild%></strong>
+            Summary for <strong><%=guild%></strong>
         </div>
     </div>
     <table style="width: 100%;">
@@ -13,6 +13,7 @@
             <tr>
                 <th>ID</th>
                 <th>Type</th>
+                <th>Channel</th>
                 <th>Name</th>
                 <th>Entity ID</th>
                 <th>Last Update</th>
@@ -28,6 +29,7 @@
                     <tr>
                         <td><%= sub.id %></td>
                         <td><%= sub.type.toUpperCase() %></td>
+                        <td>#<%= sub.channelName %></td>
                         <td><%= sub.title %></td>
                         <td><code><%= sub.entityid %></code></td>
                         <td title="<%= sub.last_update %>"><%= timeAgo(sub.last_update) %></td>

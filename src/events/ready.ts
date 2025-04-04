@@ -1,4 +1,4 @@
-import { EmbedBuilder, Guild, TextChannel, GuildBasedChannel } from 'discord.js';
+import { EmbedBuilder, Guild, TextChannel, GuildBasedChannel, ShardClientUtil } from 'discord.js';
 import { getAllServers, deleteServer } from '../api/bot-db';
 import { BotServer } from '../types/servers';
 import { Logger } from '../api/util';
@@ -39,6 +39,7 @@ const main: DiscordEventInterface = {
             // Get all known servers
             const servers: BotServer[] = await getAllServers().catch(() => []);
             for (const server of servers) {
+                if (client.shard && ShardClientUtil.shardIdForGuildId(server.id, client.shard.count) !== client.shard.ids[0]) continue;
                 // Check the server still exists (i.e. we are a member)
                 const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
                 if (!guild) {
@@ -66,7 +67,7 @@ const main: DiscordEventInterface = {
 
         }
 
-        logger.info(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
+        logger.info(`v${process.env.npm_package_version ?? '0.0.0'} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
         client.emit('readyForAction');
 
     }
