@@ -181,6 +181,7 @@ export class SubscriptionManger {
 
     public async forceChannnelUpdate(channel: SubscribedChannel, date: Date) {
         try {
+            await setDateForAllSubsInChannel(date, channel.guild_id, channel.channel_id);
             if (!this.client.shard) return this.getUpdatesForChannel(channel, true);
             else {
                 const shardForGuild = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard.count);
@@ -268,7 +269,7 @@ export class SubscriptionManger {
                     default: throw new Error('Unregcognised SubscribedItemType');
                 }
                 
-                this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type})`);
+                this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type}) since ${item.last_update.toISOString()}`);
             }
             catch(err) {
                 this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
