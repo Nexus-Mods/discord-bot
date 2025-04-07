@@ -73,8 +73,9 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         if (!selected || !selected.length) return i.followUp('No subscriptions were deleted.');
         const promises = selected.map(async id => {
             const sub = items.find(i => i.id === parseInt(id));
-            if (!sub) return;
+            if (!sub) return logger.warn('Subscription not found to delete', { id });
             await deleteSubscription(sub.id);
+            logger.info('Deleted subscription', { id, title: sub?.title });
             return interaction.followUp(`-# Deleted ${sub.type} subsription for ${sub.title}.`);
         });
         await Promise.all(promises);
