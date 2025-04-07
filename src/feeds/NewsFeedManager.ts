@@ -1,7 +1,7 @@
 import { News, SavedNewsData } from '../types/feeds';
 import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
-import { EmbedBuilder, TextChannel, WebhookClient } from 'discord.js';
+import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'discord.js';
 import { Logger, nexusModsTrackingUrl } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IGameStatic } from '../api/queries/other';
@@ -14,17 +14,24 @@ export class NewsFeedManager {
     private LatestNews: SavedNewsData | undefined = undefined;
     private client: ClientExt;
     private updateTimer: NodeJS.Timeout | undefined;
-    private logger: Logger
+    private logger: Logger;
+
+    private webhook_id: string | undefined = process.env['NEWS_WEBHOOK_ID'];
+    private webhook_token: string | undefined = process.env['NEWS_WEBHOOK_TOKEN'];
+    private webhook_guild: string | undefined = process.env['NEWS_WEBHOOK_GUILD'];
+    private webhook_channel: string | undefined = process.env['NEWS_WEBHOOK_CHANNEL'];
 
     static async getInstance(client: ClientExt, logger: Logger): Promise<NewsFeedManager> {
         if (!NewsFeedManager.instance) {
-            await ensureNewsDB(logger);
             let saved = undefined;
-            try {
-                saved = await getSavedNews(logger);
-            }
-            catch(err) {
-                logger.error('Error fetching news', (err as Error).message);
+            if (!client.shard || NewsFeedManager.isInstanceForShard(client)) {
+                try {
+                    await ensureNewsDB(logger);
+                    saved = await getSavedNews(logger);
+                }
+                catch(err) {
+                    logger.error('Error fetching news', (err as Error).message);
+                }
             }
             NewsFeedManager.instance = new NewsFeedManager(client, pollTime, logger, saved);
             // Only trigger the news check if we have set up polling.
@@ -34,15 +41,18 @@ export class NewsFeedManager {
         return NewsFeedManager.instance;
     }
 
+    private static isInstanceForShard = (client: ClientExt): boolean => 
+        ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, client.shard!.count) !== client.shard!.ids[0];
+
     private constructor(client: ClientExt, pollTime: number, logger: Logger, savedNews?: SavedNewsData) {
         // Save the client for later
         this.client = client;
         this.logger = logger;
         this.LatestNews = savedNews;
+
         if (client.shard) {
-            const guild = client.guilds.cache.get(process.env['NEWS_WEBHOOK_GUILD']!);
-            if (!guild) {
-                this.logger.debug('News webhook guild not found shard cache. Will not send news from here.');
+            if (NewsFeedManager.isInstanceForShard(client)) {
+                this.logger.debug('News webhook guild not found in this shard. Will not send news from here.');
                 return;
             }
         }
@@ -62,13 +72,14 @@ export class NewsFeedManager {
 
     private async postLatestNews(domain?: string): Promise<EmbedBuilder> {
         if (this.client.shard) {
-            if (!this.client.guilds.cache.has(process.env['NEWS_WEBHOOK_GUILD']!)) {
+            if (!NewsFeedManager.isInstanceForShard(this.client)) {
                 this.logger.warn('News webhook guild not found shard cache. Attempting to pass request to the correct shard.');
-                const otherShards = await this.client.shard.broadcastEval(async (client: ClientExt, { guildId }) => {
-                    if (client.guilds.cache.has(guildId)) {
+                const correctShard = ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, this.client.shard!.count);
+                const otherShards = await this.client.shard.broadcastEval(async (client: ClientExt, context: { shardId: number, domain: string | undefined }) => {
+                    if (client.shard!.ids[0] === context.shardId) {
                         return client.newsFeed!.postLatestNews(domain);
                     }
-                }, { context: { guildId: process.env['NEWS_WEBHOOK_GUILD']! } });
+                }, { context: { shardId: correctShard, domain } });
                 const results = otherShards.filter((r: any) => r !== undefined);
                 if (results.length) {
                     if (results.length > 1) this.logger.warn('Multiple shards returned results for news updates. This is unexpected.');
@@ -92,20 +103,16 @@ export class NewsFeedManager {
                 return newsPostEmbed(news[0], game?.domain_name);
             }
             // We need to post a new article! Let's set up a webhook.
-            const webhook_id: string | undefined = process.env['NEWS_WEBHOOK_ID'];
-            const webhook_token: string | undefined = process.env['NEWS_WEBHOOK_TOKEN'];
-            const webhook_guild: string | undefined = process.env['NEWS_WEBHOOK_GUILD'];
-            const webhook_channel: string | undefined = process.env['NEWS_WEBHOOK_CHANNEL'];
-            if (!webhook_id || !webhook_token || !webhook_guild || !webhook_channel) throw new Error('News Webhook ID or Token missing from the ENV file');
+            if (!this.webhook_id || !this.webhook_token || !this.webhook_guild || !this.webhook_channel) throw new Error('News Webhook ID or Token missing from the ENV file');
 
-            const webhookClient = new WebhookClient({ id: webhook_id, token: webhook_token });
+            const webhookClient = new WebhookClient({ id: this.webhook_id, token: this.webhook_token });
 
             const newsEmbed = newsPostEmbed(news[0], game?.domain_name);
 
             const whMessage = await webhookClient.send({ content: '-# <@&1116364961757790238> (You can toggle this role in <id:customize>)', embeds: [newsEmbed] });
 
-            const guild = await this.client.guilds.fetch(webhook_guild);
-            const channel = await guild.channels.fetch(webhook_channel);
+            const guild = await this.client.guilds.fetch(this.webhook_guild);
+            const channel = await guild.channels.fetch(this.webhook_channel);
             const message = await (channel as TextChannel).messages.fetch(whMessage.id);
 
             if (message.crosspostable) {
