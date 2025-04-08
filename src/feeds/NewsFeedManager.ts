@@ -34,8 +34,6 @@ export class NewsFeedManager {
                 }
             }
             NewsFeedManager.instance = new NewsFeedManager(client, pollTime, logger, saved);
-            // Only trigger the news check if we have set up polling.
-            if (NewsFeedManager.instance.updateTimer) await NewsFeedManager.instance.postLatestNews();
         }
         
         return NewsFeedManager.instance;
@@ -77,7 +75,7 @@ export class NewsFeedManager {
                 const correctShard = ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, this.client.shard!.count);
                 const otherShards = await this.client.shard.broadcastEval(async (client: ClientExt, context: { shardId: number, domain: string | undefined }) => {
                     if (client.shard!.ids[0] === context.shardId) {
-                        return client.newsFeed!.postLatestNews(domain);
+                        return client.newsFeed?.postLatestNews(domain);
                     }
                 }, { context: { shardId: correctShard, domain } });
                 const results = otherShards.filter((r: any) => r !== undefined);

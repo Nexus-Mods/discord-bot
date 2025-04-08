@@ -4,7 +4,12 @@ import { isTesting, Logger } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
 import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
-import { deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, getSubscribedChannelsForGuild, saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, updateSubscription } from '../api/subscriptions';
+import { 
+    deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, 
+    getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, 
+    saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
+    updateSubscription 
+} from '../api/subscriptions';
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -35,7 +40,7 @@ export class SubscriptionManger {
         this.pollTime = pollTime;
         this.updateTimer = setInterval(async () => {
             try {
-                await this.updateSubscriptions();
+                await this.updateSubscriptions(true);
             }
             catch(err){
                 this.logger.error('Failed to run subscription event', err);
@@ -167,17 +172,6 @@ export class SubscriptionManger {
         }
     }
 
-    public async addGuildToShard(guild_id: Snowflake) {
-        this.logger.debug('Adding guild to SubscriptionManager Instance', guild_id);
-        if(!this.channelGuildSet.has(guild_id)) {
-            const channels = await getSubscribedChannelsForGuild(guild_id).catch(() => []);
-            if (!channels.length) return this.logger.error('Could not find channels', { guild_id })
-            this.channels.push(...channels);
-            this.channelGuildSet.add(guild_id);
-            this.logger.debug(`This instance now includes ${this.channels.length} channels`);
-        }
-        else this.logger.debug('Guild already managed', {guild_id, set: this.channelGuildSet.size});
-    }
 
     public async forceChannnelUpdate(channel: SubscribedChannel, date: Date) {
         try {
@@ -216,9 +210,9 @@ export class SubscriptionManger {
     }
 
     public async handleForceUpdate(message: { type: string, date: string, id: number, guild_id: Snowflake, channel_id: Snowflake, shardId: number }) {
+        this.logger.info('Recieved message', message);
         if (message.shardId !== this.client.shard!.ids[0]) return;
         if (message.type !== 'forceChannelUpdate') return;
-        this.logger.info('Recieved message')
         try {
             await setDateForAllSubsInChannel(new Date(message.date), message.guild_id, message.channel_id);
             const channel = this.channels.find(c => c.channel_id === c.channel_id) || await getSubscribedChannel(message.guild_id, message.channel_id);
@@ -285,6 +279,7 @@ export class SubscriptionManger {
         if (!postableUpdates.length) {
             this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
             channel = await updateSubscribedChannel(channel, new Date());
+            channel.last_update = new Date();
             return;
         }
 
@@ -326,6 +321,8 @@ export class SubscriptionManger {
                     .catch(() => null);
                     // Delete the channel and all associated tracked items.
                     await deleteSubscribedChannel(channel);
+                    this.channels = this.channels.filter(c => c.id !== channel.id);
+                    this.channelGuildSet.delete(channel.guild_id);
                     throw Error('Webhook no longer exists');
                 }
                 this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
@@ -336,6 +333,7 @@ export class SubscriptionManger {
         const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
         try {
             channel = await updateSubscribedChannel(channel, lastUpdate);
+            channel.last_update = lastUpdate;
         }
         catch(err) {
             this.logger.warn('Failed to update channel date', err);
@@ -431,6 +429,7 @@ export class SubscriptionManger {
         // Exit if there's nothing to post
         if (!results.length) {
             await saveLastUpdatedForSub(item.id, new Date());
+            item.last_update = new Date();
             return results
         };
         // Order the array so the newest is first and the oldest is last
@@ -438,6 +437,7 @@ export class SubscriptionManger {
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
         await saveLastUpdatedForSub(item.id, lastDate);
+        item.last_update = lastDate;
         // Return the results
         return results;
     }
@@ -586,6 +586,7 @@ export class SubscriptionManger {
                 crosspost: item.crosspost ?? false,
             })
             await updateSubscription(item.id, item.parent, {...item, title: user.name});
+            item.title = user.name;
         }
         // See if they have any new content since the last check
         const newMods = await this.fakeUser.NexusMods.API.v2.Mods(
