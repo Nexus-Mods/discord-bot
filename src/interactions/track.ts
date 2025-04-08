@@ -1,6 +1,7 @@
 import { 
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, MessageFlags, InteractionContextType
+    TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, MessageFlags, InteractionContextType,
+    TextBasedChannel
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
 import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, Logger } from "../api/util";
@@ -398,8 +399,9 @@ async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInp
             })
         }
         catch(err) {
-            logger.warn('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err});
-            throw new Error(`Failed to create Webhook for tracking feed. Please make sure the bot has the correct permissions.\n Error: ${(err as Error).message || err}`);
+            const perms = (interaction.guild?.members.me)?.permissionsIn(interaction.channel!.id)
+            logger.warn('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err, perms });
+            throw new Error(`Failed to create Webhook for tracking feed. Please make sure the bot has the correct permissions.\n Error: ${(err as Error).message || err}, Perms ${perms?.toArray()}`);
         }
     }
 
