@@ -40,7 +40,7 @@ export class NewsFeedManager {
     }
 
     private static isInstanceForShard = (client: ClientExt): boolean => 
-        ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, client.shard!.count) !== client.shard!.ids[0];
+        ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, client.shard!.count) === client.shard!.ids[0];
 
     private constructor(client: ClientExt, pollTime: number, logger: Logger, savedNews?: SavedNewsData) {
         // Save the client for later
