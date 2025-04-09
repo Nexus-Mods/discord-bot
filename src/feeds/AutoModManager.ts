@@ -10,20 +10,12 @@ import { tall } from 'tall';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 import axios, { AxiosResponse } from "axios";
 
-const pollTime: number = (1000*60*1); //1 mins
-
 interface IModWithFlags {
     mod: Partial<IMod>
     flags: {
         low: (AutoModFlags | string)[];
         high: (AutoModFlags | string)[];
     }
-}
-
-export interface IUsersUploadingFirstMod {
-    since: number;
-    users: Set<number>;
-    lastPostedAt: number;
 }
 
 enum AutoModFlags {
@@ -42,7 +34,6 @@ export class AutoModManager {
     private logger: Logger;
     private updateTimer?: NodeJS.Timeout;
     private pollTime: number;
-    // private usersUploadingFirstMod: IUsersUploadingFirstMod;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
     public recentUids: Set<string> = new Set<string>(); // A list of recently checked Uids

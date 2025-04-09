@@ -63,7 +63,7 @@ export interface ICollectionRevision {
     status: 'draft' | 'published' | 'retracted';
 }
 
-export interface ICollectionChangelog {
+interface ICollectionChangelog {
     description: string;
 }
 

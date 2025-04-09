@@ -6,13 +6,12 @@ interface IResult {
     game: IGame;
 }
 
-export interface IGame {
+interface IGame {
     id: number;
     name: string;
     approvedAt: Date | null;
     domainName: string;
     collectionCount: number | null;
-
 }
 
 const query = gql`

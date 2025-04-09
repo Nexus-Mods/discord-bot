@@ -221,4 +221,4 @@ interface CollectionPage {
     nextURL?: string; //URL to browser the results on the website.
 }
 
-export { Mod, Game, User, Tag, FeedMod, Collection, CollectionPage, ICollectionsFilter, CollectionsSort };
+export { ICollectionsFilter, CollectionsSort };

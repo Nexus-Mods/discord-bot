@@ -7,12 +7,11 @@ import {
     ButtonInteraction,
     MessageFlags
 } from "discord.js";
-import { getUserByDiscordId, updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';
+import { updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';
 import { BotServer } from "../types/servers";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { KnownDiscordServers, Logger } from "../api/util";
 import { IGameInfo } from "@nexusmods/nexus-api";
-import { DiscordBotUser } from "../api/DiscordBotUser";
 import { IGameStatic } from "../api/queries/other";
 import { autocompleteGameName } from "../api/util";
 import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions";
@@ -140,7 +139,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     try {
         const server: BotServer = await getServer(guild)
         .catch((err) => { throw new Error('Could not retrieve server details'+err.message) }); 
-        const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
+        // const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
         const gameList: IGameStatic[] = await client.gamesList?.getGames() ?? [];
 
         // Viewing the current settings

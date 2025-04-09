@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
 import { Logger } from './util';
 

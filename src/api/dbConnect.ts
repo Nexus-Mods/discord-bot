@@ -46,7 +46,7 @@ export async function queryPromise<T extends QueryResultRow>(query: string, valu
     }
 }
 
-export function handleDatabaseError(error: Error | any): string {
+function handleDatabaseError(error: Error | any): string {
     if (error instanceof DatabaseError) {
         logger.debug('Database error', { error });
         switch (error.code) {

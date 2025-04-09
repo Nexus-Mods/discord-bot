@@ -93,7 +93,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     let newData: Partial<NexusUser> = {};
     newData.lastupdate = new Date();
     // Master check if we need to update roles
-    let updateRoles: boolean = false; 
+    // let updateRoles: boolean = false; 
 
     // Update membership status.
     try {
@@ -102,7 +102,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         if (newfields.length > 0) {
             const updatedFields: string[] = getFieldNames(newfields);
             card.addFields({ name: 'User Info', value: `Updated:\n ${updatedFields.join('\n')}`});
-            updateRoles = true;
+            // updateRoles = true;
             try {
                 const oldmeta = await userData.Discord.GetRemoteMetaData();
                 if (!oldmeta) throw new Error('No Discord tokens');

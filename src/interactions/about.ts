@@ -25,24 +25,24 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-const minPermissions: { name: string, code: string }[] = [
-    {
-        name: 'Read Messages/View Channels',
-        code: 'VIEW_CHANNEL',
-    },
-    {
-        name: 'Send Messages',
-        code: 'SEND_MESSAGES'
-    },
-    {
-        name: 'Manage Webhooks (Optional)',
-        code: 'MANAGE_WEBHOOKS'
-    },
-    {
-        name: 'Manage Roles (Optional)',
-        code: 'MANAGE_ROLES'
-    }
-];
+// const minPermissions: { name: string, code: string }[] = [
+//     {
+//         name: 'Read Messages/View Channels',
+//         code: 'VIEW_CHANNEL',
+//     },
+//     {
+//         name: 'Send Messages',
+//         code: 'SEND_MESSAGES'
+//     },
+//     {
+//         name: 'Manage Webhooks (Optional)',
+//         code: 'MANAGE_WEBHOOKS'
+//     },
+//     {
+//         name: 'Manage Roles (Optional)',
+//         code: 'MANAGE_ROLES'
+//     }
+// ];
 
 async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
@@ -57,9 +57,9 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const allFeeds = await getAllSubscriptions();
 
 
-    const botPermsissons: string[] = interaction.guild?.members.me?.permissions.toArray() || [];
+    // const botPermissons: string[] = interaction.guild?.members.me?.permissions.toArray() || [];
 
-    const permissionsList: string = buildPermsList(botPermsissons, minPermissions);
+    // const permissionsList: string = buildPermsList(botPermsissons, minPermissions);
 
     const info = new EmbedBuilder()
     .setTitle(`Nexus Mods Discord Bot v${process.env.npm_package_version}`)
@@ -100,17 +100,17 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     return interaction.editReply({ embeds: [info], components: [buttons] }).catch(err => { throw err });
 }
 
-function buildPermsList(current: string[], required: { name: string, code: string }[]): string {
-    const list = required.reduce((prev, cur) => {
-        if (current.includes(cur.code) || current.includes('ADMINISTRATOR')) {
-            prev = prev + `✅ ${cur.name}\n`;
-        }
-        else prev = prev + `❌ ${cur.name}\n`;
-        return prev;
-    }, '');
+// function buildPermsList(current: string[], required: { name: string, code: string }[]): string {
+//     const list = required.reduce((prev, cur) => {
+//         if (current.includes(cur.code) || current.includes('ADMINISTRATOR')) {
+//             prev = prev + `✅ ${cur.name}\n`;
+//         }
+//         else prev = prev + `❌ ${cur.name}\n`;
+//         return prev;
+//     }, '');
 
-    return list;
-}
+//     return list;
+// }
 
 function calcUptime(seconds: number): string {
     const days = Math.floor(seconds/86400);

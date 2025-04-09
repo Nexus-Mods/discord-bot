@@ -360,7 +360,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
             collector.on('collect', async (i: ButtonInteraction) => {
                 collector.stop('Collected');
-                const reply = await i.update({ components: [], fetchReply: true });
+                await i.update({ components: [], withResponse: true });
                 const id = i.customId;
                 const found: IModFieldResult|undefined = fields.find(f => f.mod.modId.toString() === id);
                 const mod = found?.mod;

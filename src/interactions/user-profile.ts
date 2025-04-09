@@ -2,7 +2,7 @@ import { Client, Snowflake, EmbedBuilder, ContextMenuCommandInteraction, Context
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { getUserByDiscordId, userProfileEmbed, userEmbed } from '../api/bot-db';
 import { KnownDiscordServers, Logger } from "../api/util";
-import { NexusUser, NexusUserServerLink } from "../types/users";
+import { NexusUser } from "../types/users";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
 const discordInteraction: DiscordInteraction = {
@@ -44,8 +44,6 @@ async function action(client: Client, baseinteraction: CommandInteraction, logge
 const botUser = (client: Client): NexusUser => {
     const d_id: Snowflake = client.user?.id ? client.user?.id.toString() as Snowflake : '' as Snowflake;
     const avatar_url = client.user?.avatarURL() || '';
-    const servers: NexusUserServerLink[] = client.guilds.cache.map(g => { return { server_id: g.id as Snowflake, user_id: 1234042 } })
-
     return {
         d_id,
         id: 1234042,
@@ -54,8 +52,7 @@ const botUser = (client: Client): NexusUser => {
         premium: false,
         supporter: false,
         lastupdate: new Date(),
-        apikey: '',
-        servers
+        apikey: ''
     }
 }
 

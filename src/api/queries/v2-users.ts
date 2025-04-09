@@ -7,7 +7,7 @@ interface IResult {
     users: IUserResults;
 }
 
-export interface IUserResults {
+interface IUserResults {
     nodes: IUser[];
     totalCount: number;
 }

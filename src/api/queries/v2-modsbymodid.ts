@@ -2,7 +2,7 @@ import { request, gql, ClientError } from "graphql-request";
 import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError } from './v2';
 
-export interface IResult {
+interface IResult {
     legacyModsByDomain: {
         nodes: IMod[];
     };

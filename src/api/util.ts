@@ -1,11 +1,16 @@
-import { AutocompleteInteraction, EmbedBuilder, ShardClientUtil } from "discord.js";
+import { AutocompleteInteraction, EmbedBuilder } from "discord.js";
 import { ClientExt } from "../types/DiscordTypes";
 import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser";
 import { IModsFilter } from "./queries/v2";
 import { ICollectionsFilter } from "../types/GQLTypes";
 
 export const isTesting = process.env.NODE_ENV === 'testing';
-export const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
+
+export const baseheader: Record<string, string> = {
+    'Application-Name': 'Nexus Mods Discord Bot',
+    'Application-Version': process.env.npm_package_version || '0.0.0'
+};
 
 const colors = [
     '\x1b[32m', // Green
@@ -146,12 +151,12 @@ export const unexpectedErrorEmbed = (err: any, context: any): EmbedBuilder => {
     ])
 }
 
-export const discontinuedEmbed = (newCommand: string): EmbedBuilder => {
-    return new EmbedBuilder()
-    .setTitle('Command discontinued')
-    .setColor('Grey')
-    .setDescription(`This command has been retired, please use the slash command **${newCommand}** instead. [Help](https://discord.gg/nexusmods)`)
-}
+// export const discontinuedEmbed = (newCommand: string): EmbedBuilder => {
+//     return new EmbedBuilder()
+//     .setTitle('Command discontinued')
+//     .setColor('Grey')
+//     .setDescription(`This command has been retired, please use the slash command **${newCommand}** instead. [Help](https://discord.gg/nexusmods)`)
+// }
 
 export const nexusModsTrackingUrl = (url: string, tag?: string, extraParams?: Record<string,string>): string => {
     const campaign = 'DiscordBot';
@@ -162,7 +167,7 @@ export const nexusModsTrackingUrl = (url: string, tag?: string, extraParams?: Re
     return new URL(`${url}?${params.toString()}`).toString();
 }
 
-export function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: number } {
+function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: number } {
     if (typeof uid === 'string') uid = BigInt(uid);
     const gameId = Number(uid >> BigInt(32)); // Use unsigned right shift (>>>)
     const modId = Number(uid & BigInt(0xFFFFFFFF));; // Bitwise AND with 0xFFFFFFFF (unsigned 32-bit mask)
@@ -170,7 +175,7 @@ export function modUidToGameAndModId(uid: bigint | string): { gameId: number, mo
     return { gameId, modId };
 }
 
-export function modIdAndGameIdToModUid(gameId: number, modId: number): string {
+function modIdAndGameIdToModUid(gameId: number, modId: number): string {
     // Convert the gameId and modId to BigInt
     const bigGameId = BigInt(gameId);
     const bigModId = BigInt(modId);

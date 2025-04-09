@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { Logger } from '../api/util';
-import { getModAuthor } from '../api/nexus-discord';
+import { baseheader, Logger } from '../api/util';
+import { findUser } from '../api/queries/v2-finduser';
 
 interface OAuthURL {
     url: string;
@@ -91,8 +91,15 @@ export async function getUserData(tokens: NexusOAuthTokens, logger: Logger): Pro
     });
     if (response.ok) {
       const data = await response.json();
-      const modauthor: boolean = await getModAuthor(parseInt(data.sub), logger).catch(() => false);
-      if (modauthor === true) data.membership_roles?.push('modauthor');
+      let modAuthor = false;
+      try {
+        const user = await findUser(baseheader, logger,parseInt(data.sub));
+        modAuthor = user?.recognizedAuthor ?? false;
+      }
+      catch(err) {
+        logger.warn('Error fetching user data', { error: (err as Error).message, userId: data.sub }, true);
+      }
+      if (modAuthor === true) data.membership_roles?.push('modauthor');
       return data;
     } else {
       throw new Error(`Error fetching Nexus Mods user data: [${response.status}] ${response.statusText}`);

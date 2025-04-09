@@ -5,7 +5,7 @@ import { Logger } from "../util";
 
 const nexusAPI: string = 'https://api.nexusmods.com/';
 
-export default async function v1APIQuery (logger: Logger, path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<any> {
+async function v1APIQuery (logger: Logger, path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<any> {
     const authType = headers['apikey'] ? 'APIKEY' : 'OAUTH';
     try {
         const query = await axios({

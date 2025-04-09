@@ -9,9 +9,6 @@ import { getAllServers, getServer, addServer, updateServer, deleteServer } from 
 // NEWS MANAGEMENT FUNCTIONS
 import { getSavedNews, updateSavedNews, ensureNewsDB } from './news';
 
-// USER SERVER LINK MANAGEMENT
-import { getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, deleteAllServerLinksByUser, modUniqueDLTotal } from './user_servers';
-
 // AUTOMOD
 import { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile  } from './automod';
 
@@ -25,8 +22,6 @@ export {
     getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
     getAllServers, getServer, addServer, updateServer, deleteServer,
     getSavedNews, updateSavedNews, ensureNewsDB,
-    getAllLinks, getLinksByUser, getLinksByServer, addServerLink, deleteServerLink, deleteAllServerLinksByUser, 
-    deleteServerLinksByUserSilent, deleteServerLinksByServerSilent, modUniqueDLTotal,
     getAutomodRules, createAutomodRule, deleteAutomodRule,
     getBadFiles, addBadFile,
     getAllTips, addTip, deleteTip, editTip, setApprovedTip,

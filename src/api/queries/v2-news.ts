@@ -11,7 +11,7 @@ interface INewsVariables extends Variables {
     gameId?: number;
 }
 
-export interface INewResults {
+interface INewResults {
     nodes: INews[];
 }
 

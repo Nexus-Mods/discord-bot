@@ -117,20 +117,20 @@ export interface ISubscribedItem {
     sfw?: boolean; 
 }
 
-export interface ISubscribedGameItem extends ISubscribedItem {
+interface ISubscribedGameItem extends ISubscribedItem {
     entityid: string;
     type: SubscribedItemType.Game;
     show_new: boolean;
     show_updates:boolean;
 }
 
-export interface ISubscribedModItem extends ISubscribedItem {
+interface ISubscribedModItem extends ISubscribedItem {
     entityId: string;
     type: SubscribedItemType.Mod;
     last_status: ModStatus;
 }
 
-export interface ISubscribedCollectionItem extends ISubscribedItem {
+interface ISubscribedCollectionItem extends ISubscribedItem {
     entityId: string;
     type: SubscribedItemType.Collection;
     collectionIds: {
@@ -140,7 +140,7 @@ export interface ISubscribedCollectionItem extends ISubscribedItem {
     last_status: CollectionStatus;
 }
 
-export interface ISubscribedUserItem extends ISubscribedItem {
+interface ISubscribedUserItem extends ISubscribedItem {
     entityId: number;
     type: SubscribedItemType.User;
 }
@@ -227,7 +227,7 @@ export class SubscribedItem {
     }
 }
 
-export interface ISubscriptionCache {
+interface ISubscriptionCache {
     games: {
         new: { [domain: string] : IMod[] };
         updated: { [domain: string] : IMod[] }; 

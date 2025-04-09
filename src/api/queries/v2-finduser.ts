@@ -2,7 +2,7 @@ import { request, gql } from "graphql-request";
 import { Logger } from "../util";
 import { NexusGQLError, v2API } from './v2';
 
-export interface IResult {
+interface IResult {
     user?: IUser;
     userByName?: IUser;
 }

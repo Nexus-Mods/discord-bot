@@ -1,7 +1,7 @@
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { NexusUser, NexusUserServerLink } from "../types/users";
-import { getAllUsers, getLinksByUser, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
-import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags } from "discord.js";
+import { NexusUser } from "../types/users";
+import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
+import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
 import { KnownDiscordServers, Logger } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
@@ -10,6 +10,7 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('whois')
     .setDescription('Find another user\'s profile card by Nexus Mods name or Discord ID.')
+    .setContexts(InteractionContextType.Guild)
     .addUserOption(option => 
       option.setName('discord')
       .setDescription('Discord account')
@@ -24,8 +25,7 @@ const discordInteraction: DiscordInteraction = {
         option.setName('private')
         .setDescription('Should the result only be shown to you?')    
         .setRequired(false)
-    )
-    .setDMPermission(false) as SlashCommandBuilder,
+    ) as SlashCommandBuilder,
     public: true,
     guilds: [
         KnownDiscordServers.BotDemo
@@ -81,9 +81,6 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         if (!foundUser) interaction.followUp({content: 'No members found for your query.', ephemeral: true});
         else {
             const botUser = new DiscordBotUser(foundUser, logger);
-            // check the linked servers for the found user
-            const foundServers: NexusUserServerLink[] = await getLinksByUser(botUser.NexusModsId).catch(() => []);
-
             // check if we should return the result. If the found user isn't in the current server, reject the request.
             const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === botUser.DiscordId;
@@ -108,8 +105,6 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 const botUser = (client: Client): NexusUser => {
     const d_id: Snowflake = client.user?.id ? client.user?.id.toString() as Snowflake : '' as Snowflake;
     const avatar_url = client.user?.avatarURL() || '';
-    const servers: NexusUserServerLink[] = client.guilds.cache.map(g => { return { server_id: g.id as Snowflake, user_id: 1234042 } })
-
     return {
         d_id,
         id: 1234042,
@@ -118,8 +113,7 @@ const botUser = (client: Client): NexusUser => {
         premium: false,
         supporter: false,
         lastupdate: new Date(),
-        apikey: '',
-        servers
+        apikey: ''
     }
 }
 

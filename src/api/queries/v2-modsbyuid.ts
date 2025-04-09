@@ -6,7 +6,7 @@ interface IResult {
     modsByUid: IModResults;
 }
 
-export interface IModResults {
+interface IModResults {
     nodes: IMod[];
     totalCount: number;
 }

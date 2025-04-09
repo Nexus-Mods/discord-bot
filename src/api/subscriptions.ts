@@ -195,23 +195,6 @@ async function createSubscription(parent: number, s: Omit<SubscribedItem, 'id' |
     }
 }
 
-async function createSubscriptionFromFeed(parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
-    try {
-        const data = await queryPromise<ISubscribedItemUnionType>(
-            `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, nsfw, sfw, type, show_new, show_updates, parent, created, last_update)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
-            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.nsfw, s.sfw, s.type, s.show_new, s.show_updates, parent, s.created, s.last_update]
-        );
-        return new SubscribedItem(data.rows[0]);
-
-    }
-    catch(err) {
-        const error: Error = (err as Error);
-        error.message = `Failed to create subscription for channel.\n${error.message}`;
-        throw error;
-    }
-}
-
 async function updateSubscription(id: number, parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
@@ -336,7 +319,7 @@ async function ensureSubscriptionsDB() {
 export { 
     ensureSubscriptionsDB, totalItemsInGuild, getSubscribedChannelsForGuild,
     getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
-    getAllSubscriptions, getSubscriptionsByChannel, createSubscription, createSubscriptionFromFeed,
+    getAllSubscriptions, getSubscriptionsByChannel, createSubscription,
     updateSubscription, saveLastUpdatedForSub, deleteSubscription,
     setDateForAllSubsInChannel, deleteSubscribedChannel
 };

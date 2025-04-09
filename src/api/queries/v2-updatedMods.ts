@@ -6,7 +6,7 @@ interface IResult {
     mods: IUpdatedModResults;
 }
 
-export interface IUpdatedModResults {
+interface IUpdatedModResults {
     nodes: IMod[];
     totalCount: number;
     // pageInfo?: {
