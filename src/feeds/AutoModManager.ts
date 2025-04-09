@@ -137,14 +137,6 @@ export class AutoModManager {
                 results.push(await analyseMod(mod, this.AutoModRules, this.BadFiles, dummyUser, this.logger))
             }
             this.addToLastReports(results);
-            // Add the new uploader flagged mods
-            // try {
-            //     const newUploaders: number[] = results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId);
-            //     newUploaders.map(id => this.usersUploadingFirstMod.users.add(id));
-            // }
-            // catch(err) {
-            //     logMessage(`Error adding ${results.filter(r => r.flags.low.includes("First mod upload")).map(m => m.mod.uploader!.memberId)} to ${this.usersUploadingFirstMod.users}`, err, true)
-            // }
             // Map the concerns for posting
             const concerns = results.filter(m => (m.flags.high.length) > 0 || (m.flags.low.length) > 0);
             if (!concerns.length) {
@@ -166,25 +158,6 @@ export class AutoModManager {
             this.logger.error("Error running automod", err)
         }
     }
-
-    // public async checkSingleMod(gameDomain: string, modId: number) {
-    //     // NOT YET IN USE!
-    //     const user: DiscordBotUser | undefined = await getUserByNexusModsId(31179975);
-    //     if (!user) throw new Error("User not found for automod");
-    //     await this.getRules();
-    //     const modInfo = await user.NexusMods.API.v2.ModsByModId({gameDomain, modId});
-    //     const mod = modInfo[0];
-    //     if (!mod) throw new Error('Mod not found')
-    //     logMessage('Checking specific mod', { name: mod.name, game: mod.game.name });
-    //     const analysis = await analyseMod(mod, this.AutoModRules, this.BadFiles, user);
-    //     if (analysis.flags.high.length) {
-    //         await PublishToDiscord(flagsToDiscordEmbeds([analysis]));
-    //         await PublishToSlack(flagsToSlackMessage([analysis]))
-    //     }
-    //     else logMessage('No flags to report', analysis);
-    // }
-
-
 }
 
 
