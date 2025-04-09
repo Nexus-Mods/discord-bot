@@ -6,7 +6,7 @@ import { Logger, nexusModsTrackingUrl } from '../api/util';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
 import { IGameStatic } from '../api/queries/other';
 
-const pollTime = (1000*60*30)*1; //30 mins hour
+const pollTime = (1000*60*30)*1; //30 mins
 
 export class NewsFeedManager {
     private static instance: NewsFeedManager;
@@ -71,11 +71,12 @@ export class NewsFeedManager {
     private async postLatestNews(domain?: string): Promise<EmbedBuilder> {
         if (this.client.shard) {
             if (!NewsFeedManager.isInstanceForShard(this.client)) {
-                this.logger.warn('News webhook guild not found shard cache. Attempting to pass request to the correct shard.');
                 const correctShard = ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, this.client.shard!.count);
+                this.logger.warn('News webhook guild not handled by this shard. Attempting to pass request to the correct shard.', correctShard);
+                if (this.client.shard!.ids[0] === correctShard) throw new Error('This shard is the correct one to handle the request, but isn\'t returned from the isInstanceForShard check.');
                 const otherShards = await this.client.shard.broadcastEval(async (client: ClientExt, context: { shardId: number, domain: string | undefined }) => {
                     if (client.shard!.ids[0] === context.shardId) {
-                        return client.newsFeed?.postLatestNews(domain);
+                        return client.newsFeed?.postLatestNews(context.domain);
                     }
                 }, { context: { shardId: correctShard, domain } });
                 const results = otherShards.filter((r: any) => r !== undefined);
