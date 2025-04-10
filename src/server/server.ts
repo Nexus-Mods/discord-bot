@@ -88,7 +88,7 @@ export class AuthSite {
 
         this.app.get('/nxm', this.nxmForward.bind(this));
 
-        this.app.get('/webhook', express.json(), (req, res) => forumWebhook(req, res, this.logger));
+        this.app.post('/webhook', express.json(), (req, res) => forumWebhook(req, res, this.logger));
 
         this.app.get('*', (req, res) => res.redirect('/'));
 
