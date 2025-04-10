@@ -5,12 +5,12 @@ dotenv.config();
 import { ForumTopic } from "../types/ForumWebhookTypes";
 
 export async function getTopic(id: number): Promise<ForumTopic> {
-    if (!process.env.FORUM_API_KEY) throw new Error('FORUM_API_KEY is not set in the environment variables.');
-    const response = await fetch(`https://forums.nexusmods.com/api/forums/topics/${id}?key=${process.env.FORUM_API_KEY}`, {
+    const APIKEY: string | undefined = process.env.FORUM_API_KEY;
+    if (!APIKEY || !APIKEY.length) throw new Error('FORUM_API_KEY is not set in the environment variables.');
+    const response = await fetch(`https://forums.nexusmods.com/api/forums/topics/${id}?key=${APIKEY}`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.FORUM_API_KEY}`,
+            'Content-Type': 'application/json'
         },
     });
 
