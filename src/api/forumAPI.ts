@@ -10,12 +10,14 @@ export async function getTopic(id: number): Promise<ForumTopic> {
     const response = await fetch(`https://forums.nexusmods.com/api/forums/topics/${id}?key=${APIKEY}`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'Nexus Mods Discord Bot',
+            'Accept': '*/*'
         },
     });
 
     if (!response.ok) {
-        console.error('Error fetching topic:', response);
+        console.error('Error fetching topic:', { body: await response.json() });
         throw new Error(`Error fetching topic: ${response.statusText}`);
     }
 

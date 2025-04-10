@@ -33,7 +33,7 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
             .setDescription(`**${title}**\n\n${htmlToText(topic.firstPost.content).substring(0, 2000)}`)
             .setTimestamp(new Date(topic.firstPost.date))
             .setThumbnail(SUGGESTION_ICON)
-            .setFooter({text: `Tags: ${topic.tags.length ? topic.tags.join(', ') : '_None_'}`});
+            .setFooter({text: `Tags: ${topic.tags.length ? topic.tags.join(', ') : 'None'}`});
 
             const webhookMessage: RESTPostAPIWebhookWithTokenJSONBody = { embeds: [embed.data] };
             // Send the embed to the suggestion channel.
