@@ -15,6 +15,7 @@ export async function getTopic(id: number): Promise<ForumTopic> {
     });
 
     if (!response.ok) {
+        console.error('Error fetching topic:', response);
         throw new Error(`Error fetching topic: ${response.statusText}`);
     }
 
