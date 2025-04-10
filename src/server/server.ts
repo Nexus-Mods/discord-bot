@@ -93,6 +93,8 @@ export class AuthSite {
         this.app.get('*', (req, res) => res.redirect('/'));
 
         this.app.listen(this.port, () => this.logger.info(`Auth website listening on port ${this.port}`));
+
+        this.app.on('error', (err) => this.logger.error('Auth site error', err));
     }
 
     success(req: express.Request, res: express.Response) {
