@@ -48,6 +48,8 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         // else logger.info('New non-suggestion topic via forum webhook', { title, author, url });
     }
     else if (data.item_id && data.author) {
+        // CLOUDFLARE SUCKS SO HARD, I ABANDONNED THIS CODE AS IT WAS BLOCKING THE FORUM API!
+        return;
         // Assume it's a post.
         const post = data as ForumPost;
         if (post.hidden) return; // Ignore hidden posts.
@@ -62,18 +64,18 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         });
         if (!topic) return;
         // If this post is the first post in a thread we can ignore it.
-        if (topic.firstPost.id === post.id) return;
+        if (topic?.firstPost.id === post.id) return;
         // Only process posts in the suggestion forum.
-        if (topic.forum.id === FORUM_SUGGESTION_FORUM_ID) {
+        if (topic?.forum.id === FORUM_SUGGESTION_FORUM_ID) {
             const embed = new EmbedBuilder()
             .setTitle('New Suggestion Reply')
             .setColor('Orange')
             .setAuthor({name: author, iconURL: post.author.photoUrl})
             .setURL(url)
             .setThumbnail(SUGGESTION_ICON)
-            .setDescription(`**${topic.title}**\n\n${htmlToText(post.content).substring(0, 2000)}`)
+            .setDescription(`**${topic?.title}**\n\n${htmlToText(post.content).substring(0, 2000)}`)
             .setTimestamp(new Date(post.date))
-            .setFooter({text: `Tags: ${topic.tags.join(', ')}`, iconURL: SUGGESTION_ICON});
+            .setFooter({text: `Tags: ${topic?.tags.join(', ')}`, iconURL: SUGGESTION_ICON});
             
             
             const webhookMessage: RESTPostAPIWebhookWithTokenJSONBody = { embeds: [embed.data] };
