@@ -11,6 +11,7 @@ import { ClientExt } from '../types/DiscordTypes';
 import { getSubscribedChannelsForGuild } from '../api/subscriptions';
 import { fileURLToPath } from 'url';
 import { SubscribedItem } from '../types/subscriptions';
+import forumWebhook from './forumWebhook';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -86,6 +87,8 @@ export class AuthSite {
         this.app.get('/tracking', this.tracking.bind(this));
 
         this.app.get('/nxm', this.nxmForward.bind(this));
+
+        this.app.get('/webhook', express.json(), (req, res) => forumWebhook(req, res, this.logger));
 
         this.app.get('*', (req, res) => res.redirect('/'));
 
