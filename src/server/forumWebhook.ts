@@ -32,7 +32,7 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
             .setURL(url)
             .setDescription(`**${title}**\n\n${htmlToText(topic.firstPost.content).substring(0, 2000)}`)
             .setTimestamp(new Date(topic.firstPost.date))
-            .setImage(SUGGESTION_ICON)
+            .setThumbnail(SUGGESTION_ICON)
             .setFooter({text: `Tags: ${topic.tags.join(', ')}`});
 
             const webhookMessage: RESTPostAPIWebhookWithTokenJSONBody = { embeds: [embed.data] };
@@ -56,14 +56,11 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         const author = post.author.name;
         logger.info('New post via forum webhook', { threadId, url, author, content: htmlToText(post.content) });
         // We need to get the thread info to make sure it's in the suggestion forum.
-        const topic = await getTopic(threadId).catch(() => {
-            logger.warn('Could not get topic for post', { threadId, url, author });
+        const topic = await getTopic(threadId).catch((err) => {
+            logger.warn('Could not get topic for post', { threadId, url, err });
             return null;
         });
-        if (!topic) {
-            logger.warn('Could not get topic for post', { threadId, url, author });
-            return;
-        }
+        if (!topic) return;
         // If this post is the first post in a thread we can ignore it.
         if (topic.firstPost.id === post.id) return;
         // Only process posts in the suggestion forum.
@@ -73,7 +70,7 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
             .setColor('Orange')
             .setAuthor({name: author, iconURL: post.author.photoUrl})
             .setURL(url)
-            .setImage(SUGGESTION_ICON)
+            .setThumbnail(SUGGESTION_ICON)
             .setDescription(`${htmlToText(post.content).substring(0, 2000)}`)
             .setTimestamp(new Date(post.date))
             .setFooter({text: `Tags: ${topic.tags.join(', ')}`, iconURL: SUGGESTION_ICON});
