@@ -1,4 +1,4 @@
-interface ForumTopicCreated {
+export interface ForumTopicCreated {
     id: number;
     title: string;
     forum: {
@@ -73,7 +73,7 @@ interface ForumAuthor {
     completed: boolean;
 }
 
-interface ForumNewPost {
+export interface ForumNewPost {
     id: number;
     item_id: number;
     author: ForumAuthor;
@@ -83,7 +83,3 @@ interface ForumNewPost {
     url: string;
     reactions: any[];
 }
-
-export type ForumWebhookEvent =
-    | { event: 'topic_created'; data: ForumTopicCreated }
-    | { event: 'new_post'; data: ForumNewPost };

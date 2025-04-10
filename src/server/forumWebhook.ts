@@ -1,37 +1,36 @@
 import { Logger } from '../api/util';
-import { ForumWebhookEvent } from '../types/ForumWebhookTypes';
+import { ForumNewPost, ForumTopicCreated } from '../types/ForumWebhookTypes';
 import express from 'express';
 
-export default async function forumWebhook(req: express.Request<{}, {}, ForumWebhookEvent>, res: express.Response, logger: Logger): Promise<void>{
-    const { event, data } = req.body;
+export default async function forumWebhook(req: express.Request<{}, {}, any>, res: express.Response, logger: Logger): Promise<void>{
+    const data = req.body;
     
-    logger.info('Received forum webhook', {event, data});
+    logger.info('Received forum webhook', {data});
 
-    switch(event) {
-        case 'topic_created': {
-            const title = data.title;
-            const author = data.firstPost.author.name;
-            const url = data.url;
-            if (data.forum.id === 9063) {
+    if (data.title && data.firstPost) {
+        // Assume it's a topic. 
+        const topic = data as ForumTopicCreated;
+        const title = topic.title;
+        const author = topic.firstPost.author.name;
+        const url = topic.url;
+        if (topic.forum.id === 9063) {
 
-                logger.info('New suggestion', { title, author, url });
-            }
-            else logger.info('New non-suggestion topic', { title, author, url });
+            logger.info('New suggestion', { title, author, url });
         }
-        break;
-        case 'new_post': {
-            const threadId = data.item_id;
-            const url = data.url;
-            const author = data.author.name;
-            logger.info('New post', { threadId, url, author })
-
-        };
-        break;
-        default: {
-            logger.warn('Unknown event type', {event});
-        }
+        else logger.info('New non-suggestion topic', { title, author, url });
     }
-
+    else if (data.item_id && data.author) {
+        // Assume it's a post.
+        const post = data as ForumNewPost;
+        const threadId = post.item_id;
+        const url = post.url;
+        const author = post.author.name;
+        logger.info('New post', { threadId, url, author });
+    }
+    else {
+        logger.warn('Unknown event type', {data});
+    }
+    
     res.status(200).send('OK');
 }
 
