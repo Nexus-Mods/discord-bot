@@ -1,11 +1,11 @@
+import { EmbedBuilder } from 'discord.js';
 import { Logger } from '../api/util';
 import { ForumNewPost, ForumTopicCreated } from '../types/ForumWebhookTypes';
 import express from 'express';
+import { htmlToText } from 'html-to-text';
 
 export default async function forumWebhook(req: express.Request<{}, {}, any>, res: express.Response, logger: Logger): Promise<void>{
     const data = req.body;
-    
-    logger.info('Received forum webhook', {data});
 
     if (data.title && data.firstPost) {
         // Assume it's a topic. 
@@ -14,10 +14,19 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         const author = topic.firstPost.author.name;
         const url = topic.url;
         if (topic.forum.id === 9063) {
+            logger.info('New suggestion via forum webhook', { title, author, url, content: htmlToText(topic.firstPost.content) });
 
-            logger.info('New suggestion', { title, author, url });
+            const embed = new EmbedBuilder()
+            .setTitle('New suggestion')
+            .setColor('Orange')
+            .setAuthor({name: author, iconURL: topic.firstPost.author.photoUrl})
+            .setURL(url)
+            .setDescription(`**${title}**\n\n${htmlToText(topic.firstPost.content).substring(0, 2000)}`)
+            .setTimestamp(new Date(topic.firstPost.date))
+            .setFooter({text: `Tags: ${topic.tags.join(', ')}`});
+            
         }
-        else logger.info('New non-suggestion topic', { title, author, url });
+        else logger.info('New non-suggestion topic via forum webhook', { title, author, url });
     }
     else if (data.item_id && data.author) {
         // Assume it's a post.
@@ -25,12 +34,13 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         const threadId = post.item_id;
         const url = post.url;
         const author = post.author.name;
-        logger.info('New post', { threadId, url, author });
+        logger.info('New post via forum webhook', { threadId, url, author, content: htmlToText(post.content) });
+        // We need to get the thread info to make sure it's in the suggestion forum.
     }
     else {
-        logger.warn('Unknown event type', {data});
+        logger.warn('Unknown event type for forum webhook', {data});
     }
-    
+
     res.status(200).send('OK');
 }
 

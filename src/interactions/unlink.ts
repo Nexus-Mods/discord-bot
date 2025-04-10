@@ -1,4 +1,4 @@
-import { CommandInteraction, Snowflake, Client, SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType } from "discord.js";
+import { CommandInteraction, Snowflake, Client, SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType, MessageFlags } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { KnownDiscordServers, Logger } from "../api/util";
@@ -18,7 +18,7 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const discordId: Snowflake = interaction.user.id;
-    await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
+    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     // See if they have existing data
     const userData = await getUserByDiscordId(discordId);
     if (!!userData) {

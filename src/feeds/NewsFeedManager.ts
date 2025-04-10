@@ -79,7 +79,7 @@ export class NewsFeedManager {
                         return client.newsFeed?.postLatestNews(context.domain);
                     }
                 }, { context: { shardId: correctShard, domain } });
-                const results = otherShards.filter((r: any) => r !== undefined);
+                const results = otherShards.filter((r: any) => r !== null);
                 if (results.length) {
                     if (results.length > 1) this.logger.warn('Multiple shards returned results for news updates. This is unexpected.', results);
                     return new EmbedBuilder(results[0]);
