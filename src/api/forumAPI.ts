@@ -1,4 +1,6 @@
 // Functionality to interact with the forum API
+import dotenv from 'dotenv';
+dotenv.config();
 
 import { ForumTopic } from "../types/ForumWebhookTypes";
 
