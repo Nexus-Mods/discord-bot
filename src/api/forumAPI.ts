@@ -29,6 +29,7 @@ export async function getTopic(id: number): Promise<ForumTopic> {
     catch(err) {
         const error = (err as AxiosError);
         console.error('Error fetching topic:', { error: error.message, status: error.code, forumsEndpoint });
+        throw new Error(`Error fetching topic: ${error.status} ${error.message}`);
     }
 
     // const response = await fetch(forumsEndpoint, {
