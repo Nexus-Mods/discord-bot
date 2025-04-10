@@ -54,7 +54,10 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         const author = post.author.name;
         logger.info('New post via forum webhook', { threadId, url, author, content: htmlToText(post.content) });
         // We need to get the thread info to make sure it's in the suggestion forum.
-        const topic = await getTopic(threadId).catch(() => null);
+        const topic = await getTopic(threadId).catch(() => {
+            logger.warn('Could not get topic for post', { threadId, url, author });
+            return null;
+        });
         if (!topic) {
             logger.warn('Could not get topic for post', { threadId, url, author });
             return;
