@@ -71,7 +71,7 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
             .setAuthor({name: author, iconURL: post.author.photoUrl})
             .setURL(url)
             .setThumbnail(SUGGESTION_ICON)
-            .setDescription(`${htmlToText(post.content).substring(0, 2000)}`)
+            .setDescription(`**${topic.title}**\n\n${htmlToText(post.content).substring(0, 2000)}`)
             .setTimestamp(new Date(post.date))
             .setFooter({text: `Tags: ${topic.tags.join(', ')}`, iconURL: SUGGESTION_ICON});
             
