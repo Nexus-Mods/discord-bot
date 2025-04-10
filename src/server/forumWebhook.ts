@@ -1,47 +1,121 @@
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, RESTPostAPIWebhookWithTokenJSONBody } from 'discord.js';
 import { Logger } from '../api/util';
-import { ForumNewPost, ForumTopicCreated } from '../types/ForumWebhookTypes';
+import { ForumPost, ForumTopic } from '../types/ForumWebhookTypes';
 import express from 'express';
 import { htmlToText } from 'html-to-text';
+import { getTopic } from '../api/forumAPI';
+import axios from 'axios';
+
+const FORUM_SUGGESTION_FORUM_ID = 9063; // The ID of the forum for suggestions.
+const SUGGESTION_ICON = 'https://staticdelivery.nexusmods.com/images/2295/31179975-1744285207.png'; // The icon for the suggestion forum.
 
 export default async function forumWebhook(req: express.Request<{}, {}, any>, res: express.Response, logger: Logger): Promise<void>{
     const data = req.body;
+    res.status(200).send('OK');
 
     if (data.title && data.firstPost) {
         // Assume it's a topic. 
-        const topic = data as ForumTopicCreated;
+        const topic = data as ForumTopic;
+        if (topic.hidden) return; // Ignore hidden topics.
         const title = topic.title;
         const author = topic.firstPost.author.name;
         const url = topic.url;
         if (topic.forum.id === 9063) {
-            logger.info('New suggestion via forum webhook', { title, author, url, content: htmlToText(topic.firstPost.content) });
+            logger.info('New suggestion via forum webhook', { title, author, url, content: htmlToText(topic.firstPost.content), hidden: topic.hidden });
 
             const embed = new EmbedBuilder()
-            .setTitle('New suggestion')
+            .setTitle('New Suggestion')
             .setColor('Orange')
             .setAuthor({name: author, iconURL: topic.firstPost.author.photoUrl})
             .setURL(url)
             .setDescription(`**${title}**\n\n${htmlToText(topic.firstPost.content).substring(0, 2000)}`)
             .setTimestamp(new Date(topic.firstPost.date))
+            .setImage(SUGGESTION_ICON)
             .setFooter({text: `Tags: ${topic.tags.join(', ')}`});
+
+            const webhookMessage: RESTPostAPIWebhookWithTokenJSONBody = { embeds: [embed.data] };
+            // Send the embed to the suggestion channel.
+            try {
+                await postToDiscord(webhookMessage, logger);
+            }
+            catch(err) {
+                return;
+            }
             
         }
-        else logger.info('New non-suggestion topic via forum webhook', { title, author, url });
+        // else logger.info('New non-suggestion topic via forum webhook', { title, author, url });
     }
     else if (data.item_id && data.author) {
         // Assume it's a post.
-        const post = data as ForumNewPost;
+        const post = data as ForumPost;
+        if (post.hidden) return; // Ignore hidden posts.
         const threadId = post.item_id;
         const url = post.url;
         const author = post.author.name;
         logger.info('New post via forum webhook', { threadId, url, author, content: htmlToText(post.content) });
         // We need to get the thread info to make sure it's in the suggestion forum.
+        const topic = await getTopic(threadId).catch(() => null);
+        if (!topic) {
+            logger.warn('Could not get topic for post', { threadId, url, author });
+            return;
+        }
+        // If this post is the first post in a thread we can ignore it.
+        if (topic.firstPost.id === post.id) return;
+        // Only process posts in the suggestion forum.
+        if (topic.forum.id === FORUM_SUGGESTION_FORUM_ID) {
+            const embed = new EmbedBuilder()
+            .setTitle('New Suggestion Reply')
+            .setColor('Orange')
+            .setAuthor({name: author, iconURL: post.author.photoUrl})
+            .setURL(url)
+            .setImage(SUGGESTION_ICON)
+            .setDescription(`${htmlToText(post.content).substring(0, 2000)}`)
+            .setTimestamp(new Date(post.date))
+            .setFooter({text: `Tags: ${topic.tags.join(', ')}`, iconURL: SUGGESTION_ICON});
+            
+            
+            const webhookMessage: RESTPostAPIWebhookWithTokenJSONBody = { embeds: [embed.data] };
+            // Send the embed to the suggestion channel.
+            try {
+                await postToDiscord(webhookMessage, logger);
+            }
+            catch(err) {
+                return;
+            }
+            
+        }
+        else return;
     }
     else {
         logger.warn('Unknown event type for forum webhook', {data});
     }
+}
 
-    res.status(200).send('OK');
+async function postToDiscord(webhookMessage: RESTPostAPIWebhookWithTokenJSONBody, logger: Logger): Promise<PromiseSettledResult<void>[]> {
+    const discordWebhooks =(process.env.DISCORD_SUGGESTION_WEBHOOKS ?? '').split(',').map((s) => s.trim()).filter((s) => s.length > 0) as string[];
+            if (discordWebhooks.length === 0) {
+                logger.warn('No webhooks configured for suggestions');
+                return [];
+            };
+            const posts = discordWebhooks.map(async (webhook) => {
+                try {
+                    const discordResponse = await axios({
+                        method: 'POST',
+                        url: webhook,
+                        data: JSON.stringify(webhookMessage, null, 2),
+                        headers: { 
+                            'Content-Type': 'application/json'
+                        },
+                    });
+                    if (discordResponse.status >= 200 && discordResponse.status < 300) return;
+                    else throw new Error('Discord webhook returned an error: ' + discordResponse.statusText);
+                }
+                catch(err) {
+                    logger.warn('Error posting Discord Webhook', err, true);
+                    return;
+                }
+            });
+            return Promise.allSettled(posts);
 }
 
 /*

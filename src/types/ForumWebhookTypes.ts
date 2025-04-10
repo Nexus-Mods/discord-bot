@@ -1,4 +1,4 @@
-export interface ForumTopicCreated {
+export interface ForumTopic {
     id: number;
     title: string;
     forum: {
@@ -31,7 +31,7 @@ export interface ForumTopicCreated {
     publish_date: string;
 }
 
-interface ForumPost {
+export interface ForumPost {
     id: number;
     item_id: number;
     author: ForumAuthor;
@@ -71,15 +71,4 @@ interface ForumAuthor {
     achievements_points: number;
     allowAdminEmails: boolean;
     completed: boolean;
-}
-
-export interface ForumNewPost {
-    id: number;
-    item_id: number;
-    author: ForumAuthor;
-    date: string;
-    content: string;
-    hidden: boolean;
-    url: string;
-    reactions: any[];
 }
