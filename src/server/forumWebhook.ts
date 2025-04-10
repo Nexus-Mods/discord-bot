@@ -90,9 +90,9 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         }
         else return;
     }
-    else {
-        logger.warn('Unknown event type for forum webhook', {data});
-    }
+    // else {
+    //     logger.warn('Unknown event type for forum webhook', {data});
+    // }
 }
 
 async function postToDiscord(webhookMessage: RESTPostAPIWebhookWithTokenJSONBody, logger: Logger): Promise<PromiseSettledResult<void>[]> {
