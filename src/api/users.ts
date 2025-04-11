@@ -1,7 +1,7 @@
 import query from '../api/dbConnect';
 import { NexusUser } from '../types/users';
 import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
-import { nexusModsTrackingUrl } from './util';
+import { Logger, nexusModsTrackingUrl } from './util';
 import { DiscordBotUser } from './DiscordBotUser';
 import { logger } from '../DiscordBot';
 
@@ -62,16 +62,16 @@ async function getUserByNexusModsId(id: number): Promise<DiscordBotUser | undefi
 }
 
 async function createUser(user: NexusUser): Promise<DiscordBotUser> {
-    if (!user.apikey && !user.nexus_refresh) {
+    if (!user.nexus_refresh) {
         throw new Error('No auth information provided.');
     }
 
     try {
         const result = await query<NexusUser>(
-            'INSERT INTO users (d_id, id, name, avatar_url, apikey, supporter, premium, modauthor, nexus_access, nexus_expires, nexus_refresh, discord_access, discord_expires, discord_refresh, lastUpdate) ' +
+            'INSERT INTO users (d_id, id, name, avatar_url, supporter, premium, modauthor, nexus_access, nexus_expires, nexus_refresh, discord_access, discord_expires, discord_refresh, lastUpdate) ' +
             'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
             [
-                user.d_id, user.id, user.name, user.avatar_url, user.apikey, user.supporter, user.premium, user.modauthor || false,
+                user.d_id, user.id, user.name, user.avatar_url, user.supporter, user.premium, user.modauthor || false,
                 user.nexus_access, user.nexus_expires, user.nexus_refresh,
                 user.discord_access, user.discord_expires, user.discord_refresh,
                 new Date()
@@ -91,6 +91,17 @@ async function deleteUser(discordId: string): Promise<void> {
     }
     catch (err) {
         logger.error('Error deleting user', { discordId, err });
+        throw err;
+    }
+}
+
+async function migrationDeleteAPIkeyColumn(logger: Logger): Promise<void> {
+    try {
+        await query('ALTER TABLE users DROP COLUMN IF EXISTS apikey', []);
+        logger.info('Deleted API key column from users table');
+    }
+    catch (err) {
+        logger.error('Error deleting column', { err });
         throw err;
     }
 }
@@ -176,4 +187,4 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
     }
 }
 
-export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed };
+export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed, migrationDeleteAPIkeyColumn };

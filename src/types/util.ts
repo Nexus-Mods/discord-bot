@@ -49,7 +49,7 @@ export class NexusAPIServerError implements Error {
     public authType?: string = undefined;
     // public raw: Response;
 
-    constructor(error: AxiosError, authType: 'OAUTH' | 'APIKEY', path?: string) {
+    constructor(error: AxiosError, authType: 'OAUTH', path?: string) {
         this.code = error.response?.status || -1;
         this.path = path;
         this.authType = authType;

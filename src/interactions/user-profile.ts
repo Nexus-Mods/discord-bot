@@ -51,8 +51,7 @@ const botUser = (client: Client): NexusUser => {
         avatar_url,
         premium: false,
         supporter: false,
-        lastupdate: new Date(),
-        apikey: ''
+        lastupdate: new Date()
     }
 }
 

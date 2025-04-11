@@ -69,7 +69,7 @@ export async function mods(headers: Record<string,string>, logger: Logger, mods:
         }
         catch(err) {
             const error = new NexusGQLError(err as any, 'mods');
-            logger.error('Error fetching mod data', { error, auth: headers['apikey'] ? 'APIKEY' : 'OAUTH' }, true);
+            logger.error('Error fetching mod data', { error, auth: 'OAUTH' }, true);
         }
     }
 
