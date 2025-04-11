@@ -61,13 +61,13 @@ function handleDatabaseError(error: Error | any): string {
               return 'Input value is too long. Please shorten the text.';
             case '42601': // Syntax error in SQL
               logger.error('Database error - Syntax error:', error.detail);
-              return 'An unexpected error occurred. Please try again later.';
+              return 'An unexpected error occurred (Syntax error). Please try again later.';
             case '42703': // Undefined column
               logger.error('Database error - Undefined column:', error.detail);
-              return 'An unexpected error occurred. Please try again later.';
+              return 'An unexpected error occurred (Undefined column). Please try again later.';
             default:
               logger.error(`Unhandled database error [${error.code}]:`, error.message);
-              return 'An unexpected error occurred. Please try again later.';
+              return `An unexpected database error occurred (${error.code}). Please try again later.`;
           }
     } else if (error.message === 'The server does not support SSL connections') { 
         return 'SSL connection error. Please report this issue as it is a problem with the database settings.';
