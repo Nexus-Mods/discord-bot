@@ -69,7 +69,7 @@ async function createUser(user: NexusUser): Promise<DiscordBotUser> {
     try {
         const result = await query<NexusUser>(
             'INSERT INTO users (d_id, id, name, avatar_url, supporter, premium, modauthor, nexus_access, nexus_expires, nexus_refresh, discord_access, discord_expires, discord_refresh, lastUpdate) ' +
-            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
+            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
             [
                 user.d_id, user.id, user.name, user.avatar_url, user.supporter, user.premium, user.modauthor || false,
                 user.nexus_access, user.nexus_expires, user.nexus_refresh,
