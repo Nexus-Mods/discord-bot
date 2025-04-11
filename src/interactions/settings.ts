@@ -11,7 +11,6 @@ import { updateServer, getServer, getConditionsForRole, addConditionForRole } fr
 import { BotServer } from "../types/servers";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { KnownDiscordServers, Logger } from "../api/util";
-import { IGameInfo } from "@nexusmods/nexus-api";
 import { IGameStatic } from "../api/queries/other";
 import { autocompleteGameName } from "../api/util";
 import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions";
@@ -110,8 +109,8 @@ type OptionNames = 'game' | 'role' | 'count' | 'op' | 'type';
 
 interface IBotServerChange {
     name: string;
-    cur: any | Role | IGameInfo | string | undefined;
-    new: any | Role | IGameInfo | string | undefined;
+    cur: any | Role | IGameStatic | string | undefined;
+    new: any | Role | IGameStatic | string | undefined;
     data: Partial<BotServer>;
 };
 
@@ -331,8 +330,8 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
 }
 
 const updateEmbed = (data: IBotServerChange): EmbedBuilder => { 
-    const curVal = (data.cur as IGameInfo) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
-    const newVal = (data.new as IGameInfo) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
+    const curVal = (data.cur as IGameStatic) ? data.cur?.name : !data.cur ? '*none*' : data.cur?.toString();
+    const newVal = (data.new as IGameStatic) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
     return new EmbedBuilder()
     .setTitle('Configuration updated')
     .setColor(0xda8e35)

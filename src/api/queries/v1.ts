@@ -1,11 +1,11 @@
-import { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo, IValidateKeyResponse } from '@nexusmods/nexus-api';
+import { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo, IUpdateEntry, IValidateKeyResponse } from '../../types/NexusModsAPIv1';
 import axios, { AxiosError } from 'axios';
 import { NexusAPIServerError, NexusSearchResult } from '../../types/util';
 import { Logger } from "../util";
 
 const nexusAPI: string = 'https://api.nexusmods.com/';
 
-async function v1APIQuery (logger: Logger, path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<any> {
+async function v1APIQuery <T>(logger: Logger, path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<T> {
     const authType = headers['apikey'] ? 'APIKEY' : 'OAUTH';
     try {
         const query = await axios({
@@ -55,7 +55,7 @@ export async function quicksearch(query: string, bIncludeAdult: boolean, game_id
 }
 
 export async function updatedMods(headers: Record<string,string>, logger: Logger, gameDomain: string, period: string = '1w', ) {
-    return v1APIQuery(logger, `/v1/games/${gameDomain}/mods/updated.json`, headers, { period });
+    return v1APIQuery<IUpdateEntry[]>(logger, `/v1/games/${gameDomain}/mods/updated.json`, headers, { period });
 }
 
 export async function modInfo(headers: Record<string,string>, logger: Logger, gameDomain: string, modId: number): Promise<IModInfo> {

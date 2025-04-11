@@ -28,7 +28,6 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@nexusmods/nexus-api": "^1.1.5",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.9",

@@ -1,6 +1,6 @@
 import * as NexusModsOAuth from '../server/NexusModsOAuth';
 import * as DiscordOAuth from '../server/DiscordOAuth';
-import { IUpdateEntry, IValidateKeyResponse } from '@nexusmods/nexus-api';
+import { IValidateKeyResponse } from '../types/NexusModsAPIv1';
 import { NexusUser } from '../types/users';
 import { baseheader, Logger } from './util';
 import { updateUser } from './users';
@@ -138,7 +138,7 @@ export class DiscordBotUser {
                     async (query: string, adult: boolean, gameId?: number) => 
                         v1.quicksearch(query, adult, gameId),
                 UpdatedMods: 
-                    async (domain: string, period?: string): Promise<IUpdateEntry[]> => 
+                    async (domain: string, period?: string) => 
                         v1.updatedMods(this.headers(), this.logger, domain, period),
                 Mod: 
                     async (domain: string, id: number) => 
