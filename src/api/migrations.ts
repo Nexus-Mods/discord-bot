@@ -28,16 +28,16 @@ async function migrationMoveConfigOptionsToJSON() {
             'migrationMoveConfigOptionsToJSON'
         );
 
-        return queryPromise(
-            `ALTER TABLE SubscribedItems
-            DROP COLUMN IF EXISTS show_new
-            DROP COLUMN IF EXISTS show_updates
-            DROP COLUMN IF EXISTS nsfw
-            DROP COLUMN IF EXISTS sfw
-            DROP COLUMN IF EXISTS last_status`,
-            [],
-            'migrationMoveConfigOptionsToJSON - Add delete old columns'
-        );
+        // return queryPromise(
+        //     `ALTER TABLE SubscribedItems
+        //     DROP COLUMN IF EXISTS show_new,
+        //     DROP COLUMN IF EXISTS show_updates,
+        //     DROP COLUMN IF EXISTS nsfw,
+        //     DROP COLUMN IF EXISTS sfw,
+        //     DROP COLUMN IF EXISTS last_status;`,
+        //     [],
+        //     'migrationMoveConfigOptionsToJSON - Add delete old columns'
+        // );
     }
     catch(err) {
         throw err

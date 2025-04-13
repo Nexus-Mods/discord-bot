@@ -266,7 +266,7 @@ export class SubscriptionManger {
                 this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type}) since ${item.last_update.toISOString()}`);
             }
             catch(err) {
-                this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
+                this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, config: item.config, error: err });
                 continue;
             }           
             
@@ -694,7 +694,7 @@ export class SubscriptionManger {
         );
 
         // NEW MODS FOR GAMES 
-        const newGameSubs = allGameSubs.filter(s => s.config.show_new);
+        const newGameSubs = allGameSubs.filter(s => s.config?.show_new ?? false);
         const newGames = new Set<string>(newGameSubs.map(s => s.entityid as string));
         // For each game, get the date of the oldest possible mod to show.
         const oldestPerNewGame = getMaxiumDatesForGame(newGameSubs, newGames);
@@ -712,7 +712,7 @@ export class SubscriptionManger {
         promises.push(...newGamePromises);
 
         // UPDATED MODS FOR GAMES
-        const updatedGameSubs = allGameSubs.filter(s => s.config.show_updates);
+        const updatedGameSubs = allGameSubs.filter(s => s.config?.show_updates ?? false);
         const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityid as string));
         const oldestPerUpdatedGame = getMaxiumDatesForGame(updatedGameSubs, updatedGames);
         const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(async ([ domain, date ]) => {
