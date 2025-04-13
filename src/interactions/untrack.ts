@@ -87,9 +87,12 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     });
 }
 
-function subscribedItemEmbedField(i: SubscribedItem): APIEmbedField {
+function subscribedItemEmbedField(i: SubscribedItem<SubscribedItemType>): APIEmbedField {
     switch (i.type) {
-        case SubscribedItemType.Game: return {name: `${i.title} (ID: ${i.id})`, value:`Show New: ${i.show_new} | Show Updates: ${i.show_updates}\nAdult Content: ${i.nsfw} | Non-adult Content: ${i.sfw}\nCompact: ${i.compact} | Crosspost: ${i.crosspost}`};
+        case SubscribedItemType.Game: {
+            const s = i as SubscribedItem<SubscribedItemType.Game>;
+            return {name: `${i.title} (ID: ${i.id})`, value:`Show New: ${s.config.show_new} | Show Updates: ${s.config.show_updates}\nAdult Content: ${s.config.nsfw} | Non-adult Content: ${s.config.sfw}\nCompact: ${i.compact} | Crosspost: ${i.crosspost}`}
+        };
         case SubscribedItemType.Mod: return {name: `${i.title} (ID: ${i.id})`, value:`Compact: ${i.compact} | Crosspost: ${i.crosspost}`};
         case SubscribedItemType.Collection: return {name: `${i.title} (ID: ${i.id})`, value:`Compact: ${i.compact} | Crosspost: ${i.crosspost}`};
         case SubscribedItemType.User: return {name: `${i.title} (ID: ${i.id})`, value:`Compact: ${i.compact} | Crosspost: ${i.crosspost}`};

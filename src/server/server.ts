@@ -10,7 +10,7 @@ import { DiscordBotUser } from '../api/DiscordBotUser';
 import { ClientExt } from '../types/DiscordTypes';
 import { getSubscribedChannelsForGuild } from '../api/subscriptions';
 import { fileURLToPath } from 'url';
-import { SubscribedItem } from '../types/subscriptions';
+import { SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import forumWebhook from './forumWebhook';
 
 // Get the equivalent of __dirname
@@ -339,9 +339,9 @@ export class AuthSite {
         const guildImage = knownGuild.iconURL();
         const subbedChannels = await getSubscribedChannelsForGuild(guild);
         const channels = await Promise.all(subbedChannels.map(async c => await knownGuild.channels.fetch(c.channel_id)));
-        const subs: (SubscribedItem & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
+        const subs: (SubscribedItem<SubscribedItemType> & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
             const channelName = channels.find(ch => ch?.id === c.channel_id)?.name || 'Unknown Channel';
-            return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem & { channelName?: string }));
+            return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem<SubscribedItemType> & { channelName?: string }));
         }))).flat().sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
         
 

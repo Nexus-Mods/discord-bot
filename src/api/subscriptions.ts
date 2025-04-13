@@ -1,5 +1,5 @@
 import { Snowflake } from 'discord.js';
-import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem } from '../types/subscriptions';
+import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import { queryPromise } from './dbConnect';
 import { logger } from '../DiscordBot';
 
@@ -141,7 +141,7 @@ async function totalItemsInGuild(guild: Snowflake): Promise<number> {
 
 // SUBSCRIBED ITEM HANDLERS
 
-async function getAllSubscriptions(): Promise<SubscribedItem[]> {
+async function getAllSubscriptions(): Promise<SubscribedItem<SubscribedItemType>[]> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
             'SELECT * FROM SubscribedItems',
@@ -158,7 +158,7 @@ async function getAllSubscriptions(): Promise<SubscribedItem[]> {
 
 }
 
-async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedItem[]> {
+async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedItem<SubscribedItemType>[]> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
             `SELECT si.*
@@ -178,12 +178,12 @@ async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): 
     }
 }
 
-async function createSubscription(parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+async function createSubscription(parent: number, s: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, nsfw, sfw, type, show_new, show_updates, parent)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.nsfw, s.sfw, s.type, s.show_new, s.show_updates, parent]
+            `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, type, parent)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.type, parent]
         );
         return new SubscribedItem(data.rows[0]);
 
@@ -195,12 +195,12 @@ async function createSubscription(parent: number, s: Omit<SubscribedItem, 'id' |
     }
 }
 
-async function updateSubscription(id: number, parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+async function updateSubscription(id: number, parent: number, s: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `UPDATE SubscribedItems SET title=$1, entityid=$2, owner=$3, crosspost=$4, compact=$5, message=$6, nsfw=$7, sfw=$8, type=$9, show_new=$10, show_updates=$11, parent=$12, last_update=CURRENT_DATE
-                WHERE id=$13 RETURNING *`,
-            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.nsfw, s.sfw, s.type, s.show_new, s.show_updates, parent, id]
+            `UPDATE SubscribedItems SET title=$1, entityid=$2, owner=$3, crosspost=$4, compact=$5, message=$6, type=$7, parent=$8, config=$9 last_update=CURRENT_DATE
+                WHERE id=$10 RETURNING *`,
+            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.type, parent, s.config, id]
         );
         return new SubscribedItem(data.rows[0]);
 
@@ -245,7 +245,7 @@ async function saveLastUpdatedForSub(id: number, date: Date, status: string | nu
     }
 }
 
-async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel: Snowflake): Promise<SubscribedItem[]> {
+async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel: Snowflake): Promise<SubscribedItem<SubscribedItemType>[]> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
             `UPDATE SubscribedItems si

@@ -175,10 +175,12 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
         crosspost: false,
         compact,
         message,
-        show_new,
-        show_updates,
-        sfw,
-        nsfw
+        config: {
+            show_new,
+            show_updates,
+            sfw,
+            nsfw
+        }
     };
 
     try { 
@@ -233,7 +235,9 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
             crosspost: false,
             compact,
             message,
-            last_status: mod.status
+            config: {
+                last_status: mod.status
+            }
         }
 
         if (currentGameSub) {
@@ -288,7 +292,9 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
             crosspost: false,
             compact,
             message,
-            last_status: collection.collectionStatus
+            config: {
+                last_status: collection.collectionStatus
+            }
         }
 
         if (currentGameSub) {
@@ -341,7 +347,8 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
             owner: interaction.user.id,
             crosspost: false,
             compact,
-            message
+            message,
+            config: undefined
         }
 
         if (currentGameSub) {
