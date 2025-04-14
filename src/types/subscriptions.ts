@@ -28,10 +28,10 @@ export class SubscribedChannel implements ISubscribedChannel {
     created: Date;
 
     public webHookClient: WebhookClient
-    private subscribedItems: SubscribedItem[] = [];
+    private subscribedItems: SubscribedItem<SubscribedItemType>[] = [];
     private logger: Logger;
     
-    constructor(c: ISubscribedChannel, items: SubscribedItem[], logger: Logger) {
+    constructor(c: ISubscribedChannel, items: SubscribedItem<SubscribedItemType>[], logger: Logger) {
         this.logger = logger;
         this.id = c.id;
         this.guild_id = c.guild_id;
@@ -47,7 +47,7 @@ export class SubscribedChannel implements ISubscribedChannel {
 
     public shardId = (client: Client): number => ShardClientUtil.shardIdForGuildId(this.guild_id, client.shard?.count ?? 1);
 
-    public static async create(c: ISubscribedChannel, logger: Logger, items: SubscribedItem[] = []): Promise<SubscribedChannel> {
+    public static async create(c: ISubscribedChannel, logger: Logger, items: SubscribedItem<SubscribedItemType>[] = []): Promise<SubscribedChannel> {
         try {
             if (items.length === 0) items = await getSubscriptionsByChannel(c.guild_id, c.channel_id);
             return new SubscribedChannel(c, items, logger);
@@ -59,7 +59,7 @@ export class SubscribedChannel implements ISubscribedChannel {
         }
     }
 
-    async getSubscribedItems(skipCache: boolean = false): Promise<SubscribedItem[]> {
+    async getSubscribedItems(skipCache: boolean = false): Promise<SubscribedItem<SubscribedItemType>[]> {
         if (!this.subscribedItems.length || skipCache) {
             // fetch from database
             this.subscribedItems = await getSubscriptionsByChannel(this.guild_id, this.channel_id);
@@ -68,9 +68,10 @@ export class SubscribedChannel implements ISubscribedChannel {
         return this.subscribedItems;
     }
 
-    async subscribe(data: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+    async subscribe(data: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
         try {
             const newSub = await createSubscription(this.id, data);
+            this.subscribedItems.push(newSub);
             return newSub;
         }
         catch(err) {
@@ -80,9 +81,12 @@ export class SubscribedChannel implements ISubscribedChannel {
 
     }
 
-    async updateSub(id: number, data: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+    async updateSub(id: number, data: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
         try {
             const updatedSub = await updateSubscription(id, this.id, data);
+            const index = this.subscribedItems.findIndex(i => i.id === id);
+            if (index !== -1) this.subscribedItems[index] = updatedSub;
+            else this.subscribedItems.push(updatedSub);
             return updatedSub;
         }
         catch(err) {
@@ -101,11 +105,12 @@ export enum SubscribedItemType {
     Collection = 'collection'
 }
 
-export interface ISubscribedItem {
+export interface ISubscribedItem<T extends SubscribedItemType>{
     id: number;
     parent: number;
+    type: T;
     title: string;
-    entityid: any;
+    entityid: string | number;
     owner: Snowflake;
     last_update: Date;
     created: Date;
@@ -113,34 +118,65 @@ export interface ISubscribedItem {
     compact: boolean;
     message: string | null;
     error_count: number;
+    config?: ISubscribedItemConfig<SubscribedItemType>;
+}
+
+type ISubscribedItemConfig<T> =
+    T extends SubscribedItemType.Game ? ISubscribedItemConfigGame :
+    T extends SubscribedItemType.User ? undefined :
+    T extends SubscribedItemType.Mod ? ISubscribedItemConfigMod :
+    T extends SubscribedItemType.Collection ? ISubscribedItemConfigCollection 
+    : never;
+
+interface ISubscribedItemConfigGame {
+    // Show NSFW content
     nsfw?: boolean;
-    sfw?: boolean; 
+    // Show SFW content
+    sfw?: boolean;
+    // Show new content
+    show_new?: boolean;
+    // Show updated content
+    show_updates?: boolean;
 }
 
-interface ISubscribedGameItem extends ISubscribedItem {
-    entityid: string;
-    type: SubscribedItemType.Game;
-    show_new: boolean;
-    show_updates:boolean;
+interface ISubscribedItemConfigUser {
 }
 
-interface ISubscribedModItem extends ISubscribedItem {
-    entityId: string;
-    type: SubscribedItemType.Mod;
+interface ISubscribedItemConfigMod {
+    // The last status of the entity.
     last_status: ModStatus;
 }
 
-interface ISubscribedCollectionItem extends ISubscribedItem {
+interface ISubscribedItemConfigCollection {
+    // The last status of the entity.
+    last_status: CollectionStatus;
+
+}
+
+interface ISubscribedGameItem extends ISubscribedItem<SubscribedItemType.Game> {
+    entityid: string;
+    type: SubscribedItemType.Game;
+    // show_new: boolean;
+    // show_updates:boolean;
+}
+
+interface ISubscribedModItem extends ISubscribedItem<SubscribedItemType.Mod> {
+    entityId: string;
+    type: SubscribedItemType.Mod;
+    // last_status: ModStatus;
+}
+
+interface ISubscribedCollectionItem extends ISubscribedItem<SubscribedItemType.Collection> {
     entityId: string;
     type: SubscribedItemType.Collection;
     collectionIds: {
         gameDomain: string;
         slug: string;
     }
-    last_status: CollectionStatus;
+    // last_status: CollectionStatus;
 }
 
-interface ISubscribedUserItem extends ISubscribedItem {
+interface ISubscribedUserItem extends ISubscribedItem<SubscribedItemType.User> {
     entityId: number;
     type: SubscribedItemType.User;
 }
@@ -151,17 +187,17 @@ export type ISubscribedItemUnionType =
     | ISubscribedCollectionItem
     | ISubscribedUserItem;
 
-export class SubscribedItem {
+export class SubscribedItem<T extends SubscribedItemType> {
     // Database identiifier
     id : number;
     // Parent channel DB identifier
     parent: number;
     // What kind of item are we subbed to?
-    type: SubscribedItemType;
+    type: T;
     // Displayable title without re-fetching
     title: string;
     // Entity ID (mod ID, collection slug, user ID, game domain)
-    entityid: string | number | bigint;
+    entityid: string | number;
     // Discord ID of the owner.
     owner: string;
     // Last update to this subscribed item
@@ -176,20 +212,12 @@ export class SubscribedItem {
     message: string | null;
     // Error counter, when it gets too high we abandon this feed.
     error_count: number;
-    // Show NSFEW content
-    nsfw?: boolean;
-    // Show SFW content
-    sfw?: boolean;
-    // Show new content (Mods only)
-    show_new?: boolean;
-    // Show updated content (Mods only)
-    show_updates?: boolean;
     // Collection IDs
     collectionIds?: { gameDomain: string, slug: string };
-    // Last status
-    last_status?: CollectionStatus | ModStatus;
+    // config object
+    config: ISubscribedItemConfig<T>;
 
-    constructor(item: ISubscribedItemUnionType) {
+    constructor(item: Extract<ISubscribedItemUnionType, { type: T }>) {
         this.id = item.id;
         this.type = item.type;
         this.title = item.title;
@@ -202,28 +230,20 @@ export class SubscribedItem {
         this.message = item.message;
         this.error_count = item.error_count;
         this.parent = item.parent;
-        this.nsfw = item.nsfw;
-        this.sfw = item.sfw;
-        if (item.type === SubscribedItemType.Game) {
-            this.show_new = item.show_new;
-            this.show_updates = item.show_updates; 
-        }
+        this.config = item.config as ISubscribedItemConfig<T>;
         if (item.type === SubscribedItemType.Collection) {
             const [gameDomain, slug] = (this.entityid as string).split(':');
             this.collectionIds = { gameDomain, slug };
-            this.last_status = item.last_status;
-        }
-        if (item.type === SubscribedItemType.Mod) {
-            this.last_status = item.last_status;
-        }
-        if (item.type === SubscribedItemType.User) {
-            this.entityid = parseInt(item.entityid);
+        } else if (item.type === SubscribedItemType.User) {
+            this.entityid = parseInt(item.entityid as string);
         }
     }
 
     public showAdult(channel: TextChannel): boolean {
-        if ((this.type === SubscribedItemType.Game || this.type === SubscribedItemType.User) && this.nsfw !== undefined) return this.nsfw;
-        else return channel.nsfw;
+        if (this.type === SubscribedItemType.Game && this.config && 'nsfw' in this.config) {
+            return this.config.nsfw ?? channel.nsfw;
+        }
+        return channel.nsfw;
     }
 }
 
@@ -333,7 +353,7 @@ export enum UserEmbedType {
     NewVideo = 'new-video'
 }
 
-export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: Logger, entity: EntityType<T>, sub: SubscribedItem, guild: Guild, updated: boolean = false, userEmbedType: UserEmbedType | null = null): Promise<EmbedBuilder> {
+export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: Logger, entity: EntityType<T>, sub: SubscribedItem<T>, guild: Guild, updated: boolean = false, userEmbedType: UserEmbedType | null = null): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder();
     const compact: boolean = sub.compact;
     switch (sub.type) {
@@ -548,7 +568,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
     return embed;
 }
 
-export function unavailableUpdate<T extends SubscribedItemType>(entity: EntityType<T>, type: SubscribedItemType, sub: SubscribedItem, newStatus: ModStatus | CollectionStatus): IPostableSubscriptionUpdate<T> {
+export function unavailableUpdate<T extends SubscribedItemType>(entity: EntityType<T>, type: SubscribedItemType, sub: SubscribedItem<T>, newStatus: ModStatus | CollectionStatus): IPostableSubscriptionUpdate<T> {
     const embed = new EmbedBuilder();
     let date = new Date();
     if (type === SubscribedItemType.Mod) {
@@ -630,7 +650,7 @@ export function unavailableUpdate<T extends SubscribedItemType>(entity: EntityTy
     }
 }
 
-export function unavailableUserUpdate(entity: IUser, sub: SubscribedItem): IPostableSubscriptionUpdate<SubscribedItemType.User> {
+export function unavailableUserUpdate(entity: IUser, sub: SubscribedItem<SubscribedItemType.User>): IPostableSubscriptionUpdate<SubscribedItemType.User> {
     const embed = new EmbedBuilder()
     if (entity.deleted) {
         embed.setColor('DarkerGrey')

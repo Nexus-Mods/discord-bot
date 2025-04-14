@@ -23,7 +23,7 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
-export async function queryPromise<T extends QueryResultRow>(query: string, values: any[], name?: string): Promise<QueryResult<T>> {
+export async function queryPromise<T extends QueryResultRow>(query: string, values?: any[], name?: string): Promise<QueryResult<T>> {
     let client: PoolClient | undefined = undefined;
     
     try {

@@ -10,7 +10,7 @@ import { DiscordBotUser } from '../api/DiscordBotUser';
 import { ClientExt } from '../types/DiscordTypes';
 import { getSubscribedChannelsForGuild } from '../api/subscriptions';
 import { fileURLToPath } from 'url';
-import { SubscribedItem } from '../types/subscriptions';
+import { SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import forumWebhook from './forumWebhook';
 
 // Get the equivalent of __dirname
@@ -81,8 +81,6 @@ export class AuthSite {
         this.app.get('/show-metadata', this.showMetaData.bind(this));
         
         this.app.get('/revoke', this.revokeAccess.bind(this));
-        
-        this.app.get('/beacon', this.beaconTest.bind(this));
 
         this.app.get('/tracking', this.tracking.bind(this));
 
@@ -327,10 +325,6 @@ export class AuthSite {
         
     }
 
-    async beaconTest(req: express.Request, res: express.Response) {
-        res.render('beacon', { pageTitle: 'Beacon Test Page', loadBeacon: true });
-    }
-
     async tracking(req: express.Request, res: express.Response) {
         const guild = req.query['guild'] as string;
         if (!guild) return res.redirect('/')
@@ -339,9 +333,9 @@ export class AuthSite {
         const guildImage = knownGuild.iconURL();
         const subbedChannels = await getSubscribedChannelsForGuild(guild);
         const channels = await Promise.all(subbedChannels.map(async c => await knownGuild.channels.fetch(c.channel_id)));
-        const subs: (SubscribedItem & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
+        const subs: (SubscribedItem<SubscribedItemType> & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
             const channelName = channels.find(ch => ch?.id === c.channel_id)?.name || 'Unknown Channel';
-            return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem & { channelName?: string }));
+            return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem<SubscribedItemType> & { channelName?: string }));
         }))).flat().sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
         
 

@@ -115,6 +115,21 @@ export class SubscriptionManger {
         else this.channels = allChannels;
     }
 
+    public removeChannel(id: number) {
+        const channel = this.channels.find(c => c.id === id);
+        if (!channel) return this.logger.warn('Attempted to remove channel but it was not found.', id);
+        this.channels.splice(this.channels.indexOf(channel), 1);
+        this.logger.info('Removed channel from SubscriptionManager', id);
+        const remaining = this.channels.filter(c => c.guild_id === channel.guild_id).length;
+        if (!remaining) this.channelGuildSet.delete(channel.guild_id);
+    }
+
+    public updateChannel(channel: SubscribedChannel) {
+        const saved = this.channels.findIndex(c => c.id === channel.id);
+        if (saved !== -1) this.channels[saved] = channel;
+        else this.channels.push(channel);
+    }
+
     private async updateSubscriptions(reloadChannels: boolean = false) {
         // Update the channels
         if (!reloadChannels) await this.updateChannels();
@@ -252,13 +267,13 @@ export class SubscriptionManger {
             try {
                 // Logic based on subscription type here.
                 switch (item.type) {
-                    case SubscribedItemType.Game: updates = await this.getGameUpdates(item, guild);
+                    case SubscribedItemType.Game: updates = await this.getGameUpdates(item as SubscribedItem<SubscribedItemType.Game>, guild);
                     break;
-                    case SubscribedItemType.Mod:updates = await this.getModUpdates(item, guild);
+                    case SubscribedItemType.Mod:updates = await this.getModUpdates(item as SubscribedItem<SubscribedItemType.Mod>, guild);
                     break;
-                    case SubscribedItemType.Collection: updates = await this.getCollectionUpdates(item, guild);
+                    case SubscribedItemType.Collection: updates = await this.getCollectionUpdates(item as SubscribedItem<SubscribedItemType.Collection>, guild);
                     break;
-                    case SubscribedItemType.User: updates = await this.getUserUpdates(item, guild);
+                    case SubscribedItemType.User: updates = await this.getUserUpdates(item as SubscribedItem<SubscribedItemType.User>, guild);
                     break;
                     default: throw new Error('Unregcognised SubscribedItemType');
                 }
@@ -266,7 +281,7 @@ export class SubscriptionManger {
                 this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type}) since ${item.last_update.toISOString()}`);
             }
             catch(err) {
-                this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, error: err });
+                this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, config: item.config, error: err });
                 continue;
             }           
             
@@ -340,35 +355,35 @@ export class SubscriptionManger {
         }
     }
 
-    private async getGameUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Game>[]> {
+    private async getGameUpdates<T extends SubscribedItemType.Game>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         const domain: string = item.entityid as string;
         const last_update = item.last_update;
-        let newMods = item.show_new 
+        let newMods = item.config.show_new 
             ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) > last_update && modCanShow(m, item) )
             : [];
         // If there's nothing in the cache, we'll double check
-        if (!newMods.length && item.show_new) {
+        if (!newMods.length && item.config.show_new) {
             this.logger.debug('Re-fetching new mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
                 gameDomainName: { value: domain, op: 'EQUALS' },
                 createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
             }
             // Hide SFW content
-            if (item.sfw === false && item.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
+            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
             // Hide NSFW content
-            if (item.nsfw === false && item.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
+            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
             );
             newMods = res.nodes;
         }
-        else if (item.show_new) this.logger.debug('Using cached new mods', { domain, count: newMods.length, itemId: item.id, parent: item.parent });
+        else if (item.config.show_new) this.logger.debug('Using cached new mods', { domain, count: newMods.length, itemId: item.id, parent: item.parent });
         // Map into the generic format.
         const formattedNew: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         for (const mod of newMods) {
-            const embed = await subscribedItemEmbed(this.logger, mod, item, guild);
+            const embed = await subscribedItemEmbed<SubscribedItemType.Game>(this.logger, mod, item, guild);
             formattedNew.push({ 
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.createdAt), 
@@ -381,11 +396,11 @@ export class SubscriptionManger {
         }
         results.push(...formattedNew);
 
-        let updatedMods: (IMod & { files?: IModFile[]})[] = item.show_updates 
+        let updatedMods: (IMod & { files?: IModFile[]})[] = item.config.show_updates 
             ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) > last_update && modCanShow(m, item) )
             : [];
         // If there's nothing in the cache, we'll double check
-        if (!updatedMods.length && item.show_updates) {
+        if (!updatedMods.length && item.config.show_updates) {
             this.logger.debug('Re-fetching updated mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
                 gameDomainName: { value: domain, op: 'EQUALS' },
@@ -393,9 +408,9 @@ export class SubscriptionManger {
                 hasUpdated: { value: true, op: 'EQUALS' }
             }
             // Hide SFW content
-            if (item.sfw === false && item.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
+            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
             // Hide NSFW content
-            if (item.nsfw === false && item.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
+            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
             const res = await this.fakeUser.NexusMods.API.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
@@ -403,7 +418,7 @@ export class SubscriptionManger {
             updatedMods = res.nodes;
             // Get the file lists (including changelogs)
         }
-        else if (item.show_updates) this.logger.debug('Using cached updated mods', { domain, count: updatedMods.length, itemId: item.id, parent: item.parent });
+        else if (item.config.show_updates) this.logger.debug('Using cached updated mods', { domain, count: updatedMods.length, itemId: item.id, parent: item.parent });
         // Attach a list of files
         for (const mod of updatedMods) {
             const files = this.cache.getCachedModFiles(mod.uid) ?? await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
@@ -413,7 +428,7 @@ export class SubscriptionManger {
         // Map into the generic format.
         const formattedUpdates: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         for (const mod of updatedMods) {
-            const embed = await subscribedItemEmbed(this.logger, mod, item, guild, true);
+            const embed = await subscribedItemEmbed<SubscribedItemType.Game>(this.logger, mod, item, guild, true);
             formattedUpdates.push({ 
                 type: SubscribedItemType.Game, 
                 date: new Date(mod.updatedAt), 
@@ -442,7 +457,7 @@ export class SubscriptionManger {
         return results;
     }
 
-    private async getModUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Mod>[]> {
+    private async getModUpdates<T extends SubscribedItemType.Mod>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
         // logMessage('Processing mod updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Mod>[] = [];
         const modUid: string = item.entityid as string;
@@ -453,16 +468,16 @@ export class SubscriptionManger {
         if (!mod) throw new Error(`Mod not found for ${modUid}`);
         if (['hidden', 'under_moderation'].includes(mod.status)) {
             this.logger.info('Mod is temporarily unavailable:', mod.status);
-            if (item.last_status === 'published') {
-                results.push(unavailableUpdate(mod, SubscribedItemType.Mod, item, mod.status))
+            if (item.config.last_status === 'published') {
+                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status))
                 await saveLastUpdatedForSub(item.id, results[0].date, mod.status);
             }
             return results;
         }
         else if (['deleted', 'wastebinned'].includes(mod.status)){
             this.logger.info('Mod is permanently unavailable:', mod.status);
-            if (item.last_status === 'published') {
-                results.push(unavailableUpdate(mod, SubscribedItemType.Mod, item, mod.status))
+            if (item.config.last_status === 'published') {
+                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status))
                 await deleteSubscription(item.id);
             }
             return results;
@@ -481,7 +496,7 @@ export class SubscriptionManger {
         if (!newFiles.length) return results;
         // Map the newly uploaded files
         for (const file of newFiles) {
-            const embed = await subscribedItemEmbed(this.logger, {...mod, files: [file]}, item, guild);
+            const embed = await subscribedItemEmbed<SubscribedItemType.Mod>(this.logger, {...mod, files: [file]}, item, guild);
             results.push({
                 type: SubscribedItemType.Mod, 
                 date: new Date(file.date * 1000), 
@@ -501,7 +516,7 @@ export class SubscriptionManger {
         return results;
     } 
 
-    private async getCollectionUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.Collection>[]> {
+    private async getCollectionUpdates<T extends SubscribedItemType.Collection>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
         // logMessage('Processing collection updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Collection>[] = [];
         const {gameDomain, slug} = item.collectionIds!;
@@ -510,16 +525,16 @@ export class SubscriptionManger {
         if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
         if (collection.collectionStatus === CollectionStatus.Moderated) {
             this.logger.info('Collection under moderation', item.title);
-            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.last_status as CollectionStatus)) {
-                results.push(unavailableUpdate(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
+            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.config.last_status as CollectionStatus)) {
+                results.push(unavailableUpdate<SubscribedItemType.Collection>(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
                 await saveLastUpdatedForSub(item.id, results[0].date, collection.collectionStatus);
             }
             return results;
         }
         else if (collection.collectionStatus === CollectionStatus.Discarded) {
             this.logger.info('Collection has been discarded', item.title);
-            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.last_status as CollectionStatus)) {
-                results.push(unavailableUpdate(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
+            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.config.last_status as CollectionStatus)) {
+                results.push(unavailableUpdate<SubscribedItemType.Collection>(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
                 await deleteSubscription(item.id);
             }
             return results;
@@ -539,7 +554,7 @@ export class SubscriptionManger {
         // Map into updates
         for(const rev of revisions) {
             const merged = { ...collection, revisions: [rev] }
-            const embed = await subscribedItemEmbed(this.logger, merged, item, guild);
+            const embed = await subscribedItemEmbed<SubscribedItemType.Collection>(this.logger, merged, item, guild);
             results.push({
                 type: SubscribedItemType.Collection,
                 entity: merged,
@@ -560,7 +575,7 @@ export class SubscriptionManger {
         return results;
     } 
 
-    private async getUserUpdates(item: SubscribedItem, guild: Guild): Promise<IPostableSubscriptionUpdate<SubscribedItemType.User>[]> {
+    private async getUserUpdates<T extends SubscribedItemType.User>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
         // logMessage('Processing user updates', item.title);
         const results: IPostableSubscriptionUpdate<SubscribedItemType.User>[] = [];
         const userId: number = item.entityid as number;
@@ -597,7 +612,7 @@ export class SubscriptionManger {
             { createdAt: { direction: 'ASC' } }
         );
         for (const mod of newMods.nodes) {
-            const embed = await subscribedItemEmbed(this.logger, {...user, mod: mod}, item, guild, undefined, UserEmbedType.NewMod);
+            const embed = await subscribedItemEmbed<SubscribedItemType.User>(this.logger, {...user, mod: mod}, item, guild, undefined, UserEmbedType.NewMod);
             results.push({
                 type: SubscribedItemType.User,
                 entity:{ ...user, mod: mod },
@@ -618,7 +633,7 @@ export class SubscriptionManger {
         for (const mod of updatedMods.nodes) {
             const modFiles: IModFile[] = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
             const modWithFile = { ...mod, file: modFiles.filter(f => Math.floor(f.date *1000) > last_update.getTime()) }
-            const embed = await subscribedItemEmbed(this.logger, {...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
+            const embed = await subscribedItemEmbed<SubscribedItemType.User>(this.logger, {...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
             results.push({
                 type: SubscribedItemType.User,
                 entity:{ ...user, mod: mod },
@@ -689,8 +704,12 @@ export class SubscriptionManger {
 
         const promises: Promise<void>[] = [];
 
+        const allGameSubs: SubscribedItem<SubscribedItemType.Game>[] = subs.filter(
+            (s): s is SubscribedItem<SubscribedItemType.Game> => s.type === SubscribedItemType.Game
+        );
+
         // NEW MODS FOR GAMES 
-        const newGameSubs = subs.filter(s => s.type === SubscribedItemType.Game && s.show_new);
+        const newGameSubs = allGameSubs.filter(s => s.config?.show_new ?? false);
         const newGames = new Set<string>(newGameSubs.map(s => s.entityid as string));
         // For each game, get the date of the oldest possible mod to show.
         const oldestPerNewGame = getMaxiumDatesForGame(newGameSubs, newGames);
@@ -708,7 +727,7 @@ export class SubscriptionManger {
         promises.push(...newGamePromises);
 
         // UPDATED MODS FOR GAMES
-        const updatedGameSubs = subs.filter(s => s.type === SubscribedItemType.Game && s.show_updates);
+        const updatedGameSubs = allGameSubs.filter(s => s.config?.show_updates ?? false);
         const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityid as string));
         const oldestPerUpdatedGame = getMaxiumDatesForGame(updatedGameSubs, updatedGames);
         const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(async ([ domain, date ]) => {
@@ -732,7 +751,7 @@ export class SubscriptionManger {
     }
 }
 
-function getMaxiumDatesForGame(subs: ISubscribedItem[], games: Set<string>) {
+function getMaxiumDatesForGame(subs: ISubscribedItem<SubscribedItemType.Game>[], games: Set<string>) {
     return [...games].reduce<{ [domain: string]: Date }>(
         (prev, cur) => {
         const subsForDomain = subs.filter(g => g.entityid === cur);
@@ -743,8 +762,8 @@ function getMaxiumDatesForGame(subs: ISubscribedItem[], games: Set<string>) {
     {});
 }
 
-function modCanShow(mod: IMod, item: SubscribedItem) {
-    if (item.nsfw === false && mod.adult === true) return false;
-    if (item.sfw === false && mod.adult === false) return false;
+function modCanShow(mod: IMod, item: SubscribedItem<SubscribedItemType.Game>) {
+    if (item.config.nsfw === false && mod.adult === true) return false;
+    if (item.config.sfw === false && mod.adult === false) return false;
     return true;
 }

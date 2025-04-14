@@ -1,5 +1,6 @@
 import { ShardingManager } from 'discord.js';
 import dotenv from 'dotenv';
+import * as dbMigrations from './api/migrations';
 dotenv.config();
 
 const manager = new ShardingManager('./dist/app.js', {
@@ -14,4 +15,18 @@ manager.on('shardCreate', (shard) => {
     shard.on('reconnecting', () => console.log(`[Shard ${shard.id}] Shard ${shard.id} reconnecting`));
 });
 
-manager.spawn(); // Spawn the shards
+async function start() {
+    // Run migrations
+    const version = process.env.npm_package_version;
+    try {
+        if (version === '3.13.0') await dbMigrations.migrationDeleteAPIkeyColumn();
+        if (version === '3.13.1') await dbMigrations.migrationMoveConfigOptionsToJSON();
+    }
+    catch(err) {
+        console.error('Failed to run database migrations', err);
+    }
+
+    manager.spawn(); // Spawn the shards
+}
+
+start();

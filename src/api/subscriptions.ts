@@ -1,5 +1,5 @@
 import { Snowflake } from 'discord.js';
-import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem } from '../types/subscriptions';
+import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import { queryPromise } from './dbConnect';
 import { logger } from '../DiscordBot';
 
@@ -19,7 +19,7 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to fetch subscribed channels.\n${error.message}`;
         throw error;
     }
@@ -40,7 +40,7 @@ async function getSubscribedChannelsForGuild(guild: Snowflake): Promise<Subscrib
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to fetch subscribed channels for guild.\n${error.message}`;
         throw error;
     }
@@ -58,7 +58,7 @@ async function getSubscribedChannel(guild: Snowflake, channel: Snowflake): Promi
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to fetch subscribed channel.\n${error.message}`;
         throw error;
     }
@@ -74,7 +74,7 @@ async function createSubscribedChannel(c: Omit<ISubscribedChannel, 'id' | 'creat
         return new SubscribedChannel(data.rows[0], [], logger);
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to create subscribed channel.\n${error.message}`;
         throw error;
     }
@@ -108,7 +108,7 @@ async function deleteSubscribedChannel(c: ISubscribedChannel): Promise<void> {
         return;
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to delete subscribed channel.\n${error.message}`;
         throw error;
     }
@@ -132,7 +132,7 @@ async function totalItemsInGuild(guild: Snowflake): Promise<number> {
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to fetch total items in guild.\n${error.message}`;
         throw error;
     }
@@ -141,7 +141,7 @@ async function totalItemsInGuild(guild: Snowflake): Promise<number> {
 
 // SUBSCRIBED ITEM HANDLERS
 
-async function getAllSubscriptions(): Promise<SubscribedItem[]> {
+async function getAllSubscriptions(): Promise<SubscribedItem<SubscribedItemType>[]> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
             'SELECT * FROM SubscribedItems',
@@ -151,14 +151,14 @@ async function getAllSubscriptions(): Promise<SubscribedItem[]> {
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to fetch all subscribed items.\n${error.message}`;
         throw error;
     }
 
 }
 
-async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedItem[]> {
+async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedItem<SubscribedItemType>[]> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
             `SELECT si.*
@@ -172,41 +172,41 @@ async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): 
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to fetch subscribed items for channel.\n${error.message}`;
         throw error;
     }
 }
 
-async function createSubscription(parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+async function createSubscription(parent: number, s: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, nsfw, sfw, type, show_new, show_updates, parent)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.nsfw, s.sfw, s.type, s.show_new, s.show_updates, parent]
+            `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, type, parent)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.type, parent]
         );
         return new SubscribedItem(data.rows[0]);
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to create subscription for channel.\n${error.message}`;
         throw error;
     }
 }
 
-async function updateSubscription(id: number, parent: number, s: Omit<SubscribedItem, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem> {
+async function updateSubscription(id: number, parent: number, s: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `UPDATE SubscribedItems SET title=$1, entityid=$2, owner=$3, crosspost=$4, compact=$5, message=$6, nsfw=$7, sfw=$8, type=$9, show_new=$10, show_updates=$11, parent=$12, last_update=CURRENT_DATE
-                WHERE id=$13 RETURNING *`,
-            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.nsfw, s.sfw, s.type, s.show_new, s.show_updates, parent, id]
+            `UPDATE SubscribedItems SET title=$1, entityid=$2, owner=$3, crosspost=$4, compact=$5, message=$6, type=$7, parent=$8, config=$9, last_update=CURRENT_DATE
+                WHERE id=$10 RETURNING *`,
+            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.type, parent, s.config, id]
         );
         return new SubscribedItem(data.rows[0]);
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to update subscription for channel.\n${error.message}`;
         throw error;
     }
@@ -222,17 +222,28 @@ async function deleteSubscription(id: number): Promise<void> {
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to update subscription for channel.\n${error.message}`;
         throw error;
     }
 }
 
-async function saveLastUpdatedForSub(id: number, date: Date, status: string | null = null) {
+async function saveLastUpdatedForSub(id: number, date: Date, status: string = '') {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `UPDATE SubscribedItems SET last_update=$1, last_status=$2
-                WHERE id=$3 RETURNING *`,
+            `UPDATE SubscribedItems 
+            SET last_update = $1, 
+                config = CASE 
+                    WHEN $2 <> '' THEN 
+                        jsonb_set(
+                            COALESCE(config, '{}'), 
+                            '{last_status}', 
+                            to_jsonb($2::TEXT)
+                        )
+                    ELSE config
+                END
+            WHERE id = $3 
+            RETURNING *`,
             [date, status, id]
         );
         if (!data.rowCount) throw new Error('Did not get expected response when updating last updated time.');
@@ -240,13 +251,13 @@ async function saveLastUpdatedForSub(id: number, date: Date, status: string | nu
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to update subscription for channel.\n${error.message}`;
         throw error;
     }
 }
 
-async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel: Snowflake): Promise<SubscribedItem[]> {
+async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel: Snowflake): Promise<SubscribedItem<SubscribedItemType>[]> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
             `UPDATE SubscribedItems si
@@ -262,7 +273,7 @@ async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel:
 
     }
     catch(err) {
-        const error: Error = (err as Error);
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
         error.message = `Failed to update subscription for channel.\n${error.message}`;
         throw error;
     }
@@ -297,12 +308,8 @@ async function ensureSubscriptionsDB() {
                 compact BOOLEAN,              -- Whether it is compact
                 message TEXT,                 -- Message associated with the item
                 error_count INT NOT NULL DEFAULT 0,              -- Error count
-                nsfw BOOLEAN DEFAULT FALSE,   -- NSFW flag (optional)
-                sfw BOOLEAN DEFAULT TRUE,    -- SFW flag (optional)
                 type VARCHAR(50) NOT NULL,             -- Type of item (Game, Mod, Collection, User)
-                show_new BOOLEAN,             -- Only for Game type items
-                show_updates BOOLEAN,         -- Only for Game type items
-                last_status VARCHAR(255), -- Only for Mod/Collection items
+                config JSONB,
                 CONSTRAINT fk_parent FOREIGN KEY (parent) REFERENCES SubscribedChannels(id)
             );
             `,

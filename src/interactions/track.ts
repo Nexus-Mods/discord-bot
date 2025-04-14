@@ -175,10 +175,12 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
         crosspost: false,
         compact,
         message,
-        show_new,
-        show_updates,
-        sfw,
-        nsfw
+        config: {
+            show_new,
+            show_updates,
+            sfw,
+            nsfw
+        }
     };
 
     try { 
@@ -190,6 +192,10 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
+
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
+
         const embed = new EmbedBuilder()
         .setTitle('Game Tracked!')
         .setDescription(`Mods for ${game!.name} will be posted in this channel.`)
@@ -233,7 +239,9 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
             crosspost: false,
             compact,
             message,
-            last_status: mod.status
+            config: {
+                last_status: mod.status
+            }
         }
 
         if (currentGameSub) {
@@ -244,6 +252,9 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
+
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
 
         const embed = new EmbedBuilder()
         .setTitle('Mod Tracked!')
@@ -288,7 +299,9 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
             crosspost: false,
             compact,
             message,
-            last_status: collection.collectionStatus
+            config: {
+                last_status: collection.collectionStatus
+            }
         }
 
         if (currentGameSub) {
@@ -299,6 +312,9 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
+
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
 
         const embed = new EmbedBuilder()
         .setTitle('Collection Tracked!')
@@ -341,7 +357,8 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
             owner: interaction.user.id,
             crosspost: false,
             compact,
-            message
+            message,
+            config: undefined
         }
 
         if (currentGameSub) {
@@ -352,6 +369,9 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
+
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
 
         const embed = new EmbedBuilder()
         .setTitle('User Profile Tracked!')

@@ -1,7 +1,7 @@
 import query from '../api/dbConnect';
 import { NexusUser } from '../types/users';
 import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
-import { Logger, nexusModsTrackingUrl } from './util';
+import { nexusModsTrackingUrl } from './util';
 import { DiscordBotUser } from './DiscordBotUser';
 import { logger } from '../DiscordBot';
 
@@ -95,17 +95,6 @@ async function deleteUser(discordId: string): Promise<void> {
     }
 }
 
-async function migrationDeleteAPIkeyColumn(logger: Logger): Promise<void> {
-    try {
-        await query('ALTER TABLE users DROP COLUMN IF EXISTS apikey', []);
-        logger.info('Deleted API key column from users table');
-    }
-    catch (err) {
-        logger.error('Error deleting column', { err });
-        throw err;
-    }
-}
-
 async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<DiscordBotUser> {
     newUser.lastupdate = new Date();
     let values: any[] = [];
@@ -187,4 +176,4 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
     }
 }
 
-export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed, migrationDeleteAPIkeyColumn };
+export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed };
