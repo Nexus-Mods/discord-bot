@@ -56,6 +56,12 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const allUsers: NexusUser[] = await getAllUsers();
     const allFeeds = await getAllSubscriptions();
 
+    let guildCount = client.guilds.cache.size;
+    if (client.shard) {
+        const shardTotals = await client.shard.broadcastEval((client) => client.guilds.cache.size);
+        guildCount = shardTotals.reduce((prev, cur) => prev+=cur, 0);
+    }
+
 
     // const botPermissons: string[] = interaction.guild?.members.me?.permissions.toArray() || [];
 
@@ -69,7 +75,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     .addFields([
         {
             name: 'Stats',
-            value: `Servers: ${client.guilds.cache.size.toLocaleString()}\n`+
+            value: `Servers: ${guildCount.toLocaleString()}\n`+
             `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
             `Subscribed Items: ${allFeeds.length.toLocaleString()}`,
             inline: true
