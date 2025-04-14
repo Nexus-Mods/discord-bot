@@ -71,6 +71,7 @@ export class SubscribedChannel implements ISubscribedChannel {
     async subscribe(data: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
         try {
             const newSub = await createSubscription(this.id, data);
+            this.subscribedItems.push(newSub);
             return newSub;
         }
         catch(err) {
@@ -83,6 +84,9 @@ export class SubscribedChannel implements ISubscribedChannel {
     async updateSub(id: number, data: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
         try {
             const updatedSub = await updateSubscription(id, this.id, data);
+            const index = this.subscribedItems.findIndex(i => i.id === id);
+            if (index !== -1) this.subscribedItems[index] = updatedSub;
+            else this.subscribedItems.push(updatedSub);
             return updatedSub;
         }
         catch(err) {

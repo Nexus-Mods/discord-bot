@@ -192,6 +192,10 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
+
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
+
         const embed = new EmbedBuilder()
         .setTitle('Game Tracked!')
         .setDescription(`Mods for ${game!.name} will be posted in this channel.`)
@@ -248,6 +252,9 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
+
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
 
         const embed = new EmbedBuilder()
         .setTitle('Mod Tracked!')
@@ -306,6 +313,9 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
             logger.info('Created new collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
 
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
+
         const embed = new EmbedBuilder()
         .setTitle('Collection Tracked!')
         .setDescription(`Updates for ${collection.name} will be posted in this channel.`)
@@ -359,6 +369,9 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
+
+        // Update the subsription manager
+        client.subscriptions?.updateChannel(channel);
 
         const embed = new EmbedBuilder()
         .setTitle('User Profile Tracked!')
