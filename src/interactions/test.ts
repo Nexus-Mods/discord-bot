@@ -32,7 +32,6 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
         const v2test = {
             IsModAuthor: (await botuser.NexusMods.API.v2.IsModAuthor(1)) === true,
-            Games: false,//(await botuser.NexusMods.API.v2.Games()).length > 2000,
             Mod: (await botuser.NexusMods.API.v2.Mod('skyrim', 3863))[0].name === 'SkyUI',
             Mods: (await botuser.NexusMods.API.v2.Mods({ name: { value: 'skyui', op: 'WILDCARD' } })).totalCount > 0,
             UpdatedMods: (await botuser.NexusMods.API.v2.UpdatedMods(new Date(0), true)).totalCount > 0,

@@ -116,30 +116,9 @@ export class DiscordBotUser {
         IsAuthor: (): boolean => this.NexusModsRoles.has('modauthor'),
         Revoke: () => this.NexusModsAuthType === 'OAUTH' && !!this.NexusModsOAuthTokens ? NexusModsOAuth.revoke(this.NexusModsOAuthTokens) : null,
         API: {
-            // v1: {
-            //     Validate: async () => v1.validate(this.headers(), this.logger),
-            //     Game: async (domain: string) => v1.game(this.headers(), this.logger, domain),
-            //     Games: async () => v1.games(this.headers(), this.logger),
-            //     ModQuickSearch: 
-            //         async (query: string, adult: boolean, gameId?: number) => 
-            //             v1.quicksearch(query, adult, gameId),
-            //     UpdatedMods: 
-            //         async (domain: string, period?: string) => 
-            //             v1.updatedMods(this.headers(), this.logger, domain, period),
-            //     Mod: 
-            //         async (domain: string, id: number) => 
-            //             v1.modInfo(this.headers(), this.logger, domain, id),
-            //     ModFiles: 
-            //         async (domain: string, id: number) => 
-            //             v1.modFiles(this.headers(), this.logger, domain, id),
-            //     ModChangelogs: 
-            //         async (domain: string, id: number) => 
-            //             v1.modChangelogs(this.headers(), this.logger, domain, id),
-            // },
             v2: {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), this.logger, id),
                 Game: async (id: number) => v2.game(this.headers(), this.logger, id),
-                Games: async () => v2.games(this.headers(), this.logger),
                 Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), this.logger, [{ gameDomain, modId }]),
                 Mods: async (filter: IModsFilter, sort?: IModsSort ) => v2.mods(this.headers(), this.logger, filter, sort),
                 UpdatedMods: 
