@@ -29,15 +29,6 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     try {
         await botuser.NexusMods.Auth();
         logger.info('Nexus Mods Auth verfied.');
-        // const v1test = {
-        //     Games: (await botuser.NexusMods.API.v1.Games()).length > 2000,
-        //     Game: (await botuser.NexusMods.API.v1.Game('skyrim')).name === 'Skyrim',
-        //     ModQuickSearch: (await botuser.NexusMods.API.v1.ModQuickSearch('skyui', true)).results.length > 0,
-        //     UpdatedMods: (await botuser.NexusMods.API.v1.UpdatedMods('skyrimspecialedition')).length > 0,
-        //     Mod: (await botuser.NexusMods.API.v1.Mod('skyrim', 3863)).name === 'SkyUI',
-        //     ModFiles: (await botuser.NexusMods.API.v1.ModFiles('skyrim', 3863)).files[0].file_name === 'SkyUI_1_0-3863.7z',
-        //     ModChangelogs: Object.keys(await botuser.NexusMods.API.v1.ModChangelogs('skyrim', 3863)).includes('5.1')
-        // }
 
         const v2test = {
             IsModAuthor: (await botuser.NexusMods.API.v2.IsModAuthor(1)) === true,
@@ -61,14 +52,14 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
             WebsiteStatus: !!(await botuser.NexusMods.API.Other.WebsiteStatus()),
         }
         
-        logger.info('API tests complete', { v2test });
+        logger.info('API tests complete', { v2test, otherTest });
 
         const format = (input: {[key: string]: boolean}): string => 
             Object.entries(input).reduce((prev: string, cur: [string, boolean]) => {
                 return prev + `${cur[0]}: ${cur[1] ? '✅' : '⚠️' }\n`
             }, '');
 
-        const formatted = `## V2 Tests\n${format(v2test)}\n## Other\n${format(otherTest)}`;
+        const formatted = `## V2 API Tests\n${format(v2test)}\n## Other\n${format(otherTest)}`;
 
         const embed = await botuser.ProfileEmbed(client);
 
