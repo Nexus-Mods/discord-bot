@@ -246,6 +246,7 @@ async function saveLastUpdatedForSub(id: number, date: Date, status: string = ''
             RETURNING *`,
             [date, status, id]
         );
+        if (!data.rowCount) throw new Error('Did not get expected response when updating last updated time.');
         return new SubscribedItem(data.rows[0]);
 
     }
