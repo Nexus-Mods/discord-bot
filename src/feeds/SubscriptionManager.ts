@@ -115,6 +115,21 @@ export class SubscriptionManger {
         else this.channels = allChannels;
     }
 
+    public removeChannel(id: number) {
+        const channel = this.channels.find(c => c.id === id);
+        if (!channel) return this.logger.warn('Attempted to remove channel but it was not found.', id);
+        this.channels.splice(this.channels.indexOf(channel), 1);
+        this.logger.info('Removed channel from SubscriptionManager', id);
+        const remaining = this.channels.filter(c => c.guild_id === channel.guild_id).length;
+        if (!remaining) this.channelGuildSet.delete(channel.guild_id);
+    }
+
+    public updateChannel(channel: SubscribedChannel) {
+        const saved = this.channels.findIndex(c => c.id === channel.id);
+        if (saved !== -1) this.channels[saved] = channel;
+        else this.channels.push(channel);
+    }
+
     private async updateSubscriptions(reloadChannels: boolean = false) {
         // Update the channels
         if (!reloadChannels) await this.updateChannels();

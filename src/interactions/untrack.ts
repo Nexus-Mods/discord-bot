@@ -82,7 +82,15 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         // Refresh the subs for the channel
         const newSubs = await subbedChannel.getSubscribedItems(true);
         // if there are no more subs, delete the channel
-        if (!newSubs.length) await deleteSubscribedChannel(subbedChannel);
+        if (!newSubs.length) {
+            await deleteSubscribedChannel(subbedChannel);
+            // Update the Subscription Manager
+            client.subscriptions?.removeChannel(subbedChannel.id);
+        }
+        else {
+            // Update the Subscription Manager
+            client.subscriptions?.updateChannel(subbedChannel);
+        }
         return i.editReply({ content:`Untracked ${selected.length} item(s)` });
     });
 }
