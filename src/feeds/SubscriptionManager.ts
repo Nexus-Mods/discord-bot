@@ -540,7 +540,7 @@ export class SubscriptionManger {
             return results;
         }
         const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
-        if (collectionUpdatedAt.getTime() <= last_update.getTime()) {
+        if (collectionUpdatedAt.getTime() < last_update.getTime()) {
             // Collection hasn't been updated since we last checked.
             // logMessage('No updates found', item.title);
             return results;
