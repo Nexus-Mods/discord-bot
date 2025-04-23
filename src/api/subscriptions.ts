@@ -181,9 +181,9 @@ async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): 
 async function createSubscription(parent: number, s: Omit<SubscribedItem<SubscribedItemType>, 'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'>): Promise<SubscribedItem<SubscribedItemType>> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
-            `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, type, parent)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.type, parent]
+            `INSERT INTO SubscribedItems (title, entityid, owner, crosspost, compact, message, type, parent, config)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [s.title, s.entityid, s.owner, s.crosspost, s.compact, s.message, s.type, parent, s.config]
         );
         return new SubscribedItem(data.rows[0]);
 
