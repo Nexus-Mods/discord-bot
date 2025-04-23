@@ -149,7 +149,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 }
 
 async function trackGame(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
-    const channel = await ensureChannelisSubscribed(client, interaction, logger);
+    const { channel, guildTotal } = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const gameDomain = interaction.options.getString('game', true);
     const compact = interaction.options.getBoolean('compact') ?? false;
@@ -189,6 +189,9 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
             logger.info('Updated existing game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
+            if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
+                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+            }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
         }
@@ -215,7 +218,7 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
 }
 
 async function trackMod(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
-    const channel = await ensureChannelisSubscribed(client, interaction, logger);
+    const { channel, guildTotal } = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const moduid: string = interaction.options.getString('mod', true);
     const compact: boolean = interaction.options.getBoolean('compact') ?? false;
@@ -249,6 +252,9 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
             logger.info('Updated existing mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
+            if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
+                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+            }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
         }
@@ -275,7 +281,7 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
 }
 
 async function trackCollection(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
-    const channel = await ensureChannelisSubscribed(client, interaction, logger);
+    const { channel, guildTotal } = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const collectionSlugAndDomain = interaction.options.getString('collection', true);
     const [domain, collectionSlug] = collectionSlugAndDomain.split(':');
@@ -309,6 +315,9 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
             logger.info('Updated existing collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
+            if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
+                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+            }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
         }
@@ -335,7 +344,7 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
 }
 
 async function trackUser(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger) {
-    const channel = await ensureChannelisSubscribed(client, interaction, logger);
+    const { channel, guildTotal } = await ensureChannelisSubscribed(client, interaction, logger);
     // Get options from the command
     const userId: number = parseInt(interaction.options.getString('user', true));
     const compact = interaction.options.getBoolean('compact') ?? false;
@@ -366,6 +375,9 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
             logger.info('Updated existing user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
         else {
+            if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
+                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+            }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
         }
@@ -391,15 +403,14 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
     }
 }
 
-async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<SubscribedChannel> {
+async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<{channel: SubscribedChannel, guildTotal: number}> {
     const guild_id = interaction.guildId!;
     const existingChannel = await getSubscribedChannel(guild_id, interaction.channelId);
     if (existingChannel) {
         // Check if the guild has over 20 items.
         const total = await totalItemsInGuild(guild_id);
         logger.info('Total items in guild', { guild: interaction.guild?.name, total });
-        if (total > (client.subscriptions?.maxSubsPerGuild || 5)) throw new Error('Channel already subscribed to maximum number of items.');
-        return existingChannel
+        return { channel: existingChannel, guildTotal: total };
     };
     // Channel isn't set up yet.
     const AllWebHooks: Collection<Snowflake, Webhook> = await (interaction.channel as TextChannel)?.fetchWebhooks().catch(() => new Collection()) || new Collection();
@@ -430,7 +441,7 @@ async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInp
         webhook_id: webHook.id,
         webhook_token: webHook.token!
     });
-    return newChannel;
+    return {channel: newChannel, guildTotal: 0};
 }
 
 async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger: Logger) {
