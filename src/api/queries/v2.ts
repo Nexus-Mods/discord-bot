@@ -149,6 +149,7 @@ export interface IModsFilter {
 export class NexusGQLError extends Error {
     public code?: number;
     public errors?: string;
+    public fullResponse?: any;
 
     constructor(clientError: ClientError, type: string) {
         super();
@@ -164,6 +165,7 @@ export class NexusGQLError extends Error {
             this.errors = clientError.response.errors ? clientError.response.errors.join('\n') : clientError.message;
             this.message = `GraphQL ${type} request failed. ${this.code ? `\nStatus: ${this.code}` : null}\nQuery: ${query}\nVariables: ${JSON.stringify(variables)}\nErrors: ${this.errors}`;
             this.name = `Request failed ${type}`;
+            if (this.code === 401) this.fullResponse = clientError.response;
         }
     }
 
