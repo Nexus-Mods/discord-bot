@@ -481,7 +481,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                         }
                     )
                     .setTitle(`<:mod:${customEmojis.mod}> ${mod.name.slice(0, 225)}`)
-                    .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subsribedUser')})`)
+                    .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subscribedUser')})`)
                     .setImage(compact ? null : mod.pictureUrl)
                     .setThumbnail(compact ? mod.pictureUrl : null)
                     .setFooter({ text: `${mod.game.name} • v${mod.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
@@ -502,7 +502,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                         }
                     )
                     .setTitle(`<:mod:${customEmojis.mod}> ${mod.name.slice(0, 225)}`)
-                    .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subsribedUser')})`)
+                    .setDescription(`${mod.summary ?? '_No Summary_'}\n[View Mod ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'subscribedUser')})`)
                     .setImage(compact ? null : mod.pictureUrl)
                     .setThumbnail(compact ? mod.pictureUrl : null)
                     .setFooter({ text: `${mod.game.name} • v${mod.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
@@ -522,7 +522,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                         }
                     )
                     .setTitle(`<:collection:${customEmojis.collection}>  ${collection.name}`)
-                    .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subsribedUser')})`)
+                    .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedUser')})`)
                     .setImage(compact ? null : collection.tileImage.url)
                     .setThumbnail(compact ? collection.tileImage.url : null)
                     .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
@@ -541,7 +541,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                         }
                     )
                     .setTitle(`<:collection:${customEmojis.collection}>  ${collection.name}`)
-                    .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subsribedUser')})`)
+                    .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedUser')})`)
                     .setImage(compact ? null : collection.tileImage.url)
                     .setThumbnail(compact ? collection.tileImage.url : null)
                     .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
