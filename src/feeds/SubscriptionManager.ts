@@ -512,6 +512,7 @@ export class SubscriptionManger {
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
         await saveLastUpdatedForSub(item.id, lastDate, mod.status);    
+        item.last_update = lastDate;
         
         return results;
     } 
@@ -571,6 +572,7 @@ export class SubscriptionManger {
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
         await saveLastUpdatedForSub(item.id, lastDate, collection.collectionStatus);
+        item.last_update = lastDate;
                 
         return results;
     } 
@@ -689,6 +691,7 @@ export class SubscriptionManger {
         const lastDate = results[results.length -1].date;
         // logMessage('Last date', { title: item.title, lastDate, last_update, result: results[results.length -1].embed.author?.name })
         await saveLastUpdatedForSub(item.id, lastDate);
+        item.last_update = lastDate;
 
         return results;
     } 
