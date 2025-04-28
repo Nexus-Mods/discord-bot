@@ -68,7 +68,8 @@ export class DiscordBotUser {
         this.NexusModsRoles = NexusRoles;
 
         // Pull out tokens if this is an OAUTH session.
-        if (!!user.nexus_access && !!user.nexus_refresh && user.nexus_expires) {
+        if (user.id === -1) return;
+        else if (!!user.nexus_access && !!user.nexus_refresh && user.nexus_expires) {
             const NexusOAuth: OAuthTokens = {
                 access_token: user.nexus_access,
                 refresh_token: user.nexus_refresh,
@@ -83,7 +84,6 @@ export class DiscordBotUser {
             this.NexusModsOAuthTokens = NexusOAuth;
             this.DiscordOAuthTokens = DiscordOAuth;
         }
-        else if (user.id == -1) return;
         else throw new Error('Nexus Mods User does not have any auth options set: '+ JSON.stringify({ name: user.name, token: user.nexus_access }));
     }
 

@@ -135,7 +135,13 @@ export class SubscriptionManger {
         if (!reloadChannels) await this.updateChannels();
         // Prepare the cache
         await this.prepareCache();
-        // if (this.client.shard && this.client.shard.ids[0] === 0) await this.distributeGuildsToShards();
+        
+        // Check if our fake user is somehow instanced as a real user
+        if (this.fakeUser.NexusMods.ID() !== -1) {
+            this.logger.error('Fake user was instanced as the wrong user', { id: this.fakeUser.NexusMods.ID(), name: this.fakeUser.NexusMods.Name(), DummyNexusModsUser });
+            if (DummyNexusModsUser.id !== -1) DummyNexusModsUser.id === -1;
+            this.fakeUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
+        }
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels in batches of ${this.batchSize}`);
         this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
