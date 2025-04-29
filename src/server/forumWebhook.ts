@@ -23,10 +23,10 @@ export default async function forumWebhook(req: express.Request<{}, {}, any>, re
         const author = topic.firstPost.author.name;
         const url = topic.url;
         if (topic.forum.id === 9063) {
-            logger.info('New suggestion via forum webhook', { title, author, url, content: htmlToText(topic.firstPost.content), hidden: topic.hidden });
+            logger.info('New suggestion via forum webhook', { title, author, url, content: htmlToText(topic.firstPost.content, { wordwrap: false }), hidden: topic.hidden });
 
             const embed = new EmbedBuilder()
-            .setTitle('New Suggestion')
+            .setTitle(`New Suggestion ${topic.prefix ? `(${topic.prefix})`: ``}`)
             .setColor('Orange')
             .setAuthor({name: author, iconURL: topic.firstPost.author.photoUrl})
             .setURL(url)
