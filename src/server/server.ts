@@ -376,7 +376,7 @@ export class AuthSite {
             const domain = req.query['domain'] as string;
             const modId = req.query['mod_id'] as string;
             const fileId = req.query['file_id'] as string;
-            if (!domain || !modId || fileId) {
+            if (!domain || !modId || !fileId) {
                 res.statusCode = 400
                 res.send('Game, mod or file ID not provided')
                 return;
