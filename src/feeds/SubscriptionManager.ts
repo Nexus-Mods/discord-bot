@@ -329,10 +329,19 @@ export class SubscriptionManger {
                 if (block.crosspost) {
                     const message = await discordChannel.messages.fetch(msg.id).catch(() => null);
                     if (message && message.crosspostable) {
-                        await message.crosspost();
+                        try {
+                            await message.crosspost();
+                        }
+                        catch(err) {
+                            this.logger.warn('Failed to crosspost webhook message', { channel: discordChannel.name, guild: guild.name });
+                            await webHookClient.send({ content: '-# Failed to crosspost the message. Please check the channel is an announcement channel and the bot has the `MANAGE_MESSAGE` permission.' }).catch(() => null);
+                        }
                         this.logger.info('Webhook crossposted', { channel: discordChannel.name, guild: guild.name });
                     }
-                    else this.logger.warn('Failed to crosspost webhook message', { channel: discordChannel.name, guild: guild.name });
+                    else {
+                        this.logger.warn('Failed to crosspost webhook message', { channel: discordChannel.name, guild: guild.name });
+                        await webHookClient.send({ content: '-# Failed to crosspost the message. Please check the channel is an announcement channel and the bot has the `MANAGE_MESSAGE` permission.' }).catch(() => null)
+                    };
                 }
             }
             catch(err) {
