@@ -30,6 +30,7 @@ export class SubscriptionManger {
         this.channels = channels;
         this.channelGuildSet = new Set(channels.map(c => c.guild_id)); 
         this.fakeUser = new DiscordBotUser(DummyNexusModsUser, logger);
+        logger.info('Created dummy user', { id: this.fakeUser.NexusMods.ID(), name: this.fakeUser.NexusMods.Name(), DummyNexusModsUser });
         // Save the client for later
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
