@@ -33,13 +33,13 @@ interface IRequestHeadersOAuth extends Record<string, string> {
     'Authorization': string;
 }
 
-export const DummyNexusModsUser: NexusUser = {
+export const DummyNexusModsUser: Readonly<NexusUser> = Object.freeze({
     d_id: 'none',
     id: -1,
     name: 'DummyUser',
     supporter: false,
     premium: false
-}
+});
 
 
 export class DiscordBotUser {
