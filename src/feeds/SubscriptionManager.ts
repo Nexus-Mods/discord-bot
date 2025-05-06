@@ -139,8 +139,17 @@ export class SubscriptionManger {
         // Check if our fake user is somehow instanced as a real user
         if (this.fakeUser.NexusMods.ID() !== -1) {
             this.logger.error('Fake user was instanced as the wrong user', { id: this.fakeUser.NexusMods.ID(), name: this.fakeUser.NexusMods.Name(), DummyNexusModsUser });
-            if (DummyNexusModsUser.id !== -1) DummyNexusModsUser.id === -1;
-            this.fakeUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
+            if (DummyNexusModsUser.id !== -1) {
+                this.logger.error('Fake user was instanced as the wrong user', { id: DummyNexusModsUser.id, name: DummyNexusModsUser.name });
+                this.fakeUser = new DiscordBotUser({
+                    id: -1, 
+                    name: 'Corrected Dummy User', 
+                    d_id: 'None',
+                    supporter: false,
+                    premium: false,
+                }, this.logger);
+            }
+            else this.fakeUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
         }
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels in batches of ${this.batchSize}`);
