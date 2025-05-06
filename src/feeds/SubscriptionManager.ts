@@ -39,7 +39,7 @@ export class SubscriptionManger {
             ModFiles: (gameId: number, modId: number) => API.modFiles(baseheader, this.logger, gameId, modId),
             ModsByUid: (uids: string[]) => API.modsByUid(baseheader, this.logger, uids),
             Collection: (slug: string, gameDomain: string, includeDeleted: boolean) => API.collection(baseheader, this.logger, slug, gameDomain, includeDeleted),
-            CollectionRevisions: (gameDomain: string, slug: string) => API.collectionRevisions(baseheader, this.logger, gameDomain, slug),
+            CollectionRevisions: (gameDomain: string, slug: string) => API.collectionRevisions(baseheader, this.logger, slug, gameDomain),
             FindUser: (username: number) => API.findUser(baseheader, this.logger, username),
         }
     }
