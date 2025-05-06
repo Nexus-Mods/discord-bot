@@ -1,15 +1,24 @@
 import { ClientExt } from "../types/DiscordTypes";
-import { DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel,  WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError } from 'discord.js';
+import { 
+    DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel, 
+    WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError 
+} from 'discord.js';
 import { isTesting, Logger } from '../api/util';
-import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
-import { CollectionStatus, IMod, IModFile, IModsFilter, ModFileCategory } from '../api/queries/v2';
-import { IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from '../types/subscriptions';
+import { CollectionStatus, IMod, IModFile, IModsFilter, IModsSort, ModFileCategory } from '../api/queries/v2';
+import { 
+    IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, 
+    SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, 
+    SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType 
+} from '../types/subscriptions';
 import { 
     deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, 
     getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, 
     saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
     updateSubscription 
 } from '../api/subscriptions';
+import { v2 as API } from '../api/queries/all';
+import { baseheader } from "../api/util";
+
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -19,18 +28,26 @@ export class SubscriptionManger {
     private channels: SubscribedChannel[];
     private channelGuildSet: Set<string>;
     private cache: SubscriptionCache = new SubscriptionCache();
-    private fakeUser: DiscordBotUser;
     private logger: Logger;
     private batchSize: number = 10;
     public maxSubsPerGuild = 5;
     public paused: boolean = false;
 
+    private NexusModsAPI = {
+        v2: {
+            Mods: (filter: IModsFilter, sort: IModsSort) => API.mods(baseheader, this.logger, filter, sort),
+            ModFiles: (gameId: number, modId: number) => API.modFiles(baseheader, this.logger, gameId, modId),
+            ModsByUid: (uids: string[]) => API.modsByUid(baseheader, this.logger, uids),
+            Collection: (slug: string, gameDomain: string, includeDeleted: boolean) => API.collection(baseheader, this.logger, slug, gameDomain, includeDeleted),
+            CollectionRevisions: (gameDomain: string, slug: string) => API.collectionRevisions(baseheader, this.logger, gameDomain, slug),
+            FindUser: (username: number) => API.findUser(baseheader, this.logger, username),
+        }
+    }
+
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
         this.channels = channels;
         this.channelGuildSet = new Set(channels.map(c => c.guild_id)); 
-        this.fakeUser = new DiscordBotUser(DummyNexusModsUser, logger);
-        logger.info('Created dummy user', { id: this.fakeUser.NexusMods.ID(), name: this.fakeUser.NexusMods.Name(), DummyNexusModsUser });
         // Save the client for later
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
@@ -136,22 +153,6 @@ export class SubscriptionManger {
         if (!reloadChannels) await this.updateChannels();
         // Prepare the cache
         await this.prepareCache();
-        
-        // Check if our fake user is somehow instanced as a real user
-        if (this.fakeUser.NexusMods.ID() !== -1) {
-            this.logger.error('Fake user was instanced as the wrong user', { id: this.fakeUser.NexusMods.ID(), name: this.fakeUser.NexusMods.Name(), DummyNexusModsUser });
-            if (DummyNexusModsUser.id !== -1) {
-                this.logger.error('Fake user was instanced as the wrong user', { id: DummyNexusModsUser.id, name: DummyNexusModsUser.name });
-                this.fakeUser = new DiscordBotUser({
-                    id: -1, 
-                    name: 'Corrected Dummy User', 
-                    d_id: 'None',
-                    supporter: false,
-                    premium: false,
-                }, this.logger);
-            }
-            else this.fakeUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
-        }
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels in batches of ${this.batchSize}`);
         this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
@@ -398,7 +399,7 @@ export class SubscriptionManger {
             if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
             // Hide NSFW content
             if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
-            const res = await this.fakeUser.NexusMods.API.v2.Mods(
+            const res = await this.NexusModsAPI.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
             );
@@ -436,7 +437,7 @@ export class SubscriptionManger {
             if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
             // Hide NSFW content
             if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
-            const res = await this.fakeUser.NexusMods.API.v2.Mods(
+            const res = await this.NexusModsAPI.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
             );
@@ -446,7 +447,7 @@ export class SubscriptionManger {
         else if (item.config.show_updates) this.logger.debug('Using cached updated mods', { domain, count: updatedMods.length, itemId: item.id, parent: item.parent });
         // Attach a list of files
         for (const mod of updatedMods) {
-            const files = this.cache.getCachedModFiles(mod.uid) ?? await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
+            const files = this.cache.getCachedModFiles(mod.uid) ?? await this.NexusModsAPI.v2.ModFiles(mod.game.id, mod.modId);
             mod.files = files;
             this.cache.add('modFiles', files, mod.uid);
         }
@@ -488,7 +489,7 @@ export class SubscriptionManger {
         const modUid: string = item.entityid as string;
         // const ids = modUidToGameAndModId(modUid); // We can convert the UID to mod/game IDs, but we need to domain to look it up on the API.
         const last_update = item.last_update;
-        const res = await this.fakeUser.NexusMods.API.v2.ModsByUid([modUid]);
+        const res = await this.NexusModsAPI.v2.ModsByUid([modUid]);
         const mod: IModWithFiles = res[0];
         if (!mod) throw new Error(`Mod not found for ${modUid}`);
         if (['hidden', 'under_moderation'].includes(mod.status)) {
@@ -507,7 +508,7 @@ export class SubscriptionManger {
             }
             return results;
         } 
-        mod.files = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId) ?? [];
+        mod.files = await this.NexusModsAPI.v2.ModFiles(mod.game.id, mod.modId) ?? [];
         // See which files are new.
         const newFiles = mod.files.filter(f => {
             const fileDate: Date = new Date(Math.floor(f.date * 1000));
@@ -547,7 +548,7 @@ export class SubscriptionManger {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Collection>[] = [];
         const {gameDomain, slug} = item.collectionIds!;
         const last_update = item.last_update;
-        const collection = await this.fakeUser.NexusMods.API.v2.Collection(slug, gameDomain, true);
+        const collection = await this.NexusModsAPI.v2.Collection(slug, gameDomain, true);
         if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
         if (collection.collectionStatus === CollectionStatus.Moderated) {
             this.logger.info('Collection under moderation', item.title);
@@ -571,7 +572,7 @@ export class SubscriptionManger {
             // logMessage('No updates found', item.title);
             return results;
         }
-        const withRevisions = await this.fakeUser.NexusMods.API.v2.CollectionRevisions(gameDomain, slug);
+        const withRevisions = await this.NexusModsAPI.v2.CollectionRevisions(gameDomain, slug);
         if (!withRevisions) throw new Error(`Unable to get revision data`);
         const revisions = withRevisions.revisions.filter(r => new Date(r.updatedAt).getTime() > last_update.getTime())
             .sort((a,b) => a.revisionNumber - b.revisionNumber)
@@ -607,7 +608,7 @@ export class SubscriptionManger {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.User>[] = [];
         const userId: number = item.entityid as number;
         const last_update = item.last_update;
-        const user = await this.fakeUser.NexusMods.API.v2.FindUser(userId);
+        const user = await this.NexusModsAPI.v2.FindUser(userId);
         if (!user) throw new Error(`User not found for ${userId}`);
         if (user.banned === true || user.deleted == true) {
             this.logger.info(`${user.name} has been banned or deleted from Nexus Mods`);
@@ -631,7 +632,7 @@ export class SubscriptionManger {
             item.title = user.name;
         }
         // See if they have any new content since the last check
-        const newMods = await this.fakeUser.NexusMods.API.v2.Mods(
+        const newMods = await this.NexusModsAPI.v2.Mods(
             {
                 uploaderId: { value: userId.toString(), op: 'EQUALS' },
                 createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
@@ -649,7 +650,7 @@ export class SubscriptionManger {
                 crosspost: item.crosspost ?? false,
             });
         }
-        const updatedMods = await this.fakeUser.NexusMods.API.v2.Mods(
+        const updatedMods = await this.NexusModsAPI.v2.Mods(
             {
                 uploaderId: { value: userId.toString(), op: 'EQUALS' },
                 updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
@@ -658,7 +659,7 @@ export class SubscriptionManger {
             { updatedAt: { direction: 'ASC' } }
         );
         for (const mod of updatedMods.nodes) {
-            const modFiles: IModFile[] = await this.fakeUser.NexusMods.API.v2.ModFiles(mod.game.id, mod.modId);
+            const modFiles: IModFile[] = await this.NexusModsAPI.v2.ModFiles(mod.game.id, mod.modId);
             const modWithFile = { ...mod, file: modFiles.filter(f => Math.floor(f.date *1000) > last_update.getTime()) }
             const embed = await subscribedItemEmbed<SubscribedItemType.User>(this.logger, {...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
             results.push({
@@ -671,7 +672,7 @@ export class SubscriptionManger {
             });
         }
         // // COLLECTIONS FILTERING BY DATE IS BROKEN ON THE V2 API 
-        // const newCollections = await this.fakeUser.NexusMods.API.v2.Collections(
+        // const newCollections = await this.NexusModsAPI.v2.Collections(
         //     {
         //         userId: { value: userId.toString(), op: 'EQUALS' },
         //         createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
@@ -688,7 +689,7 @@ export class SubscriptionManger {
         //         embed: embed.data
         //     });
         // }       
-        // const updatedCollections = await this.fakeUser.NexusMods.API.v2.Collections(
+        // const updatedCollections = await this.NexusModsAPI.v2.Collections(
         //     {
         //         userId: { value: userId.toString(), op: 'EQUALS' },
         //         updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
@@ -742,7 +743,7 @@ export class SubscriptionManger {
         // For each game, get the date of the oldest possible mod to show.
         const oldestPerNewGame = getMaxiumDatesForGame(newGameSubs, newGames);
         const newGamePromises = Object.entries(oldestPerNewGame).map(async ([ domain, date ]) => {
-            const mods = await this.fakeUser.NexusMods.API.v2.Mods(
+            const mods = await this.NexusModsAPI.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
                     createdAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }
@@ -759,7 +760,7 @@ export class SubscriptionManger {
         const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityid as string));
         const oldestPerUpdatedGame = getMaxiumDatesForGame(updatedGameSubs, updatedGames);
         const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(async ([ domain, date ]) => {
-            const mods = await this.fakeUser.NexusMods.API.v2.Mods(
+            const mods = await this.NexusModsAPI.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
                     updatedAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' },
