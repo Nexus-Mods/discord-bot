@@ -106,6 +106,7 @@ export class DiscordBotUser {
 
     public NexusMods = {
         Auth: async () => this.authoriseNexusMods(),
+        Token: () => this.NexusModsOAuthTokens,
         ID: (): number => this.NexusModsId,
         Refresh: () => this.refreshUserData(),
         Name: (): string => this.NexusModsUsername,
