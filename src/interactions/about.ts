@@ -7,7 +7,7 @@ import {
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getAllUsers } from '../api/bot-db';
 import { NexusUser } from "../types/users";
-import { Logger } from "../api/util";
+import { calcUptime, Logger } from "../api/util";
 import { getAllSubscriptions } from "../api/subscriptions";
 
 const discordInteraction: DiscordInteraction = {
@@ -104,28 +104,6 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     );
 
     return interaction.editReply({ embeds: [info], components: [buttons] }).catch(err => { throw err });
-}
-
-// function buildPermsList(current: string[], required: { name: string, code: string }[]): string {
-//     const list = required.reduce((prev, cur) => {
-//         if (current.includes(cur.code) || current.includes('ADMINISTRATOR')) {
-//             prev = prev + `✅ ${cur.name}\n`;
-//         }
-//         else prev = prev + `❌ ${cur.name}\n`;
-//         return prev;
-//     }, '');
-
-//     return list;
-// }
-
-function calcUptime(seconds: number): string {
-    const days = Math.floor(seconds/86400);
-    seconds -= (days * 86400);
-    const hours = Math.floor(seconds/3600);
-    seconds -= (hours * 3600);
-    const minutes = Math.floor(seconds/60);
-    seconds -= (minutes * 60);
-    return `${days}d ${hours}h ${minutes}m ${seconds.toFixed()}s`;
 }
 
 export { discordInteraction };

@@ -190,3 +190,13 @@ export enum KnownDiscordServers {
     Author = '232168805038686208',
     App = '1134149061080002713'
 }
+
+export function calcUptime(seconds: number): string {
+    const days = Math.floor(seconds/86400);
+    seconds -= (days * 86400);
+    const hours = Math.floor(seconds/3600);
+    seconds -= (hours * 3600);
+    const minutes = Math.floor(seconds/60);
+    seconds -= (minutes * 60);
+    return `${days}d ${hours}h ${minutes}m ${seconds.toFixed()}s`;
+}
