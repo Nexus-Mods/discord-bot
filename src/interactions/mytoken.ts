@@ -25,7 +25,10 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     try {
         userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
         if (!userData) throw new Error('User not found; please link your account first.');
-        return interaction.editReply(`OAuth Access Token: \`${userData.NexusMods.Token()?.access_token}\``);
+        return interaction.editReply({
+            content: `OAuth Access Token`,
+            files: [{ attachment: Buffer.from(userData.NexusMods.Token()?.access_token ?? 'No token', 'utf-8'), name: 'access_token.txt' }]
+        });
     }
     catch(err) {
         return interaction.editReply('Error getting user data: '+(err as Error).message);
