@@ -2,9 +2,9 @@ import { News, SavedNewsData } from '../types/feeds';
 import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db';
 import { ClientExt } from "../types/DiscordTypes";
 import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'discord.js';
-import { Logger, nexusModsTrackingUrl } from '../api/util';
-import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser';
+import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util';
 import { IGameStatic } from '../api/queries/other';
+import { v2 } from '../api/queries/all';
 
 const pollTime = (1000*60*30)*1; //30 mins
 
@@ -20,6 +20,12 @@ export class NewsFeedManager {
     private webhook_token: string | undefined = process.env['NEWS_WEBHOOK_TOKEN'];
     private webhook_guild: string | undefined = process.env['NEWS_WEBHOOK_GUILD'];
     private webhook_channel: string | undefined = process.env['NEWS_WEBHOOK_CHANNEL'];
+
+    private API ={
+        v2: {
+            News: async (gameId?: number) => v2.news(baseheader, this.logger, gameId),
+        }
+    }
 
     static async getInstance(client: ClientExt, logger: Logger): Promise<NewsFeedManager> {
         if (!NewsFeedManager.instance) {
@@ -91,12 +97,11 @@ export class NewsFeedManager {
             }
         }
 
-        const dummyUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
         const stored: SavedNewsData | undefined = NewsFeedManager.instance.LatestNews;
         const game: IGameStatic | undefined = domain ? ((await this.client.gamesList?.getGames())?.find(g => g.domain_name === domain)) : undefined;
 
         try {
-            const news = await dummyUser.NexusMods.API.v2.News(game?.id);
+            const news = await this.API.v2.News(game?.id);
             if (stored?.title === news[0].title && stored?.date.getTime() === news[0].publishDate.getTime()) {
                 this.logger.info('No news updates since last check.');
                 return newsPostEmbed(news[0], game?.domain_name);

@@ -54,7 +54,7 @@ export class AuthSite {
                     pageTitle: undefined, 
                     clientId: process.env.DISCORD_CLIENT_ID,
                     version: process.env.npm_package_version ?? '0.0.0',
-                    uptime: calcUptime(process.uptime()),
+                    uptime: calcUptime(process.uptime()) ?? "Unknown",
                 }
             );
         });
