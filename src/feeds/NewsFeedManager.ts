@@ -102,6 +102,7 @@ export class NewsFeedManager {
 
         try {
             const news = await this.API.v2.News(game?.id);
+            if (news.length === 0) throw new Error('API returned no news articles, check the logs for further details.');
             if (stored?.title === news[0].title && stored?.date.getTime() === news[0].publishDate.getTime()) {
                 this.logger.info('No news updates since last check.');
                 return newsPostEmbed(news[0], game?.domain_name);
