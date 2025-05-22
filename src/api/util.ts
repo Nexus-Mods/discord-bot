@@ -7,7 +7,7 @@ import { ICollectionsFilter } from "../types/GQLTypes";
 export const isTesting = process.env.NODE_ENV === 'testing';
 const isProduction = process.env.NODE_ENV === 'production';
 
-export const baseheader: Record<string, string> = {
+export const baseheader: Readonly<Record<string, string>> = {
     'Application-Name': 'Nexus Mods Discord Bot',
     'Application-Version': process.env.npm_package_version || '0.0.0'
 };

@@ -91,7 +91,7 @@ export class DiscordBotUser {
 
     private headers = (noAuth?: boolean): IRequestHeadersOAuth => {
 
-        let header = baseheader;
+        let header = { ...baseheader};
 
         if (noAuth === true || this.NexusModsId === -1) return header as IRequestHeadersOAuth;
 
