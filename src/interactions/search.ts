@@ -8,7 +8,7 @@ import { customEmojis } from "../types/util";
 import { DiscordInteraction } from '../types/DiscordTypes';
 import { getUserByDiscordId, getServer } from '../api/bot-db';
 import Fuse from 'fuse.js';
-import { KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util";
+import { gameArt, KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util";
 import { ICollectionsFilter } from "../types/GQLTypes";
 import { BotServer } from "../types/servers";
 import { sendUnexpectedError } from '../events/interactionCreate';
@@ -344,7 +344,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             const multiResult = new EmbedBuilder()
             .setTitle('Search Results')
             .setColor(0xda8e35)
-            .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameIdFilter}.jpg`)
+            .setThumbnail(gameArt(gameIdFilter))
             .setDescription(
                 `Showing ${search.totalCount < 5 ? search.totalCount : 5} of ${search.totalCount} results ([See all](${search.fullSearchUrl || 'https://nexusmods.com/mods/'}))\n`+
                 `Query: "${query}" - Adult content: ${(interaction.channel as TextChannel)?.nsfw}\n`+
@@ -453,7 +453,7 @@ const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGameStatic)
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
     .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
-    .setThumbnail(game? `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game.id}.jpg`: client.user?.avatarURL() || '')
+    .setThumbnail(game ? gameArt(game.id) : client.user?.avatarURL() || '')
 
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
@@ -559,7 +559,7 @@ const oneGameResult = (client: Client, gameInfo: IGameStatic): EmbedBuilder => {
     .setTitle(gameInfo.name)
     .setColor(0xda8e35)
     .setURL(`https://www.nexusmods.com/${gameInfo.domain_name || ''}`)
-    .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${gameInfo.id}.jpg`)
+    .setThumbnail(gameArt(gameInfo.id))
     .addFields([
         {
             name: 'Genre',

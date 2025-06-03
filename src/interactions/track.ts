@@ -3,7 +3,7 @@ import {
     TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, MessageFlags, InteractionContextType
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, Logger } from "../api/util";
+import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, gameArt, Logger } from "../api/util";
 import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions";
 import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions";
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
@@ -203,7 +203,7 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
         .setTitle('Game Tracked!')
         .setDescription(`Mods for ${game!.name} will be posted in this channel.`)
         .setColor('DarkGreen')
-        .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${game!.id}.jpg`)
+        .setThumbnail(gameArt(game!.id))
         .setFooter({ text: `ID: ${currentGameSub.id}` })
         .setTimestamp(currentGameSub.last_update);
         

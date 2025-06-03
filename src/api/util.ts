@@ -12,6 +12,23 @@ export const baseheader: Readonly<Record<string, string>> = {
     'Application-Version': process.env.npm_package_version || '0.0.0'
 };
 
+type GameArtType = '4_3' | '2_3' | 'hero' | 'icon';
+
+export const gameArt = (id: number, type?: GameArtType) : string => {
+    switch (type) {
+        case '4_3':
+            return `https://images.nexusmods.com/images/games/4_3/tile_${id}.jpg`;
+        case '2_3':
+            return `https://images.nexusmods.com/images/games/v2/${id}/tile.jpg`;
+        case 'hero' : 
+            return `https://images.nexusmods.com/images/games/v2/${id}/hero.jpg`;
+        case 'icon' : 
+            return `https://images.nexusmods.com/images/games/v2/${id}/thumbnail.jpg`;
+        default:
+            return `https://images.nexusmods.com/images/games/4_3/tile_${id}.jpg`;
+    }
+}
+
 const colors = [
     '\x1b[32m', // Green
     '\x1b[34m', // Blue

@@ -1,7 +1,7 @@
 
 import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient, ShardClientUtil, Client } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
-import { Logger, nexusModsTrackingUrl } from '../api/util';
+import { gameArt, Logger, nexusModsTrackingUrl } from '../api/util';
 import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
 import { getUserByNexusModsId } from '../api/users';
 import { IUser } from '../api/queries/v2-finduser';
@@ -360,7 +360,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
         case SubscribedItemType.Game: {
             const mod = entity as IModWithFiles;
             let lastestFile = updated ? mod.files?.[0] : undefined;
-            const gameThumb: string = `https://staticdelivery.nexusmods.com/Images/games/4_3/tile_${mod.game.id}.jpg`;
+            const gameThumb: string = gameArt(mod.game.id);
             // Try and find a Discord user for the mod uploader
             const linkedUser = await getUserByNexusModsId(mod.uploader.memberId);
             const guildMember: GuildMember | undefined = linkedUser ? await guild.members.fetch(linkedUser?.DiscordId).catch(() => undefined) : undefined;
