@@ -132,12 +132,12 @@ export class AutoModManager {
                 this.errorCount += 1;
                 if (this.errorCount === 1 || this.errorCount % 10 === 0) {
                     // Post a message stating there was an error.
-                    await PublishToDiscord({ content: 'An API error occurred while checking mods: ```\n'+JSON.stringify((err as NexusGQLError)?.errors, null, 2) + '\n``` \nCount:'+this.errorCount }, this.logger);
+                    await PublishToDiscord({ content: 'An API error occurred while checking mods: ```\n'+(err as NexusGQLError)?.errors+ '\n``` \nCount:'+this.errorCount }, this.logger);
                     await PublishToSlack({ 
                         blocks: [ 
                             {
                                 type: 'section', 
-                                text: { type: 'mrkdwn', text: `An API error occurred while checking mods: ${JSON.stringify((err as NexusGQLError)?.errors, null, 2)}\nError Count: ${this.errorCount}` }} 
+                                text: { type: 'mrkdwn', text: `An API error occurred while checking mods: ${(err as NexusGQLError)?.errors}\nError Count: ${this.errorCount}` }} 
                         ] 
                     }, this.logger);
                     return;
