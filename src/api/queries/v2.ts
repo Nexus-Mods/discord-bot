@@ -156,10 +156,9 @@ export class NexusGQLError extends Error {
             this.name = 'Cloudflare Error';
         }
         else {
-            console.warn('Client error', { errors: clientError.response.errors });
             const query = typeof clientError.request.query === 'string' ? clientError.request.query.replace('\\n', '\n') : clientError.request.query[0].replace('\\n', '\n');
             const variables = clientError.request.variables || {};
-            this.errors = clientError.response.errors ? clientError.response.errors.join('\n') : JSON.stringify(clientError.message);
+            this.errors = clientError.response.errors ? clientError.response.errors.map(e => e.message).join('\n') : JSON.stringify(clientError.message);
             this.message = `GraphQL ${type} request failed. ${this.code ? `\nStatus: ${this.code}` : null}\nQuery: ${query}\nVariables: ${JSON.stringify(variables)}\nErrors: ${this.errors}`;
             this.name = `Request failed ${type}`;
             if (this.code === 401) this.fullResponse = clientError.response;
