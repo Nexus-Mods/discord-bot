@@ -130,7 +130,7 @@ export class AutoModManager {
             catch(err) {
                 this.logger.error('API error fetching mods', err);
                 this.errorCount += 1;
-                if (this.errorCount === 1 || this.errorCount % 10 === 0) {
+                if (this.errorCount === 1 || this.errorCount % 60 === 0) {
                     // Post a message stating there was an error.
                     await PublishToDiscord({ content: 'An API error occurred while checking mods: ```\n'+(err as NexusGQLError)?.errors+ '\n``` \nCount:'+this.errorCount }, this.logger);
                     await PublishToSlack({ 
