@@ -1,7 +1,7 @@
 import { APIEmbed, EmbedBuilder, RESTPostAPIWebhookWithTokenJSONBody } from "discord.js";
 import { getAutomodRules, getBadFiles } from "../api/automod";
 import { ISlackMessage, PublishToDiscord, PublishToSlack } from "../api/moderationWebhooks";
-import { IMod, IModFile } from "../api/queries/v2";
+import { IMod, IModFile, NexusGQLError } from "../api/queries/v2";
 import { IModResults } from "../api/queries/v2-latestmods";
 import { isTesting, Logger } from "../api/util";
 import { ClientExt } from "../types/DiscordTypes";
@@ -34,6 +34,7 @@ export class AutoModManager {
     private logger: Logger;
     private updateTimer?: NodeJS.Timeout;
     private pollTime: number;
+    private errorCount: number = 0;
     private lastCheck: Date = new Date(new Date().valueOf() - (60000 * 10))
     public lastReports: IModWithFlags[][] = []; // A rolling list of the last 10 reports
     public recentUids: Set<string> = new Set<string>(); // A list of recently checked Uids
@@ -120,9 +121,28 @@ export class AutoModManager {
             const dummyUser = new DiscordBotUser(DummyNexusModsUser, this.logger);
             if (!dummyUser) throw new Error("User not found for automod");
             await this.getRules();
-            const newMods: IModResults = await dummyUser?.NexusMods.API.v2.LatestMods(this.lastCheck)
-            const updatedMods: IModResults = await dummyUser?.NexusMods.API.v2.UpdatedMods(this.lastCheck, true);
-            const modsToCheck = [...newMods.nodes, ...updatedMods.nodes].filter(mod => !this.recentUids.has(mod.uid!));
+            let newMods: IModResults | undefined = undefined;
+            let updatedMods: IModResults | undefined = undefined;
+            try {
+                newMods = await dummyUser?.NexusMods.API.v2.LatestMods(this.lastCheck)
+                updatedMods = await dummyUser?.NexusMods.API.v2.UpdatedMods(this.lastCheck, true);
+            }
+            catch(err) {
+                this.logger.error('API error fetching mods', err);
+                this.errorCount += 1;
+                if (this.errorCount === 1 || this.errorCount % 10) {
+                    // Post a message stating there was an error.
+                    await PublishToDiscord({ content: 'An API error occurred while checking mods: '+(err as NexusGQLError)?.message }, this.logger);
+                    await PublishToSlack({ 
+                        blocks: [ 
+                            {
+                                type: 'section', 
+                                text: { type: 'mrkdwn', text: 'An API error occurred while checking mods: '+(err as NexusGQLError)?.message }} 
+                        ] 
+                    }, this.logger);
+                }
+            }
+            const modsToCheck = [...newMods!.nodes, ...updatedMods!.nodes].filter(mod => !this.recentUids.has(mod.uid!));
             if (!modsToCheck.length) {
                 this.logger.info("Automod - Nothing for automod to check")
                 this.setLastCheck(new Date())
@@ -130,7 +150,7 @@ export class AutoModManager {
                 return;
             }
             else this.logger.info(`Automod - Checking ${modsToCheck.length} new and updated mods.`)
-            this.setLastCheck(newMods.nodes[0]?.createdAt ?? updatedMods.nodes[0].updatedAt!)
+            this.setLastCheck(newMods!.nodes[0]?.createdAt ?? updatedMods!.nodes[0].updatedAt!)
 
             let results: IModWithFlags[] = []
             for (const mod of modsToCheck) {

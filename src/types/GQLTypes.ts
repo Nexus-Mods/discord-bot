@@ -1,5 +1,3 @@
-import { GuildMember } from "discord.js";
-
 type ID = number | string | bigint;
 export enum ModStatus {
     Moderated = 'under_moderation',
@@ -34,13 +32,6 @@ interface Mod {
     updatedAt: string;
     uploader: Partial<User>;
     version: string;
-}
-
-interface FeedMod extends Mod {
-    // Used on Gamefeeds where we append the Discord account to the object
-    authorDiscord?: GuildMember | null;
-    // Add the latest file update time from the v1 API response. 
-    lastFileUpdate?: number;
 }
 
 interface ModCategory {

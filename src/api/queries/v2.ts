@@ -104,9 +104,6 @@ export interface IMod {
         domainName: string;
         name: string;
     }
-    // Added by feed manager
-    lastFileUpdate?: number;
-    authorDiscord?: GuildMember | null;
 }
 
 export interface IModsSort {

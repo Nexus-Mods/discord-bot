@@ -77,6 +77,7 @@ export async function latestMods(headers: Record<string,string>, logger: Logger,
     catch(err) {
         const error = new NexusGQLError(err as any, 'mods');
         logger.error('Error in latestmods v2 request', error, true);
-        return { nodes: [], totalCount: 0 };
+        throw error;
+        // return { nodes: [], totalCount: 0 };
     }
 }

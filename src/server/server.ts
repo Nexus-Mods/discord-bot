@@ -48,9 +48,10 @@ export class AuthSite {
 
         this.app.get('/', (req, res) => { 
             // Readme icon from https://www.iconfinder.com/icons/9113356/readme_icon
+            const now = new Date();
             res.render('index', 
                 { 
-                    timestamp: `${new Date().toLocaleDateString('en-GB')} ${new Date().toTimeString()}`, 
+                    timestamp: `${now.toLocaleDateString('en-GB')} ${now.toTimeString()}`, 
                     pageTitle: undefined, 
                     clientId: process.env.DISCORD_CLIENT_ID,
                     version: process.env.npm_package_version ?? '0.0.0',
