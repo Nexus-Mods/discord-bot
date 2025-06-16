@@ -157,6 +157,7 @@ export class NexusGQLError extends Error {
             this.name = 'Cloudflare Error';
         }
         else {
+            console.warn('Client error', clientError)
             const query = typeof clientError.request.query === 'string' ? clientError.request.query.replace('\\n', '\n') : clientError.request.query[0].replace('\\n', '\n');
             const variables = clientError.request.variables || {};
             this.errors = clientError.response.errors ? clientError.response.errors.join('\n') : JSON.stringify(clientError.message);
