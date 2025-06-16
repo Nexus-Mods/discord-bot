@@ -130,9 +130,9 @@ export class AutoModManager {
             catch(err) {
                 this.logger.error('API error fetching mods', err);
                 this.errorCount += 1;
-                if (this.errorCount === 1 || this.errorCount % 10) {
+                if (this.errorCount === 1 || this.errorCount % 10 === 0) {
                     // Post a message stating there was an error.
-                    await PublishToDiscord({ content: 'An API error occurred while checking mods: '+(err as NexusGQLError)?.message }, this.logger);
+                    await PublishToDiscord({ content: 'An API error occurred while checking mods: ```\n'+(err as NexusGQLError)?.errors + '\n```' }, this.logger);
                     await PublishToSlack({ 
                         blocks: [ 
                             {
@@ -140,6 +140,7 @@ export class AutoModManager {
                                 text: { type: 'mrkdwn', text: 'An API error occurred while checking mods: '+(err as NexusGQLError)?.message }} 
                         ] 
                     }, this.logger);
+                    return;
                 }
             }
             const modsToCheck = [...newMods!.nodes, ...updatedMods!.nodes].filter(mod => !this.recentUids.has(mod.uid!));
