@@ -137,7 +137,7 @@ export class AutoModManager {
                         blocks: [ 
                             {
                                 type: 'section', 
-                                text: { type: 'mrkdwn', text: 'An API error occurred while checking mods: '+(err as NexusGQLError)?.message }} 
+                                text: { type: 'mrkdwn', text: `An API error occurred while checking mods: ${(err as NexusGQLError)?.errors}\nError Count: ${this.errorCount}` }} 
                         ] 
                     }, this.logger);
                     return;
