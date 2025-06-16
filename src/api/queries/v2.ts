@@ -1,4 +1,3 @@
-import { GuildMember } from "discord.js";
 import { ClientError } from "graphql-request";
 import * as GQLTypes from '../../types/GQLTypes';
 
@@ -157,7 +156,7 @@ export class NexusGQLError extends Error {
             this.name = 'Cloudflare Error';
         }
         else {
-            console.warn('Client error', clientError)
+            console.warn('Client error', { errors: clientError.response.errors });
             const query = typeof clientError.request.query === 'string' ? clientError.request.query.replace('\\n', '\n') : clientError.request.query[0].replace('\\n', '\n');
             const variables = clientError.request.variables || {};
             this.errors = clientError.response.errors ? clientError.response.errors.join('\n') : JSON.stringify(clientError.message);
