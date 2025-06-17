@@ -35,7 +35,6 @@ query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
           memberId
           joined
           membershipRoles
-        //   modCount
         }
         pictureUrl
       }
@@ -43,6 +42,7 @@ query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
     }
 }
 `;
+// June 2025 - Temporarily removed "uploader.modCount" due to API changes;
 
 export async function latestMods(headers: Record<string,string>, logger: Logger, startDate: Date, gameIds?: number | number[], sort: IModsSort = { createdAt: { direction: 'DESC' }}): Promise<IModResults> {
 
