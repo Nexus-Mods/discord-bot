@@ -14,31 +14,40 @@ export interface IModResults {
 
 const query = gql`
 query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
-    mods(
-        filter: $filter, 
+    mods( 
+        filter: $filter 
+        count: $count
         sort: $sort
     ) {
-      nodes {
-        uid
-        name
-        summary
-        game {
-            domainName
+        totalCount
+        nodes {
+            uid
             name
-            id
+            modId
+            createdAt
+            updatedAt
+            adult
+            summary
+            description
+            status
+            author
+            uploader {
+                name
+                memberId
+                joined
+            }
+            pictureUrl
+            modCategory {
+                name
+            }
+            adult
+            version
+            game {
+                id
+                domainName
+                name
+            }
         }
-        modId
-        createdAt
-        updatedAt
-        description
-        uploader {
-          name
-          memberId
-          joined
-        }
-        pictureUrl
-      }
-      totalCount
     }
 }
 `;
