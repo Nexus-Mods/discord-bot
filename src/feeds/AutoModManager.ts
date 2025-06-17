@@ -11,11 +11,34 @@ import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
 import axios, { AxiosResponse } from "axios";
 
 interface IModWithFlags {
-    mod: Partial<IMod>
+    mod: IModForAutomod,
     flags: {
         low: (AutoModFlags | string)[];
         high: (AutoModFlags | string)[];
     }
+}
+
+export interface IModForAutomod {
+    uid: string;
+    name: string;
+    summary: string;
+    adult: boolean;
+    game: {
+        domainName: string;
+        name: string;
+        id: number;
+    }
+    modId: number,
+    createdAt: string;
+    updatedAt: string;
+    description: string;
+    uploader: {
+        name: string;
+        memberId: number;
+        joined: string;
+        // modCount: number;
+    }
+    pictureUrl: string;
 }
 
 enum AutoModFlags {
@@ -283,7 +306,7 @@ function flagsToDiscordEmbeds(data: IModWithFlags[]): RESTPostAPIWebhookWithToke
     }
 }
 
-async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: IBadFileRule[], user: DiscordBotUser, logger: Logger): Promise<IModWithFlags> {
+async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: IBadFileRule[], user: DiscordBotUser, logger: Logger): Promise<IModWithFlags> {
     let flags: {high: string[], low: string[]} = { high: [], low: [] };    
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60)).getTime()
@@ -391,7 +414,7 @@ const nonPlayableExtensions: string[] = [
     "rtf", "tex", "docx", "odt", "pdf", "url"
 ];
 
-async function checkFilePreview(mod: Partial<IMod>, user: DiscordBotUser, badFiles: IBadFileRule[], logger: Logger): Promise<IModWithFlags> {
+async function checkFilePreview(mod: IModForAutomod, user: DiscordBotUser, badFiles: IBadFileRule[], logger: Logger): Promise<IModWithFlags> {
     const flags: { high: string[], low: string[] } = { high: [], low: [] };
     const modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
     if (!modFiles || !modFiles.length) throw new Error('No files found for mod');

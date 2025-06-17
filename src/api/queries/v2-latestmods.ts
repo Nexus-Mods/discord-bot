@@ -1,13 +1,14 @@
 import { request, gql } from "graphql-request";
 import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
+import { IModForAutomod } from "../../feeds/AutoModManager";
 
 interface IResult {
     mods: IModResults;
 }
 
 export interface IModResults {
-    nodes: Partial<IMod>[];
+    nodes: IModForAutomod[];
     totalCount: number;
 }
 
@@ -34,7 +35,6 @@ query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
           name
           memberId
           joined
-          membershipRoles
         }
         pictureUrl
       }

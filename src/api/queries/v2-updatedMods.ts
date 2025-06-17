@@ -1,13 +1,14 @@
 import { request, gql } from "graphql-request";
 import { Logger } from "../util";
 import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
+import { IModForAutomod } from "../../feeds/AutoModManager";
 
 interface IResult {
     mods: IUpdatedModResults;
 }
 
 interface IUpdatedModResults {
-    nodes: IMod[];
+    nodes: IModForAutomod[];
     totalCount: number;
     // pageInfo?: {
     //     hasNextPage: boolean;
@@ -31,6 +32,7 @@ query DiscordBotGetUpdatedMods($count: Int!, $filter: ModsFilter, $sort: [ModsSo
             modId
             createdAt
             updatedAt
+            adult
             summary
             description
             status
