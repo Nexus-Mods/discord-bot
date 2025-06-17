@@ -292,12 +292,12 @@ async function analyseMod(mod: Partial<IMod>, rules: IAutomodRule[], badFiles: I
 
     if (userJoined >= anHourAgo) flags.low.push(AutoModFlags.NewAccount);
     
-    if (mod.uploader!.modCount <= 1) {
+    // if (mod.uploader!.modCount <= 1) {
         if ((mod.description ?? '').length < 150 && flags.low.includes(AutoModFlags.NewAccount)) {
             flags.high.push(AutoModFlags.FirstUploadProbablySpam)
         }
         // else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload)
-    };
+    // };
 
 
     try {

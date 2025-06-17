@@ -35,7 +35,7 @@ query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
           memberId
           joined
           membershipRoles
-          modCount
+        //   modCount
         }
         pictureUrl
       }
