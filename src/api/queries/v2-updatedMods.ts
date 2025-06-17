@@ -39,11 +39,8 @@ query DiscordBotGetUpdatedMods($count: Int!, $filter: ModsFilter, $sort: [ModsSo
             author
             uploader {
                 name
-                avatar
                 memberId
                 joined
-                membershipRoles
-                modCount
             }
             pictureUrl
             modCategory {
