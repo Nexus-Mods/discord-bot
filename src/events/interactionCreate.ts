@@ -1,6 +1,7 @@
 import { 
     InteractionReplyOptions, GuildChannel, CommandInteraction, AutocompleteInteraction, 
-    MessageFlags
+    MessageFlags,
+    ChatInputCommandInteraction
 } from 'discord.js';
 import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
@@ -62,9 +63,9 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
 
     const reply:InteractionReplyOptions  = { embeds: [unexpectedErrorEmbed(err, context)], flags: MessageFlags.Ephemeral};
     if (ignoreErrors.includes(context.error.toString())) {
-        return logger.error('Unknown interaction error', { err, inter: interaction.options, ...context });
+        return logger.error('Unknown interaction error', { err, inter: (interaction as ChatInputCommandInteraction).options, ...context });
     }
-    else logger.warn('Interaction action errored out', { err, interact: interaction.options, ...context });
+    else logger.warn('Interaction action errored out', { err, interact: (interaction as ChatInputCommandInteraction).options, ...context });
 
     if (interaction.replied || interaction.deferred) {
         if (!interaction.ephemeral) await interaction.deleteReply()
