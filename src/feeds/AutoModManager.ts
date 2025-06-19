@@ -36,7 +36,7 @@ export interface IModForAutomod {
         name: string;
         memberId: number;
         joined: string;
-        // modCount: number;
+        modCount: number;
     }
     pictureUrl: string;
 }
@@ -311,17 +311,16 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60)).getTime()
     const userJoined = new Date(mod.uploader!.joined).getTime();
-    // const modCreatedAt = new Date(mod.createdAt!).getTime();
+    const modCreatedAt = new Date(mod.createdAt!).getTime();
 
     if (userJoined >= anHourAgo) flags.low.push(AutoModFlags.NewAccount);
     
-    // June 2025 - Temporarily removed "uploader.modCount" due to API changes;
-    // if (mod.uploader!.modCount <= 1) {
+    if (mod.uploader!.modCount <= 1) {
         if ((mod.description ?? '').length < 150 && flags.low.includes(AutoModFlags.NewAccount)) {
             flags.high.push(AutoModFlags.FirstUploadProbablySpam)
         }
-        // else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload)
-    // };
+        else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload);
+    };
 
 
     try {

@@ -41,6 +41,7 @@ query DiscordBotGetUpdatedMods($filter: ModsFilter, $sort: [ModsSort!]) {
           name
           memberId
           joined
+          modCount
         }
         pictureUrl
       }
