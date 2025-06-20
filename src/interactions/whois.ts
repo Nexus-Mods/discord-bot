@@ -1,7 +1,7 @@
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { NexusUser } from "../types/users";
 import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
-import { Snowflake, EmbedBuilder, Client, User, CommandInteractionOption, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
+import { Snowflake, EmbedBuilder, Client, User, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
 import { KnownDiscordServers, Logger } from "../api/util";
 import { DiscordBotUser } from "../api/DiscordBotUser";
 
@@ -36,8 +36,8 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Private?
-    const showValue : (CommandInteractionOption | null) = interaction.options.get('private');
-    const show: boolean = !!showValue ? (showValue.value as boolean) : true;
+    const showValue : (boolean | null) = interaction.options.getBoolean('private');
+    const show: boolean = showValue !== null ? showValue : true;
 
     // User Ping?
     const user : (User | null) = interaction.options.getUser('discord');
