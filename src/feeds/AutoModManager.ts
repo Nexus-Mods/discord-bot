@@ -319,7 +319,7 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
         if ((mod.description ?? '').length < 150 && flags.low.includes(AutoModFlags.NewAccount)) {
             flags.high.push(AutoModFlags.FirstUploadProbablySpam)
         }
-        else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload);
+        // else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload);
     };
 
 
