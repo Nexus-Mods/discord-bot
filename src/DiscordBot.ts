@@ -84,12 +84,13 @@ export class DiscordBot {
         }
     }
 
-    private setEventHandler(): void {
+    private async setEventHandler(): Promise<void> {
         try {
-            const events: string[] = fs.readdirSync(path.join(__dirname, 'events'));
-            events.filter(e => e.endsWith('.js')).forEach(async (file) => {
+            const eventsDir = path.join(__dirname, 'events');
+            const events: string[] = await fs.promises.readdir(eventsDir);
+            const eventFiles = events.filter(e => e.endsWith('.js'));
+            await Promise.all(eventFiles.map(async (file) => {
                 try {
-                    // Convert the path to a file:// URL
                     const eventPath = pathToFileURL(path.join(__dirname, 'events', file)).href;
                     const event: DiscordEventInterface = (await import(eventPath)).default;
                     const eventName: string = file.split(".")[0];
@@ -98,9 +99,10 @@ export class DiscordBot {
                     else this.client.on(eventName, (...args) => event.execute(this.client, logger, ...args));
                 }
                 catch(err) {
-                    logger.warn('Failed to register event '+file, err);
+                    logger.warn('Failed to register event '+ file, err);
                 }
-            });
+
+            }));
             logger.info('Registered to receive events:', events.map(e => path.basename(e, '.js')).join(', '));
         }
         catch(err) {
@@ -114,8 +116,8 @@ export class DiscordBot {
         if (!this.client.interactions) this.client.interactions = new Collection();
         if (!this.client.application?.owner) await this.client.application?.fetch();
         
-        const interactionFiles: string[] = fs.readdirSync(path.join(__dirname, 'interactions'))
-            .filter(i => i.toLowerCase().endsWith('.js'));
+        const interactionFolder: string[] = await fs.promises.readdir(path.join(__dirname, 'interactions'));
+        const interactionFiles = interactionFolder.filter(i => i.toLowerCase().endsWith('.js'));
 
         let globalCommandsToSet : RESTPostAPIApplicationCommandsJSONBody[] = []; //Collect all global commands
         const commandsReg = await this.client.application?.commands.fetch(); // Collection of global commands that are already registered.
@@ -185,13 +187,13 @@ export class DiscordBot {
         }
 
         // Set guild commands
-        for (const guildId of Object.keys(guildCommandsToSet)) {
+        await Promise.all(Object.keys(guildCommandsToSet).map(async (guildId) => {
             const guild = await this.client.guilds.fetch(guildId).catch(() => undefined);
-            if (!guild) continue;
+            if (!guild) return;
+            
             const commands = await guild?.commands.fetch(); // Get commands already set for this guild.
             const newCommands = guildCommandsToSet[guildId].filter(c => !commands?.find(ex => ex.name === c.name));
-            if (!newCommands.length && !forceUpdate) continue;
-
+            if (!newCommands.length && !forceUpdate) return;
 
             try {
                 // Remove all current commands
@@ -209,7 +211,33 @@ export class DiscordBot {
             catch(err) {
                 logger.error('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) });
             }
-        }
+
+        }));
+        // for (const guildId of Object.keys(guildCommandsToSet)) {
+        //     const guild = await this.client.guilds.fetch(guildId).catch(() => undefined);
+        //     if (!guild) continue;
+        //     const commands = await guild?.commands.fetch(); // Get commands already set for this guild.
+        //     const newCommands = guildCommandsToSet[guildId].filter(c => !commands?.find(ex => ex.name === c.name));
+        //     if (!newCommands.length && !forceUpdate) continue;
+
+
+        //     try {
+        //         // Remove all current commands
+        //         await this.rest.put(
+        //             Routes.applicationGuildCommands(this.clientId, guildId),
+        //             { body: [] }
+        //         );
+        //         // Add all valid commands.
+        //         await this.rest.put(
+        //             Routes.applicationGuildCommands(this.clientId, guildId),
+        //             { body: guildCommandsToSet[guildId] }
+        //         );
+        //         logger.info('Guild interactions set up', { guild: guild?.name || guildId, commands: guildCommandsToSet[guildId].map(c => c.name).join(', ') });
+        //     }
+        //     catch(err) {
+        //         logger.error('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) });
+        //     }
+        // }
 
         
     }
