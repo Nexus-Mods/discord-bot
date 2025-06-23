@@ -322,9 +322,11 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
         // else if (modCreatedAt >= anHourAgo) flags.low.push(AutoModFlags.FirstUpload);
     };
 
+    let modFiles: IModFile[] = [];
 
     try {
-        const previewCheck = await checkFilePreview(mod, user, badFiles, logger)
+        modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
+        const previewCheck = await checkFilePreview(mod, modFiles, badFiles, logger)
         if (previewCheck.flags.high.length) flags.high.push(...previewCheck.flags.high)
         if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
     }
@@ -335,7 +337,7 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
 
 
     // Check against automod rules
-    let allText = `${mod.name}\n${mod.summary}\n${mod.description}`.toLowerCase();
+    let allText = `${mod.name}\n${mod.summary}\n${mod.description}\n${modFiles.map(f => `File: ${f.name} -- ${f.description}`).join('\n')}`.toLowerCase();
     const urls = await analyseURLS(allText, logger);
     if (urls.length) {
         urls.map(u => flags.low.push(`Shortened URL - ${u}`));
@@ -413,9 +415,8 @@ const nonPlayableExtensions: string[] = [
     "rtf", "tex", "docx", "odt", "pdf", "url"
 ];
 
-async function checkFilePreview(mod: IModForAutomod, user: DiscordBotUser, badFiles: IBadFileRule[], logger: Logger): Promise<IModWithFlags> {
+async function checkFilePreview(mod: IModForAutomod, modFiles: IModFile[], badFiles: IBadFileRule[], logger: Logger): Promise<IModWithFlags> {
     const flags: { high: string[], low: string[] } = { high: [], low: [] };
-    const modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
     if (!modFiles || !modFiles.length) throw new Error('No files found for mod');
     const latestFile = modFiles.sort((a, b) => a.date - b.date)[0];
     const previewUrl = getContentPreviewLink(mod.game!.id, mod.modId!, latestFile).toString();
