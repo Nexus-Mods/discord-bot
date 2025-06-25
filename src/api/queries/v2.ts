@@ -177,7 +177,7 @@ export interface IModFile {
     name: string;
     version: string;
     description: string;
-    manager: boolean;
+    manager: number;
 }
 
 export enum ModFileCategory {

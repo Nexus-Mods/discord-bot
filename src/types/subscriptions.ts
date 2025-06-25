@@ -419,7 +419,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
             .setTimestamp(new Date(file.date * 1000))
             .setFooter({ text: `${modWithFiles.game.name} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
             .addFields(
-                file.manager 
+                file.manager === 0 
                 ?   {
                         name: 'Mod Manager',
                         value: `[Download ↗](https://discordbot.nexusmods.com/nxm?type=mod&domain=${modWithFiles.game.domainName}&mod_id=${modWithFiles.modId}&file_id=${file.fileId})\n-# Requires Premium 💎`,
