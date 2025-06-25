@@ -23,6 +23,7 @@ query DiscordBotModFiles($modId: ID!, $gameId: ID!) {
       changelogText
       date
       description
+      manager
     }
 }
 `;

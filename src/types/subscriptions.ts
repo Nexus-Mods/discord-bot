@@ -419,14 +419,20 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
             .setTimestamp(new Date(file.date * 1000))
             .setFooter({ text: `${modWithFiles.game.name} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
             .addFields(
-                {
-                    name: 'Mod Manager',
-                    value: `[Download ↗](https://discordbot.nexusmods.com/nxm?type=mod&domain=${modWithFiles.game.domainName}&mod_id=${modWithFiles.modId}&file_id=${file.fileId})\n-# Requires Premium 💎`,
-                    inline: true
-                },
+                file.manager 
+                ?   {
+                        name: 'Mod Manager',
+                        value: `[Download ↗](https://discordbot.nexusmods.com/nxm?type=mod&domain=${modWithFiles.game.domainName}&mod_id=${modWithFiles.modId}&file_id=${file.fileId})\n-# Requires Premium 💎`,
+                        inline: true
+                    } 
+                :   {
+                        name: 'Direct Download',
+                        value: `[Download ↗](${nexusModsTrackingUrl(`https://www.nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}`, 'subscribedMod', { 'tab': 'files', 'file_id': file.fileId.toString() })})`,
+                        inline: true
+                    },
                 {
                     name: 'Nexus Mods',
-                    value: `[View Files ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}/`, 'subscribedMod', { 'tab': 'files' })})`,
+                    value: `[View Mod Page ↗](${nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}/`, 'subscribedMod')})`,
                     inline: true
                 }
             )
