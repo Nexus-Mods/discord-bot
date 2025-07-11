@@ -52,7 +52,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         }
         const revisions = await user.NexusMods.API.v2.CollectionRevisions(gameDomain, slug);
         if (!revisions?.revisions.length) throw new Error('No revisions found for this collection.');
-        const brokenRevisions = revisions?.revisions.filter(r => r.collectionChangelog === null) ?? [];
+        const brokenRevisions = revisions?.revisions.filter(r => r.collectionChangelog === null && r.revisionNumber > 1) ?? [];
         if (!brokenRevisions.length) return interaction.editReply('No broken changelogs found for this collection.\n\n '+JSON.stringify(revisions?.revisions[0], null, 2));
         else await interaction.editReply(`Found ${brokenRevisions.length} broken changelogs for collection \`${collection.name}\` (${collection.slug}). Attempting to repair...`);
 
