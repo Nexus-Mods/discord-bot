@@ -130,6 +130,7 @@ export class DiscordBot {
             // Convert the path to a file:// URL
             const interactionPath = pathToFileURL(path.join(__dirname, 'interactions', file)).href;
             const interaction: DiscordInteraction = (await import(interactionPath)).discordInteraction;
+            logger.debug('Loaded interaction', { name: interaction.command.name, command: interaction?.command?.toJSON(), interaction });
             if (!interaction) continue;
             // Add all valid interactions to the main array.
             allInteractions.push(interaction);

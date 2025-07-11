@@ -1,9 +1,6 @@
 import { 
     CommandInteraction, Snowflake, EmbedBuilder, Client, SlashCommandBuilder, PermissionFlagsBits, 
-    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, 
-    MessageFlags,
-    InteractionContextType,
-    AutocompleteInteraction
+    ChatInputCommandInteraction, MessageFlags, InteractionContextType, AutocompleteInteraction
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
@@ -90,4 +87,4 @@ async function autocomplete(client: ClientExt, interaction: AutocompleteInteract
     return autoCompleteCollectionSearch(interaction, logger);
 }
 
-export default discordInteraction;
+export { discordInteraction };
