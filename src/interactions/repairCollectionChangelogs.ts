@@ -19,7 +19,7 @@ const discordInteraction: DiscordInteraction = {
     )
     .setContexts(InteractionContextType.Guild)
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
-    public: true,
+    public: false,
     guilds: [
         KnownDiscordServers.Author,
         KnownDiscordServers.BotDemo
