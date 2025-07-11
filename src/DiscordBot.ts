@@ -213,33 +213,6 @@ export class DiscordBot {
                 logger.error('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) });
             }
 
-        }));
-        // for (const guildId of Object.keys(guildCommandsToSet)) {
-        //     const guild = await this.client.guilds.fetch(guildId).catch(() => undefined);
-        //     if (!guild) continue;
-        //     const commands = await guild?.commands.fetch(); // Get commands already set for this guild.
-        //     const newCommands = guildCommandsToSet[guildId].filter(c => !commands?.find(ex => ex.name === c.name));
-        //     if (!newCommands.length && !forceUpdate) continue;
-
-
-        //     try {
-        //         // Remove all current commands
-        //         await this.rest.put(
-        //             Routes.applicationGuildCommands(this.clientId, guildId),
-        //             { body: [] }
-        //         );
-        //         // Add all valid commands.
-        //         await this.rest.put(
-        //             Routes.applicationGuildCommands(this.clientId, guildId),
-        //             { body: guildCommandsToSet[guildId] }
-        //         );
-        //         logger.info('Guild interactions set up', { guild: guild?.name || guildId, commands: guildCommandsToSet[guildId].map(c => c.name).join(', ') });
-        //     }
-        //     catch(err) {
-        //         logger.error('Error setting guild interactions', { guild: guild?.name || guildId, err, commands: guildCommandsToSet[guildId].map(c => c.name) });
-        //     }
-        // }
-
-        
+        }));        
     }
 }
