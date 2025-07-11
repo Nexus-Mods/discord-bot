@@ -53,6 +53,7 @@ export interface ICollection {
 }
 
 export interface ICollectionRevision {
+    id: number;
     revisionNumber: number;
     fileSize: number;
     modCount: number;

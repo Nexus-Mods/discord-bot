@@ -13,6 +13,7 @@ query DiscordBotGetCollectionRevisionData($slug: String, $domain: String) {
         slug
         name
         revisions {
+            id
             revisionNumber 
             fileSize
             modCount

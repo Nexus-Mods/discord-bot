@@ -16,6 +16,7 @@ import { Games as gamesJSON, ModDownloads, SiteStats, WebsiteStatus } from './ot
 import { modsByUid } from './v2-modsbyuid';
 import { users } from './v2-users';
 import { collectionRevisions } from './v2-collectionRevisions';
+import { createCollectionChangelog } from './v2-createCollectionChangelog';
 
 export const v1 = {
     validate,
@@ -44,7 +45,8 @@ export const v2 = {
     news,
     modFiles,
     users,
-    collectionRevisions
+    collectionRevisions,
+    createCollectionChangelog
 };
 
 export const other = {
