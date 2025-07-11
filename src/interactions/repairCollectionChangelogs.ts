@@ -24,7 +24,8 @@ const discordInteraction: DiscordInteraction = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
     public: true,
     guilds: [
-        KnownDiscordServers.Author
+        KnownDiscordServers.Author,
+        KnownDiscordServers.BotDemo
     ],
     action,
     autocomplete

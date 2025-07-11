@@ -53,8 +53,8 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     await interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined }).catch((err) => { throw err });
     
     const upTime: string = calcUptime(process.uptime());
-    const allUsers: NexusUser[] = await getAllUsers();
-    const allFeeds = await getAllSubscriptions();
+    const allUsers: NexusUser[] = await getAllUsers().catch(() => []);
+    const allFeeds = await getAllSubscriptions().catch(() => []);;
 
     let guildCount = client.guilds.cache.size;
     if (client.shard) {
