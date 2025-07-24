@@ -168,20 +168,27 @@ export const unexpectedErrorEmbed = (err: any, context: any): EmbedBuilder => {
     ])
 }
 
-// export const discontinuedEmbed = (newCommand: string): EmbedBuilder => {
-//     return new EmbedBuilder()
-//     .setTitle('Command discontinued')
-//     .setColor('Grey')
-//     .setDescription(`This command has been retired, please use the slash command **${newCommand}** instead. [Help](https://discord.gg/nexusmods)`)
-// }
 
-export const nexusModsTrackingUrl = (url: string, tag?: string, extraParams?: Record<string,string>): string => {
-    const campaign = 'DiscordBot';
+/**
+ * Generates a tracking URL with UTM parameters for Nexus Mods.
+ *
+ * @param {string} url - The base URL to which UTM parameters will be added.
+ * @param {string} [content] - Optional content name to include in the `utm_content` parameter.
+ * @param {Record<string, string>} [extraParams] - Optional additional parameters to include in the query string. E.g. Tab selection on the mod page.
+ * @returns {string} The full URL with tracking parameters.
+ */
+export const nexusModsTrackingUrl = (url: string, content?: string, extraParams?: Record<string,string>): string => {
+    const source = 'DiscordBot';
     const params = new URLSearchParams(extraParams);
-    params.append('mtm_campaign', campaign);
-    if (tag) params.append('mtm_kwd', tag);
+    params.append('utm_source', formatTrackingTag(source));
+    params.append('utm_medium', formatTrackingTag('app'));
+    if (content) params.append('utm_content', formatTrackingTag(content));
     
     return new URL(`${url}?${params.toString()}`).toString();
+}
+
+function formatTrackingTag(input: string): string {
+    return input.toLowerCase().replaceAll(' ', '_');
 }
 
 function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: number } {
@@ -207,6 +214,12 @@ export enum KnownDiscordServers {
     Author = '232168805038686208',
     App = '1134149061080002713'
 }
+
+/**
+ * Generates a string representation of the uptime value.
+ * @param {number} seconds - The number of seconds to convert into a string
+ * @returns {string} - Returns the uptime as a string. e.g. "1d 4h 10m 30s"
+ */
 
 export function calcUptime(seconds: number): string {
     const days = Math.floor(seconds/86400);
