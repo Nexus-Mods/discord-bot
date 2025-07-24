@@ -173,16 +173,16 @@ export const unexpectedErrorEmbed = (err: any, context: any): EmbedBuilder => {
  * Generates a tracking URL with UTM parameters for Nexus Mods.
  *
  * @param {string} url - The base URL to which UTM parameters will be added.
- * @param {string} [campaign] - Optional campaign name to include in the `utm_campaign` parameter.
+ * @param {string} [content] - Optional content name to include in the `utm_content` parameter.
  * @param {Record<string, string>} [extraParams] - Optional additional parameters to include in the query string. E.g. Tab selection on the mod page.
  * @returns {string} The full URL with tracking parameters.
  */
-export const nexusModsTrackingUrl = (url: string, campaign?: string, extraParams?: Record<string,string>): string => {
+export const nexusModsTrackingUrl = (url: string, content?: string, extraParams?: Record<string,string>): string => {
     const source = 'DiscordBot';
     const params = new URLSearchParams(extraParams);
     params.append('utm_source', formatTrackingTag(source));
     params.append('utm_medium', formatTrackingTag('app'));
-    if (campaign) params.append('utm_campaign', formatTrackingTag(campaign));
+    if (content) params.append('utm_content', formatTrackingTag(content));
     
     return new URL(`${url}?${params.toString()}`).toString();
 }
