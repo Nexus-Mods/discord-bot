@@ -4,7 +4,7 @@ import { NexusUser } from '../types/users';
 import { baseheader, Logger } from './util';
 import { updateUser } from './users';
 import { Client, EmbedBuilder, User } from 'discord.js';
-import { other, v1, v2 } from './queries/all';
+import { other, v2 } from './queries/all';
 import * as GQLTypes from '../types/GQLTypes';
 import { userProfileEmbed } from './bot-db';
 import { IModsFilter, IModsSort } from './queries/v2';
@@ -141,9 +141,7 @@ export class DiscordBotUser {
                 News: async (gameId?: number) => v2.news(this.headers(), this.logger, gameId),
                 ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), this.logger, gameId, modId),
                 Users: async (name: string) => v2.users(this.headers(), this.logger, name),
-                CollectionRevisions: async (domain: string, slug: string) => v2.collectionRevisions(this.headers(), this.logger, slug, domain),
-                CreateCollectionRevisionChangelog: async (revisionId: string) => v2.createCollectionChangelog(this.headers(), this.logger, revisionId),
-            },
+                CollectionRevisions: async (domain: string, slug: string) => v2.collectionRevisions(this.headers(), this.logger, slug, domain)            },
             Other: {
                 // Games pulled from the static Games.json file.
                 Games: async () => other.Games(this.headers()),
