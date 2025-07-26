@@ -344,7 +344,14 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
         allText = `${allText}\n\n${urls.map(u => u.toLowerCase()).join('\n')}`;
     }
     rules.forEach(rule => {
-        if (allText.includes(rule.filter.toLowerCase())) {
+        let filter = rule.filter.toLowerCase();
+        if (filter.startsWith("regex:")) {
+            const regEx = new RegExp(filter.slice(6))
+            if (regEx.test(allText)) {
+                flags[rule.type].push(rule.reason)
+            }
+        }
+        else if (allText.includes(filter)) {
             flags[rule.type].push(rule.reason)
         }
     });
