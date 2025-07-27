@@ -390,8 +390,10 @@ async function analyseURLS(text: string, logger: Logger): Promise<string[]> {
 }
 
 function filterUrls(uri: string): boolean {
-    if (uri.toLowerCase().includes('nexusmods.com')) return false;
-    const ext = uri.split('.').pop()?.toLowerCase()
+    uri = uri.toLowerCase();
+    if (uri.includes('nexusmods.com')) return false;
+    if (uri.startsWith("https://aka.ms/")) return false;
+    const ext = uri.split('.').pop()
 
     const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", 
     "tiff", "tif", "webp", "svg", "ico", "heic"];
