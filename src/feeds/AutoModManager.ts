@@ -375,6 +375,15 @@ async function analyseURLS(text: string, logger: Logger): Promise<string[]> {
             if (finalUrl) {
                 if (finalUrl.replace(/\/$/, "") === url.replace(/\/$/, "")) continue;
 
+                const protocols = ["http", "https"];
+                let parts = url.split(":", 1);
+                let finalParts = finalUrl.split(":", 1);
+                if (parts[0] !== finalParts[0] && parts[1] === finalParts[1]) {
+                    // Initial and final URL are the same, except for an HTTPS redirect
+                    if (protocols.includes(parts[0]) && protocols.includes(finalParts[0])) continue;
+                }
+                if (finalUrl.split(":") === url.replace(/\/$/, "")) continue;
+
                 logger.info("Expanded URL", { url, finalUrl })
                 result.push(`${url} => ${finalUrl}`)
             }
