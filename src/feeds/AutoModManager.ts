@@ -373,10 +373,10 @@ async function analyseURLS(text: string, logger: Logger): Promise<string[]> {
         try {
             const finalUrl = await tall(url, { timeout: 5 });
             if (finalUrl) {
-                if (finalUrl.replace(/\/$/, "") !== url.replace(/\/$/, "")) {
-                    logger.info("Expanded URL", { url, finalUrl })
-                    result.push(`${url} => ${finalUrl}`)
-                }
+                if (finalUrl.replace(/\/$/, "") === url.replace(/\/$/, "")) continue;
+
+                logger.info("Expanded URL", { url, finalUrl })
+                result.push(`${url} => ${finalUrl}`)
             }
             // else logMessage('Could not expand url', url)
 
