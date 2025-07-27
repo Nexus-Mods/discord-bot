@@ -393,6 +393,7 @@ function filterUrls(uri: string): boolean {
     uri = uri.toLowerCase();
     if (uri.includes('nexusmods.com')) return false;
     if (uri.startsWith("https://aka.ms/")) return false;
+    if (uri.startsWith("https://github.com/") && uri.endsWith("/latest")) return false;
     const ext = uri.split('.').pop()
 
     const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", 
