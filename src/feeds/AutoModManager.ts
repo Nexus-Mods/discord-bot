@@ -344,7 +344,14 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
         allText = `${allText}\n\n${urls.map(u => u.toLowerCase()).join('\n')}`;
     }
     rules.forEach(rule => {
-        if (allText.includes(rule.filter.toLowerCase())) {
+        let filter = rule.filter.toLowerCase();
+        if (filter.startsWith("regex:")) {
+            const regEx = new RegExp(filter.slice(6))
+            if (regEx.test(allText)) {
+                flags[rule.type].push(rule.reason)
+            }
+        }
+        else if (allText.includes(filter)) {
             flags[rule.type].push(rule.reason)
         }
     });
@@ -366,10 +373,19 @@ async function analyseURLS(text: string, logger: Logger): Promise<string[]> {
         try {
             const finalUrl = await tall(url, { timeout: 5 });
             if (finalUrl) {
-                if (finalUrl !== url) {
-                    logger.info("Expanded URL", { url, finalUrl })
-                    result.push(`${url} => ${finalUrl}`)
+                if (finalUrl.replace(/\/$/, "") === url.replace(/\/$/, "")) continue;
+
+                const protocols = ["http", "https"];
+                let parts = url.split(":", 1);
+                let finalParts = finalUrl.split(":", 1);
+                if (parts[0] !== finalParts[0] && parts[1] === finalParts[1]) {
+                    // Initial and final URL are the same, except for an HTTPS redirect
+                    if (protocols.includes(parts[0]) && protocols.includes(finalParts[0])) continue;
                 }
+                if (finalUrl.split(":") === url.replace(/\/$/, "")) continue;
+
+                logger.info("Expanded URL", { url, finalUrl })
+                result.push(`${url} => ${finalUrl}`)
             }
             // else logMessage('Could not expand url', url)
 
@@ -383,8 +399,11 @@ async function analyseURLS(text: string, logger: Logger): Promise<string[]> {
 }
 
 function filterUrls(uri: string): boolean {
-    if (uri.toLowerCase().includes('nexusmods.com')) return false;
-    const ext = uri.split('.').pop()?.toLowerCase()
+    uri = uri.toLowerCase();
+    if (uri.includes('nexusmods.com')) return false;
+    if (uri.startsWith("https://aka.ms/")) return false;
+    if (uri.startsWith("https://github.com/") && uri.endsWith("/latest")) return false;
+    const ext = uri.split('.').pop()
 
     const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", 
     "tiff", "tif", "webp", "svg", "ico", "heic"];
