@@ -50,6 +50,10 @@ const discordInteraction: DiscordInteraction = {
                     {
                         name: 'match',
                         value: 'match'
+                    },
+                    {
+                        name: 'regex',
+                        value: 'regex'
                     }
                 ])
             )
