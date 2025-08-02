@@ -370,7 +370,7 @@ export class AuthSite {
                 res.send('Domain or slug not provided')
                 return;
             }
-            const nxmlink = `nxm://${domain}/collections/${slug}/revisions/${rev ?? 'latest'}`;
+            const nxmlink = `nxm://${domain}/collections/${slug}/files/${rev ?? 'latest'}`;
             res.redirect(nxmlink);
             return;
         }
