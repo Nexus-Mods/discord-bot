@@ -370,7 +370,7 @@ export class AuthSite {
                 res.send('Domain or slug not provided')
                 return;
             }
-            const nxmlink = `nxm://${domain}/collections/${slug}/files/${rev ?? 'latest'}`;
+            const nxmlink = `nxm://${domain}/collections/${slug}/revisions/${rev ?? 'latest'}`;
             res.redirect(nxmlink);
             return;
         }
@@ -383,7 +383,7 @@ export class AuthSite {
                 res.send('Game, mod or file ID not provided')
                 return;
             }
-            const nxmlink = `nxm://${domain}/mods/${modId}/revisions/${fileId}`;
+            const nxmlink = `nxm://${domain}/mods/${modId}/files/${fileId}`;
             res.redirect(nxmlink);
             return;
         }        
