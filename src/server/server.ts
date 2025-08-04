@@ -402,6 +402,6 @@ export class AuthSite {
         const sentToken = token ?? 'TestToken';
         const portId = port ?? '8080';
 
-        res.redirect(`http://localhost:${portId}?token=${sentToken}`);
+        res.redirect(`http://127.0.0.1:${portId}?token=${sentToken}`);
     }
 }
