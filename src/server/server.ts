@@ -90,6 +90,8 @@ export class AuthSite {
 
         this.app.post('/webhook', express.json({ limit: '5mb' }), (req, res) => forumWebhook(req, res, this.logger));
 
+        this.app.get('/localhost-redirect', this.localHostRedirect.bind(this));
+
         this.app.get('*', (req, res) => res.redirect('/'));
 
         this.app.listen(this.port, () => this.logger.info(`Auth website listening on port ${this.port}`));
@@ -387,5 +389,19 @@ export class AuthSite {
             res.redirect(nxmlink);
             return;
         }        
+    }
+
+    async localHostRedirect(req: express.Request, res: express.Response) {
+        const port: string | null = req.query['port'] as string;
+        const token: string | null = req.query['port'] as string;
+        if (port && isNaN(Number(port))) {
+            res.status(400).send('Port not specified or invalid');
+            return;
+        }
+
+        const sentToken = token ?? 'TestToken';
+        const portId = port ?? '8080';
+
+        res.redirect(`http://localhost:${portId}?token=${sentToken}`);
     }
 }
