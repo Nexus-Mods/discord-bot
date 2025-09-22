@@ -360,7 +360,8 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
         case SubscribedItemType.Game: {
             const mod = entity as IModWithFiles;
             let lastestFile = updated ? mod.files?.[0] : undefined;
-            const gameThumb: string = gameArt(mod.game.id);
+            const gameThumb: string = gameArt(mod.game.id, '2_3');
+            const gameIcon: string = gameArt(mod.game.id, 'icon');
             // Try and find a Discord user for the mod uploader
             const linkedUser = await getUserByNexusModsId(mod.uploader.memberId);
             const guildMember: GuildMember | undefined = linkedUser ? await guild.members.fetch(linkedUser?.DiscordId).catch(() => undefined) : undefined;
@@ -385,7 +386,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                 .setAuthor({ name: `New Mod Upload (${mod.game.name})`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
                 .setTimestamp(new Date(mod.createdAt))
             }
-            embed.setFooter({ text: `${mod.game.name}  •  ${mod.modCategory.name ?? 'Invalid Category'}  • v${mod.version} `, iconURL: compact ? gameThumb : undefined })
+            embed.setFooter({ text: `${mod.game.name}  •  ${mod.modCategory.name ?? 'Invalid Category'}  • v${mod.version} `, iconURL: compact ? gameThumb : gameIcon })
             .addFields(
                 {
                     name: 'Author',
