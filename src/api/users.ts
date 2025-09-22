@@ -16,6 +16,17 @@ async function getAllUsers(): Promise<NexusUser[]> {
     }
 }
 
+async function getCountOfUsers(): Promise<number> {
+    try {
+        const result = await query<{ count: number }>('SELECT COUNT(*) FROM users', []);
+        return Number(result.rows[0].count);
+    }
+    catch (err) {
+        logger.error('Error getting all users', err);
+        return 0;
+    }
+}
+
 async function getUserByDiscordId(discordId: Snowflake | string): Promise<DiscordBotUser | undefined> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users WHERE d_id = $1', [discordId]);
@@ -176,4 +187,4 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
     }
 }
 
-export { getAllUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed };
+export { getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed };

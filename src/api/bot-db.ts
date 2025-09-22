@@ -1,7 +1,7 @@
 //Used for reference: https://blog.logrocket.com/setting-up-a-restful-api-with-node-js-and-postgresql-d96d6fc892d8/
 
 // USER MANAGEMENT FUNCTIONS
-import { getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed } from './users';
+import { getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed } from './users';
 
 // SERVER MANAGEMENT FUNCTIONS
 import { getAllServers, getServer, addServer, updateServer, deleteServer } from './servers';
@@ -19,7 +19,7 @@ import { getAllTips, addTip, deleteTip, editTip, setApprovedTip } from './tips';
 import { getConditionsForRole, addConditionForRole, changeRoleForConditions, deleteConditionForRole, deleteAllConditionsForRole } from './server_role_conditions';
 
 export {
-    getAllUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
+    getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
     getAllServers, getServer, addServer, updateServer, deleteServer,
     getSavedNews, updateSavedNews, ensureNewsDB,
     getAutomodRules, createAutomodRule, deleteAutomodRule,

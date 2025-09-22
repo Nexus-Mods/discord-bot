@@ -5,10 +5,9 @@ import {
     MessageFlags
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes";
-import { getAllUsers } from '../api/bot-db';
-import { NexusUser } from "../types/users";
+import { getCountOfUsers } from '../api/bot-db';
 import { calcUptime, Logger } from "../api/util";
-import { getAllSubscriptions } from "../api/subscriptions";
+import { getCountOfSubscriptions } from "../api/subscriptions";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -53,8 +52,8 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     await interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined }).catch((err) => { throw err });
     
     const upTime: string = calcUptime(process.uptime());
-    const allUsers: NexusUser[] = await getAllUsers().catch(() => []);
-    const allFeeds = await getAllSubscriptions().catch(() => []);;
+    const allUsers: number = await getCountOfUsers().catch(() => 0);
+    const allFeeds = await getCountOfSubscriptions().catch(() => 0);
 
     let guildCount = client.guilds.cache.size;
     if (client.shard) {
@@ -76,8 +75,8 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         {
             name: 'Stats',
             value: `Servers: ${guildCount.toLocaleString()}\n`+
-            `Linked Accounts: ${allUsers.length.toLocaleString()}\n`+
-            `Subscribed Items: ${allFeeds.length.toLocaleString()}`,
+            `Linked Accounts: ${allUsers.toLocaleString()}\n`+
+            `Subscribed Items: ${allFeeds.toLocaleString()}`,
             inline: true
         },
     ])

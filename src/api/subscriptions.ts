@@ -158,6 +158,23 @@ async function getAllSubscriptions(): Promise<SubscribedItem<SubscribedItemType>
 
 }
 
+async function getCountOfSubscriptions(): Promise<number> {
+    try {
+        const data = await queryPromise<{ count: number }>(
+            'SELECT COUNT(*) FROM SubscribedItems',
+            []
+        );
+        return Number(data.rows[0].count);
+
+    }
+    catch(err) {
+        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
+        error.message = `Failed to fetch count of all subscribed items.\n${error.message}`;
+        throw error;
+    }
+
+}
+
 async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): Promise<SubscribedItem<SubscribedItemType>[]> {
     try {
         const data = await queryPromise<ISubscribedItemUnionType>(
@@ -326,7 +343,7 @@ async function ensureSubscriptionsDB() {
 
 export { 
     ensureSubscriptionsDB, totalItemsInGuild, getSubscribedChannelsForGuild,
-    getSubscribedChannels, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
+    getSubscribedChannels, getCountOfSubscriptions, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, getSubscriptionsByChannel, createSubscription,
     updateSubscription, saveLastUpdatedForSub, deleteSubscription,
     setDateForAllSubsInChannel, deleteSubscribedChannel
