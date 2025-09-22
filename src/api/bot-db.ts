@@ -10,7 +10,7 @@ import { getAllServers, getServer, addServer, updateServer, deleteServer } from 
 import { getSavedNews, updateSavedNews, ensureNewsDB } from './news';
 
 // AUTOMOD
-import { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile  } from './automod';
+import { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile, deleteBadFile } from './automod';
 
 // TIPS
 import { getAllTips, addTip, deleteTip, editTip, setApprovedTip } from './tips';
@@ -23,7 +23,7 @@ export {
     getAllServers, getServer, addServer, updateServer, deleteServer,
     getSavedNews, updateSavedNews, ensureNewsDB,
     getAutomodRules, createAutomodRule, deleteAutomodRule,
-    getBadFiles, addBadFile,
+    getBadFiles, addBadFile, deleteBadFile,
     getAllTips, addTip, deleteTip, editTip, setApprovedTip,
     getConditionsForRole, addConditionForRole, changeRoleForConditions, deleteConditionForRole, deleteAllConditionsForRole
 };

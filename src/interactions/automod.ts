@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
 import { KnownDiscordServers, Logger } from "../api/util";
-import { createAutomodRule, deleteAutomodRule, addBadFile } from "../api/bot-db";
+import { createAutomodRule, deleteAutomodRule, addBadFile, deleteBadFile } from "../api/bot-db";
 import { IAutomodRule, IBadFileRule } from "../types/util";
 
 const discordInteraction: DiscordInteraction = {
@@ -66,6 +66,16 @@ const discordInteraction: DiscordInteraction = {
         .addSubcommand(sc => 
             sc.setName('list')
             .setDescription('List available file rules.')
+        )
+        .addSubcommand(sc => 
+            sc.setName('remove')
+            .setDescription('Remove a file filter from the Automod.')
+            .addIntegerOption(o =>
+                o.setName('id')
+                .setDescription('The file rule ID to delete.')
+                .setMinValue(1)
+                .setRequired(true)
+            )
         )
     )
     .addSubcommandGroup(sgc => 
@@ -137,7 +147,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         switch (command) {
             case 'add': return addFileRule(client, interaction, logger);
             case 'list': return listFileRules(client, interaction, logger);
-            // case 'remove': return removeFileRule(client, interaction);
+            case 'remove': return removeFileRule(client, interaction, logger);
             default: throw new Error('Subcommand not implemented: '+command)
         }
     }
@@ -316,6 +326,33 @@ async function listFileRules(client: ClientExt, interaction: ChatInputCommandInt
             return;
         });
     }
+}
+
+async function removeFileRule(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {
+    // Is an admin?
+    const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) return interaction.editReply({ content: 'Removing file rules is only available to admins.' })
+
+    const id: number = interaction.options.getInteger('id', true);
+
+    const rules = await client.automod?.retrieveFileRules() ?? [];
+
+    const ruleToRemove = rules.find(r => r.id == id);
+    logger.info("Attempting to delete automod rule", { id , ruleToRemove, rules });
+
+    if (!ruleToRemove) {
+        return interaction.editReply('Nothing to delete. No rule with ID '+id)
+    }
+
+    try {
+        await deleteBadFile(id);
+    }
+    catch(err) {
+        throw new Error('Failed to delete automod rule: '+(err as Error).message);
+    }
+
+    client.automod?.clearRuleCache();
+    return interaction.editReply({ content: `Rule Deleted\n\`\`\`${JSON.stringify(ruleToRemove, null, 2)}\`\`\``})
 }
 
 async function showReport(client: ClientExt, interaction: ChatInputCommandInteraction, logger: Logger): Promise<any> {

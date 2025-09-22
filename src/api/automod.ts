@@ -46,4 +46,12 @@ async function addBadFile(type: 'low' | 'high', func: string, test: string, flag
     }
 }
 
-export { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile };
+async function deleteBadFile(id: number): Promise<void> {
+    try {
+        await query('DELETE FROM automod_badfiles WHERE id=$1', [id], 'DeleteBadFile');
+    } catch (error) {
+        return Promise.reject(error);
+    }
+}
+
+export { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile, deleteBadFile };
