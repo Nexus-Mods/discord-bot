@@ -351,9 +351,10 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     const nexusChannel: ThreadChannel | GuildChannel|null = server.channel_nexus ? guild.channels.resolve(server.channel_nexus) : null;
     const newsChannel: ThreadChannel|GuildChannel|null = server.channel_news ? guild.channels.resolve(server.channel_news) : null;
     const owner: GuildMember = await guild.fetchOwner();
+    const iconURL: string | undefined = guild.iconURL() ?? undefined;
 
     const embed = new EmbedBuilder()
-    .setAuthor({ name: guild.name, iconURL: guild.iconURL() || '' })
+    .setAuthor({ name: guild.name, iconURL })
     .setTitle(`Server Configuration - ${guild.name}`)
     .setDescription('Configure any of these options for your server by using the /settings command. **Linked Roles** can be set up in your role settings, [Learn More](https://discord.com/blog/connected-accounts-functionality-boost-linked-roles).')
     .setColor(0xda8e35)
