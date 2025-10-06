@@ -386,7 +386,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                 .setAuthor({ name: `New Mod Upload (${mod.game.name})`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
                 .setTimestamp(new Date(mod.createdAt))
             }
-            embed.setFooter({ text: `${mod.game.name}  •  ${mod.modCategory.name ?? 'Invalid Category'}  • v${mod.version} `, iconURL: compact ? gameThumb : gameIcon })
+            embed.setFooter({ text: `${mod.game.name}  •  ${mod.modCategory?.name ?? 'Invalid Category'}  • v${mod.version} `, iconURL: compact ? gameThumb : gameIcon })
             .addFields(
                 {
                     name: 'Author',
