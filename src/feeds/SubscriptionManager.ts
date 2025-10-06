@@ -298,7 +298,7 @@ export class SubscriptionManger {
                 this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type}) since ${item.last_update.toISOString()}`);
             }
             catch(err) {
-                this.logger.warn('Error updating subscription', { type: item.type, entity: item.entityid, config: item.config, error: err });
+                this.logger.warn('Error updating subscription', { id: item.id, type: item.type, entity: item.entityid, config: item.config, error: err });
                 continue;
             }           
             
@@ -409,6 +409,7 @@ export class SubscriptionManger {
         // Map into the generic format.
         const formattedNew: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         for (const mod of newMods) {
+            try {
             const embed = await subscribedItemEmbed<SubscribedItemType.Game>(this.logger, mod, item, guild);
             formattedNew.push({ 
                 type: SubscribedItemType.Game, 
@@ -419,6 +420,11 @@ export class SubscriptionManger {
                 message: item.message ?? null,
                 crosspost: item.crosspost ?? false,
             })
+            }
+            catch(err) {
+                this.logger.warn('Error processing mod', {mod, err});
+                throw new Error(`Error processing mod ${mod.game.domainName}/${mod.modId} (UID: ${mod.uid})`);
+            }
         }
         results.push(...formattedNew);
 
