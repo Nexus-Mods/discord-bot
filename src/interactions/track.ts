@@ -141,7 +141,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     }
     catch(err) {
         if ((err as Error).message === 'Channel already subscribed to maximum number of items.') {
-            await interaction.editReply('This channel is already subscribed to the maximum number of items. Please unsubscribe from an item before subscribing to a new one.');
+            await interaction.editReply(`This channel is already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
             return;
         }
         else throw err;
@@ -190,7 +190,8 @@ async function trackGame(client: ClientExt, interaction: ChatInputCommandInterac
         }
         else {
             if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
-                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+                throw new Error('Channel already subscribed to maximum number of items.');
+                // return interaction.editReply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
             }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new game subscription', { game: currentGameSub.entityid, id: currentGameSub.id });
@@ -253,7 +254,8 @@ async function trackMod(client: ClientExt, interaction: ChatInputCommandInteract
         }
         else {
             if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
-                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+                throw new Error('Channel already subscribed to maximum number of items.');
+                // return interaction.editReply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
             }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new mod subscription', { modUid: currentGameSub.entityid, id: currentGameSub.id });
@@ -316,7 +318,8 @@ async function trackCollection(client: ClientExt, interaction: ChatInputCommandI
         }
         else {
             if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
-                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+                throw new Error('Channel already subscribed to maximum number of items.');
+                // return interaction.editReply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
             }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new collection subscription', { slug: currentGameSub.entityid, id: currentGameSub.id });
@@ -376,7 +379,8 @@ async function trackUser(client: ClientExt, interaction: ChatInputCommandInterac
         }
         else {
             if (guildTotal > (client.subscriptions?.maxSubsPerGuild || 5)) {
-                return interaction.reply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
+                throw new Error('Channel already subscribed to maximum number of items.');
+                // return interaction.editReply(`Channel already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
             }
             currentGameSub = await channel.subscribe(newData);
             logger.info('Created new user subscription', { user: currentGameSub.entityid, id: currentGameSub.id });
