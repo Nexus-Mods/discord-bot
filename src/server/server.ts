@@ -92,7 +92,16 @@ export class AuthSite {
 
         this.app.get('/localhost-redirect', this.localHostRedirect.bind(this));
 
-        this.app.get('*', (req, res) => res.redirect('/'));
+        // this.app.get('*', (req, res) => res.redirect('/'));
+
+        // Copilot suggested this as a replacment for the above in Express 5.0
+        this.app.use((req, res, next) => {
+            if (req.method === 'GET') {
+                res.redirect('/');
+            } else {
+                next();
+            }
+        });
 
         this.app.listen(this.port, () => this.logger.info(`Auth website listening on port ${this.port}`));
 
