@@ -132,15 +132,15 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     const subCommand: SubscribedItemType = interaction.options.getSubcommand(true) as SubscribedItemType;
     try {
         switch (subCommand) {
-            case SubscribedItemType.Game: return trackGame(client, interaction, logger);
-            case SubscribedItemType.Mod: return trackMod(client, interaction, logger);
-            case SubscribedItemType.Collection: return trackCollection(client, interaction, logger);
-            case SubscribedItemType.User: return trackUser(client, interaction, logger);
+            case SubscribedItemType.Game: return await trackGame(client, interaction, logger);
+            case SubscribedItemType.Mod: return await trackMod(client, interaction, logger);
+            case SubscribedItemType.Collection: return await trackCollection(client, interaction, logger);
+            case SubscribedItemType.User: return await trackUser(client, interaction, logger);
             default: throw new Error(`Tracking for ${subCommand} is not implemented yet.`)
         }
     }
     catch(err) {
-        if ((err as Error).message === 'Channel already subscribed to maximum number of items.') {
+        if (err instanceof Error && err.message === 'Channel already subscribed to maximum number of items.') {
             await interaction.editReply(`This channel is already subscribed to maximum number of items (${client.subscriptions?.maxSubsPerGuild || 5}). Please untrack an item to add a new one.`);
             return;
         }
