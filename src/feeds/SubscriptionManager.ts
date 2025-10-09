@@ -30,7 +30,7 @@ export class SubscriptionManger {
     private cache: SubscriptionCache = new SubscriptionCache();
     private logger: Logger;
     private batchSize: number = 10;
-    public maxSubsPerGuild = 5;
+    public maxSubsPerGuild = 25;
     public paused: boolean = false;
 
     private NexusModsAPI = {
