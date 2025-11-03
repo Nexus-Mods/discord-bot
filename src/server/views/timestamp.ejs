@@ -1,0 +1,51 @@
+  <h1>Timestamp → UK time / Your local time</h1>
+  
+  <div class="out" style="margin-top:12px; margin-bottom: 24px;">
+    <div><strong>Your local time:</strong></div>
+    <h2 id="local" style="margin-top:6px">—</h2>
+    <div style="margin-top:8px"><small>Detected timezone: <span id="tz">-</span></small></div>
+    <hr/>
+    <div><strong>UK time (Europe/London):</strong></div>
+    <div id="uk" style="margin-top:6px"><%= ukTime %></div>
+    <hr/>
+    <div style="margin-top: 12px;"><small><strong>Parsed UTC ISO:</strong> <code id="iso"><%= iso %></code></small></div>
+    <hr/>
+  </div>
+
+  <form method="get" action="/timestamp">
+    <label for="ts">Timestamp (seconds, ms or ISO):</label><br/>
+    <input id="ts" name="ts" type="text" size="30" value="<%= tsRaw %>" placeholder="e.g. 1763499600 or 1763499600000 or 2025-11-03T12:00:00Z" />
+    <button type="submit">Convert</button>
+    <button type="button" id="example">Use example 1763499600</button>
+  </form>
+
+  <script>
+    (function(){
+      const ms = Number(<%= JSON.stringify(ms) %>);
+      const iso = document.getElementById('iso').textContent;
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown';
+      document.getElementById('tz').textContent = tz;
+
+      function fmtLocal(d){
+        if (!d || isNaN(d)) return 'Invalid date';
+        return new Intl.DateTimeFormat(undefined, {
+          year:'numeric',month:'short',day:'numeric',
+          hour:'2-digit',minute:'2-digit',second: undefined,
+          timeZoneName:'short'
+        }).format(d);
+      }
+
+      const localEl = document.getElementById('local');
+      if (iso && iso !== 'Invalid date') {
+        const d = new Date(ms);
+        localEl.textContent = fmtLocal(d);
+      } else {
+        localEl.textContent = 'Invalid date';
+      }
+
+      document.getElementById('example').addEventListener('click', () => {
+        const el = document.getElementById('ts');
+        el.value = '1763499600';
+      });
+    })();
+  </script>

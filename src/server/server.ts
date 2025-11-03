@@ -92,6 +92,8 @@ export class AuthSite {
 
         this.app.get('/localhost-redirect', this.localHostRedirect.bind(this));
 
+        this.app.get('/timestamp', this.timestempPage.bind(this));
+
         // this.app.get('*', (req, res) => res.redirect('/'));
 
         // Copilot suggested this as a replacment for the above in Express 5.0
@@ -412,5 +414,57 @@ export class AuthSite {
         const portId = port ?? '8080';
 
         res.redirect(`http://127.0.0.1:${portId}?token=${sentToken}`);
+    }
+
+    async timestempPage(req: express.Request, res: express.Response) {
+        const raw = (req.query['ts'] as string) ?? '';
+
+        function parseToMs(input: string) {
+            if (!input) return Date.now();
+            const trimmed = input.trim();
+            // accept any length integer (previous regex only matched a single digit)
+            if (/^-?\d+$/.test(trimmed)) {
+                const absLen = trimmed.replace(/^-/, '').length;
+                const n = Number(trimmed);
+                return absLen <= 10 ? n * 1000 : n;
+            }
+            // try ISO / natural date strings
+            const parsed = Date.parse(trimmed);
+            if (!isNaN(parsed)) return parsed;
+            // final fallback: numeric with decimals or other numeric forms
+            const maybeNum = Number(trimmed);
+            if (!isNaN(maybeNum)) {
+                const absLen = trimmed.replace(/^-|\./g, '').length;
+                return absLen <= 10 ? maybeNum * 1000 : maybeNum;
+            }
+            return Date.now();
+        }
+
+        const ms = parseToMs(raw);
+        const date = new Date(ms);
+        console.log('Input date', {raw, ms, date});
+        const iso = isNaN(date.getTime()) ? 'Invalid date' : date.toISOString();
+
+        const opts: Intl.DateTimeFormatOptions = {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: undefined,
+            timeZoneName: 'short'
+        };
+
+        let ukTime = 'Invalid date';
+        try {
+            ukTime = new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: 'Europe/London' }).format(date);
+        } catch (e) {
+            // Intl may throw in unusual runtimes; fall back to ISO
+            ukTime = iso;
+        }
+
+        res.render('timestamppage', {
+            pageTitle: 'Timestamp Converter',
+            tsRaw: raw,
+            iso,
+            ukTime,
+            ms
+        });    
     }
 }
