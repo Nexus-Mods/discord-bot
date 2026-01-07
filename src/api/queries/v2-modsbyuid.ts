@@ -30,9 +30,9 @@ query DiscordBotModsByUid($uids: [ID!]!) {
           memberId
         }
         pictureUrl
-        # modCategory {
-        #  name
-        # }
+        modCategory {
+         name
+        }
         adult
         version
         downloads
@@ -47,9 +47,7 @@ query DiscordBotModsByUid($uids: [ID!]!) {
 }
 `;
 
-type IModWithoutCategory = Omit<IMod,'modcategory'>;
-
-export async function modsByUid(headers: Record<string,string>, logger: Logger, uids: string[]): Promise<IModWithoutCategory[]> {
+export async function modsByUid(headers: Record<string,string>, logger: Logger, uids: string[]): Promise<IMod[]> {
 
     const vars = {
         uids

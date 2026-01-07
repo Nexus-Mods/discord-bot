@@ -418,7 +418,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
             // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${modWithFiles.game.domainName}/mods/${modWithFiles.modId}`, 'subscribedMod', { 'tab': 'files' }))
             .setThumbnail(modWithFiles.pictureUrl)
             .setTimestamp(new Date(file.date * 1000))
-            .setFooter({ text: `${modWithFiles.game.name} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
+            .setFooter({ text: `${modWithFiles.game.name} •  ${modWithFiles.modCategory?.name ?? 'Invalid Category'} • v${modWithFiles.version}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
             .addFields(
                 file.manager === 0 
                 ?   {
