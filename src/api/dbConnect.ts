@@ -23,6 +23,8 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
+const cmPool = new Pool({...poolConfig, database: process.env.CM_DATABASE});
+
 export async function queryPromise<T extends QueryResultRow>(query: string, values?: any[], name?: string): Promise<QueryResult<T>> {
     let client: PoolClient | undefined = undefined;
     
@@ -39,6 +41,29 @@ export async function queryPromise<T extends QueryResultRow>(query: string, valu
     catch(err) {
         if (!client) logger.error('Error acquiring client', { query, err: (err as Error).message });
         else logger.error('Error in query', { query, values, err });
+        throw handleDatabaseError(err);
+    }
+    finally {
+        client?.release()
+    }
+}
+
+export async function queryCommunityMap<T extends QueryResultRow>(query: string, values?: any[], name?: string): Promise<QueryResult<T>> {
+    let client: PoolClient | undefined = undefined;
+    
+    try {
+        client = await cmPool.connect();
+        const result = await client.query<T>({
+            text: query,
+            values,
+            name,            
+        });
+        return result;
+        
+    }
+    catch(err) {
+        if (!client) logger.error('Error acquiring CM client', { query, err: (err as Error).message });
+        else logger.error('Error in CM query', { query, values, err });
         throw handleDatabaseError(err);
     }
     finally {

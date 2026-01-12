@@ -116,7 +116,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             catch(err) {
                 logger.warn('Discord metadata update error', (err as Error).message);
                 if ((err as Error).message === 'No Discord tokens') card.addFields({ name: 'Linked Roles', value: 'If you would like to use linked roles, please [re-authorise here](https://discordbot.nexusmods.com/linked-role).'})
-                else card.addFields({ name: 'Linked Roles', value: 'Could not update metadata due to an unexpected error'});                
+                else card.addFields({ name: 'Linked Roles', value: 'Could not update metadata due to an unexpected error: '+(err as Error).message});                
             }
         }
         else {

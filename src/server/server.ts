@@ -12,6 +12,7 @@ import { getSubscribedChannelsForGuild } from '../api/subscriptions';
 import { fileURLToPath } from 'url';
 import { SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import forumWebhook from './forumWebhook';
+import { communityMap, controversies } from './CommunityMap';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -93,6 +94,10 @@ export class AuthSite {
         this.app.get('/localhost-redirect', this.localHostRedirect.bind(this));
 
         this.app.get('/timestamp', this.timestempPage.bind(this));
+
+        this.app.all('/communitymap', communityMap);
+
+        this.app.all('/communitymap/controversies', controversies);
 
         // this.app.get('*', (req, res) => res.redirect('/'));
 
