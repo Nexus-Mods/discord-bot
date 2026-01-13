@@ -165,7 +165,7 @@ interface IRemoteMetaData {
  * Fetch the metadata currently pushed to Discord for the currently logged
  * in user, for this specific bot.
  */
-export async function getMetadata(userId: string, tokens: OAuthTokens, logger: Logger): Promise<IRemoteMetaData> {
+export async function getMetadata(userId: string, tokens: OAuthTokens, logger: Logger, retry?: boolean): Promise<IRemoteMetaData> {
   // GET/PUT /users/@me/applications/:id/role-connection
   const { DISCORD_CLIENT_ID } = process.env;
   const url = `https://discord.com/api/v10/users/@me/applications/${DISCORD_CLIENT_ID}/role-connection`;
@@ -179,6 +179,20 @@ export async function getMetadata(userId: string, tokens: OAuthTokens, logger: L
     const data = await response.json();
     return data;
   } else {
+    if (response.status === 429) {
+        const rateLimitResetAfter = response.headers.get('X-RateLimit-Reset-After');
+        if (!retry && rateLimitResetAfter && parseFloat(rateLimitResetAfter) < 10) {
+          logger.warn('Rate limited when updating metadata, retrying in ', rateLimitResetAfter);
+          await sleep(parseFloat(rateLimitResetAfter || '10'));
+          return getMetadata(userId, tokens, logger, true);
+        }
+        const resetSecs = rateLimitResetAfter ? (Math.ceil(parseInt(rateLimitResetAfter))) : 10;
+        const headers: Record<string,string> = {};
+        response.headers.forEach((value, key) => { headers[key] = value });
+        logger.warn('Discord rate limit hit', { retry, body: await response.json(), userId  });
+        const errMsg = `The Discord API is currently rate limiting metadata lookups ${resetSecs ? `- please try again after: ${resetSecs} second(s)` : '' } [${response.status}].`;
+        throw new Error(errMsg);
+    }
     throw new Error(`Error getting Discord metadata: [${response.status}] ${response.statusText}`);
   }
 }
