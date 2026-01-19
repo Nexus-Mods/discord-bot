@@ -125,6 +125,9 @@ export class DiscordBotUser {
                 UpdatedMods: 
                     async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
                         v2.updatedMods(this.headers(), this.logger, since, includeAdult, gameId, sort),
+                UpdatedModsAutoMod: 
+                    async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
+                        v2.updatedModsAutoMod(this.headers(), this.logger, since, includeAdult, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
                         v2.modsById(this.headers(), this.logger, mods),
@@ -138,6 +141,7 @@ export class DiscordBotUser {
                 CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), this.logger, userId),
                 FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
                 LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), this.logger, since, gameIds, sort),
+                LastestModsAutoMod: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestModsAutoMod(this.headers(true), this.logger, since, gameIds, sort),
                 News: async (gameId?: number) => v2.news(this.headers(), this.logger, gameId),
                 ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), this.logger, gameId, modId),
                 Users: async (name: string) => v2.users(this.headers(), this.logger, name),

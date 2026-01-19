@@ -16,6 +16,8 @@ import { Games as gamesJSON, ModDownloads, SiteStats, WebsiteStatus } from './ot
 import { modsByUid } from './v2-modsbyuid';
 import { users } from './v2-users';
 import { collectionRevisions } from './v2-collectionRevisions';
+import { latestModsAutoMod } from './v2-latestmods automod';
+import { updatedModsAutoMod } from './v2-updatedMods automod';
 
 export const v1 = {
     validate,
@@ -35,12 +37,14 @@ export const v2 = {
     modsById,
     modsByUid,
     updatedMods: updatedModsV2,
+    updatedModsAutoMod,
     myCollections,
     collections,
     collection,
     collectionsDownloadTotals,
     findUser,
     latestMods,
+    latestModsAutoMod,
     news,
     modFiles,
     users,

@@ -4,16 +4,22 @@ import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
 import { IModForAutomod } from "../../feeds/AutoModManager";
 
 interface IResult {
-    mods: IModResults;
+    mods: IUpdatedModResults;
 }
 
-export interface IModResults {
+interface IUpdatedModResults {
     nodes: IModForAutomod[];
     totalCount: number;
+    // pageInfo?: {
+    //     hasNextPage: boolean;
+    //     hasPreviousPage: boolean;
+    //     startCursor: string;
+    //     endCursor: string;
+    // }
 }
 
 const query = gql`
-query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
+query DiscordBotGetUpdatedMods($filter: ModsFilter, $sort: [ModsSort!]) {
     mods(
         filter: $filter, 
         sort: $sort
@@ -47,18 +53,25 @@ query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
     }
 }
 `;
-// June 2025 - Temporarily removed "uploader.modCount" due to API changes;
 
-export async function latestMods(headers: Record<string,string>, logger: Logger, startDate: Date, gameIds?: number | number[], sort: IModsSort = { createdAt: { direction: 'DESC' }}): Promise<IModResults> {
+export async function updatedModsAutoMod(
+    headers: Record<string,string>, 
+    logger: Logger,
+    newSince: Date | number | string, 
+    includeAdult: boolean, 
+    gameIds?: number | number[], 
+    sort: IModsSort = { updatedAt: { direction: 'ASC' }}
+): Promise<IUpdatedModResults> {
 
-    if (typeof startDate === 'string') {
-        startDate = new Date(startDate)
-    }
-    
+    const sinceDate: number = Math.floor(new Date(newSince).getTime() / 1000)
     // The API has a page size limit of 50 (default 20) so we need to break our request into pages.
     const filter: IModsFilter = {
-        createdAt: {
-            value: Math.floor(startDate.getTime() / 1000).toString(),
+        hasUpdated: {
+            value: true,
+            op: 'EQUALS'
+        },
+        updatedAt: {
+            value: `${sinceDate}`,
             op: 'GT'
         }
     };
@@ -76,13 +89,13 @@ export async function latestMods(headers: Record<string,string>, logger: Logger,
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        // console.log(result.mods, filter)
+        // Adult content filter is not available on the API yet, so we'll have to do it manually.
+        if (!includeAdult) result.mods.nodes = result.mods.nodes.filter(m => m.adult === false);
         return result.mods;
     }
     catch(err) {
-        const error = new NexusGQLError(err as any, 'mods');
-        // logger.error('Error in latestmods v2 request', error, true);
-        throw error;
-        // return { nodes: [], totalCount: 0 };
+        const error = new NexusGQLError(err as any, 'updated mods');
+        logger.error('Error in updated mods v2 request', error);
+        return { nodes: [], totalCount: 0 };
     }
 }

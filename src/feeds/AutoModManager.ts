@@ -39,6 +39,10 @@ export interface IModForAutomod {
         modCount: number;
     }
     pictureUrl: string;
+    mirrors?: {
+        name: string;
+        uri: string;
+    }[] | null;
 }
 
 enum AutoModFlags {
@@ -311,7 +315,7 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
     const now = new Date()
     const anHourAgo = new Date(now.valueOf() - (60000 * 60)).getTime()
     const userJoined = new Date(mod.uploader!.joined).getTime();
-    const modCreatedAt = new Date(mod.createdAt!).getTime();
+    // const modCreatedAt = new Date(mod.createdAt!).getTime();
 
     if (userJoined >= anHourAgo) flags.low.push(AutoModFlags.NewAccount);
     
@@ -337,7 +341,11 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
 
 
     // Check against automod rules
-    let allText = `${mod.name}\n${mod.summary}\n${mod.description}\n${modFiles.map(f => `File: ${f.name} -- ${f.description}`).join('\n')}`.toLowerCase();
+    let allText = 
+        `${mod.name}\n${mod.summary}\n${mod.description}\n`+
+        `${modFiles.map(f => `File: ${f.name} -- ${f.description}`).join('\n')}`+
+        `${mod.mirrors?.map((m, i) => `Mirror #${i}: ${m.name} -- ${m.uri}`).join('\n')}`
+        .toLowerCase();
     const urls = await analyseURLS(allText, logger);
     if (urls.length) {
         urls.map(u => flags.low.push(`Shortened URL - ${u}`));
