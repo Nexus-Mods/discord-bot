@@ -145,7 +145,7 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
             .setColor(0xda8e35)
             .setThumbnail(userData.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
             .setTimestamp(userData.lastupdate)
-            .setFooter({ text: `User ID: ${userData.NexusModsId}`, iconURL: client.user?.avatarURL() || '' });
+            .setFooter({ text: `User ID: ${userData.id}`, iconURL: client.user?.avatarURL() || '' });
 
 
         return embed;
