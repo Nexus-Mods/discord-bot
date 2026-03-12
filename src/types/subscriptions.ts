@@ -451,7 +451,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
             .setTitle(`${collection.name} Revision ${revision.revisionNumber} is now available!`)
             .setDescription(
                 `## Changelog\n`+
-                (revision.collectionChangelog.description.length ? trimCollectionChangelog(revision.collectionChangelog.description, compact ? 500 : undefined) : '__Not provided__')
+                (revision.collectionChangelog?.description?.length ? trimCollectionChangelog(revision.collectionChangelog.description, compact ? 500 : undefined) : '__Not provided__')
             )
             // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedCollection'))
             .setThumbnail(collection.tileImage.url)
