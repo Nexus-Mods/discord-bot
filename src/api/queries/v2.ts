@@ -168,6 +168,11 @@ export class NexusGQLError extends Error {
 
 }
 
+export type VirusScannedStatus = 
+    |"NOT_SCANNED" | "QUEUED" | "WAITING_REPORT" | "VERIFIED" 
+    | "INTERNALLY_VERIFIED" | "QUARANTINED" | "MANUALLY_VERIFIED"
+    | "MOD_DOES_NOT_EXIST" | "FILE_NOT_FOUND" | "REPORT_ERROR" | "TOO_LARGE";
+
 export interface IModFile {
     uid: string;
     uri: string;
@@ -179,6 +184,7 @@ export interface IModFile {
     version: string;
     description: string;
     manager: number;
+    scannedV2: VirusScannedStatus;
 }
 
 export enum ModFileCategory {

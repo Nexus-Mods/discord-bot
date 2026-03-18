@@ -24,6 +24,7 @@ query DiscordBotModFiles($modId: ID!, $gameId: ID!) {
       date
       description
       manager
+      scannedV2
     }
 }
 `;

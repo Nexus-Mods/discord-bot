@@ -330,7 +330,9 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
 
     try {
         modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
-        const previewCheck = await checkFilePreview(mod, modFiles, badFiles, logger)
+        const previewCheck = await checkFilePreview(mod, modFiles, badFiles, logger);
+        const newFileQuarantines = checkNewFileWithQuarantines(mod, modFiles, logger);
+        if (newFileQuarantines) flags.high.push(...newFileQuarantines);
         if (previewCheck.flags.high.length) flags.high.push(...previewCheck.flags.high)
         if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
     }
@@ -516,4 +518,13 @@ function checkKnownBadFiles(flattenedFiles: string[], badFiles: IBadFileRule[]):
     }
 
     return flags;
+}
+
+function checkNewFileWithQuarantines(mod: IModForAutomod, modFiles: IModFile[], logger: Logger): string[] | undefined {
+    logger.info("Calculating mod age", { created: mod.createdAt, updated: mod.updatedAt })
+    const { createdAt, updatedAt } = mod
+    const diff = new Date(updatedAt).getTime() - new Date(createdAt).getTime();
+    if (diff < 60000) return undefined;
+    const quarantined = modFiles.filter(f => f.scannedV2 === 'QUARANTINED');
+    if (quarantined.length) return quarantined.map(q => `New mod with quarantined file: ${q.name} (${q.description})`);
 }
