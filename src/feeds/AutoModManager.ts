@@ -521,10 +521,14 @@ function checkKnownBadFiles(flattenedFiles: string[], badFiles: IBadFileRule[]):
 }
 
 function checkNewFileWithQuarantines(mod: IModForAutomod, modFiles: IModFile[], logger: Logger): string[] | undefined {
-    logger.info("Calculating mod age", { created: mod.createdAt, updated: mod.updatedAt })
     const { createdAt, updatedAt } = mod
     const diff = new Date(updatedAt).getTime() - new Date(createdAt).getTime();
-    if (diff < 60000) return undefined;
+    // logger.debug("Calculating mod age", { createdAt, updatedAt, diff });
+    // 30 minutes in milliseconds
+    const THRESHOLD = 30 * 60 * 1000;
+
+    if (diff >= THRESHOLD) return undefined;
     const quarantined = modFiles.filter(f => f.scannedV2 === 'QUARANTINED');
+    logger.debug(`Mod is less than 30 minutes old and has ${quarantined.length} quaratined files`)
     if (quarantined.length) return quarantined.map(q => `New mod with quarantined file: ${q.name} (${q.description})`);
 }
