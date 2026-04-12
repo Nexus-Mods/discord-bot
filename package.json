@@ -34,7 +34,7 @@
     "@types/nconf": "^0.10.3",
     "@types/node": "^22.13.14",
     "@types/pg": "^8.11.11",
-    "axios": "^1.8.4",
+    "axios": "^1.15.0",
     "cookie-parser": "^1.4.7",
     "discord.js": "^14.25.1",
     "dotenv": "^16.4.7",
