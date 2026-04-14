@@ -260,7 +260,7 @@ function flagsToSlackMessage(data: IModWithFlags[]): ISlackMessage {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: 'FAO <!subteam^SC2Q2J1DF>'
+                    text: 'FAO <!subteam^S0AGBEXEGAF>'
                 }
             } : { type: 'divider' }
         ]
