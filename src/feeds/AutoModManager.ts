@@ -332,7 +332,13 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
         modFiles = await user.NexusMods.API.v2.ModFiles(mod.game!.id, mod.modId!);
         const previewCheck = await checkFilePreview(mod, modFiles, badFiles, logger);
         const newFileQuarantines = checkNewFileWithQuarantines(mod, modFiles, logger);
-        if (newFileQuarantines) flags.high.push(...newFileQuarantines);
+        if (newFileQuarantines) {
+            newFileQuarantines.map(q => 
+                q.endsWith('(RAR)') 
+                    ? flags.low.push(q) 
+                    : flags.high.push(q)
+            );
+        }
         if (previewCheck.flags.high.length) flags.high.push(...previewCheck.flags.high)
         if (previewCheck.flags.low.length) flags.low.push(...previewCheck.flags.low)
     }
@@ -530,5 +536,8 @@ function checkNewFileWithQuarantines(mod: IModForAutomod, modFiles: IModFile[], 
     if (diff >= THRESHOLD) return undefined;
     const quarantined = modFiles.filter(f => f.scannedV2 === 'QUARANTINED');
     logger.debug(`Mod is less than 30 minutes old and has ${quarantined.length} quaratined files`)
-    if (quarantined.length) return quarantined.map(q => `New mod with quarantined file: ${q.name} (${q.description})`);
+    if (quarantined.length) return quarantined.map(q => {
+        const isRaR = q.uri.toLowerCase().endsWith('.rar');
+        return `New mod with quarantined file: ${q.name} (${q.version}) ${isRaR ? '(RAR)' : ''}`;
+    });
 }
