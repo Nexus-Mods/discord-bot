@@ -110,8 +110,9 @@ export class AutoModManager {
             logger.debug('Skipping automod setup due to sharding')
             return;
         }
-        this.updateTimer = setInterval(this.runAutomod.bind(this), pollTime);
-        logger.info(`Automod started with ${this.AutoModRules.length} rules, checking every ${this.pollTime/1000/60} minutes. Last check ${this.lastCheck}`);
+        // this.updateTimer = setInterval(this.runAutomod.bind(this), pollTime);
+        logger.info('Did not start automod')
+        // logger.info(`Automod started with ${this.AutoModRules.length} rules, checking every ${this.pollTime/1000/60} minutes. Last check ${this.lastCheck}`);
         // this.runAutomod().catch((err) => logger.error(`Error running automod`, err));
     }
 

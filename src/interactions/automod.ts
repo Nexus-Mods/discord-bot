@@ -411,9 +411,11 @@ async function showReport(client: ClientExt, interaction: ChatInputCommandIntera
     else if (!process.env['SLACK_WEBHOOK']) resultEmbed.addFields({ name: 'Missing Slack Webhook', value: 'Slack Webhook ENV variable is not present.' })
     else resultEmbed.addFields({ name: 'Webhooks set up', value: 'All required webhooks are configured.' })
 
+    const displayUids = client.automod ? [...client.automod.recentUids].join('\n') : 'ERROR'
+    
     const uidEmbed = new EmbedBuilder()
     .setTitle('Checked UIDs')
-    .setDescription('UIDs checked over the last few minutes\n\n```'+[...client.automod!.recentUids].join('\n')+'```')
+    .setDescription('UIDs checked over the last few minutes\n\n```'+displayUids+'```')
     .setColor("Blue")
 
     // const newModUploaders = new EmbedBuilder()
