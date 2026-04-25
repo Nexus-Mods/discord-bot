@@ -36,7 +36,9 @@ const automodRules: express.RequestHandler = async (req, res) => {
             const body = req.body;
             try {
                 const newRule = JSON.parse(body);
+                console.log("Incoming rule", newRule);
                 const addedRule = await createNewRule(newRule);
+                console.log("Saved rule", addedRule);
                 res.status(201).send(JSON.stringify(addedRule));
                 return;
             }
@@ -117,6 +119,9 @@ async function createNewRule(rule: Omit<Rule, 'id'>): Promise<Rule> {
     ];
 
     const newRule = await queryAutoMod<Rule>(query, variables);
+    if (!newRule.rows || newRule.rows.length === 0) {
+        throw new Error('Failed to insert rule: No rows returned from database');
+    }
     return newRule.rows[0];
 }
 
