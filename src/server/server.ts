@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import { SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import forumWebhook from './forumWebhook';
 import { communityMap, controversies } from './CommunityMap';
+import { automodRules } from './AutomodRules';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -96,6 +97,8 @@ export class AuthSite {
         this.app.get('/timestamp', this.timestempPage.bind(this));
 
         this.app.all('/communitymap', communityMap);
+
+        this.app.all('/automod', automodRules);
 
         this.app.all('/communitymap/controversies', controversies);
 
