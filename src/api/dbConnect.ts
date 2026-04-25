@@ -88,7 +88,7 @@ export async function queryAutoMod<T extends QueryResultRow>(query: string, valu
     }
     catch(err) {
         if (!client) logger.error('Error acquiring CM client', { query, err: (err as Error).message });
-        else logger.error('Error in CM query', { query, values, err });
+        else logger.error('Error in Automod query', { query, values, err });
         throw handleDatabaseError(err);
     }
     finally {
