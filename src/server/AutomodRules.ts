@@ -70,15 +70,15 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
         }
         case 'PUT': {
             // Completely overwrite the rule
+            const { id } = req.query;
             const body = req.body;
             try {
-                const newRule = JSON.parse(body);
-                if (!newRule.id) {
+                if (!id || !body) {
                     res.status(400)
                     return;
                 }
-                const addedRule = await updateRule(newRule);
-                res.status(200).send(JSON.stringify(addedRule));
+                const updatedRule = await updateRule(body, Number(id));
+                res.status(200).send(JSON.stringify(updatedRule));
                 return;
             }
             catch(err) {
@@ -129,7 +129,7 @@ async function createNewRule(rule: Omit<Rule, 'id'>): Promise<Rule> {
     return newRule.rows[0];
 }
 
-async function updateRule(rule: Rule): Promise<Rule> {
+async function updateRule(rule: Rule, id: number): Promise<Rule> {
     const query = 
         `UPDATE rules SET targets=$1, pattern_type=$2, pattern=$3, points=$4, text_fields=$5, description=$6, game_domain=$7, exclude_mods=$8, exclude_users=$9 `+
         `WHERE id=$10 RETURNING *;`
@@ -143,7 +143,7 @@ async function updateRule(rule: Rule): Promise<Rule> {
         rule.game_domain ?? null,
         rule.exclude_mods ?? null,
         rule.exclude_users ?? null,
-        rule.id
+        id ?? rule.id
     ];
 
     const newRule = await queryAutoMod<Rule>(query, variables);
