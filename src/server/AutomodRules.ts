@@ -38,6 +38,7 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
         }
         case 'POST': {
             const body = req.body;
+            logger.info("Request body", body);
             try {
                 const newRule = JSON.parse(body);
                 logger.info("Incoming rule", newRule);
@@ -46,7 +47,8 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
                 res.status(201).send(JSON.stringify(addedRule));
                 return;
             }
-            catch(err) {
+            catch(err: unknown) {
+                logger.error("Failed to create rule", err)
                 res.status(500).send(`Unexpected error: ${(err as Error).message}`);
                 return;
             }
