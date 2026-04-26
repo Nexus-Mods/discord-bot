@@ -98,7 +98,7 @@ export class AuthSite {
 
         this.app.all('/communitymap', communityMap);
 
-        this.app.all('/automod', (req, res) => automodRules(req, res, this.logger));
+        this.app.all('/automod', express.json(), (req, res) => automodRules(req, res, this.logger));
 
         this.app.all('/communitymap/controversies', controversies);
 
