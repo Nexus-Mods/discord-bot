@@ -39,9 +39,7 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
         case 'POST': {
             const body = req.body;
             try {
-                logger.info("Incoming rule", body);
                 const addedRule = await createNewRule(body);
-                logger.info("Saved rule", addedRule);
                 res.status(201).send(JSON.stringify(addedRule));
                 return;
             }
