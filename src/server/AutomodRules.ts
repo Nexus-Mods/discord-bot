@@ -1,18 +1,22 @@
 import { Rule } from '../types/AutomodTypes';
 import { queryAutoMod } from '../api/dbConnect';
 import express from 'express';
+import { Logger } from '../api/util';
 
 function checkPermission(req: express.Request): boolean {
-    const authCode = process.env.CM_AUTHCODE;
+    const authCode = process.env.AUTOMOD_AUTHCODE;
     return (authCode ? req.headers.authorization !== authCode : true);
 }
 
-const automodRules: express.RequestHandler = async (req, res) => {
+async function automodRules(req: express.Request<{}, {}, any>, res: express.Response, logger: Logger) {
+// const automodRules: express.RequestHandler = async (req, res, logger) => {
     // Check permission
     if (!checkPermission(req)) {
         res.sendStatus(401);
         return;
     }
+
+    logger.info("Incoming automod request", req.method);
 
     
     // Check request type
@@ -36,9 +40,9 @@ const automodRules: express.RequestHandler = async (req, res) => {
             const body = req.body;
             try {
                 const newRule = JSON.parse(body);
-                console.log("Incoming rule", newRule);
+                logger.info("Incoming rule", newRule);
                 const addedRule = await createNewRule(newRule);
-                console.log("Saved rule", addedRule);
+                logger.info("Saved rule", addedRule);
                 res.status(201).send(JSON.stringify(addedRule));
                 return;
             }
