@@ -27,8 +27,7 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
                 const { limit, offset } = req.query;
                 const qLimit = limit ? Number(limit) : undefined;
                 const qOffset = offset ? Number(offset) : undefined;
-                logger.info('Getting automod rules', { qLimit, limit, qOffset, offset });
-                const rules = await getAutomodRules(qLimit, qOffset);
+                const rules = await getAutomodRules(logger, qLimit, qOffset);
                 res.status(200).send(JSON.stringify(rules));
                 return;
             }
@@ -99,10 +98,11 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
     }
 }
 
-async function getAutomodRules(limit?: number, offset?: number): Promise<Rule[]> {
-    let query = "SELECT * FROM rules"
+async function getAutomodRules(logger: Logger, limit?: number, offset?: number): Promise<Rule[]> {
+    let query = "SELECT * FROM rules ORDER BY id DESC"
     if (limit && !isNaN(limit)) query = `${query} LIMIT ${limit}`;
     if (offset && !isNaN(offset)) query = `${query} OFFSET ${offset}`;
+    logger.info('Running query', query);
     const rules = await queryAutoMod<Rule>(query);
     return rules.rows;
 }
