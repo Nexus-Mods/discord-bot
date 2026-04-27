@@ -27,6 +27,7 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
                 const { limit, offset } = req.query;
                 const qLimit = limit ? Number(limit) : undefined;
                 const qOffset = offset ? Number(offset) : undefined;
+                logger.info('Getting automod rules', { qLimit, limit, qOffset, offset });
                 const rules = await getAutomodRules(qLimit, qOffset);
                 res.status(200).send(JSON.stringify(rules));
                 return;
@@ -52,13 +53,15 @@ async function automodRules(req: express.Request<{}, {}, any>, res: express.Resp
         case 'DELETE': {
             // Delete rule
             const { id } = req.query;
+            logger.info('Deleting automod rule', id);
             if (!id || isNaN(parseInt(id as string))) {
-                res.status(400)
+                res.status(400).send('Invalid ID')
                 return;
             }
             try {
                 await deleteRule(Number(id));
-                res.status(200)
+                logger.info('Deleted automod rule successfully', id);
+                res.status(200).send({ success: true });
                 return;
             }
             catch(err: unknown) {
@@ -149,7 +152,8 @@ async function updateRule(rule: Rule, id: number): Promise<Rule> {
 }
 
 async function deleteRule(id: number): Promise<void> {
-    const result = await queryAutoMod('DELETE FROM rules WHERE id=$1', [id], 'DeleteAutomodRule')
+    await queryAutoMod('DELETE FROM rules WHERE id=$1', [id], 'DeleteAutomodRule')
+    return;
 }
 
 export { automodRules };
