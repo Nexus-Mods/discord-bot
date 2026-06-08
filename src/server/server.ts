@@ -179,6 +179,8 @@ export class AuthSite {
             const userId = meData.user.id;
             // Store the Discord token temporarily
             this.TempStore.set(clientState, { id: userId, name: `${meData.user.username}#${meData.user.discriminator}`, tokens });
+            // If they don't come back to finish linking, drop the stored tokens after 5 mins so the store doesn't grow forever.
+            setTimeout(() => this.TempStore.delete(clientState), 1000 * 60 * 5);
 
             // Forward to Nexus Mods auth.
             const { url } = NexusModsOAuth.getOAuthUrl(clientState, this.logger);
@@ -211,6 +213,8 @@ export class AuthSite {
             res.sendStatus(403);
             return;
         }
+        // Read the data out, so drop the store entry.
+        this.TempStore.delete(clientState);
 
         try {
             const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);

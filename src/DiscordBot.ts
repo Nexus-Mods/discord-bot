@@ -1,4 +1,4 @@
-import { REST, Client, Collection, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
+import { REST, Client, Collection, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody, Options } from 'discord.js';
 import * as fs from 'fs';
 import path from 'path';
 import { isTesting, Logger } from './api/util';
@@ -25,7 +25,16 @@ export class DiscordBot {
 
     private token: Snowflake = process.env.DISCORD_TOKEN as Snowflake;
     private clientId: Snowflake = process.env.DISCORD_CLIENT_ID as Snowflake;
-    public client: ClientExt = new Client({ intents });
+    public client: ClientExt = new Client({
+        intents,
+        // discord.js doesn't evict cached users or members by default, so they pile up until the bot has to be restarted. Sweep them on a timer.
+        sweepers: {
+            ...Options.DefaultSweeperSettings,
+            messages: { interval: 3600, lifetime: 1800 },
+            users: { interval: 3600, filter: () => (user) => user.id !== user.client.user?.id },
+            guildMembers: { interval: 3600, filter: () => (member) => member.id !== member.client.user?.id },
+        },
+    });
     public logger: Logger = logger;
     private rest: REST = new REST({ version: '10' }).setToken(this.token);
 
