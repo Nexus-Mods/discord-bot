@@ -76,7 +76,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
             if (!sub) return logger.warn('Subscription not found to delete', { id });
             await deleteSubscription(sub.id);
             logger.info('Deleted subscription', { id, title: sub?.title });
-            return interaction.followUp(`-# Deleted ${sub.type} subsription for ${sub.title}.`);
+            return interaction.followUp(`-# Deleted ${sub.type} subscription for ${sub.title}.`);
         });
         await Promise.all(promises);
         // Refresh the subs for the channel
