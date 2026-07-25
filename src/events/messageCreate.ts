@@ -21,6 +21,8 @@ const main: DiscordEventInterface = {
         }
 
         try {
+            // Wait 1 second to try and prevent Discord race conditions preventing the message from being removed. 
+            await new Promise<void>((resolve) => setTimeout(resolve, 1000));
             await message.member.ban({
                 reason: 'Posting in restricted channel - likely compromised account',
                 deleteMessageSeconds: 3600
