@@ -13,6 +13,7 @@ export interface IUser {
     avatar: string;
     recognizedAuthor: boolean;
     uniqueModDownloads: number;
+    uniqueCollectionDownloads: number;
     banned: boolean;
     deleted: boolean;
 }
@@ -25,6 +26,7 @@ query DiscordBotUserById($id: Int!) {
         avatar
         recognizedAuthor
         uniqueModDownloads
+        uniqueCollectionDownloads
         banned
         deleted
     }
@@ -39,6 +41,7 @@ query UserByName($username: String!) {
         avatar
         recognizedAuthor
         uniqueModDownloads
+        uniqueCollectionDownloads
         banned
         deleted
     }

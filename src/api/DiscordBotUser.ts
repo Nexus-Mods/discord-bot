@@ -328,10 +328,9 @@ export class DiscordBotUser {
         let collectiondownloads = oldData?.metadata?.collectiondownloads ?? 0;
         let moddownloads = oldData?.metadata?.moddownloads ?? 0;
         try {
-            const collectionTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
-            collectiondownloads = collectionTotals.uniqueDownloads;
-            const modTotals = await this.NexusMods.API.v2.FindUser(this.NexusModsId);
-            moddownloads = modTotals?.uniqueModDownloads ?? 0;
+            const userProfile = await this.NexusMods.API.v2.FindUser(this.NexusModsId);
+            moddownloads = userProfile?.uniqueModDownloads ?? 0;
+            collectiondownloads = userProfile?.uniqueCollectionDownloads ?? 0;
             this.logger.info('Download totals', { name: this.NexusModsUsername, collectiondownloads, moddownloads })
         }
         catch(err) {
