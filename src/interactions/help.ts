@@ -1,5 +1,5 @@
 import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, SlashCommandBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes";
+import { DiscordInteraction } from "../types/DiscordTypes.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

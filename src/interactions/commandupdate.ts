@@ -2,8 +2,8 @@ import {
     SlashCommandBuilder, PermissionFlagsBits, CommandInteraction, 
     ChatInputCommandInteraction, MessageFlags, InteractionContextType 
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
-import { KnownDiscordServers, Logger } from "../api/util";
+import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { KnownDiscordServers, Logger } from "../api/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

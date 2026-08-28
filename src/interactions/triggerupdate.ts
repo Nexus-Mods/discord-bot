@@ -1,7 +1,7 @@
 import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits, MessageFlags, InteractionContextType } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { Logger } from "../api/util";
-import { getSubscribedChannel } from "../api/subscriptions";
+import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { Logger } from "../api/util.js";
+import { getSubscribedChannel } from "../api/subscriptions.js";
 
 const timezones = [
     { name: 'UTC, GMT, Europe/London', value: '+00:00' },

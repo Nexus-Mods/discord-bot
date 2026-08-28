@@ -4,10 +4,10 @@ import {
     InteractionContextType,
     MessageFlags
 } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes";
-import { getCountOfUsers } from '../api/bot-db';
-import { calcUptime, Logger } from "../api/util";
-import { getCountOfSubscriptions } from "../api/subscriptions";
+import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { getCountOfUsers } from '../api/bot-db.js';
+import { calcUptime, Logger } from "../api/util.js";
+import { getCountOfSubscriptions } from "../api/subscriptions.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

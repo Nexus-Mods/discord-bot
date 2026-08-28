@@ -4,24 +4,24 @@ import {
     SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField,
     MessageFlags, 
 } from "discord.js";
-import { customEmojis } from "../types/util";
-import { DiscordInteraction } from '../types/DiscordTypes';
-import { getUserByDiscordId, getServer } from '../api/bot-db';
-import Fuse from 'fuse.js';
-import { gameArt, KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util";
-import { ICollectionsFilter } from "../types/GQLTypes";
-import { BotServer } from "../types/servers";
-import { sendUnexpectedError } from '../events/interactionCreate';
-import { DiscordBotUser } from "../api/DiscordBotUser";
-import { ICollection, IMod, IModsFilter } from "../api/queries/v2";
-import { IUser } from "../api/queries/v2-finduser";
-import { IModResults } from "../api/queries/v2-mods";
-import { IGameStatic } from "../api/queries/other";
+import { customEmojis } from "../types/util.js";
+import { DiscordInteraction } from '../types/DiscordTypes.js';
+import { getUserByDiscordId, getServer } from '../api/bot-db.js';
+import Fuse, { type IFuseOptions } from 'fuse.js';
+import { gameArt, KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util.js";
+import { ICollectionsFilter } from "../types/GQLTypes.js";
+import { BotServer } from "../types/servers.js";
+import { sendUnexpectedError } from '../events/interactionCreate.js';
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
+import { IUser } from "../api/queries/v2-finduser.js";
+import { IModResults } from "../api/queries/v2-mods.js";
+import { IGameStatic } from "../api/queries/other.js";
 
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
-const options: Fuse.IFuseOptions<any> = {
+const options: IFuseOptions<any> = {
     shouldSort: true,
     findAllMatches: true,
     threshold: 0.4,
@@ -135,7 +135,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const showToAll: boolean = interaction.options.getBoolean('private') || false;
     const userId: number = interaction.options.getNumber('id') || 0;
 
-    if (!searchType) return interaction.reply({ content:'Invalid search parameters', ephemeral: true });
+    if (!searchType) return interaction.reply({ content:'Invalid search parameters', flags: MessageFlags.Ephemeral });
 
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });;
@@ -389,14 +389,14 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     catch(err) {
         logger.warn('Mod Search failed!', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name, err});
         await interaction.deleteReply().catch(() => undefined);
-        return interaction.followUp({ content: 'Search failed!', embeds:[], components: [], ephemeral: true});
+        return interaction.followUp({ content: 'Search failed!', embeds:[], components: [], flags: MessageFlags.Ephemeral});
     }
 
 }
 
 async function searchGames(query: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
     logger.debug('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
-    if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', ephemeral: true });
+    if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', flags: MessageFlags.Ephemeral });
 
     const allGames = await user.NexusMods.API.Other.Games().catch(() => []);
     const fuse = new Fuse(allGames, options);

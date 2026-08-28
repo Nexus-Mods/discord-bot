@@ -1,9 +1,9 @@
 import {ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { getUserByDiscordId } from '../api/bot-db';
-import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
-import { IStatusPageFullResponse } from "../types/util";
-import { KnownDiscordServers, Logger } from "../api/util";
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { getUserByDiscordId } from '../api/bot-db.js';
+import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
+import { IStatusPageFullResponse } from "../types/util.js";
+import { KnownDiscordServers, Logger } from "../api/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

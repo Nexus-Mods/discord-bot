@@ -1,8 +1,8 @@
-import { Logger } from '../api/util';
-import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
+import { Logger } from '../api/util.js';
+import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
-import { NewsFeedManager } from '../feeds/NewsFeedManager';
-import { SubscriptionManger } from '../feeds/SubscriptionManager';
+import { NewsFeedManager } from '../feeds/NewsFeedManager.js';
+import { SubscriptionManger } from '../feeds/SubscriptionManager.js';
 
 const main: DiscordEventInterface = {
     name: 'readyForAction',

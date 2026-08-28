@@ -1,9 +1,9 @@
 import { EmbedBuilder, RESTPostAPIWebhookWithTokenJSONBody } from 'discord.js';
-import { Logger } from '../api/util';
-import { ForumPost, ForumTopic } from '../types/ForumWebhookTypes';
+import { Logger } from '../api/util.js';
+import { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
 import express from 'express';
 import { htmlToText } from 'html-to-text';
-import { getTopic } from '../api/forumAPI';
+import { getTopic } from '../api/forumAPI.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();

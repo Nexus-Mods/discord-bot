@@ -1,6 +1,7 @@
 import crypto from 'crypto';
-import { baseheader, Logger } from '../api/util';
-import { findUser } from '../api/queries/v2-finduser';
+import { baseheader, Logger } from '../api/util.js';
+import { readJson, expiresAt } from '../api/http.js';
+import { findUser } from '../api/queries/v2-finduser.js';
 
 interface OAuthURL {
     url: string;
@@ -74,8 +75,8 @@ export async function getOAuthTokens(code: string): Promise<NexusOAuthTokens> {
       },
     });
     if (response.ok) {
-      const data = await response.json();
-      data.expires_at = Date.now() + (data.expires_in * 1000);
+      const data = await readJson<NexusOAuthTokens>(response);
+      data.expires_at = expiresAt(data.expires_in);
       return data;
     } else {
       throw new Error(`Error fetching Nexus Mods OAuth tokens: [${response.status}] ${response.statusText}`);
@@ -90,7 +91,7 @@ export async function getUserData(tokens: NexusOAuthTokens, logger: Logger): Pro
       },
     });
     if (response.ok) {
-      const data = await response.json();
+      const data = await readJson<NexusUserData>(response);
       let modAuthor = false;
       try {
         const user = await findUser(baseheader, logger,parseInt(data.sub));
@@ -131,8 +132,8 @@ export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> 
         },
       });
       if (response.ok) {
-        const tokens = await response.json();
-        tokens.expires_at = Date.now() + (tokens.expires_in * 1000);
+        const tokens = await readJson<OAuthTokens>(response);
+        tokens.expires_at = expiresAt(tokens.expires_in);
         return tokens;
       } else {
         const err: any = new Error(`Could not refresh Nexus Mods access token: [${response.status}] ${response.statusText}`);
@@ -165,8 +166,8 @@ export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
     },
   });
   if (response.ok) {
-    const data = await response.json();
-    data.expires_at = Date.now() + (data.expires_in * 1000);
+    const data = await readJson<OAuthTokens>(response);
+    data.expires_at = expiresAt(data.expires_in);
     return data;
   } else {
     throw new Error(`Error revoking Neuxs Mods OAuth tokens: [${response.status}] ${response.statusText}`);

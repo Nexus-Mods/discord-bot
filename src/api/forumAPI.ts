@@ -2,7 +2,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { ForumTopic } from "../types/ForumWebhookTypes";
+import { ForumTopic } from "../types/ForumWebhookTypes.js";
+import { readJson } from './http.js';
 
 export async function getTopic(id: number): Promise<ForumTopic> {
     const APIKEY: string | undefined = process.env.FORUM_API_KEY;
@@ -25,5 +26,5 @@ export async function getTopic(id: number): Promise<ForumTopic> {
         else throw new Error('Error fetching topic: '+response.statusText);
     }
 
-    return await response.json();
+    return await readJson<ForumTopic>(response);
 }

@@ -1,9 +1,10 @@
-import { queryPromise } from './dbConnect';
+import { queryPromise } from './dbConnect.js';
+import { logger } from './logger.js';
 
 
 async function migrationMoveConfigOptionsToJSON() {
     try {
-        console.log('Migrating SubsribedItem settings to JSONB column');
+        logger.info('Migrating SubscribedItem settings to JSONB column');
 
         await queryPromise(
             `ALTER TABLE SubscribedItems
@@ -40,14 +41,14 @@ async function migrationMoveConfigOptionsToJSON() {
         // );
     }
     catch(err) {
-        console.error('Migration migrationMoveConfigOptionsToJSON failed', err);
+        logger.error('Migration migrationMoveConfigOptionsToJSON failed', err);
         throw err;
     }
 }
 
 async function migrationDeleteAPIkeyColumn(): Promise<void> {
     await queryPromise('ALTER TABLE users DROP COLUMN IF EXISTS apikey', []);
-    console.log('Deleted API key column from users table');
+    logger.info('Deleted API key column from users table');
 }
 
 export { migrationMoveConfigOptionsToJSON, migrationDeleteAPIkeyColumn };

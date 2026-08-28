@@ -1,21 +1,21 @@
 import express from 'express';
 import cookieparser from 'cookie-parser';
-import * as DiscordOAuth from './DiscordOAuth';
-import * as NexusModsOAuth from './NexusModsOAuth';
-import { calcUptime, Logger } from '../api/util';
-import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users';
-import { NexusUser } from '../types/users';
+import * as DiscordOAuth from './DiscordOAuth.js';
+import * as NexusModsOAuth from './NexusModsOAuth.js';
+import { calcUptime, Logger } from '../api/util.js';
+import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users.js';
+import { NexusUser } from '../types/users.js';
 import path from 'path';
-import { DiscordBotUser } from '../api/DiscordBotUser';
-import { ClientExt } from '../types/DiscordTypes';
-import { getSubscribedChannelsForGuild } from '../api/subscriptions';
+import { DiscordBotUser } from '../api/DiscordBotUser.js';
+import { ClientExt } from '../types/DiscordTypes.js';
+import { getSubscribedChannelsForGuild } from '../api/subscriptions.js';
 import { fileURLToPath } from 'url';
-import { SubscribedItem, SubscribedItemType } from '../types/subscriptions';
-import forumWebhook from './forumWebhook';
-import { automodRules } from './AutomodRules';
+import { SubscribedItem, SubscribedItemType } from '../types/subscriptions.js';
+import forumWebhook from './forumWebhook.js';
+import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { checkSharedSecret, cookieOptions, safeCompare, signValue, verifyValue } from './auth';
+import { checkSharedSecret, cookieOptions, safeCompare, signValue, verifyValue } from './auth.js';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -534,7 +534,6 @@ export class AuthSite {
 
         const ms = parseToMs(raw);
         const date = new Date(ms);
-        console.log('Input date', {raw, ms, date});
         const iso = isNaN(date.getTime()) ? 'Invalid date' : date.toISOString();
 
         const opts: Intl.DateTimeFormatOptions = {

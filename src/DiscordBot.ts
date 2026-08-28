@@ -1,14 +1,14 @@
 import { REST, Client, Collection, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody, Options } from 'discord.js';
 import * as fs from 'fs';
 import path from 'path';
-import { isTesting, Logger } from './api/util';
-import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
-import { GameListCache } from './types/util';
+import { isTesting } from './api/util.js';
+import { logger, Logger } from './api/logger.js';
+import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes.js';
+import { GameListCache } from './types/util.js';
 import { fileURLToPath, pathToFileURL } from 'url';
 
-// Set up logger
-const shardId = process.env.SHARD_ID || 'Main';
-export const logger = new Logger(shardId);
+// Re-exported for the modules that still import the logger from here.
+export { logger };
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -89,7 +89,7 @@ export class DiscordBot {
         }
         catch(err) {
             logger.error('Failed to set interactions', err);
-            if (force === true) return Promise.reject(err);
+            if (force === true) throw err;
         }
     }
 

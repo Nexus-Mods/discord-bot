@@ -1,8 +1,8 @@
 import { AxiosError } from 'axios';
-import { other } from "../api/queries/all";
-import { Logger } from "../api/util";
-import { IGameStatic } from "../api/queries/other";
-import { getAllTips, ITip } from "../api/tips";
+import { other } from "../api/queries/all.js";
+import { Logger } from "../api/util.js";
+import { IGameStatic } from "../api/queries/other.js";
+import { getAllTips, ITip } from "../api/tips.js";
 
 // Custom Emojis from discord.gg/nexusmods that may be used by the bot.
 export const customEmojis = {

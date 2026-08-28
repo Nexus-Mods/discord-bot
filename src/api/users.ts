@@ -1,9 +1,9 @@
-import query from '../api/dbConnect';
-import { NexusUser } from '../types/users';
+import query from '../api/dbConnect.js';
+import { NexusUser } from '../types/users.js';
 import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
-import { nexusModsTrackingUrl } from './util';
-import { DiscordBotUser } from './DiscordBotUser';
-import { logger } from '../DiscordBot';
+import { nexusModsTrackingUrl } from './util.js';
+import { DiscordBotUser } from './DiscordBotUser.js';
+import { logger } from './logger.js';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     try {

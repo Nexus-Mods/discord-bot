@@ -2,11 +2,11 @@ import {
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
     TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, MessageFlags, InteractionContextType
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, gameArt, Logger } from "../api/util";
-import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions";
-import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions";
-import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser";
+import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, gameArt, Logger } from "../api/util.js";
+import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions.js";
+import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions.js";
+import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

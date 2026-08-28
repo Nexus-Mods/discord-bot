@@ -1,6 +1,6 @@
 import { request, gql, Variables } from "graphql-request";
-import { Logger } from "../util";
-import { v2API, NexusGQLError, IModFile } from './v2';
+import { Logger } from "../util.js";
+import { v2API, NexusGQLError, IModFile } from './v2.js';
 
 interface IResult {
     modFiles: IModFile[];

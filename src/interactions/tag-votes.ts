@@ -1,6 +1,7 @@
 import { AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, hideLinkEmbed, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { autoCompleteGameID, autoCompleteModSearchIdOnly, autoCompleteUserSearch, KnownDiscordServers, Logger } from "../api/util";
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { autoCompleteGameID, autoCompleteModSearchIdOnly, autoCompleteUserSearch, KnownDiscordServers, Logger } from "../api/util.js";
+import { readJson } from "../api/http.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -116,7 +117,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
             }
         });
         if (!res.ok) return interaction.editReply('Failed to fetch tag details: HTTP'+res.status);
-        const { data }: IClickHouseResponse = await res.json();
+        const { data } = await readJson<IClickHouseResponse>(res);
         if (!data) return interaction.editReply('Failed to fetch tag info. Server response was blank');
 
         if (!data.length) return interaction.editReply('No results for requested query');

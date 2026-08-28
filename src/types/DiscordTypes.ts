@@ -2,10 +2,10 @@ import {
     Snowflake, CommandInteraction, Collection, 
     Client, ContextMenuCommandBuilder, SlashCommandBuilder, AutocompleteInteraction,
 } from "discord.js";
-import { NewsFeedManager } from "../feeds/NewsFeedManager";
-import { GameListCache, TipCache } from "./util";
-import { SubscriptionManger } from "../feeds/SubscriptionManager";
-import { Logger } from "../api/util";
+import { NewsFeedManager } from "../feeds/NewsFeedManager.js";
+import { GameListCache, TipCache } from "./util.js";
+import { SubscriptionManger } from "../feeds/SubscriptionManager.js";
+import { Logger } from "../api/util.js";
 
 interface ClientExt extends Client {
     config?: any;

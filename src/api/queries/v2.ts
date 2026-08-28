@@ -1,5 +1,5 @@
 import { ClientError } from "graphql-request";
-import * as GQLTypes from '../../types/GQLTypes';
+import * as GQLTypes from '../../types/GQLTypes.js';
 
 
 export const v2API: string = 'https://api.nexusmods.com/v2/graphql';

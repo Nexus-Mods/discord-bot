@@ -1,9 +1,9 @@
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { NexusUser } from "../types/users";
-import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { NexusUser } from "../types/users.js";
+import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db.js';
 import { Snowflake, EmbedBuilder, Client, User, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
-import { KnownDiscordServers, Logger } from "../api/util";
-import { DiscordBotUser } from "../api/DiscordBotUser";
+import { KnownDiscordServers, Logger } from "../api/util.js";
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
 
 
 const discordInteraction: DiscordInteraction = {
@@ -64,7 +64,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     // If the bot has been pinged. 
     if (user && user === client.user) {
         interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), client)], flags: show ? MessageFlags.Ephemeral : undefined })
-            .catch(err => console.warn('Failed to send bot info for whois slash command', err));
+            .catch(err => logger.warn('Failed to send bot info for whois slash command', err));
         return;
     }
 
@@ -78,23 +78,23 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             foundUser = allUsers.find(u => u.name.toLowerCase() === nexus.toLowerCase());
         }
 
-        if (!foundUser) interaction.followUp({content: 'No members found for your query.', ephemeral: true});
+        if (!foundUser) return interaction.followUp({content: 'No members found for your query.', flags: MessageFlags.Ephemeral});
         else {
             const botUser = new DiscordBotUser(foundUser, logger);
             // check if we should return the result. If the found user isn't in the current server, reject the request.
             const isAdmin: boolean = (client as ClientExt).config.ownerIDs?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === botUser.DiscordId;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });
+            if (isAdmin || isMe || inGuild) return interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });
             else {
                 logger.info('Whois not authorised', {requester: userData, target: botUser, isAdmin, isMe, inGuild});
-                interaction.followUp({ embeds: [ notAllowed(client) ], flags: MessageFlags.Ephemeral });
+                return interaction.followUp({ embeds: [ notAllowed(client) ], flags: MessageFlags.Ephemeral });
             };
         }
                         
     }
     catch (err) {
-        interaction.followUp({ content: 'Error looking up users.', flags: MessageFlags.Ephemeral});
+        void interaction.followUp({ content: 'Error looking up users.', flags: MessageFlags.Ephemeral});
         logger.warn('Error looking up users from slash command', err);
         return;
     }

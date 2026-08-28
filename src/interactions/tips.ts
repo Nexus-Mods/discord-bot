@@ -3,10 +3,10 @@ import {
     SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
     EmbedData, InteractionEditReplyOptions
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { Logger } from "../api/util";
-import { ITip } from "../api/tips";
-import { TipCache } from "../types/util";
+import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { Logger } from "../api/util.js";
+import { ITip } from "../api/tips.js";
+import { TipCache } from "../types/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

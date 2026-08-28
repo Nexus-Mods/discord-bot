@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { autocompleteGameName, KnownDiscordServers, Logger } from "../api/util";
-import { NewsFeedManager } from "../feeds/NewsFeedManager";
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { autocompleteGameName, KnownDiscordServers, Logger } from "../api/util.js";
+import { NewsFeedManager } from "../feeds/NewsFeedManager.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

@@ -1,8 +1,8 @@
-import { Rule } from '../types/AutomodTypes';
-import { queryAutoMod } from '../api/dbConnect';
+import { Rule } from '../types/AutomodTypes.js';
+import { queryAutoMod } from '../api/dbConnect.js';
 import express from 'express';
-import { Logger } from '../api/util';
-import { checkSharedSecret } from './auth';
+import { Logger } from '../api/util.js';
+import { checkSharedSecret } from './auth.js';
 
 function checkPermission(req: express.Request): boolean {
     return checkSharedSecret(req, 'AUTOMOD_AUTHCODE');

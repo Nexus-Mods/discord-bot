@@ -1,12 +1,12 @@
 
 import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient, ShardClientUtil, Client } from 'discord.js';
-import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
-import { gameArt, Logger, nexusModsTrackingUrl } from '../api/util';
-import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
-import { getUserByNexusModsId } from '../api/users';
-import { IUser } from '../api/queries/v2-finduser';
-import { customEmojis } from './util';
-import { ModStatus } from './GQLTypes';
+import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions.js';
+import { gameArt, Logger, nexusModsTrackingUrl } from '../api/util.js';
+import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2.js';
+import { getUserByNexusModsId } from '../api/users.js';
+import { IUser } from '../api/queries/v2-finduser.js';
+import { customEmojis } from './util.js';
+import { ModStatus } from './GQLTypes.js';
 
 export interface ISubscribedChannel {
     id: number;
@@ -678,7 +678,8 @@ export function unavailableUserUpdate(entity: IUser, sub: SubscribedItem<Subscri
 }
 
 // Cut to length and reformat any incompatible markdown
-function trimCollectionChangelog(markdown: string, maxLength: number = 2000): string {
+// Exported for tests. Not part of the module's public surface.
+export function trimCollectionChangelog(markdown: string, maxLength: number = 2000): string {
     // Remove images by regex (anything inside ![...](...) will be removed)
     let modifiedMarkdown = markdown.replace(/!\[([^\]]*)\]\([^)]*\)/g, '');
 
@@ -708,7 +709,7 @@ function trimCollectionChangelog(markdown: string, maxLength: number = 2000): st
 
 }
 
-function trimModChangelog(raw: string[], limit: number = 1000, logger: Logger): string {
+export function trimModChangelog(raw: string[], limit: number = 1000, logger: Logger): string {
     // THIS FEATURE IS BROKEN IN THE API, WE'LL CHECK IF IT'S STILL INVALID AND RETURN NULL IF IT IS.
     if (raw[0].startsWith('#<ModChangelog')) {
         logger.debug('Mod changelogs are still broken, returning a generic message.');

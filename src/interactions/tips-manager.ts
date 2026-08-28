@@ -10,11 +10,11 @@ import {
     InteractionEditReplyOptions,
     PermissionFlagsBits
 } from "discord.js";
-import { TipCache } from "../types/util";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { addTip, getAllTips, editTip } from '../api/bot-db';
-import { KnownDiscordServers, Logger } from "../api/util";
-import { deleteTip, ITip, setApprovedTip } from "../api/tips";
+import { TipCache } from "../types/util.js";
+import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { addTip, getAllTips, editTip } from '../api/bot-db.js';
+import { KnownDiscordServers, Logger } from "../api/util.js";
+import { deleteTip, ITip, setApprovedTip } from "../api/tips.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

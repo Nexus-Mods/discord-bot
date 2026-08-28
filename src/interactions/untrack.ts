@@ -5,10 +5,10 @@ import {
     MessageFlags,
     InteractionContextType
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes';
-import { SubscribedItem, SubscribedItemType } from "../types/subscriptions";
-import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "../api/subscriptions";
-import { Logger } from "../api/util";
+import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { SubscribedItem, SubscribedItemType } from "../types/subscriptions.js";
+import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "../api/subscriptions.js";
+import { Logger } from "../api/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

@@ -1,6 +1,7 @@
 import { ShardingManager } from 'discord.js';
 import dotenv from 'dotenv';
-import * as dbMigrations from './api/migrations';
+import * as dbMigrations from './api/migrations.js';
+import { logger } from './api/logger.js';
 dotenv.config();
 
 const manager = new ShardingManager('./dist/app.js', {
@@ -9,10 +10,10 @@ const manager = new ShardingManager('./dist/app.js', {
 });
 
 manager.on('shardCreate', (shard) => {
-    console.log(`[Shard ${shard.id}] Launched shard ${shard.id + 1}/${manager.totalShards}`);
-    shard.on('death', () => console.log(`[Shard ${shard.id}] Shard ${shard.id} died`, true));
-    shard.on('disconnect', () => console.warn(`[Shard ${shard.id}] Shard ${shard.id} disconnected`));
-    shard.on('reconnecting', () => console.log(`[Shard ${shard.id}] Shard ${shard.id} reconnecting`));
+    logger.info('Launched shard', { shard: shard.id, of: manager.totalShards });
+    shard.on('death', () => logger.error('Shard died', { shard: shard.id }));
+    shard.on('disconnect', () => logger.warn('Shard disconnected', { shard: shard.id }));
+    shard.on('reconnecting', () => logger.info('Shard reconnecting', { shard: shard.id }));
 });
 
 async function start() {
@@ -23,7 +24,7 @@ async function start() {
         if (version === '3.13.1') await dbMigrations.migrationMoveConfigOptionsToJSON();
     }
     catch(err) {
-        console.error('Failed to run database migrations', err);
+        logger.error('Failed to run database migrations', err);
     }
 
     void manager.spawn(); // Spawn the shards

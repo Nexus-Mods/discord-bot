@@ -1,9 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { getUserByDiscordId } from '../api/bot-db';
-import { KnownDiscordServers, Logger } from "../api/util";
-import { DiscordBotUser } from "../api/DiscordBotUser";
-import { customEmojis } from "../types/util";
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { getUserByDiscordId } from '../api/bot-db.js';
+import { KnownDiscordServers, Logger } from "../api/util.js";
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { customEmojis } from "../types/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

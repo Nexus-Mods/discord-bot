@@ -1,4 +1,4 @@
-import { DiscordEventInterface } from "../types/DiscordTypes";
+import { DiscordEventInterface } from "../types/DiscordTypes.js";
 import { Message, TextChannel } from 'discord.js';
 
 const main: DiscordEventInterface = {

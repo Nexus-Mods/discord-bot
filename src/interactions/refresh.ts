@@ -1,9 +1,9 @@
-import { DiscordInteraction } from "../types/DiscordTypes";
-import { NexusUser } from "../types/users";
-import { getUserByDiscordId } from '../api/bot-db';
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from "discord.js";
-import { KnownDiscordServers, Logger } from '../api/util';
-import { DiscordBotUser } from "../api/DiscordBotUser";
+import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { NexusUser } from "../types/users.js";
+import { getUserByDiscordId } from '../api/bot-db.js';
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType, MessageFlags } from "discord.js";
+import { KnownDiscordServers, Logger } from '../api/util.js';
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
 
 const cooldown: number = (1*60*1000);
 
@@ -23,7 +23,7 @@ interface MetaData { modauthor?: '1' | '0', premium?: '1' | '0', supporter?: '1'
 
 const updateMeta = (prev: MetaData, cur: MetaData): boolean => {
     for (const key of Object.keys(prev)) {
-        if (prev[key as keyof MetaData] != cur[key as keyof MetaData]) {
+        if (prev[key as keyof MetaData] !== cur[key as keyof MetaData]) {
             return true;
         }
     }
@@ -56,7 +56,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
+    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     // Check if they are already linked.
     let userData : DiscordBotUser | undefined;
 
@@ -68,7 +68,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         try { 
             await userData?.NexusMods.Auth()
         }
-        catch(err) {
+        catch {
             return interaction.editReply({ content: 'There was a problem authorising your Nexus Mods account. Use /link to refresh your tokens.' });
         }
         if (!userData) {

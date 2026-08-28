@@ -3,8 +3,9 @@ import {
     MessageFlags,
     ChatInputCommandInteraction
 } from 'discord.js';
-import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util';
-import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
+import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util.js';
+import { randomUUID } from 'node:crypto';
+import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
 
 const ignoreErrors: string[] = [ 
     'Unknown interaction', 
@@ -52,17 +53,23 @@ async function handleAutoComplete(client: ClientExt, interaction: AutocompleteIn
 
 export async function sendUnexpectedError(interaction: CommandInteraction|undefined, i:CommandInteraction, err:Error, logger: Logger):Promise<void> {
     if (!interaction) return;
+
+    // A short reference the user can quote. The full error is logged against it, so
+    // nobody has to paste an internal error message out of an embed to report a bug.
+    const errorId = randomUUID().slice(0, 8);
+
+    // Deliberately carries no raw error text: this object is rendered into the embed.
     const context = {
+        errorId,
         server: `${interaction.guild?.name} (${interaction.guildId})`,
         channelName: (interaction.channel as any)?.name,
         requestedBy: interaction.user.tag,
         botVersion: process.env.npm_package_version,
         interaction: !i.isCommand() ? interaction.commandName : interaction.toString(),
-        error: err.message || err
     }
 
-    const reply:InteractionReplyOptions  = { embeds: [unexpectedErrorEmbed(err, context)], flags: MessageFlags.Ephemeral};
-    if (ignoreErrors.includes(context.error.toString())) {
+    const reply:InteractionReplyOptions  = { embeds: [unexpectedErrorEmbed(err, context, errorId)], flags: MessageFlags.Ephemeral};
+    if (ignoreErrors.includes(err.message)) {
         return logger.error('Unknown interaction error', { err, inter: (interaction as ChatInputCommandInteraction).options, ...context });
     }
     else logger.warn('Interaction action errored out', { err, interact: (interaction as ChatInputCommandInteraction).options, ...context });

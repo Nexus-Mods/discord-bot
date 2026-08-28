@@ -1,23 +1,23 @@
-import { ClientExt } from "../types/DiscordTypes";
+import { ClientExt } from "../types/DiscordTypes.js";
 import { 
     DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel, 
     WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError 
 } from 'discord.js';
-import { isTesting, Logger } from '../api/util';
-import { CollectionStatus, IMod, IModFile, IModsFilter, IModsSort, ModFileCategory } from '../api/queries/v2';
+import { isTesting, Logger } from '../api/util.js';
+import { CollectionStatus, IMod, IModFile, IModsFilter, IModsSort, ModFileCategory } from '../api/queries/v2.js';
 import { 
     IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, 
     SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, 
     SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType 
-} from '../types/subscriptions';
+} from '../types/subscriptions.js';
 import { 
     deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, 
     getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, 
     saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
     updateSubscription 
-} from '../api/subscriptions';
-import { v2 as API } from '../api/queries/all';
-import { baseheader } from "../api/util";
+} from '../api/subscriptions.js';
+import { v2 as API } from '../api/queries/all.js';
+import { baseheader } from "../api/util.js";
 
 
 export class SubscriptionManger {

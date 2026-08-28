@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
-import { Logger } from "../util";
-import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort, IModForAutomod } from './v2';
+import { Logger } from "../util.js";
+import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort, IModForAutomod } from './v2.js';
 
 interface IResult {
     mods: IModResults;
@@ -76,7 +76,6 @@ export async function latestMods(headers: Record<string,string>, logger: Logger,
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        // console.log(result.mods, filter)
         return result.mods;
     }
     catch(err) {

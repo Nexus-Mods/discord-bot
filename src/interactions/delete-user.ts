@@ -1,8 +1,8 @@
 import { ChatInputCommandInteraction, CommandInteraction, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { getUserByDiscordId, getUserByNexusModsName, deleteUser } from '../api/bot-db';
-import { KnownDiscordServers, Logger } from "../api/util";
-import { DiscordBotUser } from "../api/DiscordBotUser";
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { getUserByDiscordId, getUserByNexusModsName, deleteUser } from '../api/bot-db.js';
+import { KnownDiscordServers, Logger } from "../api/util.js";
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
