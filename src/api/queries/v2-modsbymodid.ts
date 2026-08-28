@@ -55,7 +55,7 @@ export async function mods(headers: Record<string,string>, logger: Logger, mods:
     const pages: IModRequest[][] = [];
     let length = 0;
     while (length < (ids.length)) {
-        pages.push(ids.slice(length, 50));
+        pages.push(ids.slice(length, length + 50));
         length += 50;
     }
 

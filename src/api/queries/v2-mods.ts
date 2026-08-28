@@ -56,7 +56,9 @@ export async function mods(headers: Record<string,string>, logger: Logger, filte
     const vars = {
         filter,
         sort,
-        count: 10
+        // NOTE: 'count' is not declared in the query document above, so the server
+        // applies its default page size (20). Adding $count: Int needs the v2 schema
+        // confirmed first - see MODERNISATION.md B9.
     }
 
     try {
