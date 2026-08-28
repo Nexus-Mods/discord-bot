@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { DiscordBot } from './DiscordBot';
-import { AuthSite } from './server/server';
+import { DiscordBot } from './DiscordBot.js';
+import { AuthSite } from './server/server.js';
 
 const bot = DiscordBot.getInstance();
 start();

@@ -1,8 +1,8 @@
 import { AutocompleteInteraction, EmbedBuilder } from "discord.js";
-import { ClientExt } from "../types/DiscordTypes";
-import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser";
-import { IModsFilter } from "./queries/v2";
-import { ICollectionsFilter } from "../types/GQLTypes";
+import { ClientExt } from "../types/DiscordTypes.js";
+import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser.js";
+import { IModsFilter } from "./queries/v2.js";
+import { ICollectionsFilter } from "../types/GQLTypes.js";
 
 export const isTesting = process.env.NODE_ENV === 'testing';
 const isProduction = process.env.NODE_ENV === 'production';

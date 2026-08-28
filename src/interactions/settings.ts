@@ -7,14 +7,14 @@ import {
     ButtonInteraction,
     MessageFlags
 } from "discord.js";
-import { updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db';
-import { BotServer } from "../types/servers";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
-import { KnownDiscordServers, Logger } from "../api/util";
-import { IGameStatic } from "../api/queries/other";
-import { autocompleteGameName } from "../api/util";
-import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions";
-import { ConditionType } from "../types/util";
+import { updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db.js';
+import { BotServer } from "../types/servers.js";
+import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { KnownDiscordServers, Logger } from "../api/util.js";
+import { IGameStatic } from "../api/queries/other.js";
+import { autocompleteGameName } from "../api/util.js";
+import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions.js";
+import { ConditionType } from "../types/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

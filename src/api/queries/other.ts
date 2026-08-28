@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
-import { StatusPageResponse, ModDownloadInfo } from '../../types/util';
-import { Logger } from '../util';
-import { logger } from '../../DiscordBot';
+import { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
+import { Logger } from '../util.js';
+import { logger } from '../../DiscordBot.js';
 
 export interface IGameStatic {
     approved_date: number;

@@ -1,13 +1,13 @@
-import * as NexusModsOAuth from '../server/NexusModsOAuth';
-import * as DiscordOAuth from '../server/DiscordOAuth';
-import { NexusUser } from '../types/users';
-import { baseheader, Logger } from './util';
-import { updateUser } from './users';
+import * as NexusModsOAuth from '../server/NexusModsOAuth.js';
+import * as DiscordOAuth from '../server/DiscordOAuth.js';
+import { NexusUser } from '../types/users.js';
+import { baseheader, Logger } from './util.js';
+import { updateUser } from './users.js';
 import { Client, EmbedBuilder, User } from 'discord.js';
-import { other, v2 } from './queries/all';
-import * as GQLTypes from '../types/GQLTypes';
-import { userProfileEmbed } from './bot-db';
-import { IModsFilter, IModsSort } from './queries/v2';
+import { other, v2 } from './queries/all.js';
+import * as GQLTypes from '../types/GQLTypes.js';
+import { userProfileEmbed } from './bot-db.js';
+import { IModsFilter, IModsSort } from './queries/v2.js';
 
 interface OAuthTokens {
     access_token: string;

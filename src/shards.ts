@@ -1,6 +1,6 @@
 import { ShardingManager } from 'discord.js';
 import dotenv from 'dotenv';
-import * as dbMigrations from './api/migrations';
+import * as dbMigrations from './api/migrations.js';
 dotenv.config();
 
 const manager = new ShardingManager('./dist/app.js', {

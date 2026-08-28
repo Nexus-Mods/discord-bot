@@ -25,6 +25,14 @@ export default [
     },
     js.configs.recommended,
     {
+        // Build tooling. Not covered by tsconfig.json, so no type-aware rules here.
+        files: ["scripts/**/*.mjs", "*.config.mjs", "*.config.ts"],
+        languageOptions: {
+            parser: tsParser,
+            globals: { ...globals.node },
+        },
+    },
+    {
         files: ["src/**/*.ts"],
         languageOptions: {
             parser: tsParser,

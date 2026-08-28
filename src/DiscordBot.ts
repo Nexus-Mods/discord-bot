@@ -1,9 +1,9 @@
 import { REST, Client, Collection, GatewayIntentBits, Routes, Snowflake, IntentsBitField, RESTPostAPIApplicationCommandsJSONBody, Options } from 'discord.js';
 import * as fs from 'fs';
 import path from 'path';
-import { isTesting, Logger } from './api/util';
-import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes';
-import { GameListCache } from './types/util';
+import { isTesting, Logger } from './api/util.js';
+import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes.js';
+import { GameListCache } from './types/util.js';
 import { fileURLToPath, pathToFileURL } from 'url';
 
 // Set up logger

@@ -1,4 +1,4 @@
-import { queryPromise } from './dbConnect';
+import { queryPromise } from './dbConnect.js';
 
 
 async function migrationMoveConfigOptionsToJSON() {

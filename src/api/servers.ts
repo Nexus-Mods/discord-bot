@@ -1,7 +1,7 @@
-import query from '../api/dbConnect';
-import { BotServer } from '../types/servers';
+import query from '../api/dbConnect.js';
+import { BotServer } from '../types/servers.js';
 import { Guild } from 'discord.js';
-import { logger } from '../DiscordBot';
+import { logger } from '../DiscordBot.js';
 
 async function getAllServers(): Promise<BotServer[]> {
     try {

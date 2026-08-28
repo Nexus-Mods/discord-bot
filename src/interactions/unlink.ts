@@ -1,8 +1,8 @@
 import { CommandInteraction, Snowflake, Client, SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType, MessageFlags } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes";
-import { getUserByDiscordId } from '../api/bot-db';
-import { KnownDiscordServers, Logger } from "../api/util";
-import { unlinkUrl } from '../server/auth';
+import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { getUserByDiscordId } from '../api/bot-db.js';
+import { KnownDiscordServers, Logger } from "../api/util.js";
+import { unlinkUrl } from '../server/auth.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

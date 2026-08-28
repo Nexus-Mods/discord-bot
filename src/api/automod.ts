@@ -1,5 +1,5 @@
-import query from './dbConnect';
-import { IAutomodRule, IBadFileRule } from "../types/util";
+import query from './dbConnect.js';
+import { IAutomodRule, IBadFileRule } from "../types/util.js";
 
 async function getAutomodRules(): Promise<IAutomodRule[]> {
     try {

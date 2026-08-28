@@ -3,11 +3,11 @@ import {
     ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, 
     MessageFlags
 } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes";
-import { getUserByDiscordId } from '../api/bot-db';
-import { KnownDiscordServers, Logger } from '../api/util';
-import { DiscordBotUser } from "../api/DiscordBotUser";
-import { unlinkUrl } from '../server/auth';
+import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { getUserByDiscordId } from '../api/bot-db.js';
+import { KnownDiscordServers, Logger } from '../api/util.js';
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { unlinkUrl } from '../server/auth.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

@@ -1,10 +1,10 @@
-import { News, SavedNewsData } from '../types/feeds';
-import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db';
-import { ClientExt } from "../types/DiscordTypes";
+import { News, SavedNewsData } from '../types/feeds.js';
+import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db.js';
+import { ClientExt } from "../types/DiscordTypes.js";
 import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'discord.js';
-import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util';
-import { IGameStatic } from '../api/queries/other';
-import { v2 } from '../api/queries/all';
+import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
+import { IGameStatic } from '../api/queries/other.js';
+import { v2 } from '../api/queries/all.js';
 
 const pollTime = (1000*60*30)*1; //30 mins
 

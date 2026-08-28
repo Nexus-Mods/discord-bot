@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
-import { Logger } from "../util";
-import { NexusGQLError, v2API } from './v2';
+import { Logger } from "../util.js";
+import { NexusGQLError, v2API } from './v2.js';
 
 interface IResult {
     game: IGame;

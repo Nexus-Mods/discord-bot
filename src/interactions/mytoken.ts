@@ -1,8 +1,8 @@
 import { Client, SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction, Snowflake, PermissionFlagsBits } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes";
-import { DiscordBotUser } from "../api/DiscordBotUser";
-import { getUserByDiscordId } from "../api/users";
-import { KnownDiscordServers } from "../api/util";
+import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { getUserByDiscordId } from "../api/users.js";
+import { KnownDiscordServers } from "../api/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

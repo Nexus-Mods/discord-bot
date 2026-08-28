@@ -1,12 +1,12 @@
 
 import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient, ShardClientUtil, Client } from 'discord.js';
-import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions';
-import { gameArt, Logger, nexusModsTrackingUrl } from '../api/util';
-import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2';
-import { getUserByNexusModsId } from '../api/users';
-import { IUser } from '../api/queries/v2-finduser';
-import { customEmojis } from './util';
-import { ModStatus } from './GQLTypes';
+import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions.js';
+import { gameArt, Logger, nexusModsTrackingUrl } from '../api/util.js';
+import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2.js';
+import { getUserByNexusModsId } from '../api/users.js';
+import { IUser } from '../api/queries/v2-finduser.js';
+import { customEmojis } from './util.js';
+import { ModStatus } from './GQLTypes.js';
 
 export interface ISubscribedChannel {
     id: number;

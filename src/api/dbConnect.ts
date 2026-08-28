@@ -1,6 +1,6 @@
 import pg, { PoolConfig, PoolClient, QueryResult, QueryResultRow } from 'pg';
 const { Pool, DatabaseError } = pg;
-import { logger } from '../DiscordBot';
+import { logger } from '../DiscordBot.js';
 import dotenv from 'dotenv';
 dotenv.config();
 

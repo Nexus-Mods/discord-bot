@@ -1,11 +1,11 @@
 import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, MessageFlags, InteractionContextType } from "discord.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes";
-import { ConditionType } from "../types/util";
-import { DiscordBotUser } from "../api/DiscordBotUser";
-import { getUserByDiscordId, getServer, getConditionsForRole } from "../api/bot-db";
-import { BotServer } from "../types/servers";
-import { Logger } from "../api/util";
-import { IConditionForRole } from "../api/server_role_conditions";
+import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { ConditionType } from "../types/util.js";
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { getUserByDiscordId, getServer, getConditionsForRole } from "../api/bot-db.js";
+import { BotServer } from "../types/servers.js";
+import { Logger } from "../api/util.js";
+import { IConditionForRole } from "../api/server_role_conditions.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

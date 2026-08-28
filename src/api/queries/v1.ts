@@ -1,7 +1,7 @@
-import { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo, IUpdateEntry, IValidateKeyResponse } from '../../types/NexusModsAPIv1';
+import { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo, IUpdateEntry, IValidateKeyResponse } from '../../types/NexusModsAPIv1.js';
 import axios, { AxiosError } from 'axios';
-import { NexusAPIServerError, NexusSearchResult } from '../../types/util';
-import { Logger } from "../util";
+import { NexusAPIServerError, NexusSearchResult } from '../../types/util.js';
+import { Logger } from "../util.js";
 
 const nexusAPI: string = 'https://api.nexusmods.com/';
 

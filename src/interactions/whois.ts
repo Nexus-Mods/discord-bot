@@ -1,9 +1,9 @@
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes";
-import { NexusUser } from "../types/users";
-import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db';
+import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { NexusUser } from "../types/users.js";
+import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db.js';
 import { Snowflake, EmbedBuilder, Client, User, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
-import { KnownDiscordServers, Logger } from "../api/util";
-import { DiscordBotUser } from "../api/DiscordBotUser";
+import { KnownDiscordServers, Logger } from "../api/util.js";
+import { DiscordBotUser } from "../api/DiscordBotUser.js";
 
 
 const discordInteraction: DiscordInteraction = {

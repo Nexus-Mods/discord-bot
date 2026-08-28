@@ -1,6 +1,6 @@
 import { Client } from "discord.js";
-import { Logger } from "../api/util";
-import { DiscordEventInterface } from '../types/DiscordTypes';
+import { Logger } from "../api/util.js";
+import { DiscordEventInterface } from '../types/DiscordTypes.js';
 
 // Events are registered by filename. discord.js v14 emits 'shardReconnecting',
 // not 'reconnecting', so the previous version of this file never fired.

@@ -1,7 +1,7 @@
 import { request, gql, Variables } from "graphql-request";
-import { Logger } from "../util";
-import { v2API, ICollectionSearchResult, NexusGQLError } from './v2';
-import * as GQLTypes from '../../types/GQLTypes';
+import { Logger } from "../util.js";
+import { v2API, ICollectionSearchResult, NexusGQLError } from './v2.js';
+import * as GQLTypes from '../../types/GQLTypes.js';
 
 interface IResult {
   collectionsV2: ICollectionSearchResult;

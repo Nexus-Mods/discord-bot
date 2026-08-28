@@ -1,7 +1,7 @@
 import { request, gql, Variables } from "graphql-request";
-import { Logger } from "../util";
-import { v2API, NexusGQLError } from './v2';
-import { INews, News } from "../../types/feeds";
+import { Logger } from "../util.js";
+import { v2API, NexusGQLError } from './v2.js';
+import { INews, News } from "../../types/feeds.js";
 
 interface IResult {
     news: INewResults;

@@ -1,7 +1,7 @@
 import { Snowflake } from 'discord.js';
-import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, SubscribedItemType } from '../types/subscriptions';
-import { queryPromise } from './dbConnect';
-import { logger } from '../DiscordBot';
+import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, SubscribedItemType } from '../types/subscriptions.js';
+import { queryPromise } from './dbConnect.js';
+import { logger } from '../DiscordBot.js';
 
 // CHANNEL HANDLERS
 

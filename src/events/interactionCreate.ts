@@ -3,8 +3,8 @@ import {
     MessageFlags,
     ChatInputCommandInteraction
 } from 'discord.js';
-import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util';
-import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes';
+import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util.js';
+import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
 
 const ignoreErrors: string[] = [ 
     'Unknown interaction', 

@@ -32,4 +32,8 @@ _ReSharper*/
 packages/
 *.env
 data/
-
+dist/
+.git/
+.github/
+coverage/
+*.md

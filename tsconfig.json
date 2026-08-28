@@ -1,21 +1,20 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",        // Use ES modules
-    "moduleResolution": "node", // Use Node.js module resolution logic
-    "esModuleInterop": true,    // Enable compatibility for ES modules
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "strict": true,
-    // "noUnusedLocals": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true, // Allow importing JSON files
-    "outDir": "./dist",         // Output folder
-    "baseUrl": "./src",         // Base URL for module resolution
-    "rootDir": "./src",         // Root directory of the source files
-    "paths": {
-      "*": ["node_modules/*", "src/*"]
-    }
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": true,
+    // tsc is only used for typechecking now; tsup does the emit.
+    "noEmit": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

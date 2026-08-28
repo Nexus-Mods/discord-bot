@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { Logger } from '../api/util';
+import { Logger } from '../api/util.js';
+import { readJson, expiresAt } from '../api/http.js';
 
 interface OAuthURL {
     url: string;
@@ -83,8 +84,8 @@ export async function getOAuthTokens(code: string): Promise<OAuthTokens> {
       },
     });
     if (response.ok) {
-      const data = await response.json();
-      data.expires_at = Date.now() + (data.expires_in * 1000);
+      const data = await readJson<OAuthTokens>(response);
+      data.expires_at = expiresAt(data.expires_in);
       return data;
     } else {
       throw new Error(`Error fetching Discord OAuth tokens: [${response.status}] ${response.statusText}`);
@@ -99,7 +100,7 @@ export async function getUserData(tokens: OAuthTokens): Promise<DiscordUserData>
       },
     });
     if (response.ok) {
-      const data = await response.json();
+      const data = await readJson<DiscordUserData>(response);
       return data;
     } else {
       throw new Error(`Error fetching Discord user data: [${response.status}] ${response.statusText}`);
@@ -176,7 +177,7 @@ export async function getMetadata(userId: string, tokens: OAuthTokens, logger: L
     },
   });
   if (response.ok) {
-    const data = await response.json();
+    const data = await readJson<IRemoteMetaData>(response);
     return data;
   } else {
     if (response.status === 429) {
@@ -225,9 +226,9 @@ export async function getAccessToken(userId: string, tokens: OAuthTokens, logger
         },
       });
       if (response.ok) {
-        const tokens = await response.json();
+        const tokens = await readJson<OAuthTokens>(response);
         // tokens.access_token = tokens.access_token;
-        tokens.expires_at = Date.now() + tokens.expires_in * 1000;
+        tokens.expires_at = expiresAt(tokens.expires_in);
         return tokens;
       } else {
         throw new Error(`Error refreshing Discord access token: [${response.status}] ${response.statusText}`);
@@ -257,8 +258,8 @@ export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
     },
   });
   if (response.ok) {
-    const data = await response.json();
-    data.expires_at = Date.now() + (data.expires_in * 1000);
+    const data = await readJson<OAuthTokens>(response);
+    data.expires_at = expiresAt(data.expires_in);
     return data;
   } else {
     throw new Error(`Error revoking Discord OAuth tokens: [${response.status}] ${response.statusText}`);

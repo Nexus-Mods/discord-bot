@@ -1,10 +1,10 @@
 import { EmbedBuilder, Guild, TextChannel, GuildBasedChannel, ShardClientUtil } from 'discord.js';
-import { getAllServers, deleteServer } from '../api/bot-db';
-import { BotServer } from '../types/servers';
-import { Logger } from '../api/util';
-import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes';
+import { getAllServers, deleteServer } from '../api/bot-db.js';
+import { BotServer } from '../types/servers.js';
+import { Logger } from '../api/util.js';
+import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
-import { GameListCache } from '../types/util';
+import { GameListCache } from '../types/util.js';
 
 // Prepare the online status embed for quick reuse.
 const onlineEmbed = new EmbedBuilder()

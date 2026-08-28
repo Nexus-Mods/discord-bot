@@ -1,6 +1,6 @@
 import { request, gql, ClientError } from "graphql-request";
-import { Logger } from "../util";
-import { v2API, IMod, NexusGQLError } from './v2';
+import { Logger } from "../util.js";
+import { v2API, IMod, NexusGQLError } from './v2.js';
 
 interface IResult {
     legacyModsByDomain: {

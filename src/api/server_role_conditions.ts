@@ -1,4 +1,4 @@
-import { queryPromise } from './dbConnect';
+import { queryPromise } from './dbConnect.js';
 
 type ConditionType = 'modDownloads' | 'modsPublished';
 type Operator = 'AND' | 'OR';
