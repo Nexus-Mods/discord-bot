@@ -124,8 +124,11 @@ export class AutoModManager {
         return this.BadFiles;
     }
 
-    public clearRuleCache(): void {
-        this.getRules();
+    public async clearRuleCache(): Promise<void> {
+        // getRules() throws. Awaiting and handling it here means callers that do not
+        // await this cannot produce an unhandled rejection.
+        try { await this.getRules(); }
+        catch(err) { this.logger.warn('Failed to refresh the automod rule cache', err); }
     }
 
     private async getRules() {
@@ -168,10 +171,12 @@ export class AutoModManager {
                                 text: { type: 'mrkdwn', text: `An API error occurred while checking mods: ${(err as NexusGQLError)?.errors}\nError Count: ${this.errorCount}` }} 
                         ] 
                     }, this.logger);
-                    return;
                 }
+                // Reported or not, there is no data to work with this cycle.
+                return;
             }
-            const modsToCheck = [...newMods!.nodes, ...updatedMods!.nodes].filter(mod => !this.recentUids.has(mod.uid!));
+            if (!newMods || !updatedMods) return;
+            const modsToCheck = [...newMods.nodes, ...updatedMods.nodes].filter(mod => !this.recentUids.has(mod.uid!));
             if (!modsToCheck.length) {
                 this.logger.info("Automod - Nothing for automod to check")
                 this.setLastCheck(new Date())
@@ -350,11 +355,14 @@ async function analyseMod(mod: IModForAutomod, rules: IAutomodRule[], badFiles: 
 
 
     // Check against automod rules
-    let allText = 
+    // The parentheses matter: without them .toLowerCase() applied only to the final
+    // template literal, so the mod name, summary and description were never lowercased
+    // before being compared against lowercased filters.
+    let allText = (
         `${mod.name}\n${mod.summary}\n${mod.description}\n`+
         `${modFiles.map(f => `File: ${f.name} -- ${f.description}`).join('\n')}`+
         `${mod.mirrors?.map((m, i) => `Mirror #${i}: ${m.name} -- ${m.uri}`).join('\n')}`
-        .toLowerCase();
+    ).toLowerCase();
     const urls = await analyseURLS(allText, logger);
     if (urls.length) {
         urls.map(u => flags.low.push(`Shortened URL - ${u}`));
