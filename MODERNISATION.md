@@ -8,7 +8,9 @@
 
 ## Status as of 3.17.0
 
-**Done.** Eight of the nine security findings, and all 21 correctness defects.
+**Done.** Eight of the nine security findings, and all 21 correctness defects
+(B9 included: the `mods` root field does accept `count: Int`, confirmed against the
+Nexus website's own `ModsListing` operation).
 The community map and the automod feed are removed. The ESLint config, which had
 never run successfully, is repaired and reports zero errors. See `DEPLOYING.md`
 for what has to be configured before this release goes out.
@@ -19,7 +21,6 @@ for what has to be configured before this release goes out.
 |---|---|
 | **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
 | **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
-| **B9** — `count` discarded by `latestMods` / `mods` | Needs the v2 schema confirmed for the `mods` root field before adding `$count: Int`. `collectionsV2` and `legacyModsByDomain` both accept it, so it will probably work — but a wrong guess fails validation silently and returns an empty array. |
 | 44 `no-floating-promises` / `no-misused-promises` warnings | Phase 2. `npm run lint:strict` reports them as errors to track the count down. |
 | No `.gitattributes` | `core.autocrlf` is set locally in one clone only; teammates still see a phantom 17,000-line diff. Phase 1.1. |
 

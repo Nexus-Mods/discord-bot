@@ -12,10 +12,11 @@ export interface IModResults {
 }
 
 const query = gql`
-query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!]) {
+query DiscordBotLatestMods($filter: ModsFilter, $sort: [ModsSort!], $count: Int) {
     mods(
         filter: $filter, 
-        sort: $sort
+        sort: $sort,
+        count: $count
     ) {
       nodes {
         uid
@@ -70,9 +71,7 @@ export async function latestMods(headers: Record<string,string>, logger: Logger,
     const vars = {
         filter,
         sort,
-        // NOTE: 'count' is not declared in the query document above, so the server
-        // applies its default page size (20). Adding $count: Int needs the v2 schema
-        // confirmed first - see MODERNISATION.md B9.
+        count: 50,
     }
 
     try {

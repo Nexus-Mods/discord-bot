@@ -121,7 +121,7 @@ export class DiscordBotUser {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), this.logger, id),
                 Game: async (id: number) => v2.game(this.headers(), this.logger, id),
                 Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), this.logger, [{ gameDomain, modId }]),
-                Mods: async (filter: IModsFilter, sort?: IModsSort ) => v2.mods(this.headers(), this.logger, filter, sort),
+                Mods: async (filter: IModsFilter, sort?: IModsSort, count?: number ) => v2.mods(this.headers(), this.logger, filter, sort, count),
                 UpdatedMods: 
                     async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
                         v2.updatedMods(this.headers(), this.logger, since, includeAdult, gameId, sort),

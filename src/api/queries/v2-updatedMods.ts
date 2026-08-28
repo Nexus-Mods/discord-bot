@@ -18,10 +18,11 @@ interface IUpdatedModResults {
 }
 
 const query = gql`
-query DiscordBotGetUpdatedMods($filter: ModsFilter, $sort: [ModsSort!]) {
+query DiscordBotGetUpdatedMods($filter: ModsFilter, $sort: [ModsSort!], $count: Int) {
     mods(
         filter: $filter, 
-        sort: $sort
+        sort: $sort,
+        count: $count
     ) {
       nodes {
         uid
@@ -79,7 +80,7 @@ export async function updatedMods(
     const vars = {
         filter,
         sort,
-        count: 50
+        count: 50,
     }
 
     try {
