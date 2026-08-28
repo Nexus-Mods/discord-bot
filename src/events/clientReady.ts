@@ -12,7 +12,7 @@ const onlineEmbed = new EmbedBuilder()
 .setColor(0x009933);
 
 const main: DiscordEventInterface = {
-    name: 'ready',
+    name: 'clientReady',
     once: true,
     async execute(client: ClientExt, logger: Logger) {
         if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");

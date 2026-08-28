@@ -264,8 +264,12 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
                 postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
             });
 
-            collector.on('end', ic => {
-                if (!ic.size) ic.first()?.update({ components: [] });
+            // On timeout there are no collected interactions, so the components have to be
+            // cleared through the original reply rather than through ic.first().
+            collector.on('end', async ic => {
+                if (ic.size) return;
+                await interaction.editReply({ components: [] })
+                    .catch(err => logger.debug('Could not clear components after timeout', err));
             });
         }
     }
@@ -371,8 +375,12 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
                 postResult(interaction, singleModEmbed(client, mod, found?.game), ephemeral, logger);
             });
 
-            collector.on('end', ic => {
-                if (!ic.size) ic.first()?.update({ components: [] });
+            // On timeout there are no collected interactions, so the components have to be
+            // cleared through the original reply rather than through ic.first().
+            collector.on('end', async ic => {
+                if (ic.size) return;
+                await interaction.editReply({ components: [] })
+                    .catch(err => logger.debug('Could not clear components after timeout', err));
             });
 
 
