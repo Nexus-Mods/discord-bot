@@ -160,13 +160,10 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
             if (!Object.keys(newData).length) return interaction.editReply('No updates needed');
 
-            try {
-                await updateServer(server.id, newData.data);
-                return interaction.editReply({ embeds: [updateEmbed(newData as IBotServerChange)] })
-            }
-            catch (err) {
-                throw new Error('Error updating server data: '+(err as Error).message)
-            }
+            // updateServer now throws a DatabaseError carrying its cause, so wrapping
+            // it in a fresh Error here would only discard the stack.
+            await updateServer(server.id, newData.data ?? {});
+            return interaction.editReply({ embeds: [updateEmbed(newData as IBotServerChange)] });
         }
         else throw new Error('Unrecognised command');
     }

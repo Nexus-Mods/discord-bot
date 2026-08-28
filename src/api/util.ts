@@ -5,6 +5,7 @@ import { IModsFilter } from "./queries/v2.js";
 import { ICollectionsFilter } from "../types/GQLTypes.js";
 // Logger moved to ./logger.ts. Re-exported so the existing imports keep working.
 import { Logger } from './logger.js';
+import { AppError } from './errors.js';
 export { Logger, logger } from './logger.js';
 
 export const isTesting = process.env.NODE_ENV === 'testing';
@@ -143,17 +144,29 @@ export async function autoCompleteUserSearch(acInteraction: AutocompleteInteract
     }
 }
 
-export const unexpectedErrorEmbed = (err: any, context: any): EmbedBuilder => {
+export const unexpectedErrorEmbed = (err: any, context: any, errorId?: string): EmbedBuilder => {
+    // Only an AppError carries text written for a user. Everything else gets a generic
+    // line plus a reference to quote, because an arbitrary err.message can contain
+    // anything - that is how an access token once ended up rendered into an embed.
+    const detail = err instanceof AppError
+        ? err.userMessage
+        : 'The bot hit an unexpected problem. The details have been recorded.';
+    const operational = err instanceof AppError ? err.isOperational : false;
     return new EmbedBuilder()
     .setTitle('Unexpected error')
     .setColor('DarkRed')
-    .setDescription('The bot encountered an unexpected error with this command. You may be able to retry after a few minutes. If this issue persists, please report it including the information below.')
+    .setDescription(operational
+        ? 'The bot hit a problem running this command. It is usually temporary - please try again in a few minutes.'
+        : 'The bot encountered an unexpected error with this command. Please report it, quoting the reference below.')
     .addFields([
-        { 
-            name: 'Error Details', value: `\`\`\`${err.message || err}\`\`\``.substring(0,1010)
+        {
+            name: 'What happened', value: detail.substring(0, 1010)
         },
         {
-            name: 'Error Context', value: `\`\`\`json\n${JSON.stringify(context, null, 2).substring(0,1010)}\n\`\`\``
+            name: 'Reference', value: `\`${errorId ?? 'not recorded'}\``
+        },
+        {
+            name: 'Context', value: `\`\`\`json\n${JSON.stringify(context, null, 2).substring(0, 1010)}\n\`\`\``
         },
         {
             name: 'Reporting the error', value: 'Please report this on [GitHub](https://github.com/Nexus-Mods/discord-bot/issues/) or the [Nexus Mods server](https://discord.gg/nexusmods).'

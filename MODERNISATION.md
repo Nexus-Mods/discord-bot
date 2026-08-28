@@ -22,6 +22,7 @@ for what has to be configured before this release goes out.
 | **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
 | **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
 | 44 `no-floating-promises` / `no-misused-promises` warnings | Phase 2. `npm run lint:strict` reports them as errors to track the count down. |
+| Query modules still return `[]` on failure | The ~18 v2 query files swallow errors and return an empty result, so callers cannot tell "no results" from "the API is down". Fixing this changes feed behaviour (a transient API error would propagate instead of being a silent no-op cycle), so it belongs with the Phase 3 data-layer contract work rather than being slipped into 1.3. |
 | No `.gitattributes` | `core.autocrlf` is set locally in one clone only; teammates still see a phantom 17,000-line diff. Phase 1.1. |
 
 **Nothing here has been run against a live Discord gateway or database.** The HTTP

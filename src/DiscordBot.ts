@@ -89,7 +89,7 @@ export class DiscordBot {
         }
         catch(err) {
             logger.error('Failed to set interactions', err);
-            if (force === true) return Promise.reject(err);
+            if (force === true) throw err;
         }
     }
 

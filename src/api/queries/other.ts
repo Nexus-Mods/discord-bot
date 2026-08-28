@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
 import { Logger } from '../util.js';
 import { logger } from '../logger.js';
+import { NexusApiError } from '../errors.js';
 
 export interface IGameStatic {
     approved_date: number;
@@ -164,7 +165,10 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
         return downloadCache.getStats(gameId, modId) || { id: modId, total_downloads: 0, unique_downloads: 0 };
     }
     catch(err) {
-        return Promise.reject(`Could not retrieve download data for Game (${gameId}) ${modId} \n ${err}`);
+        throw new NexusApiError('Could not retrieve mod download data.', {
+            cause: err,
+            context: { gameId, modId },
+        });
     }
 }
 

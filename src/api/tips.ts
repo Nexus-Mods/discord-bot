@@ -1,4 +1,5 @@
 import { queryPromise } from './dbConnect.js';
+import { DatabaseError } from './errors.js';
 
 export interface ITip {
     id: number;
@@ -18,7 +19,7 @@ async function getAllTips(): Promise<ITip[]> {
         return data.rows;
     }
     catch(error) {
-        throw new Error(`Could not get Tips from database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not get Tips from database.', { cause: error });
     }
 
 }
@@ -32,7 +33,7 @@ async function addTip(prompt: string, author: string, title: string, embed?: str
         return data.rows[0];
     }
     catch(error) {
-        throw new Error(`Could not add Tip to database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not add Tip to database.', { cause: error });
     }
 }
 
@@ -45,7 +46,7 @@ async function editTip(prompt: string, author: string, title: string, embed?: st
         return;
     }
     catch(error) {
-        throw new Error(`Could not edit Tip in database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not edit Tip in database.', { cause: error });
     }
 }
 
@@ -58,7 +59,7 @@ async function setApprovedTip(prompt: string, approved: boolean): Promise<void> 
         return;
     }
     catch(error) {
-        throw new Error(`Could not approve Tip in database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not approve Tip in database.', { cause: error });
     }
 }
 
@@ -71,7 +72,7 @@ async function deleteTip(prompt: string): Promise<void> {
         return;
     }
     catch(error) {
-        throw new Error(`Could not delete Tip from database: ${prompt}. ${(error as Error).message}`);
+        throw new DatabaseError('Could not delete Tip from database.', { cause: error, context: { prompt } });
     }
 }
 

@@ -1,4 +1,5 @@
 import { queryPromise } from './dbConnect.js';
+import { DatabaseError } from './errors.js';
 
 type ConditionType = 'modDownloads' | 'modsPublished';
 type Operator = 'AND' | 'OR';
@@ -22,7 +23,7 @@ async function getConditionsForRole(serverId: string, roleId: string): Promise<I
         return data.rows;
     }
     catch(error) {
-        throw new Error(`Could not get role conditions from database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not get role conditions from database.', { cause: error });
     }
 } 
 
@@ -35,7 +36,7 @@ async function addConditionForRole(serverId: string, roleId: string, type: Condi
         return data.rows[0];
     }
     catch(error) {
-        throw new Error(`Could not add role conditions from database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not add role conditions from database.', { cause: error });
     }
 }
 
@@ -48,7 +49,7 @@ async function changeRoleForConditions(serverId: string, oldRoleId: string, newR
         return data.rows;
     }
     catch(error) {
-        throw new Error(`Could not update role conditions in database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not update role conditions in database.', { cause: error });
     }
 }
 
@@ -60,7 +61,7 @@ async function deleteAllConditionsForRole(serverId: string, roleId: string): Pro
         );
     }
     catch(error) {
-        throw new Error(`Could not delete role conditions from database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not delete role conditions from database.', { cause: error });
     }
 }
 
@@ -72,7 +73,7 @@ async function deleteConditionForRole(id: number): Promise<void> {
         );
     }
     catch(error) {
-        throw new Error(`Could not delete role conditions from database. ${(error as Error).message}`);
+        throw new DatabaseError('Could not delete role conditions from database.', { cause: error });
     }
 }
 

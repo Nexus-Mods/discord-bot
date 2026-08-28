@@ -1,6 +1,8 @@
 import pg, { PoolConfig, PoolClient, QueryResult, QueryResultRow } from 'pg';
-const { Pool, DatabaseError } = pg;
+// Aliased: pg exports a DatabaseError too, and ours is the one that gets thrown.
+const { Pool, DatabaseError: PgDatabaseError } = pg;
 import { logger } from './logger.js';
+import { DatabaseError, toError } from './errors.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -73,41 +75,57 @@ export async function queryAutoMod<T extends QueryResultRow>(query: string, valu
     }
 }
 
-function handleDatabaseError(error: Error | any): string {
-    if (error instanceof DatabaseError) {
-        logger.debug('Database error', { error });
-        switch (error.code) {
-            case '23505': // Unique violation
-              logger.error('Database error - Duplicate entry:', error.detail);
-              return 'Duplicate record found. Please try again.';
-            case '23503': // Foreign key violation
-              logger.error('Database error - Foreign key violation:', error.detail);
-              return 'Invalid reference. Please check your data.';
-            case '22001': // String data too long
-              logger.error('Database error - Value too long:', error.detail);
-              return 'Input value is too long. Please shorten the text.';
-            case '42601': // Syntax error in SQL
-              logger.error('Database error - Syntax error:', error.detail);
-              return 'An unexpected error occurred (Syntax error). Please try again later.';
-            case '42703': // Undefined column
-              logger.error('Database error - Undefined column:', error.detail);
-              return 'An unexpected error occurred (Undefined column). Please try again later.';
-            default:
-              logger.error(`Unhandled database error [${error.code}]:`, error.message);
-              return `An unexpected database error occurred (${error.code}). Please try again later.`;
-          }
-    } else if (error.message === 'The server does not support SSL connections') { 
-        return 'SSL connection error. Please report this issue as it is a problem with the database settings.';
-    } else if (error.message.includes('no pg_hba.conf entry for host')) {
-        logger.error('Database connection error - pg_hba.conf issue:', error.message);
-        return 'Database connection error: Access denied. Please report this issue as it is a problem with the database settings.';
-    } else if (error.message.includes('timeout exceeded when trying to connect')) {
-        logger.error('Database connection timed out.', { error });
-        return 'Database connection timed out.'
-    } else {
-        logger.error('Unknown error', { message: error.message, code: error.code, error });
-        return 'An unknown error occurred. Please try again later.';
+/**
+ * Turn a pg failure into a DatabaseError.
+ *
+ * This used to be typed `: string` and every caller did `throw handleDatabaseError(err)`,
+ * so the data layer threw bare strings. They carried no stack, and every downstream
+ * `(err as Error).message` was undefined. The user-facing text is now carried on the
+ * error as userMessage instead of being the thrown value.
+ */
+function handleDatabaseError(error: unknown): DatabaseError {
+    const err = toError(error);
+    const code = (error as { code?: string })?.code;
+    const detail = (error as { detail?: string })?.detail;
+
+    if (error instanceof PgDatabaseError) {
+        const known: Record<string, string> = {
+            '23505': 'Duplicate record found. Please try again.',
+            '23503': 'Invalid reference. Please check your data.',
+            '22001': 'Input value is too long. Please shorten the text.',
+            '42601': 'An unexpected error occurred (Syntax error). Please try again later.',
+            '42703': 'An unexpected error occurred (Undefined column). Please try again later.',
+        };
+        const userMessage = known[code ?? ''] ?? `An unexpected database error occurred (${code}). Please try again later.`;
+        return new DatabaseError(`Database error ${code}${detail ? ': ' + detail : ''}`, {
+            cause: err,
+            userMessage,
+            context: { code, detail },
+        });
     }
+
+    if (err.message === 'The server does not support SSL connections') {
+        return new DatabaseError('Database rejected the SSL connection', {
+            cause: err,
+            isOperational: false,
+            userMessage: 'SSL connection error. Please report this issue as it is a problem with the database settings.',
+        });
+    }
+    if (err.message.includes('no pg_hba.conf entry for host')) {
+        return new DatabaseError('Database refused the connection (pg_hba.conf)', {
+            cause: err,
+            isOperational: false,
+            userMessage: 'Database connection error: Access denied. Please report this issue as it is a problem with the database settings.',
+        });
+    }
+    if (err.message.includes('timeout exceeded when trying to connect')) {
+        return new DatabaseError('Database connection timed out', {
+            cause: err,
+            userMessage: 'Database connection timed out.',
+        });
+    }
+
+    return new DatabaseError('Unhandled database error', { cause: err, isOperational: false });
 }
 
 export default queryPromise;

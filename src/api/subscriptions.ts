@@ -2,6 +2,7 @@ import { Snowflake } from 'discord.js';
 import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, SubscribedItemType } from '../types/subscriptions.js';
 import { queryPromise } from './dbConnect.js';
 import { logger } from './logger.js';
+import { DatabaseError } from './errors.js';
 
 // CHANNEL HANDLERS
 
@@ -19,9 +20,7 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to fetch subscribed channels.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to fetch subscribed channels.', { cause: err });
     }
 }
 async function getSubscribedChannelsForGuild(guild: Snowflake): Promise<SubscribedChannel[]> {
@@ -40,9 +39,7 @@ async function getSubscribedChannelsForGuild(guild: Snowflake): Promise<Subscrib
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to fetch subscribed channels for guild.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to fetch subscribed channels for guild.', { cause: err });
     }
 
 }
@@ -58,9 +55,7 @@ async function getSubscribedChannel(guild: Snowflake, channel: Snowflake): Promi
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to fetch subscribed channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to fetch subscribed channel.', { cause: err });
     }
 }
 
@@ -74,9 +69,7 @@ async function createSubscribedChannel(c: Omit<ISubscribedChannel, 'id' | 'creat
         return new SubscribedChannel(data.rows[0], [], logger);
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to create subscribed channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to create subscribed channel.', { cause: err });
     }
 }
 
@@ -90,9 +83,7 @@ async function updateSubscribedChannel(c: ISubscribedChannel, date: Date): Promi
         return new SubscribedChannel(data.rows[0], [], logger);
     }
     catch(err) {
-        const error: Error = (err as Error);
-        error.message = `Failed to update subscribed channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to update subscribed channel.', { cause: err });
     }
 }
 
@@ -108,9 +99,7 @@ async function deleteSubscribedChannel(c: ISubscribedChannel): Promise<void> {
         return;
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to delete subscribed channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to delete subscribed channel.', { cause: err });
     }
 }
 
@@ -132,9 +121,7 @@ async function totalItemsInGuild(guild: Snowflake): Promise<number> {
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to fetch total items in guild.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to fetch total items in guild.', { cause: err });
     }
 
 }
@@ -151,9 +138,7 @@ async function getAllSubscriptions(): Promise<SubscribedItem<SubscribedItemType>
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to fetch all subscribed items.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to fetch all subscribed items.', { cause: err });
     }
 
 }
@@ -168,9 +153,7 @@ async function getCountOfSubscriptions(): Promise<number> {
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to fetch count of all subscribed items.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to fetch count of all subscribed items.', { cause: err });
     }
 
 }
@@ -189,9 +172,7 @@ async function getSubscriptionsByChannel(guild: Snowflake, channel: Snowflake): 
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to fetch subscribed items for channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to fetch subscribed items for channel.', { cause: err });
     }
 }
 
@@ -206,9 +187,7 @@ async function createSubscription(parent: number, s: Omit<SubscribedItem<Subscri
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to create subscription for channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to create subscription for channel.', { cause: err });
     }
 }
 
@@ -223,9 +202,7 @@ async function updateSubscription(id: number, parent: number, s: Omit<Subscribed
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to update subscription for channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to update subscription for channel.', { cause: err });
     }
 }
 
@@ -239,9 +216,7 @@ async function deleteSubscription(id: number): Promise<void> {
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to update subscription for channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to update subscription for channel.', { cause: err });
     }
 }
 
@@ -268,9 +243,7 @@ async function saveLastUpdatedForSub(id: number, date: Date, status: string = ''
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to update subscription for channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to update subscription for channel.', { cause: err });
     }
 }
 
@@ -290,9 +263,7 @@ async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel:
 
     }
     catch(err) {
-        const error: Error = (typeof err === 'string') ? new Error(err) : (err as Error);
-        error.message = `Failed to update subscription for channel.\n${error.message}`;
-        throw error;
+        throw new DatabaseError('Failed to update subscription for channel.', { cause: err });
     }
 }
 
