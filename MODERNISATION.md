@@ -1,8 +1,31 @@
 # Nexus Mods Discord Bot — Modernisation & Simplification Plan
 
-**Status:** Proposal / information only. No code has been changed.
-**Date:** 28 August 2026
-**Scope:** `nexus-bot-typescript` v3.16.5 — 89 TypeScript files, ~12,600 lines.
+**Status:** Phase 0 shipped in **3.17.0**. Phases 1–5 are still proposals.
+**Date:** 28 August 2026 (audited at `473db19`)
+**Scope:** `nexus-bot-typescript` — 89 TypeScript files, ~12,600 lines at time of audit.
+
+---
+
+## Status as of 3.17.0
+
+**Done.** Eight of the nine security findings, and all 21 correctness defects.
+The community map and the automod feed are removed. The ESLint config, which had
+never run successfully, is repaired and reports zero errors. See `DEPLOYING.md`
+for what has to be configured before this release goes out.
+
+**Still open, deliberately:**
+
+| Item | Why it is still open |
+|---|---|
+| **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
+| **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
+| **B9** — `count` discarded by `latestMods` / `mods` | Needs the v2 schema confirmed for the `mods` root field before adding `$count: Int`. `collectionsV2` and `legacyModsByDomain` both accept it, so it will probably work — but a wrong guess fails validation silently and returns an empty array. |
+| 44 `no-floating-promises` / `no-misused-promises` warnings | Phase 2. `npm run lint:strict` reports them as errors to track the count down. |
+| No `.gitattributes` | `core.autocrlf` is set locally in one clone only; teammates still see a phantom 17,000-line diff. Phase 1.1. |
+
+**Nothing here has been run against a live Discord gateway or database.** The HTTP
+middleware chain and the unlink signing were verified in isolation; the OAuth round
+trip, the subscription feed and the news feed have not been exercised end to end.
 
 ---
 
@@ -159,7 +182,8 @@ Start narrow and high-value:
 `.github/workflows/docker-build.yaml` builds and pushes on every `master` push with **no
 lint, no typecheck, no test, and no version tag** (`tags: nexusmods/discord-bot:latest` only).
 
-- Add a `checks` job: `tsc --noEmit`, `eslint`, `vitest run` — required before `docker`.
+- Add a `checks` job: `npm run typecheck`, `npm run lint`, `vitest run` — required before
+  `docker`. The first two pass cleanly as of 3.17.0, so this can land immediately.
 - Tag images with the git SHA as well as `latest` so a rollback is possible.
 - Pin `joelwmale/webhook-action@master` to a SHA.
 
@@ -481,17 +505,22 @@ Also in `shards.ts`: the version-gated migrations (dead), and `'Shard X died', t
 
 ### 5.2 Dead code inventory
 
+Rows marked ✓ were removed in 3.17.0.
+
 | Item | Location | Lines |
 |---|---|---|
-| `communitymap` route stubs — every branch returns `500 'Not implemented'` | `server/CommunityMap.ts` | 139 |
-| Unreachable automod analysis (feed is switched off) | `feeds/AutoModManager.ts` | ~330 |
-| Events discord.js v14 never emits | `events/reconnecting.ts`, `events/resume.ts` | 24 |
+| ~~`communitymap` route stubs~~ | `server/CommunityMap.ts` | 139 ✓ |
+| ~~Unreachable automod analysis~~ | `feeds/AutoModManager.ts` | ~330 ✓ |
+| ~~Events discord.js v14 never emits~~ | renamed to `shardReconnecting` / `shardResume` | 24 ✓ |
 | Version-gated migrations for 3.13.0 / 3.13.1 | `api/migrations.ts`, `shards.ts:21-22` | ~60 |
 | `add-js-extensions.cjs` + `clean.cjs` | root | ~90 |
 | `build.sh` (pre-TypeScript fossil) | root | 6 |
-| Duplicate query files with spaces in the names | `api/queries/*automod.ts` | ~190 |
+| ~~Duplicate query files with spaces in the names~~ | `api/queries/*automod.ts` | ~190 ✓ |
 | Unused types: `PermissionsExt`, `ClientExt.commands`, `DiscordEventInterface.name`, `TrackingState`, `Tag`, `TagCategory`, `CollectionPage` | `types/` | ~50 |
 | Unused deps: `jsonwebtoken`, `@types/jsonwebtoken`, `path` | `package.json` | — |
+| ~~The `/automod` slash command~~ | `interactions/automod.ts` | 428 ✓ |
+| ~~`moderationWebhooks` (only the automod feed used it)~~ | `api/moderationWebhooks.ts` | 85 ✓ |
+| ~~`queryCommunityMap` + the `CM_DATABASE` pool~~ | `api/dbConnect.ts` | 25 ✓ |
 | Large commented-out blocks | `SubscriptionManager.ts:680-715`, `about.ts:27-44,65-67`, `search.ts:467-474`, `refresh.ts:139-140`, `automod.ts:421-423`, `NewsFeedManager.ts:67,150,152` | ~90 |
 | Stale `logMessage(...)` calls from a previous logger, commented rather than migrated | 19 sites across `search.ts`, `SubscriptionManager.ts`, `AutoModManager.ts`, `link.ts` | 19 |
 | Unused private functions with a stray `console.log` | `api/util.ts:233-247` | 15 |
