@@ -88,7 +88,7 @@ async function action(client: ClientExt, interaction: CommandInteraction, logger
     else shouldAllow = true;
 
     const resultsMessage = conditionResults.map(c => {
-        var resEmoji = ''
+        let resEmoji = ''
         switch(c.result) {
             case "skip": resEmoji = '❔';
             break;

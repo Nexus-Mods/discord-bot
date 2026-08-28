@@ -2,6 +2,7 @@ import { CommandInteraction, Snowflake, Client, SlashCommandBuilder, ChatInputCo
 import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { KnownDiscordServers, Logger } from "../api/util";
+import { unlinkUrl } from '../server/auth';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -21,12 +22,12 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     // See if they have existing data
     const userData = await getUserByDiscordId(discordId);
-    if (!!userData) {
+    if (userData) {
         // Existing user
         const unlinkEmbed = [new EmbedBuilder()
         .setTitle('Unlink Nexus Mods account')
         .setColor(0xda8e35)
-        .setURL(`https://discordbot.nexusmods.com/revoke?id=${discordId}`)
+        .setURL(unlinkUrl(discordId))
         .setDescription('Unlinking your account will remove all roles granted by your Nexus Mods account and you will not be able to use all features of the bot anymore.')
         .setThumbnail(userData.NexusModsAvatar || null)
         .setFooter({ text: 'Discord Bot - Nexus Mods', iconURL: client?.user?.avatarURL() || '' })];
@@ -36,7 +37,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             new ButtonBuilder()
             .setLabel('Unlink accounts')
             .setStyle(ButtonStyle.Link)
-            .setURL(`https://discordbot.nexusmods.com/revoke?id=${discordId}`)
+            .setURL(unlinkUrl(discordId))
         )];
 
         return interaction.editReply({ embeds: unlinkEmbed, components: unlinkButton });

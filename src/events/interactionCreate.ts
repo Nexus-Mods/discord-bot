@@ -74,9 +74,9 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
     } else {
         interaction.reply(reply).catch((replyError:Error) => errorReplyCatch(replyError, 'replying'));
     }
-    function errorReplyCatch(replyError: Error, action: String) {
+    function errorReplyCatch(replyError: Error, action: string) {
         logger.error(`Error ${action} to failed interaction`, {replyError, ...context, err});
-        if(!ignoreErrors.includes(replyError.toString()) || !ignoreErrors.includes(replyError.message)) process.exit(1);
+        if(!ignoreErrors.includes(replyError.toString()) && !ignoreErrors.includes(replyError.message)) process.exit(1);
     }
 }
 

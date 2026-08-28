@@ -14,10 +14,11 @@ export interface IModResults {
 }
 
 const query = gql`
-query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!]) {
+query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!], $count: Int) {
     mods(
         filter: $filter, 
-        sort: $sort
+        sort: $sort,
+        count: $count
     ) {
       nodes {
         uid
@@ -51,12 +52,17 @@ query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!]) {
 }
 `;
 
-export async function mods(headers: Record<string,string>, logger: Logger, filter: IModsFilter, sort: IModsSort = { endorsements: { direction: 'DESC' }}): Promise<IModResults> {
+/**
+ * The API caps a page at 50 and defaults to 20. 'count' used to be passed as a
+ * variable the query never declared, so it was discarded and every caller silently
+ * got 20. The default here preserves that; feed callers can ask for more.
+ */
+export async function mods(headers: Record<string,string>, logger: Logger, filter: IModsFilter, sort: IModsSort = { endorsements: { direction: 'DESC' }}, count: number = 20): Promise<IModResults> {
 
     const vars = {
         filter,
         sort,
-        count: 10
+        count,
     }
 
     try {

@@ -185,7 +185,7 @@ async function viewServerInfo(client: ClientExt, interaction: CommandInteraction
 async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, logger: Logger): Promise<Partial<IBotServerChange>> {
     const gameQuery: string | null = interaction.options.getString('game' as OptionNames);
     let foundGame : IGameStatic | undefined;
-    if (!!gameQuery) {
+    if (gameQuery) {
         foundGame = resolveFilter(gameList, gameQuery);
         if (!foundGame) throw new Error(`Invalid Game: Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
     }

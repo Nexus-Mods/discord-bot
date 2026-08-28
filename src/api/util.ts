@@ -61,27 +61,34 @@ export class Logger {
 
     public info(message: string, data?: any) {
         const formatted = `${this.prefix()} ${message}`;
-        data ? console.log(formatted, data) : console.log(formatted);
+        if (data !== undefined) console.log(formatted, data);
+        else console.log(formatted);
     }
     public error(message: string, data?: any, ...args: any[]) {
         const formatted = `${this.prefix('\x1b[31m')} ${message}\x1b[0m`;
-        data ? console.error(formatted, data) : console.error(formatted);
+        // args used to be accepted and dropped, so ~30 call sites were logging nothing.
+        if (data !== undefined) console.error(formatted, data, ...args);
+        else console.error(formatted, ...args);
     }
     public warn(message: string, data?: any, ...args: any[]) {
         const formatted = `${this.prefix('\x1b[33m')} ${message}\x1b[0m`;
-        data ? console.warn(formatted, data) : console.warn(formatted);
+        if (data !== undefined) console.warn(formatted, data, ...args);
+        else console.warn(formatted, ...args);
     }
     public debug(message: string, data?: any) {
-        if (isTesting === false) return; // Don't log debug messages in production
+        // Debug output is on unless explicitly running in production. The previous check
+        // was inverted, so these lines only appeared when NODE_ENV was 'testing'.
+        if (isProduction && process.env.DEBUG_LOGGING !== 'true') return;
         const formatted = `${this.prefix('\x1b[36m')} ${message}\x1b[0m`;
-        data ? console.debug(formatted, data) : console.debug(formatted);
+        if (data !== undefined) console.debug(formatted, data);
+        else console.debug(formatted);
     }
 }
 
 export async function autocompleteGameName(client: ClientExt, acInteraction: AutocompleteInteraction, logger: Logger) {
     const focused = acInteraction.options.getFocused().toLowerCase();
     try {
-        var games = await client.gamesList!.getGames();
+        let games = await client.gamesList!.getGames();
         if (focused !== '') games = games.filter(g => (g.name.toLowerCase().startsWith(focused) || g.domain_name.includes(focused)));
         await acInteraction.respond(
             games.map(g => ({ name: g.name, value: g.domain_name })).slice(0, 25)
@@ -96,7 +103,7 @@ export async function autocompleteGameName(client: ClientExt, acInteraction: Aut
 export async function autoCompleteGameID(client: ClientExt, acInteraction: AutocompleteInteraction, logger: Logger) {
     const focused = acInteraction.options.getFocused().toLowerCase();
     try {
-        var games = await client.gamesList!.getGames();
+        let games = await client.gamesList!.getGames();
         if (focused !== '') games = games.filter(g => (g.name.toLowerCase().startsWith(focused) || g.domain_name.includes(focused)));
         await acInteraction.respond(
             games.map(g => ({ name: g.name, value: g.id })).slice(0, 25)

@@ -1,7 +1,6 @@
 import { request, gql } from "graphql-request";
 import { Logger } from "../util";
-import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort } from './v2';
-import { IModForAutomod } from "../../feeds/AutoModManager";
+import { v2API, IMod, NexusGQLError, IModsFilter, IModsSort, IModForAutomod } from './v2';
 
 interface IResult {
     mods: IUpdatedModResults;
@@ -19,10 +18,11 @@ interface IUpdatedModResults {
 }
 
 const query = gql`
-query DiscordBotGetUpdatedMods($filter: ModsFilter, $sort: [ModsSort!]) {
+query DiscordBotGetUpdatedMods($filter: ModsFilter, $sort: [ModsSort!], $count: Int) {
     mods(
         filter: $filter, 
-        sort: $sort
+        sort: $sort,
+        count: $count
     ) {
       nodes {
         uid
@@ -80,7 +80,7 @@ export async function updatedMods(
     const vars = {
         filter,
         sort,
-        count: 50
+        count: 50,
     }
 
     try {

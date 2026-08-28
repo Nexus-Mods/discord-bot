@@ -11,7 +11,7 @@ dotenv.config();
 const FORUM_SUGGESTION_FORUM_ID = 9063; // The ID of the forum for suggestions.
 const SUGGESTION_ICON = 'https://staticdelivery.nexusmods.com/images/2295/31179975-1744285207.png'; // The icon for the suggestion forum.
 
-export default async function forumWebhook(req: express.Request<{}, {}, any>, res: express.Response, logger: Logger): Promise<void>{
+export default async function forumWebhook(req: express.Request, res: express.Response, logger: Logger): Promise<void>{
     const data = req.body;
     res.status(200).send('OK');
 

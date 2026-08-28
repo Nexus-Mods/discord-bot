@@ -191,7 +191,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
                 op: 'MATCHES'
             }
         }
-        if (!!filterGame) filters.gameName ={ value: filterGame.name, op:'EQUALS' };
+        if (filterGame) filters.gameName ={ value: filterGame.name, op:'EQUALS' };
         const results = await user.NexusMods.API.v2.Collections(filters, { endorsements: { direction: 'DESC' } }, true);
         if (results.nodesCount === 0) {
             // No results
@@ -260,12 +260,16 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
                     interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
                     return;
                 }
-                const collection = await  user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName!, true).catch(() => undefined);
+                const collection = await user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName ?? '', true).catch(() => undefined);
                 postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
             });
 
-            collector.on('end', ic => {
-                if (!ic.size) ic.first()?.update({ components: [] });
+            // On timeout there are no collected interactions, so the components have to be
+            // cleared through the original reply rather than through ic.first().
+            collector.on('end', async ic => {
+                if (ic.size) return;
+                await interaction.editReply({ components: [] })
+                    .catch(err => logger.debug('Could not clear components after timeout', err));
             });
         }
     }
@@ -302,7 +306,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
     // Search for mods
     try {
-        let modsFilter: IModsFilter = { name: { value: query , op: 'WILDCARD' }};
+        const modsFilter: IModsFilter = { name: { value: query , op: 'WILDCARD' }};
         if (gameIdFilter !== 0) modsFilter.gameId = { value: gameIdFilter.toString(), op: 'EQUALS' };
         if (!(interaction.channel as TextChannel)?.nsfw) modsFilter.adultContent = { value: false, op: 'EQUALS' };
         
@@ -348,7 +352,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             .setDescription(
                 `Showing ${search.totalCount < 5 ? search.totalCount : 5} of ${search.totalCount} results ([See all](${search.fullSearchUrl || 'https://nexusmods.com/mods/'}))\n`+
                 `Query: "${query}" - Adult content: ${(interaction.channel as TextChannel)?.nsfw}\n`+
-                `${!!filterGame ? `Game: ${filterGame.name}` : null}`
+                `${filterGame ? `Game: ${filterGame.name}` : null}`
             )
             .addFields(fields.map(createModResultField))
             if (!user) multiResult.addFields({ name: 'Get better results', value: 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.'});
@@ -371,8 +375,12 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
                 postResult(interaction, singleModEmbed(client, mod, found?.game), ephemeral, logger);
             });
 
-            collector.on('end', ic => {
-                if (!ic.size) ic.first()?.update({ components: [] });
+            // On timeout there are no collected interactions, so the components have to be
+            // cleared through the original reply rather than through ic.first().
+            collector.on('end', async ic => {
+                if (ic.size) return;
+                await interaction.editReply({ components: [] })
+                    .catch(err => logger.debug('Could not clear components after timeout', err));
             });
 
 
@@ -458,7 +466,7 @@ const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGameStatic)
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
         .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'search'))
-        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${mod.modCategory.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/\<br \/\>/g, '\n')}`)
+        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${mod.modCategory.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/<br \/>/g, '\n')}`)
         .setTimestamp(new Date(mod.updatedAt))
         .setImage(mod.pictureUrl || '')
         .setAuthor({name: mod.uploader?.name || '', url: `https://nexusmods.com/users/${mod.uploader.memberId}` })

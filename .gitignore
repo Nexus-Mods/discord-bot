@@ -33,6 +33,7 @@ packages/
 *.env
 data/
 dist/
+tsconfig.tsbuildinfo
 .yarn/
 serverconfig.json
 config.json

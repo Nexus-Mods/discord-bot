@@ -25,7 +25,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Private?
     const showValue : (CommandInteractionOption | null) = interaction.options.get('public');
-    const show: boolean = !!showValue ? (showValue.value as boolean) : false;
+    const show: boolean = showValue ? (showValue.value as boolean) : false;
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
@@ -34,7 +34,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     let userData : DiscordBotUser | undefined;
 
     try {
-        userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
+        userData = discordId ? await getUserByDiscordId(discordId) : undefined;
         if (!userData) interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
         else {
             const card: EmbedBuilder = await userData.ProfileEmbed(client);

@@ -39,6 +39,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         return interaction.editReply({ embeds: [embed] });
     }
     catch(err) {
+        logger.warn('Could not fetch the Nexus Mods status page', err);
         throw err;
     }
 }

@@ -2,13 +2,13 @@ import { Rule } from '../types/AutomodTypes';
 import { queryAutoMod } from '../api/dbConnect';
 import express from 'express';
 import { Logger } from '../api/util';
+import { checkSharedSecret } from './auth';
 
 function checkPermission(req: express.Request): boolean {
-    const authCode = process.env.AUTOMOD_AUTHCODE;
-    return (authCode ? req.headers.authorization !== authCode : true);
+    return checkSharedSecret(req, 'AUTOMOD_AUTHCODE');
 }
 
-async function automodRules(req: express.Request<{}, {}, any>, res: express.Response, logger: Logger) {
+async function automodRules(req: express.Request, res: express.Response, logger: Logger) {
 // const automodRules: express.RequestHandler = async (req, res, logger) => {
     // Check permission
     if (!checkPermission(req)) {

@@ -58,14 +58,16 @@ export class SubscriptionManger {
         this.pollTime = pollTime;
         this.updateTimer = setInterval(async () => {
             try {
-                await this.updateSubscriptions(true);
+                await this.updateSubscriptions();
             }
             catch(err){
                 this.logger.error('Failed to run subscription event', err);
             }
         }, pollTime)
         // Trigger an update 1 minute after booting up. This lets the other shards spin up.
-        setTimeout(() => this.updateSubscriptions(), 90000);
+        setTimeout(() => {
+            this.updateSubscriptions().catch(err => this.logger.error('Failed initial subscription update', err));
+        }, 90000);
         logger.info('Subscription Manager initialised', { channels: this.channels.length, pollTime: this.pollTime});
     }
 
@@ -96,6 +98,7 @@ export class SubscriptionManger {
             SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels, logger);
         }
         catch(err) {
+            logger.error('Failed to initialise the Subscription Manager', err);
             throw err;
         }
     }
@@ -128,6 +131,8 @@ export class SubscriptionManger {
             const shardId = this.client.shard.ids[0];
             const shardChannels = allChannels.filter(c => c.shardId(this.client) === shardId);
             this.logger.debug('Shard channels', { shardId, channels: shardChannels.length });
+            // This assignment was missing, so under sharding the channel list was never refreshed.
+            this.channels = shardChannels;
             return;
         }
         else this.channels = allChannels;
@@ -148,9 +153,10 @@ export class SubscriptionManger {
         else this.channels.push(channel);
     }
 
-    private async updateSubscriptions(reloadChannels: boolean = false) {
-        // Update the channels
-        if (!reloadChannels) await this.updateChannels();
+    private async updateSubscriptions() {
+        // Always refresh the channel list. This used to be behind a flag whose sense was
+        // inverted, so the recurring timers never picked up newly subscribed channels.
+        await this.updateChannels();
         // Prepare the cache
         await this.prepareCache();
 
@@ -192,7 +198,7 @@ export class SubscriptionManger {
         if (this.client.shard && this.client.shard.ids[0] === 0) {
             try {
                 await this.client.shard.broadcastEval((client: ClientExt, context) => {
-                    if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions(true);
+                    if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions();
                 }, { context: { mainId: this.client.shard.ids[0] } })
             }
             catch(err) {
@@ -247,7 +253,7 @@ export class SubscriptionManger {
         if (message.type !== 'forceChannelUpdate') return;
         try {
             await setDateForAllSubsInChannel(new Date(message.date), message.guild_id, message.channel_id);
-            const channel = this.channels.find(c => c.channel_id === c.channel_id) || await getSubscribedChannel(message.guild_id, message.channel_id);
+            const channel = this.channels.find(c => c.guild_id === message.guild_id && c.channel_id === message.channel_id) || await getSubscribedChannel(message.guild_id, message.channel_id);
             if (!channel) throw Error('Channel not found');
             return this.getUpdatesForChannel(channel);
         }

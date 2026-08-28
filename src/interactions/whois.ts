@@ -49,7 +49,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: show}).catch(err => { throw err });
     // Check if they are already linked.
-    let userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
+    const userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
     if (!userData) {
         interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', flags: MessageFlags.Ephemeral});
@@ -82,7 +82,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         else {
             const botUser = new DiscordBotUser(foundUser, logger);
             // check if we should return the result. If the found user isn't in the current server, reject the request.
-            const isAdmin: boolean = (client as ClientExt).config.ownerID?.includes(interaction.user.id);
+            const isAdmin: boolean = (client as ClientExt).config.ownerIDs?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === botUser.DiscordId;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
             if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });

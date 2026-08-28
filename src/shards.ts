@@ -26,7 +26,7 @@ async function start() {
         console.error('Failed to run database migrations', err);
     }
 
-    manager.spawn(); // Spawn the shards
+    void manager.spawn(); // Spawn the shards
 }
 
-start();
+void start();

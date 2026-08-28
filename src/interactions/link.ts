@@ -7,6 +7,7 @@ import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { KnownDiscordServers, Logger } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
+import { unlinkUrl } from '../server/auth';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -26,7 +27,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     try {
-        let userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
+        const userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
         const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = await linkingEmbed(userData, discordId, client, logger);
         return interaction.editReply(response).catch(undefined);
     }
@@ -46,7 +47,7 @@ const linkButton = (discordId: string) => new ActionRowBuilder()
         );
 
 const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, client: Client, logger: Logger): Promise<{ embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] }> => {
-    let components = [];
+    const components = [];
     const embed = new EmbedBuilder()
     .setColor(0xda8e35)
     .addFields([
@@ -56,7 +57,7 @@ const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, c
         }
     ])
     .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
-    if (!!user) {
+    if (user) {
         try {
             await user.NexusMods.Auth();
             // logMessage('Authorisation success for /link', { user: user.NexusModsUsername, discord: user.DiscordId });
@@ -76,7 +77,7 @@ const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, c
             new ButtonBuilder()
             .setLabel('Unlink Account')
             .setStyle(ButtonStyle.Link)
-            .setURL(`https://discordbot.nexusmods.com/revoke?id=${discordId}`)
+            .setURL(unlinkUrl(discordId))
         );
         components.push(unlinkButton);
 

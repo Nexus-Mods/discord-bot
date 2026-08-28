@@ -84,14 +84,14 @@ export class DiscordBotUser {
             this.NexusModsOAuthTokens = NexusOAuth;
             this.DiscordOAuthTokens = DiscordOAuth;
         }
-        else throw new Error('Nexus Mods User does not have any auth options set: '+ JSON.stringify({ name: user.name, token: user.nexus_access }));
+        else throw new Error(`Nexus Mods user ${user.name ?? user.id} does not have any auth options set.`);
     }
 
     public ProfileEmbed = async (client: Client): Promise<EmbedBuilder> => userProfileEmbed(this, client);
 
     private headers = (noAuth?: boolean): IRequestHeadersOAuth => {
 
-        let header = { ...baseheader};
+        const header = { ...baseheader};
 
         if (noAuth === true || this.NexusModsId === -1) return header as IRequestHeadersOAuth;
 
@@ -121,13 +121,10 @@ export class DiscordBotUser {
                 IsModAuthor: async (id: number): Promise<boolean> => v2.isModAuthor(this.headers(), this.logger, id),
                 Game: async (id: number) => v2.game(this.headers(), this.logger, id),
                 Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), this.logger, [{ gameDomain, modId }]),
-                Mods: async (filter: IModsFilter, sort?: IModsSort ) => v2.mods(this.headers(), this.logger, filter, sort),
+                Mods: async (filter: IModsFilter, sort?: IModsSort, count?: number ) => v2.mods(this.headers(), this.logger, filter, sort, count),
                 UpdatedMods: 
                     async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
                         v2.updatedMods(this.headers(), this.logger, since, includeAdult, gameId, sort),
-                UpdatedModsAutoMod: 
-                    async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
-                        v2.updatedModsAutoMod(this.headers(), this.logger, since, includeAdult, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
                         v2.modsById(this.headers(), this.logger, mods),
@@ -141,7 +138,6 @@ export class DiscordBotUser {
                 CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), this.logger, userId),
                 FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
                 LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), this.logger, since, gameIds, sort),
-                LastestModsAutoMod: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestModsAutoMod(this.headers(true), this.logger, since, gameIds, sort),
                 News: async (gameId?: number) => v2.news(this.headers(), this.logger, gameId),
                 ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), this.logger, gameId, modId),
                 Users: async (name: string) => v2.users(this.headers(), this.logger, name),
@@ -211,7 +207,7 @@ export class DiscordBotUser {
     private async updateUserDataFromOAuth(userData: NexusUserData): Promise<(keyof NexusUser)[]> {
         const updatedFields: (keyof NexusUser)[] = [];
         const { name, avatar, membership_roles } = userData;
-        let newData: Partial<NexusUser> = {};
+        const newData: Partial<NexusUser> = {};
         if (name != this.NexusModsUsername) {
             this.NexusModsUsername = name;
             newData.name = name;
@@ -303,7 +299,7 @@ export class DiscordBotUser {
         },
         ID: (): string => this.DiscordId,
         User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId),
-        Revoke: () => !!this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
+        Revoke: () => this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
         BuildMetaData: () => this.getDiscordMetaData(),
         GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens, this.logger) : undefined,
         PushMetaData: 

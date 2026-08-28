@@ -31,7 +31,7 @@ const updateMeta = (prev: MetaData, cur: MetaData): boolean => {
 };
 
 const replyCard = (client: Client, nexus: DiscordBotUser, discord: User): EmbedBuilder => {
-    let result = new EmbedBuilder()
+    const result = new EmbedBuilder()
     .setTitle('Updating user data...')
     .setColor(0xda8e35)
     .setThumbnail(nexus.NexusModsAvatar || discord.avatarURL() || '' )
@@ -63,7 +63,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     let card : EmbedBuilder 
     
     try {
-        userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
+        userData = discordId ? await getUserByDiscordId(discordId) : undefined;
         const nextUpdate = new Date( userData?.LastUpdated ? userData.LastUpdated.getTime() + cooldown : 0 );
         try { 
             await userData?.NexusMods.Auth()
@@ -90,7 +90,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         return;
     }
 
-    let newData: Partial<NexusUser> = {};
+    const newData: Partial<NexusUser> = {};
     newData.lastupdate = new Date();
     // Master check if we need to update roles
     // let updateRoles: boolean = false; 

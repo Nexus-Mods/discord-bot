@@ -55,7 +55,9 @@ export class NewsFeedManager {
         this.LatestNews = savedNews;
 
         if (client.shard) {
-            if (NewsFeedManager.isInstanceForShard(client)) {
+            // The guard was inverted: the timer was installed everywhere EXCEPT the shard
+            // holding the news guild, so every post round-tripped through broadcastEval.
+            if (!NewsFeedManager.isInstanceForShard(client)) {
                 this.logger.debug('News webhook guild not found in this shard. Will not send news from here.');
                 return;
             }

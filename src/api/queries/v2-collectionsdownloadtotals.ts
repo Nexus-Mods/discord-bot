@@ -75,15 +75,22 @@ export async function collectionsDownloadTotals(headers: Record<string,string>, 
         const result: IResult = await request(v2API, query, variables, headers);
         let stats = result.collectionsV2.nodes;
         const total = result.collectionsV2.nodesCount;
-        while (total > stats.length) {
+        // Cap the number of pages and stop on an empty page. Without both of these an
+        // API that keeps reporting a high nodesCount spins forever issuing requests.
+        const maxPages = 50;
+        let pagesFetched = 0;
+        while (total > stats.length && pagesFetched < maxPages) {
           // Fetch additional pages
           logger.info('Fetching additional collections page', { id, total, totalRequested });
           variables.offset += 20;
           totalRequested += 20;
+          pagesFetched += 1;
           const extraPage: IResult = await request(v2API, query, variables, headers);
           const extraItems = extraPage.collectionsV2.nodes;
+          if (!extraItems.length) break;
           stats = [...stats, ...extraItems];
         }
+        if (total > stats.length) logger.warn('Stopped paging collection download totals early', { id, total, got: stats.length });
         // Consolidate the stats.
         const totals = stats.reduce((prev, cur) => {
           prev = { totalDownloads: prev.totalDownloads + cur.totalDownloads, uniqueDownloads: prev.uniqueDownloads + cur.uniqueDownloads };

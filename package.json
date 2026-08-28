@@ -1,7 +1,7 @@
 {
   "name": "nexus-bot-typescript",
   "type": "module",
-  "version": "3.16.5",
+  "version": "3.17.0",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
@@ -10,6 +10,10 @@
     "startSharded": "node dist/shards.js",
     "dev": "npm run build && npm run start",
     "devShard": "npm run build && npm run startSharded",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:strict": "eslint . --rule '{\"@typescript-eslint/no-floating-promises\":\"error\",\"@typescript-eslint/no-misused-promises\":\"error\"}'",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "node clean.cjs",
     "start": "node dist/app.js"
@@ -40,9 +44,11 @@
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.6.2",
     "fuse.js": "^6.6.2",
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",
+    "helmet": "^8.3.0",
     "html-to-text": "^9.0.5",
     "jsonwebtoken": "^9.0.2",
     "path": "^0.12.7",

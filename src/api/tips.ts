@@ -53,7 +53,7 @@ async function setApprovedTip(prompt: string, approved: boolean): Promise<void> 
     try {
         await queryPromise(
             'UPDATE tips SET approved=$1 WHERE prompt=$2',
-            [prompt, approved]
+            [approved, prompt]
         );
         return;
     }

@@ -1,0 +1,13 @@
+# Normalise line endings so a Windows checkout does not show every file as
+# modified. Git stores LF; working copies get whatever the platform wants.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never touch binaries.
+*.png binary
+*.gif binary
+*.svg text
+*.ico binary

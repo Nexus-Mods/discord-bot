@@ -128,10 +128,10 @@ export class DiscordBot {
         const interactionFolder: string[] = await fs.promises.readdir(path.join(__dirname, 'interactions'));
         const interactionFiles = interactionFolder.filter(i => i.toLowerCase().endsWith('.js'));
 
-        let globalCommandsToSet : RESTPostAPIApplicationCommandsJSONBody[] = []; //Collect all global commands
+        const globalCommandsToSet : RESTPostAPIApplicationCommandsJSONBody[] = []; //Collect all global commands
         const commandsReg = await this.client.application?.commands.fetch(); // Collection of global commands that are already registered.
-        let guildCommandsToSet : {[guild: string] : RESTPostAPIApplicationCommandsJSONBody[]} = {}; // Collect all guild-specific commands. 
-        let allInteractions : DiscordInteraction[] = [];
+        const guildCommandsToSet : {[guild: string] : RESTPostAPIApplicationCommandsJSONBody[]} = {}; // Collect all guild-specific commands. 
+        const allInteractions : DiscordInteraction[] = [];
 
         // TODO! - Get the commands list per-server from the database 
 

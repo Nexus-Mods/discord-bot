@@ -32,8 +32,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
     try {
         const latest = await newsInst.forceUpdate(domain?.toLowerCase());
-        let embed: EmbedBuilder;
-        embed = latest as EmbedBuilder;
+        const embed: EmbedBuilder = latest as EmbedBuilder;
         await interaction.editReply({ content: 'Update successful', embeds: [embed]});
     }
     catch(err) {

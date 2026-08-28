@@ -39,11 +39,11 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
     if (!client.tipCache) client.tipCache = new TipCache();
     const tips: ITip[] = await client.tipCache.getTips().catch(() => []);
-    let replyMessage: InteractionEditReplyOptions = { content: '' };
+    const replyMessage: InteractionEditReplyOptions = { content: '' };
 
-    if (!!message) {
+    if (message) {
         const tip: ITip | undefined = tips.find(t => t.prompt.toLowerCase() === message.toLowerCase());
-        if (!!tip) {
+        if (tip) {
             if (user) replyMessage.content = replyMessage.content + `${user.toString()}\n`;
             if (tip.message) replyMessage.content = replyMessage.content + `${tip.message}`;
             if (tip.embed) {

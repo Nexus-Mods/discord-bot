@@ -12,8 +12,10 @@ import { getSubscribedChannelsForGuild } from '../api/subscriptions';
 import { fileURLToPath } from 'url';
 import { SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import forumWebhook from './forumWebhook';
-import { communityMap, controversies } from './CommunityMap';
 import { automodRules } from './AutomodRules';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { checkSharedSecret, cookieOptions, safeCompare, signValue, verifyValue } from './auth';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -43,10 +45,36 @@ export class AuthSite {
     }
 
     private initialize(): void {
+        // Fail at boot rather than at request time if a required secret is missing.
+        if (!process.env.COOKIE_SECRET) {
+            throw new Error('COOKIE_SECRET is not set. The OAuth flow signs its state cookie with it, so the site cannot start.');
+        }
+        if (!process.env.UNLINK_SECRET) {
+            throw new Error('UNLINK_SECRET is not set. Unlink links are signed with it, so the site cannot start.');
+        }
+        for (const name of ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE']) {
+            if (!process.env[name]) this.logger.warn(`${name} is not set - the endpoints it guards will reject every request.`);
+        }
+
+        // Behind a reverse proxy the client IP arrives in X-Forwarded-For. Set TRUST_PROXY
+        // to the number of proxies in front of this app so rate limiting sees real IPs.
+        if (process.env.TRUST_PROXY) this.app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
+
+        // Security headers. CSP is left off because the views load fonts from Google and
+        // images from images.nexusmods.com; enabling it needs an allowlist per page.
+        this.app.use(helmet({ contentSecurityPolicy: false }));
+
         this.app.use(cookieparser(process.env.COOKIE_SECRET));
         this.app.set('views', path.join(__dirname, 'views'));
         this.app.use(express.static(path.join(__dirname, 'public')));
         this.app.set('view engine', 'ejs');
+
+        // A generous default for browsing, and a tight one for anything that starts an
+        // OAuth flow or changes account state. Registered before the routes: express
+        // matches in registration order, so a use() placed after a route never runs for it.
+        const generalLimit = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false });
+        const sensitiveLimit = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
+        this.app.use(generalLimit);
 
         this.app.get('/', (req, res) => { 
             // Readme icon from https://www.iconfinder.com/icons/9113356/readme_icon
@@ -70,21 +98,23 @@ export class AuthSite {
          * To start the flow, generate the OAuth2 consent dialog url for Discord, 
          * and redirect the user there.
          */
-        this.app.get('/linked-role', this.linkedRole);
+        this.app.get('/linked-role', sensitiveLimit, this.linkedRole);
 
-        this.app.get('/discord-oauth-callback', this.discordOauthCallback.bind(this));
+        this.app.get('/discord-oauth-callback', sensitiveLimit, this.discordOauthCallback.bind(this));
 
-        this.app.get('/nexus-mods-callback', this.nexusModsOauthCallback.bind(this));
+        this.app.get('/nexus-mods-callback', sensitiveLimit, this.nexusModsOauthCallback.bind(this));
 
         this.app.get('/oauth-error', this.linkError.bind(this));
 
         this.app.get('/unlink-error', this.unlinkError.bind(this));
 
-        this.app.post('/update-metadata', this.updateMetaData.bind(this));
+        this.app.post('/update-metadata', sensitiveLimit, express.json(), this.updateMetaData.bind(this));
 
-        this.app.get('/show-metadata', this.showMetaData.bind(this));
-        
-        this.app.get('/revoke', this.revokeAccess.bind(this));
+        this.app.get('/show-metadata', sensitiveLimit, this.showMetaData.bind(this));
+
+        // GET renders a confirmation page; the deletion itself happens on POST.
+        this.app.get('/revoke', sensitiveLimit, this.revokeConfirm.bind(this));
+        this.app.post('/revoke', sensitiveLimit, express.urlencoded({ extended: false }), this.revokeAccess.bind(this));
 
         this.app.get('/tracking', this.tracking.bind(this));
 
@@ -96,11 +126,7 @@ export class AuthSite {
 
         this.app.get('/timestamp', this.timestempPage.bind(this));
 
-        this.app.all('/communitymap', communityMap);
-
         this.app.all('/automod', express.json(), (req, res) => automodRules(req, res, this.logger));
-
-        this.app.all('/communitymap/controversies', controversies);
 
         // this.app.get('*', (req, res) => res.redirect('/'));
 
@@ -155,7 +181,7 @@ export class AuthSite {
           // Store the signed state param in the user's cookies so we can verify
           // the value later. See:
           // https://discord.com/developers/docs/topics/oauth2#state-and-security
-        res.cookie('clientState', state, { maxAge: 1000 * 60 * 5, signed: true });
+        res.cookie('clientState', state, cookieOptions(1000 * 60 * 5));
         
         // Send the user to the Discord owned OAuth2 authorization endpoint
         res.redirect(url);
@@ -167,7 +193,7 @@ export class AuthSite {
             const discordState = req.query['state'];
 
             const { clientState } = req.signedCookies;
-            if (clientState != discordState) {
+            if (typeof clientState !== 'string' || typeof discordState !== 'string' || !safeCompare(clientState, discordState)) {
                 this.logger.warn('Discord OAuth state verification failed.');
                 res.sendStatus(403);
                 return;
@@ -188,7 +214,7 @@ export class AuthSite {
         }
         catch(err) {
             this.logger.warn('Discord OAuth Error', err);
-            res.cookie('ErrorDetail', `Discord OAuth Error: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.cookie('ErrorDetail', `Discord OAuth Error: ${(err as Error).message}`, cookieOptions(1000 * 60 * 2));
             return res.redirect('/oauth-error');
             // return res.sendStatus(500);
         }
@@ -200,7 +226,7 @@ export class AuthSite {
         const discordState = req.query['state'];
 
         const { clientState } = req.signedCookies;
-        if (clientState != discordState) {
+        if (typeof clientState !== 'string' || typeof discordState !== 'string' || !safeCompare(clientState, discordState)) {
             this.logger.warn('Nexus Mods OAuth state verification failed.');
             res.sendStatus(403);
             return;
@@ -224,7 +250,7 @@ export class AuthSite {
             if (!existingUser) {
                 const nexusUser = await getUserByNexusModsId(parseInt(userData.sub));
                 // logMessage('Existing Nexus Mods user lookup', nexusUser?.NexusModsUsername);
-                if (!!nexusUser) {
+                if (nexusUser) {
                     // If their Discord is linked to another account, remove that link. 
                     this.logger.info('Deleting link to a different Discord account!', { user: nexusUser.NexusModsUsername, discord: nexusUser.DiscordId });
                     try {
@@ -255,7 +281,7 @@ export class AuthSite {
             // Store the tokens
             // logMessage('Pushing user data to database', { update: !!existingUser, name: user.name });
             if (!user.nexus_access) throw new Error('No Token in new user data!');
-            const updatedUser = !!existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
+            const updatedUser = existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id, updatedUser);
             this.logger.info('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
             const params: Record<string, string> =  {
@@ -272,14 +298,19 @@ export class AuthSite {
         }
         catch(err) {
             this.logger.warn('Nexus Mods OAuth Error', err);
-            res.cookie('ErrorDetail', `Neuxs Mods OAuth Error: ${(err as Error).message || err}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.cookie('ErrorDetail', `Nexus Mods OAuth Error: ${(err as Error).message || err}`, cookieOptions(1000 * 60 * 2));
             res.redirect('/oauth-error');
         }
     }
 
     async updateMetaData(req: express.Request, res: express.Response) {
+        if (!checkSharedSecret(req, 'ADMIN_AUTHCODE')) {
+            res.sendStatus(401);
+            return;
+        }
         try {
-            const userId = req.body.userId;
+            const userId = req.body?.userId;
+            if (!userId) throw new Error('userId was not supplied in the request body.');
             await this.updateDiscordMetadata(userId);
             res.sendStatus(204);
         }
@@ -293,16 +324,21 @@ export class AuthSite {
     }
 
     async showMetaData(req: express.Request, res: express.Response) {
+        // This exposes a user's Discord role-connection metadata, so it is admin-only.
+        if (!checkSharedSecret(req, 'ADMIN_AUTHCODE')) {
+            res.sendStatus(401);
+            return;
+        }
         try {
             const id = req.query['id'];
             if (!id) throw new Error('ID not sent');
             const user = await getUserByDiscordId(id as string);
             const meta = user ? await user.Discord.GetRemoteMetaData() : {};
-            res.send(JSON.stringify(meta, null, '</br>'));
+            res.type('application/json').send(JSON.stringify(meta, null, 2));
             
         }
         catch(err) {
-            res.cookie('ErrorDetail', `Error getting metadata: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.cookie('ErrorDetail', `Error getting metadata: ${(err as Error).message}`, cookieOptions(1000 * 60 * 2));
             res.redirect('/oauth-error');
         }
         
@@ -325,12 +361,54 @@ export class AuthSite {
 
     }
 
+    /**
+     * GET /revoke - verifies the signed link and asks the user to confirm.
+     * Nothing is deleted here, so an image tag or a link unfurl cannot trigger an unlink.
+     */
+    async revokeConfirm(req: express.Request, res: express.Response) {
+        try {
+            const id = req.query['id'] as string;
+            const token = req.query['token'] as string;
+            const user = await this.verifyRevokeRequest(id, token);
+            res.render('revokeconfirm', {
+                pageTitle: 'Unlink accounts',
+                id,
+                token,
+                nexusName: user.NexusModsUsername ?? 'your Nexus Mods account',
+                discordName: user.DiscordId,
+            });
+        }
+        catch(err) {
+            this.logger.warn('Invalid unlink request', { err: (err as Error).message });
+            res.cookie('ErrorDetail', `Error unlinking accounts: ${(err as Error).message}`, cookieOptions(1000 * 60 * 2));
+            res.redirect('/unlink-error');
+        }
+    }
+
+    /**
+     * Shared checks for both halves of the unlink flow. The link must carry a valid,
+     * unexpired signature over this exact Discord ID.
+     */
+    private async verifyRevokeRequest(id: string, token: string): Promise<DiscordBotUser> {
+        if (!id) throw new Error('Discord ID parameter was not supplied.');
+        const secret = process.env.UNLINK_SECRET;
+        if (!secret) throw new Error('Unlinking is not configured on this server.');
+        if (!verifyValue(id, token, secret)) {
+            throw new Error('This unlink link is invalid or has expired. Run /unlink in Discord to get a new one.');
+        }
+        const user = await getUserByDiscordId(id);
+        if (!user) throw new Error('No account link exists for this Discord account.');
+        return user;
+    }
+
+    /**
+     * POST /revoke - performs the deletion after the user confirms.
+     */
     async revokeAccess(req: express.Request, res: express.Response) {
         try {
-            const id: string = req.query['id'] as string;
-            if (!id) throw new Error('Discord ID parameter was not supplied.');
-            const user = await getUserByDiscordId(id);
-            if (!user) throw new Error(`No links exist for the Discord ID ${id}`);
+            const id: string = req.body?.id;
+            const token: string = req.body?.token;
+            const user = await this.verifyRevokeRequest(id, token);
             // Revoke Discord tokens
             await user.Discord.Revoke();
 
@@ -346,7 +424,7 @@ export class AuthSite {
         }
         catch(err) {
             this.logger.warn('Error removing account link', err);
-            res.cookie('ErrorDetail', `Error unlinking accounts: ${(err as Error).message}`, { maxAge: 1000 * 60 * 2, signed: true });
+            res.cookie('ErrorDetail', `Error unlinking accounts: ${(err as Error).message}`, cookieOptions(1000 * 60 * 2));
             res.redirect('/unlink-error');
         }
         
@@ -411,12 +489,14 @@ export class AuthSite {
             const nxmlink = `nxm://${domain}/mods/${modId}/files/${fileId}`;
             res.redirect(nxmlink);
             return;
-        }        
+        }
+        // Without this the request hangs until the client gives up.
+        res.status(400).send('Unrecognised link type. Expected "mod" or "collection".');
     }
 
     async localHostRedirect(req: express.Request, res: express.Response) {
         const port: string | null = req.query['port'] as string;
-        const token: string | null = req.query['port'] as string;
+        const token: string | null = req.query['token'] as string;
         if (port && isNaN(Number(port))) {
             res.status(400).send('Port not specified or invalid');
             return;
