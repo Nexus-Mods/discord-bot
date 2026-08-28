@@ -76,7 +76,6 @@ export async function latestMods(headers: Record<string,string>, logger: Logger,
 
     try {
         const result: IResult = await request(v2API, query, vars, headers);
-        // console.log(result.mods, filter)
         return result.mods;
     }
     catch(err) {

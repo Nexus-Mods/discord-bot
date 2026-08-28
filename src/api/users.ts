@@ -3,7 +3,7 @@ import { NexusUser } from '../types/users.js';
 import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
 import { nexusModsTrackingUrl } from './util.js';
 import { DiscordBotUser } from './DiscordBotUser.js';
-import { logger } from '../DiscordBot.js';
+import { logger } from './logger.js';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     try {

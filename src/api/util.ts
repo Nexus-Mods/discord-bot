@@ -3,6 +3,9 @@ import { ClientExt } from "../types/DiscordTypes.js";
 import { DiscordBotUser, DummyNexusModsUser } from "./DiscordBotUser.js";
 import { IModsFilter } from "./queries/v2.js";
 import { ICollectionsFilter } from "../types/GQLTypes.js";
+// Logger moved to ./logger.ts. Re-exported so the existing imports keep working.
+import { Logger } from './logger.js';
+export { Logger, logger } from './logger.js';
 
 export const isTesting = process.env.NODE_ENV === 'testing';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -26,62 +29,6 @@ export const gameArt = (id: number, type?: GameArtType) : string => {
             return `https://images.nexusmods.com/images/games/v2/${id}/thumbnail.jpg`;
         default:
             return `https://images.nexusmods.com/images/games/4_3/tile_${id}.jpg`;
-    }
-}
-
-const colors = [
-    '\x1b[32m', // Green
-    '\x1b[34m', // Blue
-    '\x1b[35m', // Magenta
-    '\x1b[90m', // Bright Black (Gray)
-    '\x1b[92m', // Bright Green
-    '\x1b[93m', // Bright Yellow
-    '\x1b[94m', // Bright Blue
-    '\x1b[95m', // Bright Magenta
-    '\x1b[96m', // Bright Cyan
-];
-
-export class Logger {
-    private shardId: string;
-    private shardColor: string;
-
-    constructor(shardId: string) {
-        this.shardId = shardId;
-        this.shardColor = shardId === 'Main' ? '\x1b[0m' : colors[parseInt(this.shardId) % colors.length]
-    }
-    public setShardId(shardId: string) {
-        this.shardId = shardId;
-        this.shardColor = shardId === 'Main' ? '\x1b[0m' : colors[parseInt(this.shardId) % colors.length]
-    }
-
-    private prefix(colourCode: string = '\x1b[0m'): string {
-        if (this.shardId === 'Main') return `${colourCode}${new Date().toLocaleString()} - `;
-        return `${new Date().toLocaleString()} - ${this.shardColor}[Shard ${this.shardId}]${colourCode}`;
-    }
-
-    public info(message: string, data?: any) {
-        const formatted = `${this.prefix()} ${message}`;
-        if (data !== undefined) console.log(formatted, data);
-        else console.log(formatted);
-    }
-    public error(message: string, data?: any, ...args: any[]) {
-        const formatted = `${this.prefix('\x1b[31m')} ${message}\x1b[0m`;
-        // args used to be accepted and dropped, so ~30 call sites were logging nothing.
-        if (data !== undefined) console.error(formatted, data, ...args);
-        else console.error(formatted, ...args);
-    }
-    public warn(message: string, data?: any, ...args: any[]) {
-        const formatted = `${this.prefix('\x1b[33m')} ${message}\x1b[0m`;
-        if (data !== undefined) console.warn(formatted, data, ...args);
-        else console.warn(formatted, ...args);
-    }
-    public debug(message: string, data?: any) {
-        // Debug output is on unless explicitly running in production. The previous check
-        // was inverted, so these lines only appeared when NODE_ENV was 'testing'.
-        if (isProduction && process.env.DEBUG_LOGGING !== 'true') return;
-        const formatted = `${this.prefix('\x1b[36m')} ${message}\x1b[0m`;
-        if (data !== undefined) console.debug(formatted, data);
-        else console.debug(formatted);
     }
 }
 
@@ -241,7 +188,6 @@ function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: nu
     if (typeof uid === 'string') uid = BigInt(uid);
     const gameId = Number(uid >> BigInt(32)); // Use unsigned right shift (>>>)
     const modId = Number(uid & BigInt(0xFFFFFFFF));; // Bitwise AND with 0xFFFFFFFF (unsigned 32-bit mask)
-    console.log('Parsed IDs', { uid, gameId, modId });
     return { gameId, modId };
 }
 

@@ -64,7 +64,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     // If the bot has been pinged. 
     if (user && user === client.user) {
         interaction.followUp({ content: 'That\'s me!', embeds:[await userEmbed(botUser(client), client)], flags: show ? MessageFlags.Ephemeral : undefined })
-            .catch(err => console.warn('Failed to send bot info for whois slash command', err));
+            .catch(err => logger.warn('Failed to send bot info for whois slash command', err));
         return;
     }
 

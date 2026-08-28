@@ -86,7 +86,6 @@ async function modsQuery(headers: Record<string,string>, logger: Logger, mods: I
     catch(err) {
         if (err as ClientError) {
             const error: ClientError = (err as ClientError);
-            // console.log('ClientError', error);
             if (error.message.includes('Cannot return null for non-nullable field Mod.modCategory')) {
                 const gameIds = new Set(mods.map(i => i.gameDomain));
                 const consolidatedIds = [...gameIds].map(game => {

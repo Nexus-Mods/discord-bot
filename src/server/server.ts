@@ -534,7 +534,6 @@ export class AuthSite {
 
         const ms = parseToMs(raw);
         const date = new Date(ms);
-        console.log('Input date', {raw, ms, date});
         const iso = isNaN(date.getTime()) ? 'Invalid date' : date.toISOString();
 
         const opts: Intl.DateTimeFormatOptions = {

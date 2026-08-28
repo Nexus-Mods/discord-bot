@@ -1,7 +1,7 @@
 import query from '../api/dbConnect.js';
 import { BotServer } from '../types/servers.js';
 import { Guild } from 'discord.js';
-import { logger } from '../DiscordBot.js';
+import { logger } from './logger.js';
 
 async function getAllServers(): Promise<BotServer[]> {
     try {
@@ -35,7 +35,7 @@ async function addServer(guild: Guild): Promise<boolean> {
     const owner = await guild.fetchOwner();
     try {
         await query('INSERT INTO servers (id, server_owner) VALUES ($1, $2)', [guild.id, owner?.id], 'AddServer');
-        console.log(new Date().toLocaleString() + " - Added server to database: " + guild.name);
+        logger.info('Added server to database', { guild: guild.name, id: guild.id });
         return true;
     } catch (error) {
         return Promise.reject(error);
