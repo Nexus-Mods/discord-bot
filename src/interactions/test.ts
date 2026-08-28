@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
@@ -17,12 +17,12 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.Moderator,
 
     ],
+    defer: 'ephemeral',
     action
 }
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const discordId = interaction.user.id;
     const botuser: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
     if (!botuser) return interaction.editReply({ content: 'Error! No linked user!' });

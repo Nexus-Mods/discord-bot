@@ -1,6 +1,6 @@
 import { 
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, MessageFlags, InteractionContextType
+    TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, InteractionContextType
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, gameArt, Logger } from "../api/util.js";
@@ -117,6 +117,7 @@ const discordInteraction: DiscordInteraction = {
     ) as SlashCommandBuilder,
     public: true,
     guilds: [],
+    defer: 'ephemeral',
     action,
     autocomplete,
 }
@@ -238,7 +239,6 @@ const resolvers: Record<SubscribedItemType, {
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const channel = interaction.channel;
     if (channel?.isThread() || channel?.isDMBased()) {

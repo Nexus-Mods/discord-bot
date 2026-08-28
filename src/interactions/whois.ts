@@ -31,6 +31,7 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: (i) => ((i as ChatInputCommandInteraction).options.getBoolean('private') ?? true) ? 'ephemeral' : 'public',
     action
 }
 
@@ -48,7 +49,6 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({ephemeral: show}).catch(err => { throw err });
     // Check if they are already linked.
     const userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
@@ -86,7 +86,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             const isAdmin: boolean = (client as ClientExt).config.ownerIDs?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === botUser.DiscordId;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) return interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });
+            if (isAdmin || isMe || inGuild) return interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], flags: show ? MessageFlags.Ephemeral : undefined });
             else {
                 logger.info('Whois not authorised', {requester: userData, target: botUser, isAdmin, isMe, inGuild});
                 return interaction.followUp({ embeds: [ notAllowed(client) ], flags: MessageFlags.Ephemeral });

@@ -4,8 +4,7 @@ import {
     SlashCommandBuilder, ChatInputCommandInteraction, 
     PermissionFlagsBits, APIRole, ActionRowBuilder,
     ButtonBuilder, ButtonStyle, ComponentType,
-    ButtonInteraction,
-    MessageFlags
+    ButtonInteraction
 } from "discord.js";
 import { updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db.js';
 import { BotServer } from "../types/servers.js";
@@ -101,6 +100,7 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
     action,
     autocomplete: autocompleteGameName
 }
@@ -119,7 +119,6 @@ interface IBotServerChange {
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Outcomes: update, null
     const subComGroup: SubCommandGroups | null = interaction.options.getSubcommandGroup(false) as SubCommandGroups;

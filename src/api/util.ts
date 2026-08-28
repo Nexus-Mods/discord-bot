@@ -12,7 +12,7 @@ export { gameArt, nexusModsTrackingUrl, calcUptime } from './formatting.js';
 export { Logger, logger } from './logger.js';
 
 export const isTesting = process.env.NODE_ENV === 'testing';
-const isProduction = process.env.NODE_ENV === 'production';
+// const isProduction = process.env.NODE_ENV === 'production';
 
 export const baseheader: Readonly<Record<string, string>> = {
     'Application-Name': 'Nexus Mods Discord Bot',

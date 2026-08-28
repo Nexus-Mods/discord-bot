@@ -16,13 +16,13 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.BotDemo,
         KnownDiscordServers.Main
     ],
+    defer: 'ephemeral',
     action
 }
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch((err) => { throw err });
 
     try {
         await client.updateInteractions?.(true);

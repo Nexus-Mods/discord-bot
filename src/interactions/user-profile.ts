@@ -1,4 +1,4 @@
-import { Client, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction, ContextMenuCommandType, MessageFlags } from "discord.js";
+import { Client, ContextMenuCommandInteraction, ContextMenuCommandBuilder, ApplicationCommandType, CommandInteraction, ContextMenuCommandType } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { getUserByDiscordId, userProfileEmbed, userEmbed } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
@@ -11,12 +11,12 @@ const discordInteraction: DiscordInteraction = {
     .setType(ApplicationCommandType.User as ContextMenuCommandType),
     public: true,
     guilds: [ KnownDiscordServers.BotDemo ],
+    defer: 'ephemeral',
     action
 }
 
 async function action(client: Client, baseinteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseinteraction as any as ContextMenuCommandInteraction);
-    await interaction.deferReply( { flags: MessageFlags.Ephemeral });
     const member = interaction.targetId;
     const guildMember = await interaction.guild?.members?.fetch(member).catch(() => undefined);
     if (!guildMember) return interaction.editReply('This user is no longer a member of this server.');

@@ -1,7 +1,7 @@
 import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { NexusUser } from "../types/users.js";
 import { getUserByDiscordId } from '../api/bot-db.js';
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType, MessageFlags } from "discord.js";
+import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from "discord.js";
 import { KnownDiscordServers, Logger } from '../api/util.js';
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
@@ -17,6 +17,7 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
     action
 }
 
@@ -57,7 +58,6 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     // Check if they are already linked.
     let userData : DiscordBotUser | undefined;
 

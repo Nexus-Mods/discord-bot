@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, CommandInteraction, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { getUserByDiscordId, getUserByNexusModsName, deleteUser } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
@@ -26,12 +26,12 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.Moderator,
 
     ],
+    defer: 'ephemeral',
     action
 }
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const nexusUsername = interaction.options.getString('nexus');
     const discordId = interaction.options.getString('discord');

@@ -6,6 +6,7 @@ import { NewsFeedManager } from "../feeds/NewsFeedManager.js";
 import { GameListCache, TipCache } from "./util.js";
 import { SubscriptionManger } from "../feeds/SubscriptionManager.js";
 import { Logger } from "../api/util.js";
+import type { DeferOption, InteractionContext } from "../lib/middleware.js";
 
 interface ClientExt extends Client {
     config?: any;
@@ -26,21 +27,31 @@ interface DiscordEventInterface {
 
 interface DiscordInteraction {
     command: SlashCommandBuilder | ContextMenuCommandBuilder;
-    action: (client: Client, interact: CommandInteraction, logger: Logger) => Promise<void>;
+    /**
+     * The fourth argument carries whatever the middleware resolved. It is optional,
+     * so a command that has not opted in keeps its existing three-parameter shape.
+     */
+    action: (client: Client, interact: CommandInteraction, logger: Logger, ctx: InteractionContext) => Promise<void>;
     public: boolean;
     guilds?: Snowflake[];
-    permissions?: PermissionsExt[];
+
+    /**
+     * Defer the reply before the action runs. Omit to defer inside the action, as
+     * every command did before 4.0.0.
+     */
+    defer?: DeferOption;
+    /**
+     * Refuse the command unless the caller has a linked Nexus Mods account, and pass
+     * the resolved account to the action as ctx.user.
+     */
+    requiresLink?: boolean;
+    /** Guild permissions the caller must hold, e.g. PermissionFlagsBits.ManageGuild. */
+    requiredPermissions?: bigint[];
+
     // Optional to add aliases
     aliases?: string[];
     // Optional for autocomplete commands
     autocomplete?: (client: Client, interact: AutocompleteInteraction, logger: Logger) => Promise<void>,
-}
-
-interface PermissionsExt {
-    guild?: Snowflake;
-    id: Snowflake;
-    type: 'USER' | 'ROLE';
-    permission: boolean;
 }
 
 export { DiscordEventInterface, DiscordInteraction, ClientExt };

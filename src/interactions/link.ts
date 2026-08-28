@@ -1,7 +1,6 @@
 import { 
     CommandInteraction, Snowflake, EmbedBuilder, Client, SlashCommandBuilder, PermissionFlagsBits, 
-    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, 
-    MessageFlags
+    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/bot-db.js';
@@ -20,13 +19,13 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
     action
 }
 
 async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const discordId: Snowflake = interaction.user.id;
-    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     try {
         const userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
         const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = await linkingEmbed(userData, discordId, client, logger);

@@ -27,13 +27,13 @@ const discordInteraction: DiscordInteraction = {
     .setDMPermission(true) as SlashCommandBuilder,
     public: true,
     guilds: [],
+    defer: 'public',
     action,
     autocomplete
 }
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply().catch(err => { throw err });
     
     const message: string = interaction.options.getString('prompt', true);
     const user: User | null = interaction.options.getUser('user');

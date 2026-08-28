@@ -2,7 +2,6 @@ import {
     CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction,
     PermissionFlagsBits, GuildChannel, APIEmbedField,ActionRowBuilder, StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder, ComponentType, StringSelectMenuInteraction,
-    MessageFlags,
     InteractionContextType
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
@@ -19,12 +18,12 @@ const discordInteraction: DiscordInteraction = {
     .setDescription('Untrack a game, mod, collection or user in this channel'),
     public: true,
     guilds: [],
+    defer: 'ephemeral',
     action
 };
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });
 
     const channel = interaction.channel;
     if (channel?.isThread() || channel?.isDMBased()) {

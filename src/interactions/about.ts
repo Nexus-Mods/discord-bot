@@ -1,8 +1,7 @@
 import { 
     Client, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
     EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction, 
-    InteractionContextType,
-    MessageFlags
+    InteractionContextType
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getCountOfUsers } from '../api/bot-db.js';
@@ -22,6 +21,7 @@ const discordInteraction: DiscordInteraction = {
     .setContexts([InteractionContextType.Guild, InteractionContextType.BotDM])
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages) as SlashCommandBuilder,
     public: true,
+    defer: (i) => (i as ChatInputCommandInteraction).options.getBoolean('private') ?? true ? 'ephemeral' : 'public',
     action
 }
 
@@ -50,7 +50,6 @@ async function action(client: Client, baseInteraction: CommandInteraction, _logg
     const option: boolean | null = interaction.options.getBoolean('private');
     const ephemeral: boolean = option !== null ? option : true;
 
-    await interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined }).catch((err) => { throw err });
     
     const upTime: string = calcUptime(process.uptime());
     const allUsers: number = await getCountOfUsers().catch(() => 0);

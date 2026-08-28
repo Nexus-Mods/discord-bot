@@ -46,6 +46,7 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.BotDemo,
         KnownDiscordServers.App
     ],
+    defer: 'public',
     action,
     autocomplete
 }
@@ -207,7 +208,6 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
 }
 
 async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInputCommandInteraction, tips: ITip[], logger: Logger) {
-    await interaction.deferReply();
 
     if (!client.tipCache) client.tipCache = new TipCache();
     const unapprovedTips = await client.tipCache?.getPendingTips();

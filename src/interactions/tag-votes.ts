@@ -58,6 +58,7 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.Moderator,
 
     ],
+    defer: 'public',
     action,
     autocomplete
 }
@@ -81,7 +82,6 @@ interface ITagDetail {
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply();
 
     const gameId: number = interaction.options.getNumber('gameid', true);
     const modId: number | null = interaction.options.getNumber('modid');

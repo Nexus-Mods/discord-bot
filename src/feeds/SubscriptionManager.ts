@@ -322,7 +322,7 @@ export class SubscriptionManger {
         let currentSub: number = postableUpdates[0].subId;
         for (const update of postableUpdates) {
             // If we've swapped type, sub or we've got more than 5 embeds already
-            if (update.type !== currentType || update.subId != currentSub || blocks[blocks.length - 1].message.embeds!.length === maxBlockSize) blocks.push({ message: { embeds: [] }, crosspost: false});
+            if (update.type !== currentType || update.subId !== currentSub || blocks[blocks.length - 1].message.embeds!.length === maxBlockSize) blocks.push({ message: { embeds: [] }, crosspost: false});
             const myBlock = blocks[blocks.length - 1];
             myBlock.message.embeds = myBlock.message.embeds ? [...myBlock.message.embeds, update.embed] : [update.embed];
             if (!myBlock.message.content && update.message) myBlock.message.content = update.message;
@@ -343,7 +343,7 @@ export class SubscriptionManger {
                         try {
                             await message.crosspost();
                         }
-                        catch(err) {
+                        catch(_err) {
                             this.logger.warn('Failed to crosspost webhook message', { channel: discordChannel.name, guild: guild.name });
                             await webHookClient.send({ content: '-# Failed to crosspost the message. Please check the channel is an announcement channel and the bot has the `MANAGE_MESSAGE` permission.' }).catch(() => null);
                         }
@@ -616,7 +616,7 @@ export class SubscriptionManger {
         const last_update = item.last_update;
         const user = await this.NexusModsAPI.v2.FindUser(userId);
         if (!user) throw new Error(`User not found for ${userId}`);
-        if (user.banned === true || user.deleted == true) {
+        if (user.banned === true || user.deleted === true) {
             this.logger.info(`${user.name} has been banned or deleted from Nexus Mods`);
             results.push(unavailableUserUpdate(user, item));
             await deleteSubscription(item.id);

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, MessageFlags, InteractionContextType } from "discord.js";
+import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, InteractionContextType } from "discord.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { ConditionType } from "../types/util.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
@@ -14,6 +14,7 @@ const discordInteraction: DiscordInteraction = {
     .setContexts(InteractionContextType.Guild) as SlashCommandBuilder,
     public: true,
     guilds: [],
+    defer: 'ephemeral',
     action
 }
 
@@ -21,7 +22,6 @@ async function action(client: ClientExt, interaction: CommandInteraction, logger
     if (!interaction.guild) return interaction.reply('This command only works in servers.');
     
     // Defer while we check this out.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Check if the user has linked their accounts
     let user : DiscordBotUser|undefined = undefined;
