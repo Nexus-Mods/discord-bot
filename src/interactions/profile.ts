@@ -25,8 +25,6 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     // Private?
-    const showValue : (CommandInteractionOption | null) = interaction.options.get('public');
-    const show: boolean = showValue ? (showValue.value as boolean) : false;
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;

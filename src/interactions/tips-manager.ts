@@ -10,7 +10,6 @@ import {
     InteractionEditReplyOptions,
     PermissionFlagsBits
 } from "discord.js";
-import { TipCache } from "../types/util.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { addTip, getAllTips, editTip } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";

@@ -7,7 +7,7 @@ import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util.js';
 import { randomUUID } from 'node:crypto';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
 import {
-    deferOptions, describePermissions, missingPermissions, resolveDeferVisibility,
+    deferOptions, describePermissions, isBotOwner, missingPermissions, resolveDeferVisibility,
     resolveLinkedUser, LINK_REQUIRED_MESSAGE, type InteractionContext,
 } from '../lib/middleware.js';
 
@@ -62,7 +62,9 @@ async function runCommand(
     }
 
     if (interact.requiredPermissions?.length) {
-        const missing = missingPermissions(interaction.memberPermissions, interact.requiredPermissions);
+        const missing = missingPermissions(interaction.memberPermissions, interact.requiredPermissions, {
+            isBotOwner: isBotOwner(interaction, client.config?.ownerIDs),
+        });
         if (missing.length) {
             logger.info('Command refused, missing permissions', {
                 command: interaction.commandName,

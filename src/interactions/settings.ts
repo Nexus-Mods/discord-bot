@@ -101,6 +101,8 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.BotDemo
     ],
     defer: 'ephemeral',
+    // ManageGuild, or a bot owner - the middleware applies the owner bypass.
+    requiredPermissions: [PermissionFlagsBits.ManageGuild],
     action,
     autocomplete: autocompleteGameName
 }
@@ -125,21 +127,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     // Outcomes: view, filter, role, channel
     const subCom: SubCommands = interaction.options.getSubcommand() as SubCommands;
     // Some important IDs
-    const discordId : string = interaction.user.id;
     const guild : Guild | null = interaction.guild;
     if (!guild) throw new Error('This interaction only works in a valid server');
-
-    // Check we're dealing with a server admin.
-    if (!interaction.memberPermissions?.toArray().includes('ManageGuild') 
-    && !client.config?.ownerIDs?.includes(discordId)) {
-        return interaction.editReply('Server settings are only accessible by Guild managers');
-    }
 
     // Get user and guild data
     try {
         const server: BotServer = await getServer(guild)
         .catch((err) => { throw new Error('Could not retrieve server details'+err.message) }); 
-        // const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
         const gameList: IGameStatic[] = await client.gamesList?.getGames() ?? [];
 
         // Viewing the current settings

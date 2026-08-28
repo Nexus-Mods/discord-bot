@@ -38,3 +38,10 @@ tsconfig.tsbuildinfo
 serverconfig.json
 config.json
 .yarnrc.yml
+
+# Database schema dumps taken from a live server. Never committed.
+# Scoped to the repo root so drizzle/ migration SQL is still tracked - those
+# have to be committed or the migration history is meaningless.
+/schema.sql
+/dump*.sql
+/*.dump

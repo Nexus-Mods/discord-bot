@@ -1,9 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { getUserByDiscordId } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { customEmojis } from "../types/util.js";
+import type { InteractionContext } from '../lib/middleware.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -17,15 +17,14 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.Moderator,
 
     ],
-    defer: 'ephemeral',
+    defer: 'ephemeral',
+    requiresLink: true,
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger, ctx: InteractionContext): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    const discordId = interaction.user.id;
-    const botuser: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
-    if (!botuser) return interaction.editReply({ content: 'Error! No linked user!' });
+    const botuser: DiscordBotUser = ctx.user!;
     try {
         await botuser.NexusMods.Auth();
         logger.info('Nexus Mods Auth verfied.');

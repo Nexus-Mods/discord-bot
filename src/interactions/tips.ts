@@ -5,7 +5,6 @@ import {
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { Logger } from "../api/util.js";
 import { ITip } from "../api/tips.js";
-import { TipCache } from "../types/util.js";
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 import { getTipCache } from '../lib/caches.js';
 

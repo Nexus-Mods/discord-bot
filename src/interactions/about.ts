@@ -47,8 +47,6 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: Client, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    const option: boolean | null = interaction.options.getBoolean('private');
-    const ephemeral: boolean = option !== null ? option : true;
 
     
     const upTime: string = calcUptime(process.uptime());

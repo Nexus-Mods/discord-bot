@@ -49,14 +49,23 @@ export function deferOptions(visibility: DeferVisibility): InteractionDeferReply
 export function missingPermissions(
     memberPermissions: PermissionsBitField | null,
     required: bigint[],
+    options: { isBotOwner?: boolean } = {},
 ): bigint[] {
     if (!required.length) return [];
+    // Bot owners bypass permission checks. settings.ts carried this rule inline as
+    // `ManageGuild || ownerIDs.includes(...)`; it belongs in one place.
+    if (options.isBotOwner) return [];
     if (!memberPermissions) return required;
     return required.filter((permission) => !memberPermissions.has(permission));
 }
 
 export function describePermissions(permissions: bigint[]): string {
     return new PermissionsBitField(permissions).toArray().join(', ');
+}
+
+/** Whether the caller is configured as a bot owner. */
+export function isBotOwner(interaction: CommandInteraction, ownerIDs: string[] | undefined): boolean {
+    return !!ownerIDs?.includes(interaction.user.id);
 }
 
 export const LINK_REQUIRED_MESSAGE =
