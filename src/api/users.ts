@@ -182,7 +182,7 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
         return embed;
     }
     catch (err) {
-        logger.error('Error creating user profile embed', { user, err });
+        logger.error('Error creating user profile embed', { nexusModsId: user.NexusModsId, err });
         throw err;
     }
 }

@@ -1,0 +1,22 @@
+<div class="maintenance-page__content">
+    <h1 class="maintenance-page__title">Unlink your accounts?</h1>
+    <p class="maintenance-page__subtext">
+        This will remove the link between <strong><%= nexusName %></strong> on Nexus Mods and
+        <strong><%= discordName %></strong> on Discord.
+    </p>
+    <p class="maintenance-page__text" style="text-align:center">
+        All linked roles will be removed from your Discord account and you will lose access to
+        Game Feeds, Search and other features until you link again.
+    </p>
+    <div class="maintenance-page__centered-content">
+        <form method="POST" action="/revoke">
+            <input type="hidden" name="id" value="<%= id %>">
+            <input type="hidden" name="token" value="<%= token %>">
+            <button type="submit" class="maintenance-page__discord-button">
+                <img class="icon" alt="" src="/images/unlink.gif">
+                <span>Yes, unlink my accounts</span>
+            </button>
+        </form>
+    </div>
+    <p class="maintenance-page__supertext">If you did not ask to unlink, close this page and nothing will change.</p>
+</div>

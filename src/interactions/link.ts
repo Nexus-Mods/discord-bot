@@ -7,6 +7,7 @@ import { DiscordInteraction } from "../types/DiscordTypes";
 import { getUserByDiscordId } from '../api/bot-db';
 import { KnownDiscordServers, Logger } from '../api/util';
 import { DiscordBotUser } from "../api/DiscordBotUser";
+import { unlinkUrl } from '../server/auth';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -76,7 +77,7 @@ const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, c
             new ButtonBuilder()
             .setLabel('Unlink Account')
             .setStyle(ButtonStyle.Link)
-            .setURL(`https://discordbot.nexusmods.com/revoke?id=${discordId}`)
+            .setURL(unlinkUrl(discordId))
         );
         components.push(unlinkButton);
 

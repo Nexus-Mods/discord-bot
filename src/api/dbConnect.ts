@@ -42,7 +42,8 @@ export async function queryPromise<T extends QueryResultRow>(query: string, valu
     }
     catch(err) {
         if (!client) logger.error('Error acquiring client', { query, err: (err as Error).message });
-        else logger.error('Error in query', { query, values, err });
+        // values are deliberately not logged: for the users table they contain OAuth tokens.
+        else logger.error('Error in query', { query, valueCount: values?.length ?? 0, err });
         throw handleDatabaseError(err);
     }
     finally {
@@ -65,7 +66,7 @@ export async function queryCommunityMap<T extends QueryResultRow>(query: string,
     }
     catch(err) {
         if (!client) logger.error('Error acquiring CM client', { query, err: (err as Error).message });
-        else logger.error('Error in CM query', { query, values, err });
+        else logger.error('Error in CM query', { query, valueCount: values?.length ?? 0, err });
         throw handleDatabaseError(err);
     }
     finally {
@@ -87,8 +88,8 @@ export async function queryAutoMod<T extends QueryResultRow>(query: string, valu
         
     }
     catch(err) {
-        if (!client) logger.error('Error acquiring CM client', { query, err: (err as Error).message });
-        else logger.error('Error in Automod query', { query, values, err });
+        if (!client) logger.error('Error acquiring Automod client', { query, err: (err as Error).message });
+        else logger.error('Error in Automod query', { query, valueCount: values?.length ?? 0, err });
         throw handleDatabaseError(err);
     }
     finally {

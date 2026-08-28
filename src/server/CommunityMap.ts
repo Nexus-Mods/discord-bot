@@ -1,8 +1,8 @@
 import express from 'express';
+import { checkSharedSecret } from './auth';
 
 function checkPermission(req: express.Request): boolean {
-    const authCode = process.env.CM_AUTHCODE;
-    return (authCode ? req.headers.authorization !== authCode : true);
+    return checkSharedSecret(req, 'CM_AUTHCODE');
 }
 
 const communityMap: express.RequestHandler = async (req, res) => {
