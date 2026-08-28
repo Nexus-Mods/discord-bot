@@ -76,7 +76,7 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
     }
     function errorReplyCatch(replyError: Error, action: String) {
         logger.error(`Error ${action} to failed interaction`, {replyError, ...context, err});
-        if(!ignoreErrors.includes(replyError.toString()) || !ignoreErrors.includes(replyError.message)) process.exit(1);
+        if(!ignoreErrors.includes(replyError.toString()) && !ignoreErrors.includes(replyError.message)) process.exit(1);
     }
 }
 
