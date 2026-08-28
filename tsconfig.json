@@ -10,6 +10,8 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    // vite/client provides the ImportMeta.glob typing used by the command tests.
+    "types": ["node", "vite/client"],
     "outDir": "./dist",
     "sourceMap": true,
     // tsc is only used for typechecking now; tsup does the emit.

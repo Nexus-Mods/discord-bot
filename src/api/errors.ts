@@ -81,6 +81,12 @@ export class NotFoundError extends AppError {
     }
 }
 
+export class ValidationError extends AppError {
+    constructor(message: string, options: Omit<AppErrorOptions, 'code'> = {}) {
+        super(message, { ...options, code: 'VALIDATION', userMessage: options.userMessage ?? message });
+    }
+}
+
 export class ConfigError extends AppError {
     constructor(message: string, options: Omit<AppErrorOptions, 'code'> = {}) {
         // A missing or wrong environment variable is a deployment bug, not a blip.
