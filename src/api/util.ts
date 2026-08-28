@@ -6,6 +6,9 @@ import { ICollectionsFilter } from "../types/GQLTypes.js";
 // Logger moved to ./logger.ts. Re-exported so the existing imports keep working.
 import { Logger } from './logger.js';
 import { AppError } from './errors.js';
+// Moved to ./formatting.ts, which has no discord.js dependency. Re-exported here
+// so the existing imports from api/util.js keep working.
+export { gameArt, nexusModsTrackingUrl, calcUptime } from './formatting.js';
 export { Logger, logger } from './logger.js';
 
 export const isTesting = process.env.NODE_ENV === 'testing';
@@ -15,23 +18,6 @@ export const baseheader: Readonly<Record<string, string>> = {
     'Application-Name': 'Nexus Mods Discord Bot',
     'Application-Version': process.env.npm_package_version || '0.0.0'
 };
-
-type GameArtType = '4_3' | '2_3' | 'hero' | 'icon';
-
-export const gameArt = (id: number, type?: GameArtType) : string => {
-    switch (type) {
-        case '4_3':
-            return `https://images.nexusmods.com/images/games/4_3/tile_${id}.jpg`;
-        case '2_3':
-            return `https://images.nexusmods.com/images/games/v2/${id}/tile.jpg`;
-        case 'hero' : 
-            return `https://images.nexusmods.com/images/games/v2/${id}/hero.jpg`;
-        case 'icon' : 
-            return `https://images.nexusmods.com/images/games/v2/${id}/thumbnail.jpg`;
-        default:
-            return `https://images.nexusmods.com/images/games/4_3/tile_${id}.jpg`;
-    }
-}
 
 export async function autocompleteGameName(client: ClientExt, acInteraction: AutocompleteInteraction, logger: Logger) {
     const focused = acInteraction.options.getFocused().toLowerCase();
@@ -183,20 +169,6 @@ export const unexpectedErrorEmbed = (err: any, context: any, errorId?: string): 
  * @param {Record<string, string>} [extraParams] - Optional additional parameters to include in the query string. E.g. Tab selection on the mod page.
  * @returns {string} The full URL with tracking parameters.
  */
-export const nexusModsTrackingUrl = (url: string, content?: string, extraParams?: Record<string,string>): string => {
-    const source = 'DiscordBot';
-    const params = new URLSearchParams(extraParams);
-    params.append('utm_source', formatTrackingTag(source));
-    params.append('utm_medium', formatTrackingTag('app'));
-    if (content) params.append('utm_content', formatTrackingTag(content));
-    
-    return new URL(`${url}?${params.toString()}`).toString();
-}
-
-function formatTrackingTag(input: string): string {
-    return input.toLowerCase().replaceAll(' ', '_');
-}
-
 function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: number } {
     if (typeof uid === 'string') uid = BigInt(uid);
     const gameId = Number(uid >> BigInt(32)); // Use unsigned right shift (>>>)
@@ -218,20 +190,4 @@ export enum KnownDiscordServers {
     Moderator = '268004475510325248',
     Author = '232168805038686208',
     App = '1134149061080002713'
-}
-
-/**
- * Generates a string representation of the uptime value.
- * @param {number} seconds - The number of seconds to convert into a string
- * @returns {string} - Returns the uptime as a string. e.g. "1d 4h 10m 30s"
- */
-
-export function calcUptime(seconds: number): string {
-    const days = Math.floor(seconds/86400);
-    seconds -= (days * 86400);
-    const hours = Math.floor(seconds/3600);
-    seconds -= (hours * 3600);
-    const minutes = Math.floor(seconds/60);
-    seconds -= (minutes * 60);
-    return `${days}d ${hours}h ${minutes}m ${seconds.toFixed()}s`;
 }

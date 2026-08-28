@@ -678,7 +678,8 @@ export function unavailableUserUpdate(entity: IUser, sub: SubscribedItem<Subscri
 }
 
 // Cut to length and reformat any incompatible markdown
-function trimCollectionChangelog(markdown: string, maxLength: number = 2000): string {
+// Exported for tests. Not part of the module's public surface.
+export function trimCollectionChangelog(markdown: string, maxLength: number = 2000): string {
     // Remove images by regex (anything inside ![...](...) will be removed)
     let modifiedMarkdown = markdown.replace(/!\[([^\]]*)\]\([^)]*\)/g, '');
 
@@ -708,7 +709,7 @@ function trimCollectionChangelog(markdown: string, maxLength: number = 2000): st
 
 }
 
-function trimModChangelog(raw: string[], limit: number = 1000, logger: Logger): string {
+export function trimModChangelog(raw: string[], limit: number = 1000, logger: Logger): string {
     // THIS FEATURE IS BROKEN IN THE API, WE'LL CHECK IF IT'S STILL INVALID AND RETURN NULL IF IT IS.
     if (raw[0].startsWith('#<ModChangelog')) {
         logger.debug('Mod changelogs are still broken, returning a generic message.');
