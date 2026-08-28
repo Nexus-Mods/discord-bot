@@ -131,7 +131,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
     // Check we're dealing with a server admin.
     if (!interaction.memberPermissions?.toArray().includes('ManageGuild') 
-    && !client.config.ownerIDs?.includes(discordId)) {
+    && !client.config?.ownerIDs?.includes(discordId)) {
         return interaction.editReply('Server settings are only accessible by Guild managers');
     }
 
@@ -303,10 +303,9 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
         options.map(e => (new ButtonBuilder().setCustomId(e.emoji).setLabel(e.emoji).setStyle(ButtonStyle.Secondary)))
     )
 
-    await interaction.editReply({content: 'Choose a condition to delete.', embeds: [embed(conditionWithEmoji)], components: [buttons(conditionWithEmoji)]});
+    const reply = await interaction.editReply({content: 'Choose a condition to delete.', embeds: [embed(conditionWithEmoji)], components: [buttons(conditionWithEmoji)]});
 
-    // throw new Error('Not implemented');
-    const collector = (await interaction.fetchReply()).createMessageComponentCollector({ max: conditionWithEmoji.length, time: 60_000, componentType: ComponentType.Button });
+    const collector = reply.createMessageComponentCollector({ max: conditionWithEmoji.length, time: 60_000, componentType: ComponentType.Button });
     collector.on('end', () => logger.debug('Collector ended'))
     collector.on('collect', voidAsync(logger, 'role condition button', async (i: ButtonInteraction) => {
         await i.deferUpdate();

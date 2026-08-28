@@ -8,8 +8,18 @@ import { SubscriptionManger } from "../feeds/SubscriptionManager.js";
 import { Logger } from "../api/util.js";
 import type { DeferOption, InteractionContext } from "../lib/middleware.js";
 
+/**
+ * Runtime configuration hung off the client. Was `config: any`, which is how
+ * whois.ts came to read `config.ownerID` while the field is `ownerIDs` - a silent
+ * undefined rather than a compile error (B16).
+ */
+interface BotConfig {
+    testing: boolean;
+    ownerIDs: Snowflake[];
+}
+
 interface ClientExt extends Client {
-    config?: any;
+    config?: BotConfig;
     commands?: Collection<any, any>;
     interactions?: Collection<any, any>;
     newsFeed?: NewsFeedManager;
@@ -55,3 +65,4 @@ interface DiscordInteraction {
 }
 
 export { DiscordEventInterface, DiscordInteraction, ClientExt };
+export type { BotConfig };

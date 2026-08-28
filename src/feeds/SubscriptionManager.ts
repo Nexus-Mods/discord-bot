@@ -18,7 +18,7 @@ import {
 } from '../api/subscriptions.js';
 import { v2 as API } from '../api/queries/all.js';
 import { baseheader } from "../api/util.js";
-import { voidAsync } from '../lib/async.js';
+import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 
 
 export class SubscriptionManger {
@@ -27,7 +27,6 @@ export class SubscriptionManger {
     private updateTimer?: NodeJS.Timeout;
     private pollTime: number = 0;
     private channels: SubscribedChannel[];
-    private channelGuildSet: Set<string>;
     private cache: SubscriptionCache = new SubscriptionCache();
     private logger: Logger;
     private batchSize: number = 10;
@@ -48,7 +47,6 @@ export class SubscriptionManger {
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
         this.channels = channels;
-        this.channelGuildSet = new Set(channels.map(c => c.guild_id)); 
         // Save the client for later
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
@@ -136,8 +134,6 @@ export class SubscriptionManger {
         if (!channel) return this.logger.warn('Attempted to remove channel but it was not found.', id);
         this.channels.splice(this.channels.indexOf(channel), 1);
         this.logger.info('Removed channel from SubscriptionManager', id);
-        const remaining = this.channels.filter(c => c.guild_id === channel.guild_id).length;
-        if (!remaining) this.channelGuildSet.delete(channel.guild_id);
     }
 
     public updateChannel(channel: SubscribedChannel) {
@@ -363,7 +359,6 @@ export class SubscriptionManger {
                     // Delete the channel and all associated tracked items.
                     await deleteSubscribedChannel(channel);
                     this.channels = this.channels.filter(c => c.id !== channel.id);
-                    this.channelGuildSet.delete(channel.guild_id);
                     throw Error('Webhook no longer exists');
                 }
                 this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
@@ -737,7 +732,11 @@ export class SubscriptionManger {
         }
         this.logger.debug('Preparing cache for subscriptions', { subs: subs.length, channels: this.channels.length });
 
-        const promises: Promise<void>[] = [];
+        // Tasks, not started promises - see mapWithConcurrency below.
+
+/** Simultaneous pre-cache API requests. One per tracked game, so this is a rate-limit guard. */
+const PREPARE_CACHE_CONCURRENCY = 5;
+        const tasks: (() => Promise<unknown>)[] = [];
 
         const allGameSubs: SubscribedItem<SubscribedItemType.Game>[] = subs.filter(
             (s): s is SubscribedItem<SubscribedItemType.Game> => s.type === SubscribedItemType.Game
@@ -748,7 +747,7 @@ export class SubscriptionManger {
         const newGames = new Set<string>(newGameSubs.map(s => s.entityid as string));
         // For each game, get the date of the oldest possible mod to show.
         const oldestPerNewGame = getMaxiumDatesForGame(newGameSubs, newGames);
-        const newGamePromises = Object.entries(oldestPerNewGame).map(async ([ domain, date ]) => {
+        const newGamePromises = Object.entries(oldestPerNewGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
@@ -759,13 +758,13 @@ export class SubscriptionManger {
             this.cache.add('games', mods.nodes, domain);
             if (isTesting || mods.totalCount > 0) this.logger.debug(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain} since ${date}`)
         });
-        promises.push(...newGamePromises);
+        tasks.push(...newGamePromises);
 
         // UPDATED MODS FOR GAMES
         const updatedGameSubs = allGameSubs.filter(s => s.config?.show_updates ?? false);
         const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityid as string));
         const oldestPerUpdatedGame = getMaxiumDatesForGame(updatedGameSubs, updatedGames);
-        const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(async ([ domain, date ]) => {
+        const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
@@ -777,12 +776,14 @@ export class SubscriptionManger {
             this.cache.add('games', mods.nodes, domain, true);
             if (isTesting || mods.totalCount > 0) this.logger.debug(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain} since ${date}`)
         });
-        promises.push(...updatedGamePromises);
+        tasks.push(...updatedGamePromises);
 
         // TODO - We could cache the values of common mods, users and collections here, but it's an improvement.
 
-        // Let all the promises resolve
-        return await Promise.allSettled(promises);
+        // One API request per tracked game, so this used to fire all of them at once -
+        // exactly the shape that trips rate limits on a busy bot, and there is still no
+        // retry handling (Phase 3).
+        return await mapWithConcurrency(tasks, PREPARE_CACHE_CONCURRENCY, (task: () => Promise<unknown>) => task());
     }
 }
 

@@ -83,7 +83,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         else {
             const botUser = new DiscordBotUser(foundUser, logger);
             // check if we should return the result. If the found user isn't in the current server, reject the request.
-            const isAdmin: boolean = (client as ClientExt).config.ownerIDs?.includes(interaction.user.id);
+            const isAdmin: boolean = (client as ClientExt).config?.ownerIDs?.includes(interaction.user.id) ?? false;
             const isMe: boolean = interaction.user.id === botUser.DiscordId;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
             if (isAdmin || isMe || inGuild) return interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], flags: show ? MessageFlags.Ephemeral : undefined });

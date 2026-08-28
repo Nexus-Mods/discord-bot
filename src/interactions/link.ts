@@ -1,7 +1,6 @@
 import { 
     CommandInteraction, Snowflake, EmbedBuilder, Client, SlashCommandBuilder, PermissionFlagsBits, 
-    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle
-} from "discord.js";
+    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType} from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from '../api/util.js';
@@ -13,7 +12,7 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('link')
     .setDescription('Link your Nexus Mods account to Discord.')
-    .setDMPermission(true)
+    .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM)
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     public: true,
     guilds: [

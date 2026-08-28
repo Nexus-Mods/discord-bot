@@ -17,6 +17,7 @@ import { KnownDiscordServers, Logger } from "../api/util.js";
 import { deleteTip, ITip, setApprovedTip } from "../api/tips.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 import { voidAsync } from '../lib/async.js';
+import { getTipCache } from '../lib/caches.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -67,7 +68,9 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     }
 }
 
-const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
+// Factories, not shared instances. Builders are mutable, so one instance handed to
+// two concurrent invocations of the command is one object with two owners.
+const yesNoButtons = (): ActionRowBuilder<ButtonBuilder>[] => [
     new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
         new ButtonBuilder({
@@ -83,7 +86,7 @@ const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
     )
 ];
 
-const approvalButtons: ActionRowBuilder<ButtonBuilder>[] = [
+const approvalButtons = (): ActionRowBuilder<ButtonBuilder>[] => [
     new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
         new ButtonBuilder({
@@ -139,7 +142,7 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
     if (newEmbed) exampleReplyPayload.embeds = [newEmbed];
     await submit.reply(exampleReplyPayload);
 
-    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
+    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons() });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
     collector.on('collect', voidAsync(logger, 'tip confirmation button', async (i: ButtonInteraction) => {
         collector.stop(); 
@@ -189,7 +192,7 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
     if (newEmbed) exampleReplyPayload.embeds = [newEmbed];
     await submit.reply(exampleReplyPayload);
     
-    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
+    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons() });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
     collector.on('collect', voidAsync(logger, 'tip confirmation button', async (i: ButtonInteraction) => {
         collector.stop(); 
@@ -209,8 +212,7 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
 
 async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInputCommandInteraction, tips: ITip[], logger: Logger) {
 
-    if (!client.tipCache) client.tipCache = new TipCache();
-    const unapprovedTips = await client.tipCache?.getPendingTips();
+    const unapprovedTips = await getTipCache(client)?.getPendingTips();
     logger.debug("Tips to approve "+unapprovedTips.length);
 
     if (!unapprovedTips.length) return interaction.editReply("No tips to approve");  
@@ -221,7 +223,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
     for (const tip of unapprovedTips) {
         if (collector.ended) break;  
         logger.info('Displaying Tip', { prompt: tip.prompt, title: tip.title });
-        const postable: InteractionEditReplyOptions = { components: approvalButtons };
+        const postable: InteractionEditReplyOptions = { components: approvalButtons() };
 
         if (tip.embed) {
             postable.embeds = [
@@ -265,7 +267,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
         continue;
     }
 
-    await client.tipCache.bustCache().catch(() => null);
+    await getTipCache(client).bustCache().catch(() => null);
 
     if (!collector.ended) collector.stop();
     await interaction.editReply({ content: 'All tips reviewed', embeds:[], components: [] }).catch(e => logger.warn("Failed to finish tip review", e));
@@ -366,8 +368,7 @@ function validateModalResponse(submit: ModalSubmitInteraction<CacheType>, logger
 async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger?: Logger) {
     const focused = interaction.options.getFocused().toLowerCase();
     try {
-        if (!client.tipCache) client.tipCache = new TipCache();
-        const tips = await client.tipCache.getTips();
+        const tips = await getTipCache(client).getTips();
         const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
         await interaction.respond(
             filtered.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)

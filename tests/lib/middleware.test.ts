@@ -30,7 +30,7 @@ describe('resolveDeferVisibility', () => {
 
     it('lets a command decide from its own options', () => {
         const fromOption = (i: CommandInteraction) =>
-            ((i.options as unknown as { getBoolean: () => boolean | null }).getBoolean() ?? true)
+            (((i as unknown as { options: { getBoolean: () => boolean | null } }).options.getBoolean()) ?? true)
                 ? 'ephemeral' as const
                 : 'public' as const;
 

@@ -130,8 +130,9 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
     else logger.warn('Interaction action errored out', { err, interact: (interaction as ChatInputCommandInteraction).options, ...context });
 
     if (interaction.replied || interaction.deferred) {
+        // The follow-up carries its own ephemeral flag; assigning to the interaction's
+        // own `ephemeral` field changed nothing but confused later reads of it.
         if (!interaction.ephemeral) await interaction.deleteReply()
-        interaction.ephemeral = true;
         interaction.followUp(reply).catch((replyError:Error) => errorReplyCatch(replyError, 'following up'));
     } else {
         interaction.reply(reply).catch((replyError:Error) => errorReplyCatch(replyError, 'replying'));

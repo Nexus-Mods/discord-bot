@@ -2,8 +2,7 @@ import {
     CommandInteraction, Client, EmbedBuilder, 
     TextChannel, EmbedField, ChatInputCommandInteraction, 
     SlashCommandBuilder, PermissionFlagsBits, APIEmbedField,
-    MessageFlags, 
-} from "discord.js";
+    MessageFlags, InteractionContextType} from "discord.js";
 import { customEmojis } from "../types/util.js";
 import { DiscordInteraction } from '../types/DiscordTypes.js';
 import { getUserByDiscordId, getServer } from '../api/bot-db.js';
@@ -28,7 +27,7 @@ const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('search')
     .setDescription('Quickly search for games, mods or users.')
-    .setDMPermission(true)
+    .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM)
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
     .addSubcommand(sc => 
         sc.setName('mods')

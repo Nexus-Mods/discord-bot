@@ -26,7 +26,7 @@ async function action(client: Client, baseinteraction: CommandInteraction, logge
     try {
         const user: DiscordBotUser|undefined = await getUserByDiscordId(interaction.targetId);
         if (!user) return interaction.editReply('No matching linked accounts.');
-        const isAdmin: boolean = (client as ClientExt).config.ownerIDs?.includes(interaction.user.id);
+        const isAdmin: boolean = (client as ClientExt).config?.ownerIDs?.includes(interaction.user.id) ?? false;
         const inGuild: boolean = !!interaction.guild
         const isMe: boolean = interaction.user.id === user.DiscordId;
         if (isAdmin || isMe || inGuild) return interaction.editReply({ embeds: [await userProfileEmbed(user, client)] });

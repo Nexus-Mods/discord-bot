@@ -6,11 +6,6 @@ import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
 import { GameListCache } from '../types/util.js';
 
-// Prepare the online status embed for quick reuse.
-const onlineEmbed = new EmbedBuilder()
-.setTitle('Nexus Mods Discord Bot is online.')
-.setColor(0x009933);
-
 const main: DiscordEventInterface = {
     name: 'clientReady',
     once: true,
@@ -20,16 +15,16 @@ const main: DiscordEventInterface = {
                 .catch((err) => logger.warn('Could not set the bot username', err));
         }
 
-        // Pre-cache games list
+        // DiscordBot.connect() already primes this; only retry if that failed.
         try {
-            client.gamesList = await new GameListCache().init(logger);
+            if (!client.gamesList) client.gamesList = await new GameListCache().init(logger);
         }
         catch(err) {
             logger.warn('Could not pre-cache the games list', err);
         }
 
         // Publish online message to servers. (Cache server listing?)
-        if (client.config.testing) {
+        if (client.config?.testing) {
             logger.debug('Testing mode - did not send online message');
             logger.info(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
             client.emit('readyForAction');
@@ -37,8 +32,12 @@ const main: DiscordEventInterface = {
         }
 
         try {
-            // Set the startup time
-            onlineEmbed.setTimestamp(new Date());
+            // Built here rather than at module scope, where it was a shared mutable
+            // object whose timestamp was set before being sent to every guild.
+            const onlineEmbed = new EmbedBuilder()
+            .setTitle('Nexus Mods Discord Bot is online.')
+            .setColor(0x009933)
+            .setTimestamp(new Date());
             // Get all known servers
             const servers: BotServer[] = await getAllServers().catch(() => []);
             for (const server of servers) {
