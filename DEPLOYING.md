@@ -18,6 +18,41 @@ endpoint**, and no new configuration is required beyond what 3.17.0 introduced.
 `npm ci` is needed for the new dependencies (pino, tsup, vitest) and for the
 removal of jsonwebtoken, path and copyfiles.
 
+### Phase 3, database migrations
+
+The schema is now in the repository and applied by drizzle on startup. This is
+the one part of 4.0.0 that touches the live database, so read it before deploying.
+
+| Change | What it means for a deploy |
+|---|---|
+| `drizzle/0000_baseline.sql` describes the schema as it exists today | On the first 4.0.0 start it is recorded as applied. It uses `CREATE TABLE IF NOT EXISTS` and guards its one foreign key, so **it does not modify the existing schema** - verified by applying it to a copy of a production dump and diffing before and after. |
+| Migrations run before any shard spawns | A migration failure now **stops the bot from starting** (exit 1) instead of being logged and ignored. This is deliberate: running against an unexpected schema produces confusing per-command failures and some of them write bad data. |
+| A Postgres advisory lock wraps the run | Safe when the sharding manager, its shards, or a second container start at once. |
+| `api/migrations.ts` is gone | Its two functions were gated on `npm_package_version === '3.13.0'`/`'3.13.1'` and had not run in a long time. Neither is still needed - both were verified applied in production. |
+| Lazy `CREATE TABLE IF NOT EXISTS` calls are gone | `ensureNewsDB` and `ensureSubscriptionsDB` no longer run on feed startup. |
+| `npm run db:migrate` | Runs migrations without starting the bot, for running them by hand or from CI. |
+
+**Before the first 4.0.0 start:** take a schema dump. The baseline should be a
+no-op, but it is the first release that runs DDL at startup and a dump costs
+nothing.
+
+**After the first start**, confirm the baseline was recorded rather than replayed:
+
+```sql
+SELECT * FROM drizzle.__drizzle_migrations;   -- expect exactly one row
+```
+
+**One known piece of drift**, not touched by this release: production has a
+sequence `mod_feeds__id_seq` owned by no table, left behind when `mod_feeds` was
+dropped. It is harmless. `DROP SEQUENCE public.mod_feeds__id_seq;` clears it
+whenever convenient; until then `drizzle-kit push` will keep offering to drop it.
+(Use `db:generate` and `db:migrate`, not `push` - `push` skips the migration
+history.)
+
+Three orphaned tables are in the same category and *are* modelled in
+`src/db/schema.ts` so that drizzle does not propose dropping them: `game_feeds`,
+`user_mods` and `user_servers`. No code reads any of them.
+
 Nothing else in this document changes for 4.0.0; the 3.17.0 notes below still
 describe the configuration this release runs on.
 

@@ -1,6 +1,6 @@
 # Nexus Mods Discord Bot — Modernisation & Simplification Plan
 
-**Status:** Phase 0 shipped in **3.17.0**, Phase 1 in **4.0.0**. Phases 2–5 remain proposals.
+**Status:** Phase 0 shipped in **3.17.0**. Phase 1, Phase 2 and Phase 3.1 are on the 4.0.0 branch. Phases 3.2–5 remain proposals.
 **Date:** 28 August 2026 (audited at `473db19`)
 **Scope:** `nexus-bot-typescript` — 89 TypeScript files, ~12,600 lines at time of audit.
 
@@ -8,8 +8,21 @@
 
 ## Status as of 4.0.0
 
+**Phase 3.1 (4.0.0).** The schema is in the repository for the first time, as
+`src/db/schema.ts` plus a drizzle baseline migration generated from it. The baseline
+was verified against a schema-only dump of production - applying it to an empty
+database reproduces every column, constraint, index and sequence exactly, and
+applying it to a copy of the dump changes nothing. Migrations run before any shard
+spawns, under a Postgres advisory lock, and a failure now stops the bot from
+starting rather than being logged and ignored. `api/migrations.ts`, `ensureNewsDB`
+and `ensureSubscriptionsDB` are deleted.
+
+**Phase 2 (4.0.0).** Duplicated embed, profile, collector, game-filter and
+permission logic pulled into `src/lib/`. Deferral, link requirement and permission
+checks are declared on each command rather than re-implemented inside it.
+
 **Phase 1 (4.0.0).** Build is tsup, transpile-only, ~1.2s. Logging is pino with
-credential redaction. One error taxonomy replaced five conventions. 91 tests run
+credential redaction. One error taxonomy replaced five conventions. Tests run
 under vitest, and CI gates on typecheck, lint and tests before publishing an image.
 
 **Phase 0 (3.17.0).** Eight of the nine security findings, and all 21 correctness defects
@@ -336,9 +349,9 @@ a third copy of the same shape plus 36 lines of commented code),
 
 ## Phase 3 — Data layer (2–3 weeks)
 
-### 3.1 Migrations
+### 3.1 Migrations — **done (4.0.0)**
 
-There is no migration system. `api/migrations.ts` holds two ad-hoc functions gated on
+There was no migration system. `api/migrations.ts` holds two ad-hoc functions gated on
 `process.env.npm_package_version === '3.13.0' / '3.13.1'` (`shards.ts:20-23`) — current
 version is **3.16.5**, so neither can ever run again, and they only ran under
 `dist/shards.js`, never `dist/app.js`. Schema is created lazily by `CREATE TABLE IF NOT EXISTS`
@@ -347,13 +360,32 @@ the tables `users`, `servers`, `tips`, `automod_rules`, `automod_badfiles`,
 `server_role_conditions` **have no creation code in the repo at all** — the schema exists
 only in production.
 
-Adopt **drizzle-kit** or **node-pg-migrate**:
-1. Introspect production into an initial baseline migration.
-2. Delete `api/migrations.ts` and the `ensureXDB()` calls.
-3. Run migrations from one entrypoint, before the client connects.
+**Shipped with drizzle-kit.** `src/db/schema.ts` is written from a schema-only dump of
+production; `drizzle/0000_baseline.sql` is generated from it; `src/db/migrate.ts` applies
+migrations from `shards.ts` before any shard spawns, and from `app.ts` when it is started
+standalone.
 
-This is the single highest-value item in Phase 3 — the schema is currently undocumented and
-unreproducible.
+Four things worth recording, because they would each have been silent:
+
+- The first generated baseline **did not match production**. It put a primary key on
+  `game_feeds._id` that production does not have, dropped that column's serial default,
+  and renamed two constraints production spells `fk_parent` and `name and server`.
+- Every identity column in production was created `START WITH 0 MINVALUE 0`, three of them
+  `CYCLE`. Drizzle's defaults are `START WITH 1 MINVALUE 1 NO CYCLE`.
+- `ensureSubscriptionsDB` was not merely redundant, it was **wrong**: it created
+  `subscribeditems` with `error_count INT NOT NULL DEFAULT 0` and without `nsfw`, `sfw`,
+  `show_new`, `show_updates` or `last_status`. Any database built by that path already
+  differed from production.
+- Production has an orphaned sequence, `mod_feeds__id_seq`, owned by no table, and three
+  orphaned tables (`game_feeds`, `user_mods`, `user_servers`) that no code reads. The
+  tables are modelled so drizzle does not propose dropping them; the sequence is left
+  alone and noted in `DEPLOYING.md`.
+
+Verification was a real loop, not an inspection: Postgres 16 loaded with the production
+dump, the baseline applied to an empty database, and `information_schema`, `pg_indexes`
+and `pg_sequences` diffed between the two until they were identical. Concurrency was
+tested the same way — four processes migrating an empty database at once succeed with
+the advisory lock and one of them fails without it.
 
 ### 3.2 Query layer
 
