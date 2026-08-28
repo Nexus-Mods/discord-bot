@@ -25,7 +25,7 @@ for what has to be configured before this release goes out.
 |---|---|
 | **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
 | **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
-| 44 `no-floating-promises` / `no-misused-promises` warnings | Phase 2. `npm run lint:strict` reports them as errors to track the count down. |
+| 38 `no-floating-promises` / `no-misused-promises` warnings | Phase 2. `npm run lint:strict` promotes them to errors, so the count can be tracked to zero. |
 | Query modules still return `[]` on failure | The ~18 v2 query files swallow errors and return an empty result, so callers cannot tell "no results" from "the API is down". Fixing this changes feed behaviour (a transient API error would propagate instead of being a silent no-op cycle), so it belongs with the Phase 3 data-layer contract work rather than being slipped into 1.3. |
 
 **Nothing here has been run against a live Discord gateway or database.** The HTTP
@@ -37,26 +37,27 @@ trip, the subscription feed and the news feed have not been exercised end to end
 ## Executive summary
 
 The bot works, and the bones are sound: TypeScript, ESM, discord.js v14, a clean-ish
-separation of `interactions` / `events` / `feeds` / `api` / `server`. The problems are not
-architectural collapse — they are **accumulated drift**. Four things dominate:
+separation of `interactions` / `events` / `feeds` / `api` / `server`. The problems were not
+architectural collapse — they were **accumulated drift**. Four things dominated the audit:
 
-1. **Three unauthenticated HTTP endpoints**, one of which deletes any user's account link
+1. ~~**Three unauthenticated HTTP endpoints**, one of which deletes any user's account link
    from a `GET` request, and one of which has an inverted auth check guarding write access
-   to the automod rules table. These are not refactor items; they are today's problems.
+   to the automod rules table.~~ **Closed in 3.17.0**, except `POST /webhook` (S3), which
+   is still unauthenticated and still the one exploitable finding.
 2. **Copy-paste is the primary design pattern.** Four near-identical `track*` functions, two
    identical halves of `automod.ts`, four files expressing one GraphQL query (two with a
    literal space in the filename), three identical DB pool wrappers, ~18 query files that
    repeat the same five-part skeleton. Roughly 25–30% of `src/` is mechanically derivable
-   from the rest.
-3. **No safety net.** `"test": "echo \"Error: no test specified\" && exit 1"`. No migrations
-   table. No GraphQL codegen. Nothing catches the class of bug listed in Appendix A —
-   which is why there are so many of them.
+   from the rest. *Partly addressed: the automod duplication and two of the four query
+   files went with the automod removal. The rest is Phase 2.*
+3. ~~**No safety net.**~~ **Closed in 4.0.0** for tooling: 91 tests under vitest, CI gating
+   on typecheck, lint and tests, and a working ESLint config that had never run
+   successfully. Still missing: migrations and GraphQL codegen, both Phase 3.
 4. **The web layer is 5 KB of CSS lifted from a maintenance page**, 16 EJS files, and an
    Express app welded to shard 0 of the bot process. This is the natural place for the
-   React/Next.js front-end, and it can be lifted out almost cleanly.
+   React/Next.js front-end, and it can be lifted out almost cleanly. *Unchanged — Phase 4.*
 
-The plan below is **incremental**: each phase ships independently, and Phase 0 is
-deployable this week.
+The plan is **incremental**: each phase ships independently. Phases 0 and 1 have shipped.
 
 ---
 
@@ -114,87 +115,125 @@ automod is coming back before spending effort refactoring it.**
 
 ---
 
-## Phase 1 — Foundations (1–2 weeks)
+## Phase 1 — Foundations — **shipped in 4.0.0**
 
-Nothing else is safe until there is a way to know something broke.
+Delivered as five commits on `phase-1-foundations`, one per workstream.
 
-### 1.1 Build pipeline
+### 1.1 Build pipeline ✓
 
-The current build is `clean.cjs` → `tsc` → `add-js-extensions.cjs` → three `copyfiles`
-invocations. `add-js-extensions.cjs` regex-rewrites every quoted relative path in `dist/`
-to append `.js`, because `moduleResolution: "node"` is paired with ESM output.
+`clean.cjs` → `tsc --build` → `add-js-extensions.cjs` → three `copyfiles` calls is now
+`tsup`. **Build time: ~15s → ~1.2s.**
 
-- Set `"moduleResolution": "bundler"` (or `"nodenext"` with explicit `.js` specifiers in
-  source) and **delete `add-js-extensions.cjs` and `clean.cjs`** — 2 files, ~90 lines of
-  homegrown post-processing gone.
-- Better: replace `tsc` emit with **tsup** or **esbuild**. Build drops from seconds to
-  milliseconds and the asset copy becomes one config line.
-- Fix the `copy-assets` globs: `copyfiles -f` flattens and the globs are single-level
-  (`./src/server/views/*`), so any new subdirectory is silently dropped from `dist`.
-  *(Moot once the web layer moves — see Phase 4.)*
-- Remove `path` from dependencies — it is a deprecated userland shim for the Node builtin.
-- Remove `jsonwebtoken` and `@types/jsonwebtoken` — zero references in `src/`.
-- Move `@types/*` from `dependencies` to `devDependencies` (8 packages currently misplaced).
-- `build.sh` installs `@discordjs/uws@^10.149.0` and `request@^2.34` and runs a non-existent
-  `index.js`. It is a fossil from the pre-TypeScript bot. Delete it.
+- Source carries explicit `.js` specifiers on all 281 relative imports, so nothing has to
+  rewrite the output. `add-js-extensions.cjs`, `clean.cjs` and `build.sh` are deleted.
+- **Transpile-only (`bundle: false`).** `DiscordBot.ts` `readdir`s `dist/interactions` and
+  `dist/events` and imports each file it finds, so bundling would collapse them and break
+  command registration. Verified by loading all 30 modules through that same path.
+- `tsconfig` moved to `module`/`moduleResolution: NodeNext`, which validates those
+  extensions at compile time.
+- Asset copying is `scripts/copy-assets.mjs` using `fs.cp`. The old `copyfiles` globs were
+  single-level and used `-f` (flatten), so anything in a subdirectory was silently dropped.
+- Dockerfile is multi-stage on node 22, `npm ci`, runs as `node` not root, prunes dev
+  dependencies. **`CMD` is exec form now** — the shell form left `/bin/sh` at PID 1
+  swallowing SIGTERM, so `docker stop` waited out its timeout and SIGKILLed the bot
+  mid-poll.
+- Removed `jsonwebtoken`, `path` and `copyfiles`; `@types/*` moved to devDependencies.
 
-### 1.2 Logging
+**Not in the plan — two real bugs NodeNext exposed:**
 
-Replace the hand-rolled 36-line `Logger` (`api/util.ts:44-79`) with **pino**:
+- The tsconfig omitted `lib`, so TypeScript pulled the **DOM** library into a node-only
+  project and `Response.json()` resolved to `any`. Every fetch body was trusted without
+  anyone deciding to. Now `unknown`, with a `readJson<T>` helper at 11 call sites.
+- `expires_in` is optional on every OAuth response we model, and
+  `Date.now() + expires_in * 1000` is `NaN` when it is absent. Every comparison against
+  `NaN` is false, so `Date.now() > expires_at` never fired — **a token that arrived
+  without `expires_in` would never have been refreshed.** `expiresAt()` now treats a
+  missing value as already-expired.
 
-- Structured JSON in production, `pino-pretty` in dev.
-- Real levels — fixes B18 and B19 by construction.
-- **Redaction paths** for `values`, `nexus_access`, `nexus_refresh`, `discord_access`,
-  `discord_refresh` — fixes S5 without hunting call sites.
-- Child loggers carry the shard ID, so `setShardId` and the module-level mutable logger
-  singleton (`DiscordBot.ts:10-11`) both disappear.
-- Keeps the existing `logger.info(msg, data)` call shape if you use `pino`'s
-  `(obj, msg)` order via a thin adapter — or do a mechanical swap, it is ~400 call sites
-  and a codemod handles it.
-- Sweep the 20 remaining raw `console.*` calls (11 in `api/`, 5 in `shards.ts`, 3 in
-  `interactions/`, 1 in `server/`), including the stray debug at `api/util.ts:237`.
+Also `fuse.js` 6 → 7, which was needed for real ESM types under NodeNext.
 
-### 1.3 Errors
+### 1.2 Logging ✓
 
-Today there are **five** mutually incompatible conventions in the data layer alone:
-swallow-and-return-empty; mutate-the-caught-error-and-rethrow; `Promise.reject` with a
-string or a bare `false`; wrap-in-a-generic-`Error`-discarding-the-cause; and
-`handleDatabaseError` which is **typed to return `string`** so `throw handleDatabaseError(err)`
-throws a bare string with no stack (`api/dbConnect.ts:46,99`).
+pino, behind an adapter that keeps the existing `logger.info(message, data)` shape — so
+none of the ~300 call sites moved.
 
-- One error taxonomy: `AppError` with `cause` (ES2022), a `code`, and `isOperational`.
-  `NexusApiError`, `DatabaseError`, `UserFacingError` extend it.
-- Always throw `Error` subclasses, never strings, never booleans.
-- Callers must be able to distinguish "no results" from "the API is down" — currently they
-  cannot, because ~18 query files return `[]` on failure.
-- Delete the ~6 `catch(err) { throw err }` no-ops.
+- Levels via `LOG_LEVEL`, defaulting to `info` in production and `debug` elsewhere. This
+  replaces `DEBUG_LOGGING` and the inverted `isTesting` check behind it.
+- JSON in production, `pino-pretty` in development, resolved defensively so a pruned
+  image does not crash at startup.
+- **Redaction**: a depth-capped, cycle-safe scrubber. Substring matching catches
+  `token`/`secret`/`password`/`authorization`/`cookie` and the `nexus_*`/`discord_*`
+  columns; a separate exact-match list catches `values`, `params` and `bindings`, which are
+  only dangerous under those precise names — `values` being the pg bind array that *is* the
+  token array on user writes.
+- Trailing arguments now land under `extra`. The old `error()` and `warn()` accepted
+  `...args` and dropped them at ~30 call sites.
+- All 22 remaining `console.*` calls swept, including `shards.ts`, which had no logger.
 
-### 1.4 Tests
+**The instance moved out of `DiscordBot.ts` into `api/logger.ts`.** Five modules under
+`api/` imported it from there, which meant the data layer could not be loaded without
+booting the Discord client — the main obstacle to Phase 1.4.
 
-Add **vitest**. The single biggest obstacle is that `api/dbConnect.ts:3` and
-`api/queries/other.ts:4` import `logger` from `../DiscordBot`, so **the data layer cannot be
-imported without booting the Discord client module.** Break that import first (inject the
-logger, or move it to its own module) — it is a two-line change that unlocks everything else.
+### 1.3 Errors ✓
 
-Start narrow and high-value:
-- `types/subscriptions.ts` embed builders (731 lines, pure functions, zero I/O).
-- `api/util.ts` parsing helpers.
-- The GraphQL query modules against recorded fixtures — this catches B8/B9/B10.
-- A smoke test that imports every file in `interactions/` and asserts the exported shape.
+One taxonomy — `AppError` with `cause`, a `code`, `userMessage` and `isOperational`, plus
+`DatabaseError`, `NexusApiError`, `DiscordApiError`, `NotFoundError` and `ConfigError` —
+replacing all five conventions. `handleDatabaseError` no longer returns a `string`, so the
+data layer no longer throws bare stackless strings.
 
-### 1.5 CI
+Two behavioural bugs fell out of the conversion:
 
-`.github/workflows/docker-build.yaml` builds and pushes on every `master` push with **no
-lint, no typecheck, no test, and no version tag** (`tags: nexusmods/discord-bot:latest` only).
+- `servers.updateServer` counted failures and returned a boolean, discarding the actual
+  database error. A failed settings save was indistinguishable from a successful one.
+- `servers.getServer` recursed into itself after inserting a missing row, which could loop
+  if the insert succeeded but the row was not yet visible.
 
-- Add a `checks` job: `npm run typecheck`, `npm run lint`, `vitest run` — required before
-  `docker`. The first two pass cleanly as of 3.17.0, so this can land immediately.
-- Tag images with the git SHA as well as `latest` so a rollback is possible.
-- Pin `joelwmale/webhook-action@master` to a SHA.
+It also closed the S6 leak structurally: `unexpectedErrorEmbed` rendered `err.message`
+straight into a Discord embed, and `sendUnexpectedError` put the same text in the context
+block. Users now get `userMessage` for an `AppError`, a fixed line for anything else, and
+a short reference id that the full error is logged against.
+
+**Deferred deliberately:** the ~18 query modules still return `[]` on failure. Changing
+that alters feed behaviour, so it belongs with the Phase 3 data-layer contract work.
+
+### 1.4 Tests ✓
+
+**91 tests under vitest, ~27s.** Weighted towards code where a regression is expensive
+rather than towards a coverage number: 23 on the Phase 0 security fixes, 18 on redaction,
+18 on the error taxonomy, and regression tests for B8 and the `expires_in` NaN bug.
+
+**Each was verified by reintroducing the original bug** — the B8 slice, the fail-open auth
+check, the `expires_in` NaN and the `values` redaction gap. Five tests failed, and only the
+expected five.
+
+Two supporting changes: `calcUptime`, `nexusModsTrackingUrl` and `gameArt` moved to
+`api/formatting.ts`, because `api/util.ts` imports discord.js and a unit test for a string
+formatter pulled ~15s of module loading with it; and the two changelog trimmers are
+exported for tests. Tests live in `tests/` so tsup's `src/**/*.ts` entry glob does not
+compile them into `dist/`.
+
+### 1.5 CI ✓
+
+- A `checks` job runs `npm ci`, typecheck, lint and test on push **and pull request**.
+  `docker` needs it, so nothing publishes unless all three pass.
+- Images are tagged with the version and the commit sha as well as `latest`. Previously
+  only `:latest` was published, so there was no earlier image to roll back to.
+- Concurrency group cancels superseded runs; npm and buildx layer caching.
+- **`joelwmale/webhook-action@master` removed rather than pinned.** A third-party action on
+  a moving branch runs arbitrary code in a job that can read this repository's secrets. The
+  step is one HTTP POST, so it is `curl` now — with `--fail`, so a failed deploy fails the
+  job instead of passing silently.
+- `engines: node >=22`, matching the image and the tsup target.
 
 ---
 
 ## Phase 2 — Simplify the bot core (2–3 weeks)
+
+**Starting position after 4.0.0:** the async problems in this phase now have a number.
+`npm run lint:strict` reports **38** `no-floating-promises` / `no-misused-promises`
+findings; clearing them to zero and flipping the rules to `error` is the measurable exit
+criterion for 2.4. The `/automod` command and `AutoModManager` referenced below no longer
+exist, so the duplication figures for this phase are smaller than the audit's.
 
 ### 2.1 A real command contract
 
@@ -241,7 +280,7 @@ Expected saving: **20–30 lines of ceremony per command × 24 commands**.
 | Target | Current | Proposed |
 |---|---|---|
 | `interactions/track.ts` | 461 lines, four functions (`trackGame`/`trackMod`/`trackCollection`/`trackUser`) sharing an identical skeleton — including the same copy-pasted quota block with the same dead commented line, and the variable named `currentGameSub` in all four | One generic `track(kind, …)` driven by a per-kind descriptor. ~150 lines. |
-| `interactions/automod.ts` | 428 lines; `listRules`/`listFileRules`, `addRule`/`addFileRule`, `removeRule`/`removeFileRule` are byte-for-byte identical apart from field names (and the same copy-pasted error string — `:234` says "Adding rules" inside `removeRule`) | One parameterised set. ~200 lines. |
+| ~~`interactions/automod.ts`~~ | 428 lines of three byte-for-byte duplicated pairs | **Deleted in 3.17.0** with the automod feed ✓ |
 | `interactions/search.ts` | 639 lines, 14 `EmbedBuilder` sites; `searchMods` (:278-387) and `searchCollections` (:164-276) are the same ~110-line function | Split into `search/` with a shared result-renderer. |
 | Embeds | 56 `new EmbedBuilder` sites; brand colour `0xda8e35` hardcoded **31 times**; footer `'Nexus Mods API link'` 10 times; `client.user?.avatarURL() \|\| ''` ~20 times; `notAllowed()` and `botUser()` duplicated verbatim between `whois.ts` and `user-profile.ts` | A `lib/embeds.ts` with `nexusEmbed(client)` returning a pre-branded builder. |
 | Pagination / collectors | Hand-rolled **7 times** with no shared helper (`search.ts` ×2, `settings.ts`, `tips-manager.ts` ×3, `untrack.ts`), timeouts ranging 30 s to **3,600,000 ms** (`untrack.ts:66`), two of them non-functional (B17) | One `paginate()` helper with a standard timeout and correct teardown. |
@@ -262,15 +301,19 @@ subscription digests especially — once `lib/embeds.ts` exists.
 
 ### 2.4 State
 
-- Fold the `ClientExt` grab-bag (`gamesList`, `tipCache`, `newsFeed`, `automod`,
+- Fold the `ClientExt` grab-bag (`gamesList`, `tipCache`, `newsFeed`,
   `subscriptions`, `interactions`, `commands`, `config: any`) into a typed **service
-  container** passed into the command context. `config: any` is why `whois.ts:85` reads
-  `config.ownerID` while the real field is `ownerIDs` (B16) — a typed container makes that a
-  compile error.
+  container** passed into the command context. `config: any` is why `whois.ts` read
+  `config.ownerID` while the real field is `ownerIDs` (B16, fixed in 3.17.0) — the point
+  stands: a typed container would have made that a compile error rather than a silent
+  `undefined`, and nothing prevents the next one.
 - `client.gamesList` is initialised **twice** (`DiscordBot.ts:79` and `clientReady.ts:22`).
 - `TipCache` fires an un-awaited `getAllTips()` in its constructor and is lazily constructed
   in four places with `if (!client.tipCache) client.tipCache = new TipCache()` — a race under
   concurrent commands.
+- ~~The module-level mutable logger singleton in `DiscordBot.ts`~~ — moved to
+  `api/logger.ts` in 4.0.0; `setShardId` creates a pino child rather than mutating shared
+  state, and `automod` has gone from the `ClientExt` grab-bag with the feed.
 - Module-level mutable state to remove: the shared `EmbedBuilder` in `clientReady.ts:10-12`
   (timestamp mutated at `:38`, then sent to every guild in a loop at `:55`); the shared
   button builders in `tips-manager.ts:67-102`.
@@ -316,9 +359,10 @@ unreproducible.
 
 ### 3.2 Query layer
 
-- Collapse `queryPromise` / `queryCommunityMap` / `queryAutoMod` (`dbConnect.ts:30,53,76` —
-  22 identical lines each) into one pool-parameterised function. Note `queryAutoMod` still
-  logs `'Error acquiring CM client'`.
+- Collapse `queryPromise` and `queryAutoMod` into one pool-parameterised function.
+  ~~`queryCommunityMap`~~ went with the community map in 3.17.0, and the copy-pasted
+  `'Error acquiring CM client'` log line in `queryAutoMod` was corrected then too — so
+  this is now two near-identical wrappers rather than three.
 - Fix the pool config: `port: process.env.PORT ? parseInt(...) : 0` falls back to **port 0**
   and collides with the conventional `PORT` variable (the web server uses `AUTH_PORT`).
   `idleTimeoutMillis: 2000` tears down connections after 2 s idle. `statement_timeout` is
@@ -361,13 +405,12 @@ build-time error.
 
 Then consolidate the query files:
 
-- `v2-latestmods automod.ts` is **byte-identical** to `v2-latestmods.ts` except the function
-  name. `v2-updatedMods automod.ts` differs from `v2-updatedMods.ts` by the function name
-  and four lines (`mirrors { name uri }`). And `v2-latestmods.ts` / `v2-updatedMods.ts` are
-  themselves ~85% the same file. **Four files express one query.**
-- **Two of those filenames contain a literal space**, which survives the build only because
-  `add-js-extensions.cjs` rewrites the specifier. Rename them regardless of anything else
-  in this plan.
+- ~~`v2-latestmods automod.ts` and `v2-updatedMods automod.ts`~~ were deleted in 3.17.0.
+  `v2-latestmods.ts` and `v2-updatedMods.ts` remain ~85% the same file, so **two files
+  still express one query.**
+- ~~**Two of those filenames contain a literal space.**~~ Both files were deleted with the
+  automod feed in 3.17.0, and `add-js-extensions.cjs` — the post-processor that made such
+  specifiers survive the build at all — is gone as of 4.0.0.
 - Instantiate a single `GraphQLClient` — currently the *function* form of
   `graphql-request` is used at ~18 call sites, so there is no shared timeout, no middleware,
   no connection reuse.
@@ -382,12 +425,15 @@ Then consolidate the query files:
   (`DiscordBotUser.ts:92-105`), which reads `access_token` without checking `expires_at`.
   Background jobs run on whatever token was loaded from the DB and 401 when it lapses.
   `NexusGQLError` special-cases 401 (`v2.ts:165`) but nothing acts on it.
-- No skew window: `NexusModsOAuth.ts:117` refreshes only `if (Date.now() > tokens.expires_at)`,
-  so a token expiring mid-request is used and fails. Use a 60 s margin.
+- No skew window: `NexusModsOAuth.ts` refreshes only `if (Date.now() > tokens.expires_at)`,
+  so a token expiring mid-request is used and fails. Use a 60 s margin. (4.0.0 fixed the
+  related `NaN` case, where a response without `expires_in` produced an expiry that no
+  comparison could ever satisfy — but the margin itself is still missing.)
 - If Nexus omits `refresh_token` from a rotation response, `saveTokens` persists `undefined`
   over the stored one. Guard it.
 - `Revoke` (`DiscordBotUser.ts:118`) fires and forgets — the row keeps dead tokens.
-- `NexusModsOAuth.ts:135` contains `tokens.access_token = tokens.access_token;`.
+- ~~`NexusModsOAuth.ts:135` contains `tokens.access_token = tokens.access_token;`~~ —
+  removed in 4.0.0 when the repaired ESLint config flagged it as `no-self-assign`.
 - Encrypt tokens at rest (pgcrypto or app-level AES-GCM with a KMS key).
 
 ---
@@ -510,7 +556,8 @@ Also in `shards.ts`: the version-gated migrations (dead), and `'Shard X died', t
 
 ### 5.2 Dead code inventory
 
-Rows marked ✓ were removed in 3.17.0.
+Rows marked ✓ have been removed — in 3.17.0 (community map, automod, duplicate queries)
+or 4.0.0 (build scripts, unused dependencies).
 
 | Item | Location | Lines |
 |---|---|---|
@@ -518,11 +565,11 @@ Rows marked ✓ were removed in 3.17.0.
 | ~~Unreachable automod analysis~~ | `feeds/AutoModManager.ts` | ~330 ✓ |
 | ~~Events discord.js v14 never emits~~ | renamed to `shardReconnecting` / `shardResume` | 24 ✓ |
 | Version-gated migrations for 3.13.0 / 3.13.1 | `api/migrations.ts`, `shards.ts:21-22` | ~60 |
-| `add-js-extensions.cjs` + `clean.cjs` | root | ~90 |
-| `build.sh` (pre-TypeScript fossil) | root | 6 |
+| ~~`add-js-extensions.cjs` + `clean.cjs`~~ | root | ~90 ✓ |
+| ~~`build.sh` (pre-TypeScript fossil)~~ | root | 6 ✓ |
 | ~~Duplicate query files with spaces in the names~~ | `api/queries/*automod.ts` | ~190 ✓ |
 | Unused types: `PermissionsExt`, `ClientExt.commands`, `DiscordEventInterface.name`, `TrackingState`, `Tag`, `TagCategory`, `CollectionPage` | `types/` | ~50 |
-| Unused deps: `jsonwebtoken`, `@types/jsonwebtoken`, `path` | `package.json` | — |
+| ~~Unused deps: `jsonwebtoken`, `@types/jsonwebtoken`, `path`~~ | `package.json` | — ✓ |
 | ~~The `/automod` slash command~~ | `interactions/automod.ts` | 428 ✓ |
 | ~~`moderationWebhooks` (only the automod feed used it)~~ | `api/moderationWebhooks.ts` | 85 ✓ |
 | ~~`queryCommunityMap` + the `CM_DATABASE` pool~~ | `api/dbConnect.ts` | 25 ✓ |
@@ -544,48 +591,53 @@ sleep papering over an ordering race.
 
 | Phase | Effort | Risk | Ships |
 |---|---|---|---|
-| 0 — Security + crash bugs | 3–5 days | **Low** | Immediately |
-| 1 — Build, logging, errors, tests, CI | 1–2 weeks | Low | Independently |
+| ~~0 — Security + crash bugs~~ | 3 days actual | Low | **shipped, 3.17.0** ✓ |
+| ~~1 — Build, logging, errors, tests, CI~~ | 1 week actual | Low | **shipped, 4.0.0** ✓ |
 | 2 — Command framework + dedupe | 2–3 weeks | Medium | Command by command |
 | 3 — Migrations, codegen, query layer | 2–3 weeks | Medium | Migrations first, then codegen |
 | 4 — Next.js split | 3–4 weeks | Medium | Route group by route group |
-| 5 — Sharding decision + dead code | 1 week | Low | Anytime after Phase 1 |
+| 5 — Sharding decision + dead code | 1 week | Low | Any time — Phase 1 is done |
 
 Phases 2 and 3 can run in parallel with different people. Phase 4 depends on Phase 3's
 `packages/db`. Phase 5's dead-code sweep can happen any time and makes everything else
 smaller.
 
-**Total: roughly 10–14 weeks of one engineer, with value shipping from week one.**
+**Remaining: roughly 7–10 weeks of one engineer.** Phases 0 and 1 took about a week and a
+half between them, against a 1.5–3 week estimate.
 
 ---
 
 ## Three decisions needed before starting
 
-1. **Is automod coming back?** It is switched off (`AutoModManager.ts:113-116`), which makes
-   ~330 lines unreachable and `/automod report` permanently empty. If it is dead, deleting
-   it removes a large chunk of Phase 2 and Phase 5.
-2. **What is the current guild count?** It determines whether sharding stays, and that
-   decision cascades into Phases 2, 4 and 5.
-3. **Monorepo or two repos?** The plan assumes a pnpm workspace so the bot and web app can
-   share the schema and the Nexus API client. Two repos means publishing those as packages,
-   or duplicating them.
+1. ~~**Is automod coming back?**~~ **Answered: no.** Superseded by an external app. The
+   feed, the `/automod` slash command and `moderationWebhooks` were removed in 3.17.0; the
+   `/automod` HTTP endpoint and the rules data layer stay.
+2. **What is the current guild count?** Still open. It determines whether sharding stays,
+   and that decision cascades into Phases 2, 4 and 5. Until it is answered, Phase 5 cannot
+   start and parts of Phase 2 have to keep the shard branches alive.
+3. **Monorepo or two repos?** Still open, and now the nearest blocker: Phase 4 assumes a
+   pnpm workspace so the bot and web app can share the schema and the Nexus API client.
+   Two repos means publishing those as packages, or duplicating them.
 
 ---
 
 ## Appendix A — the pattern behind the bugs
 
-Almost every defect in Phase 0 belongs to one of five families, and each family has a
-structural fix in a later phase:
+Almost every defect in Phase 0 belonged to one of five families. Phases 1 and 2 are the
+structural fixes for them — this table is the argument for doing the phases rather than
+just the individual fixes.
 
 | Family | Examples | Fixed by |
 |---|---|---|
 | Copy-paste with an incomplete edit | B5 (`c.channel_id === c.channel_id`), `automod.ts:234` wrong error string, `queryAutoMod` logging "CM client", `trackUser`'s `currentGameSub` | Phase 2.2 / 3.2 dedupe |
-| Boolean logic inverted | S1, B4, B6, B18 | Phase 1.4 tests |
-| Un-awaited or unguarded async | B12, `SubscriptionManager.ts:68`, `setEventHandler` floating from the constructor | Phase 1.3 error taxonomy + lint rule |
+| Boolean logic inverted | S1, B4, B6, B18 | Phase 1.4 tests ✓ — the fail-closed and redaction cases now have regression tests that were verified to fail against the original bugs |
+| Un-awaited or unguarded async | B12, `SubscriptionManager.ts:68`, `setEventHandler` floating from the constructor | Phase 1.3 taxonomy ✓ + lint rule ✓ — the rule is on and reports 38 remaining warnings, cleared in Phase 2 |
 | Untyped boundary | B16 (`config: any`), B9 (undeclared GraphQL variable), `Collection<any,any>` | Phase 2.1 + 3.3 codegen |
-| No integration coverage | B7, B8, B10, B13 | Phase 1.4 |
+| No integration coverage | B7, B8, B10, B13 | Phase 1.4 ✓ for B8; B7, B10 and B13 still have no test, because they need a database or an HTTP fixture |
 
 Adding `@typescript-eslint/no-floating-promises`, `no-misused-promises` and
 `no-self-compare` to `eslint.config.mjs` catches three of these five families
-**mechanically**, today, before any refactor. That is the cheapest single action in this
-document.
+**mechanically**. This was the cheapest single action in the document and it shipped in
+4.0.0 — the config had never run successfully before then, so nothing in this repository
+had ever been linted. The first working run found 173 problems; all 103 errors are fixed
+and the 38 async warnings that remain are the Phase 2 worklist.

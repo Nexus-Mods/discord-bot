@@ -12,7 +12,7 @@
     "devShard": "npm run build && npm run startSharded",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "lint:strict": "eslint . --rule '{\"@typescript-eslint/no-floating-promises\":\"error\",\"@typescript-eslint/no-misused-promises\":\"error\"}'",
+    "lint:strict": "node scripts/lint-strict.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",

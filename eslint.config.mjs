@@ -14,6 +14,10 @@ import tsParser from "@typescript-eslint/parser";
 // findings and drowned out real ones. Formatting belongs to a formatter -
 // see MODERNISATION.md Phase 1.
 
+// Promoted to "error" by `npm run lint:strict`, which is how the Phase 2 async
+// worklist is tracked down to zero.
+const asyncSeverity = process.env.LINT_STRICT_ASYNC === 'true' ? 'error' : 'warn';
+
 export default [
     {
         ignores: [
@@ -58,12 +62,12 @@ export default [
             // --- The rules that catch the bug families found in the Phase 0 audit ---
             // Un-awaited promises: AutoModManager.clearRuleCache, the startup
             // setTimeout in SubscriptionManager, setEventHandler in DiscordBot.
-            // 44 existing findings as of the Phase 0 audit. Kept at "warn" so lint can
-            // gate CI on errors today; Phase 2 works the count down to zero and these
-            // become errors. Run `npm run lint:strict` to see them as errors.
-            "@typescript-eslint/no-floating-promises": "warn",
+            // Kept at "warn" so CI can gate on errors today; Phase 2 works the count
+            // down to zero and these become errors permanently.
+            // `npm run lint:strict` promotes them now, for tracking progress.
+            "@typescript-eslint/no-floating-promises": asyncSeverity,
             // async callbacks passed where a void return is expected.
-            "@typescript-eslint/no-misused-promises": "warn",
+            "@typescript-eslint/no-misused-promises": asyncSeverity,
             // find(c => c.channel_id === c.channel_id)
             "no-self-compare": "error",
             // if (a) {} else { if (b) {} }
