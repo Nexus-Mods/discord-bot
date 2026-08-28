@@ -69,6 +69,13 @@ export class AuthSite {
         this.app.use(express.static(path.join(__dirname, 'public')));
         this.app.set('view engine', 'ejs');
 
+        // A generous default for browsing, and a tight one for anything that starts an
+        // OAuth flow or changes account state. Registered before the routes: express
+        // matches in registration order, so a use() placed after a route never runs for it.
+        const generalLimit = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false });
+        const sensitiveLimit = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
+        this.app.use(generalLimit);
+
         this.app.get('/', (req, res) => { 
             // Readme icon from https://www.iconfinder.com/icons/9113356/readme_icon
             const now = new Date();
@@ -82,12 +89,6 @@ export class AuthSite {
                 }
             );
         });
-
-        // A generous default for browsing, and a tight one for anything that
-        // starts an OAuth flow or changes account state.
-        const generalLimit = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false });
-        const sensitiveLimit = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
-        this.app.use(generalLimit);
 
         this.app.get('/success', this.success.bind(this));
 
