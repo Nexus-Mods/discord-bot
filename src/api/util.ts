@@ -61,7 +61,8 @@ export class Logger {
 
     public info(message: string, data?: any) {
         const formatted = `${this.prefix()} ${message}`;
-        data ? console.log(formatted, data) : console.log(formatted);
+        if (data !== undefined) console.log(formatted, data);
+        else console.log(formatted);
     }
     public error(message: string, data?: any, ...args: any[]) {
         const formatted = `${this.prefix('\x1b[31m')} ${message}\x1b[0m`;
@@ -79,14 +80,15 @@ export class Logger {
         // was inverted, so these lines only appeared when NODE_ENV was 'testing'.
         if (isProduction && process.env.DEBUG_LOGGING !== 'true') return;
         const formatted = `${this.prefix('\x1b[36m')} ${message}\x1b[0m`;
-        data ? console.debug(formatted, data) : console.debug(formatted);
+        if (data !== undefined) console.debug(formatted, data);
+        else console.debug(formatted);
     }
 }
 
 export async function autocompleteGameName(client: ClientExt, acInteraction: AutocompleteInteraction, logger: Logger) {
     const focused = acInteraction.options.getFocused().toLowerCase();
     try {
-        var games = await client.gamesList!.getGames();
+        let games = await client.gamesList!.getGames();
         if (focused !== '') games = games.filter(g => (g.name.toLowerCase().startsWith(focused) || g.domain_name.includes(focused)));
         await acInteraction.respond(
             games.map(g => ({ name: g.name, value: g.domain_name })).slice(0, 25)
@@ -101,7 +103,7 @@ export async function autocompleteGameName(client: ClientExt, acInteraction: Aut
 export async function autoCompleteGameID(client: ClientExt, acInteraction: AutocompleteInteraction, logger: Logger) {
     const focused = acInteraction.options.getFocused().toLowerCase();
     try {
-        var games = await client.gamesList!.getGames();
+        let games = await client.gamesList!.getGames();
         if (focused !== '') games = games.filter(g => (g.name.toLowerCase().startsWith(focused) || g.domain_name.includes(focused)));
         await acInteraction.respond(
             games.map(g => ({ name: g.name, value: g.id })).slice(0, 25)

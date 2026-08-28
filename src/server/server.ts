@@ -249,7 +249,7 @@ export class AuthSite {
             if (!existingUser) {
                 const nexusUser = await getUserByNexusModsId(parseInt(userData.sub));
                 // logMessage('Existing Nexus Mods user lookup', nexusUser?.NexusModsUsername);
-                if (!!nexusUser) {
+                if (nexusUser) {
                     // If their Discord is linked to another account, remove that link. 
                     this.logger.info('Deleting link to a different Discord account!', { user: nexusUser.NexusModsUsername, discord: nexusUser.DiscordId });
                     try {
@@ -280,7 +280,7 @@ export class AuthSite {
             // Store the tokens
             // logMessage('Pushing user data to database', { update: !!existingUser, name: user.name });
             if (!user.nexus_access) throw new Error('No Token in new user data!');
-            const updatedUser = !!existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
+            const updatedUser = existingUser ? await updateUser(discordData.id, user) : await createUser({ d_id: discordData.id, ...user } as NexusUser);
             await this.updateDiscordMetadata(discordData.id, updatedUser);
             this.logger.info('OAuth Account link success', { discord: discordData.name, nexusMods: user.name });
             const params: Record<string, string> =  {

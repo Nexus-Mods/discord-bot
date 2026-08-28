@@ -8,7 +8,7 @@ function checkPermission(req: express.Request): boolean {
     return checkSharedSecret(req, 'AUTOMOD_AUTHCODE');
 }
 
-async function automodRules(req: express.Request<{}, {}, any>, res: express.Response, logger: Logger) {
+async function automodRules(req: express.Request, res: express.Response, logger: Logger) {
 // const automodRules: express.RequestHandler = async (req, res, logger) => {
     // Check permission
     if (!checkPermission(req)) {

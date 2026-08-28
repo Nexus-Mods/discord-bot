@@ -76,7 +76,7 @@ export async function mods(headers: Record<string,string>, logger: Logger, mods:
     return results;
 }
 
-async function modsQuery(headers: Record<string,string>, logger: Logger, mods: IModRequest[], offset: Number = 0, count: Number = 50): Promise<IMod[]> {
+async function modsQuery(headers: Record<string,string>, logger: Logger, mods: IModRequest[], offset: number = 0, count: number = 50): Promise<IMod[]> {
     if (!mods.length) return [];
 
     try {

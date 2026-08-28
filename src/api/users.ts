@@ -108,8 +108,8 @@ async function deleteUser(discordId: string): Promise<void> {
 
 async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<DiscordBotUser> {
     newUser.lastupdate = new Date();
-    let values: any[] = [];
-    let updateString: string[] = [];
+    const values: any[] = [];
+    const updateString: string[] = [];
 
     Object.entries(newUser).forEach(([key, value], idx) => {
         values.push(value);
@@ -134,7 +134,7 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
         const discordUser: User = await client.users.fetch(userData.d_id);
         if (!discordUser) throw new Error('Unknown User');
 
-        let embed = new EmbedBuilder()
+        const embed = new EmbedBuilder()
             .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || undefined })
             .addFields({
                 name: "Nexus Mods",
@@ -166,7 +166,7 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
                 ? "Mod Author" : user.NexusModsRoles.has('supporter')
                     ? "Supporter" : "Member";
 
-        let embed = new EmbedBuilder()
+        const embed = new EmbedBuilder()
             .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || undefined })
             .addFields({
                 name: "Nexus Mods",

@@ -98,6 +98,7 @@ export class SubscriptionManger {
             SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels, logger);
         }
         catch(err) {
+            logger.error('Failed to initialise the Subscription Manager', err);
             throw err;
         }
     }

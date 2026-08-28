@@ -49,7 +49,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const discordId: Snowflake | undefined = interaction.user.id;
     await interaction.deferReply({ephemeral: show}).catch(err => { throw err });
     // Check if they are already linked.
-    let userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
+    const userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
     if (!userData) {
         interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', flags: MessageFlags.Ephemeral});

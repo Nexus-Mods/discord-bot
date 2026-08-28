@@ -91,7 +91,7 @@ export class DiscordBotUser {
 
     private headers = (noAuth?: boolean): IRequestHeadersOAuth => {
 
-        let header = { ...baseheader};
+        const header = { ...baseheader};
 
         if (noAuth === true || this.NexusModsId === -1) return header as IRequestHeadersOAuth;
 
@@ -207,7 +207,7 @@ export class DiscordBotUser {
     private async updateUserDataFromOAuth(userData: NexusUserData): Promise<(keyof NexusUser)[]> {
         const updatedFields: (keyof NexusUser)[] = [];
         const { name, avatar, membership_roles } = userData;
-        let newData: Partial<NexusUser> = {};
+        const newData: Partial<NexusUser> = {};
         if (name != this.NexusModsUsername) {
             this.NexusModsUsername = name;
             newData.name = name;
@@ -299,7 +299,7 @@ export class DiscordBotUser {
         },
         ID: (): string => this.DiscordId,
         User: async (client: Client): Promise<User> => client.users.fetch(this.DiscordId),
-        Revoke: () => !!this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
+        Revoke: () => this.DiscordOAuthTokens ? DiscordOAuth.revoke(this.DiscordOAuthTokens) : null,
         BuildMetaData: () => this.getDiscordMetaData(),
         GetRemoteMetaData: async () => this.DiscordOAuthTokens ? DiscordOAuth.getMetadata(this.DiscordId, this.DiscordOAuthTokens, this.logger) : undefined,
         PushMetaData: 

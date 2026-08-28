@@ -40,18 +40,14 @@ async function migrationMoveConfigOptionsToJSON() {
         // );
     }
     catch(err) {
-        throw err
+        console.error('Migration migrationMoveConfigOptionsToJSON failed', err);
+        throw err;
     }
 }
 
 async function migrationDeleteAPIkeyColumn(): Promise<void> {
-    try {
-        await queryPromise('ALTER TABLE users DROP COLUMN IF EXISTS apikey', []);
-        console.log('Deleted API key column from users table');
-    }
-    catch (err) {
-        throw err;
-    }
+    await queryPromise('ALTER TABLE users DROP COLUMN IF EXISTS apikey', []);
+    console.log('Deleted API key column from users table');
 }
 
 export { migrationMoveConfigOptionsToJSON, migrationDeleteAPIkeyColumn };

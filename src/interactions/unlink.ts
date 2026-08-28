@@ -22,7 +22,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     // See if they have existing data
     const userData = await getUserByDiscordId(discordId);
-    if (!!userData) {
+    if (userData) {
         // Existing user
         const unlinkEmbed = [new EmbedBuilder()
         .setTitle('Unlink Nexus Mods account')

@@ -139,9 +139,6 @@ interface ISubscribedItemConfigGame {
     show_updates?: boolean;
 }
 
-interface ISubscribedItemConfigUser {
-}
-
 interface ISubscribedItemConfigMod {
     // The last status of the entity.
     last_status: ModStatus;
@@ -359,7 +356,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
     switch (sub.type) {
         case SubscribedItemType.Game: {
             const mod = entity as IModWithFiles;
-            let lastestFile = updated ? mod.files?.[0] : undefined;
+            const lastestFile = updated ? mod.files?.[0] : undefined;
             const gameThumb: string = gameArt(mod.game.id, '2_3');
             const gameIcon: string = gameArt(mod.game.id, 'icon');
             // Try and find a Discord user for the mod uploader
@@ -406,7 +403,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
         case SubscribedItemType.Mod: {
             const modWithFiles: IModWithFiles = entity as IModWithFiles;
             const file: IModFile = modWithFiles.files![0];
-            let changelog = file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000, logger) : undefined;
+            const changelog = file.changelogText.length ? trimModChangelog(file.changelogText, compact ? 500: 1000, logger) : undefined;
             embed.setColor('#2dd4bf')
             .setAuthor({ 
                 name: modWithFiles.uploader.name, 
@@ -683,7 +680,7 @@ export function unavailableUserUpdate(entity: IUser, sub: SubscribedItem<Subscri
 // Cut to length and reformat any incompatible markdown
 function trimCollectionChangelog(markdown: string, maxLength: number = 2000): string {
     // Remove images by regex (anything inside ![...](...) will be removed)
-    let modifiedMarkdown = markdown.replace(/!\[([^\]]*)\]\([^\)]*\)/g, '');
+    let modifiedMarkdown = markdown.replace(/!\[([^\]]*)\]\([^)]*\)/g, '');
 
     // Convert all headers to h3 by replacing headers with less than 3 # symbols
     modifiedMarkdown = modifiedMarkdown.replace(/^#{1,2} (.*)/gm, '### $1');

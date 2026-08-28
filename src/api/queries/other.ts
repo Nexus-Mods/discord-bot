@@ -133,7 +133,7 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
     try {
         // Check for a cached version of the stats
         const cachedValue = downloadCache.getStats(gameId, modId);
-        if (!!cachedValue) {
+        if (cachedValue) {
             downloadCache.cleanUp();
             return cachedValue;
         }

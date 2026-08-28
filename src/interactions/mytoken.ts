@@ -23,7 +23,7 @@ async function action(client: Client, baseInteraction: CommandInteraction): Prom
     // Check if they are already linked.
     let userData : DiscordBotUser | undefined;
     try {
-        userData = !!discordId ? await getUserByDiscordId(discordId) : undefined;
+        userData = discordId ? await getUserByDiscordId(discordId) : undefined;
         if (!userData) throw new Error('User not found; please link your account first.');
         return interaction.editReply({
             content: `OAuth Access Token`,

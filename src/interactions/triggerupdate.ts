@@ -79,7 +79,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
     try {
         const epoch: number = Math.floor(timeToUse.getTime()/1000);
-        let channel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
+        const channel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
         if (!channel) return interaction.editReply('No subscribed items in this channel.');
         logger.info('Subscription update triggered', { guild: interaction.guild?.name, channel: (interaction.channel as GuildChannel)?.name, timeToUse});
         await channel.webHookClient.send(`-# Update triggered by ${interaction.user.toString()} for updates since <t:${epoch}:f> for ${(await channel.getSubscribedItems()).length} tracked item(s).`);

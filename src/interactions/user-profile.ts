@@ -33,10 +33,11 @@ async function action(client: Client, baseinteraction: CommandInteraction, logge
             else {
                 logger.info('Profile view not authorised', {requester: interaction.user.tag, target: user, isAdmin, isMe, inGuild});
                 return interaction.editReply({ embeds: [ notAllowed(client) ] });
-            };
+            }
     }
     catch(err) {
-        throw err;        
+        logger.warn('Error showing user profile', err);
+        throw err;
     }
 
 }

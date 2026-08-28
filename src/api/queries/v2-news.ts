@@ -40,7 +40,7 @@ query DiscordBotNews($gameId: Int) {
 
 export async function news(headers: Record<string, string>, logger: Logger, gameId?: number): Promise<News[]> {
 
-    let vars: INewsVariables = {}
+    const vars: INewsVariables = {}
     
     if (gameId) vars.gameId = gameId;
 
