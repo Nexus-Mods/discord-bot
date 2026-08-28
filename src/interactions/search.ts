@@ -17,6 +17,8 @@ import { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
 import { IUser } from "../api/queries/v2-finduser.js";
 import { IModResults } from "../api/queries/v2-mods.js";
 import { IGameStatic } from "../api/queries/other.js";
+import { NEXUS_ORANGE, apiLinkFooter, botIconUrl } from '../lib/embeds.js';
+import { awaitButtonChoice } from '../lib/collectors.js';
 
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
@@ -198,8 +200,8 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             const noResults: EmbedBuilder = new EmbedBuilder()
             .setTitle('Search complete')
             .setDescription(`No results for "${query}".\nTry using the [full search](${results.searchURL}) on the website.`)
-            .setThumbnail(client.user?.avatarURL() || '')
-            .setColor(0xda8e35);
+            .setThumbnail(botIconUrl(client))
+            .setColor(NEXUS_ORANGE);
 
             return interaction.editReply({ content: null, embeds:[noResults] });
         }
@@ -237,7 +239,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             // Create the embed
             const multiResult = new EmbedBuilder()
             .setTitle('Search Results')
-            .setColor(0xda8e35)
+            .setColor(NEXUS_ORANGE)
             .setThumbnail(`https://staticdelivery.nexusmods.com/images/News/14778_tile_1667225117.jpg`)
             .setDescription(
                 `Showing the top **${choices.length}** collections for your query ([See all](${results.searchURL}))\n`+
@@ -248,29 +250,15 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             
             // Post the result
             const reply: Message = await interaction.editReply({ embeds: [multiResult], components: [buttons] }) as Message;
-            // Record button presses
-            const collector = reply.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60000 });
-            // respond to the collect event
-            collector.on('collect', async (i: ButtonInteraction) => {
-                collector.stop('Collected');
-                await i.update({ components: [], fetchReply: true });
-                const id = i.customId;
-                const found: Partial<ICollection> = choices.find(c => c.slug === id)!;
-                if (!found) {
-                    interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
-                    return;
-                }
-                const collection = await user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName ?? '', true).catch(() => undefined);
-                postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
-            });
-
-            // On timeout there are no collected interactions, so the components have to be
-            // cleared through the original reply rather than through ic.first().
-            collector.on('end', async ic => {
-                if (ic.size) return;
-                await interaction.editReply({ components: [] })
-                    .catch(err => logger.debug('Could not clear components after timeout', err));
-            });
+            const chosen = await awaitButtonChoice({ message: reply, userId: interaction.user.id, interaction, logger });
+            if (!chosen) return;
+            const found: Partial<ICollection> | undefined = choices.find(c => c.slug === chosen);
+            if (!found) {
+                await interaction.editReply({ content: 'Search failed!', embeds: [], components: [] });
+                return;
+            }
+            const collection = await user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName ?? '', true).catch(() => undefined);
+            postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
         }
     }
     catch(err) {
@@ -316,8 +304,8 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             const noResults: EmbedBuilder = new EmbedBuilder()
             .setTitle('Search Results')
             .setDescription(`No results for "${query}".\nTry using the [full search](${safeSearchURL(search.fullSearchUrl)}) on the website.`)
-            .setThumbnail(client.user?.avatarURL() || '')
-            .setColor(0xda8e35);
+            .setThumbnail(botIconUrl(client))
+            .setColor(NEXUS_ORANGE);
 
             return interaction.editReply({ content: null, embeds:[noResults] });
         }
@@ -347,7 +335,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             );
             const multiResult = new EmbedBuilder()
             .setTitle('Search Results')
-            .setColor(0xda8e35)
+            .setColor(NEXUS_ORANGE)
             .setThumbnail(gameArt(gameIdFilter))
             .setDescription(
                 `Showing ${search.totalCount < 5 ? search.totalCount : 5} of ${search.totalCount} results ([See all](${search.fullSearchUrl || 'https://nexusmods.com/mods/'}))\n`+
@@ -359,29 +347,14 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
             // Post the result
             const reply: Message = await interaction.editReply({ embeds: [multiResult], components: [buttons] }) as Message;
-            // Record button presses
-            const collector = reply.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60000 });
-
-            collector.on('collect', async (i: ButtonInteraction) => {
-                collector.stop('Collected');
-                await i.update({ components: [], withResponse: true });
-                const id = i.customId;
-                const found: IModFieldResult|undefined = fields.find(f => f.mod.modId.toString() === id);
-                const mod = found?.mod;
-                if (!mod) {
-                    interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
-                    return;
-                }
-                postResult(interaction, singleModEmbed(client, mod, found?.game), ephemeral, logger);
-            });
-
-            // On timeout there are no collected interactions, so the components have to be
-            // cleared through the original reply rather than through ic.first().
-            collector.on('end', async ic => {
-                if (ic.size) return;
-                await interaction.editReply({ components: [] })
-                    .catch(err => logger.debug('Could not clear components after timeout', err));
-            });
+            const chosen = await awaitButtonChoice({ message: reply, userId: interaction.user.id, interaction, logger });
+            if (!chosen) return;
+            const found: IModFieldResult | undefined = fields.find(f => f.mod.modId.toString() === chosen);
+            if (!found?.mod) {
+                await interaction.editReply({ content: 'Search failed!', embeds: [], components: [] });
+                return;
+            }
+            postResult(interaction, singleModEmbed(client, found.mod, found.game), ephemeral, logger);
 
 
         }
@@ -415,22 +388,22 @@ async function searchUsers(query: string, userId: number, ephemeral: boolean, cl
     const invalidSearch = () => new EmbedBuilder()
     .setTitle('Invalid search')
     .setDescription(`Please provide a username or ID.`)
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client));
     
     const noUserFound = () => new EmbedBuilder()
     .setTitle('No results found')
     .setDescription(`No users found for ${query ?? userId ?? 'NULL'}. This feature only supports exact matches so please check your spelling.`)
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client));
 
     const userResult = (u: IUser) => new EmbedBuilder()
     .setAuthor({ name: u.name, url: `https://nexusmods.com/users/${u.memberId}` })
     .setDescription(`User ID: ${u.memberId}\n[View ${u.name}'s profile on Nexus Mods](https://nexusmods.com/users/${u.memberId})`)
     .addFields([ { name: 'Total Unique Mod Downloads', value: u.uniqueModDownloads.toLocaleString() } ])
     .setThumbnail(u.avatar)
-    .setColor(0xda8e35)
-    .setFooter({ text: `Nexus Mods - Requested by ${interaction.user.displayName}`, iconURL: client.user?.avatarURL() || '' });
+    .setColor(NEXUS_ORANGE)
+    .setFooter({ text: `Nexus Mods - Requested by ${interaction.user.displayName}`, iconURL: botIconUrl(client) });
 
     const searchTerm: string | number = query ?? userId;
     if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, invalidSearch(), true, logger);
@@ -459,9 +432,9 @@ const searchCancelled = (): EmbedBuilder => {
 
 const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGameStatic): EmbedBuilder => {
     const embed = new EmbedBuilder()
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
-    .setThumbnail(game ? gameArt(game.id) : client.user?.avatarURL() || '')
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
+    .setThumbnail(game ? gameArt(game.id) : botIconUrl(client))
 
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
@@ -497,15 +470,15 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
     if (!nsfw && res.latestPublishedRevision.adultContent) {
         const nsfwEmbed = new EmbedBuilder()
         .setColor('DarkRed')
-        .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+        .setFooter(apiLinkFooter(client))
         .setTitle('Adult content')
         .setDescription(`[${res.name}](${url}) contains adult content. This Discord channel is not age-restricted so you must view this content on the website.`)
         return nsfwEmbed;
     }
 
     const embed = new EmbedBuilder()
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
     .setThumbnail(res.tileImage.thumbnailUrl || client.user?.avatarURL() || null)
     .setURL(url)
     .setTitle(res.name || 'Unknown Collection')
@@ -556,16 +529,16 @@ const noGameResults = (client: Client, gameList: IGameStatic[], searchTerm: stri
     return new EmbedBuilder()
     .setTitle("Game Search Results")
     .setDescription(`I checked all ${gameList.length.toLocaleString()} games for "${searchTerm}" but couldn't find anything. Please check your spelling or try expanding any acronyms (SSE -> Skyrim Special Edition)`)
-    .setThumbnail(client.user?.avatarURL() || '')
-    .setColor(0xda8e35)
-    .setFooter({ text: "Nexus Mods API link", iconURL: client.user?.avatarURL() || '' })
+    .setThumbnail(botIconUrl(client))
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
     .addFields({ name:`Looking to upload a mod for "${searchTerm}"?`, value: `If you've made a mod for ${searchTerm} we'd love it if you shared it on Nexus Mods!\n[You can find out more about adding a mod for a new game here.](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`})
 }
 
 const oneGameResult = (client: Client, gameInfo: IGameStatic): EmbedBuilder => {
     const game = new EmbedBuilder()
     .setTitle(gameInfo.name)
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .setURL(`https://www.nexusmods.com/${gameInfo.domain_name || ''}`)
     .setThumbnail(gameArt(gameInfo.id))
     .addFields([
@@ -595,7 +568,7 @@ const oneGameResult = (client: Client, gameInfo: IGameStatic): EmbedBuilder => {
             inline: true 
         }
     ])
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+    .setFooter(apiLinkFooter(client))
     if (!gameInfo.approved_date || gameInfo.approved_date <= 1) {
         game.addFields({ name: "Unapproved Game", value: `${gameInfo.name} is pending approval by Nexus Mods staff. Once a mod has been uploaded and reviewed the game will be approved.\n[How can I add a new game to Nexus Mods?](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`})
         .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_empty.png`);
@@ -610,9 +583,9 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
     return new EmbedBuilder()
     .setTitle("Game Search Results")
     .setDescription(`Showing ${results.length < 5 ? results.length : 5} results for "${query}". [See all${results.length > 5 ? " "+results.length : "" }...](https://www.nexusmods.com/games)`)
-    .setThumbnail(client.user?.avatarURL() || '')
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+    .setThumbnail(botIconUrl(client))
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
     .addFields(displayable.map((game: IGameStatic): EmbedField => {
         return {
             name: game.name,

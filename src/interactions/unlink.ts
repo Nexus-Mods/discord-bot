@@ -3,6 +3,7 @@ import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
 import { unlinkUrl } from '../server/auth.js';
+import { NEXUS_ORANGE, botFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -26,11 +27,11 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         // Existing user
         const unlinkEmbed = [new EmbedBuilder()
         .setTitle('Unlink Nexus Mods account')
-        .setColor(0xda8e35)
+        .setColor(NEXUS_ORANGE)
         .setURL(unlinkUrl(discordId))
         .setDescription('Unlinking your account will remove all roles granted by your Nexus Mods account and you will not be able to use all features of the bot anymore.')
         .setThumbnail(userData.NexusModsAvatar || null)
-        .setFooter({ text: 'Discord Bot - Nexus Mods', iconURL: client?.user?.avatarURL() || '' })];
+        .setFooter(botFooter(client))];
 
         const unlinkButton = [new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
@@ -47,9 +48,9 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         // Not linked!
         const notLinkedEmbed = [new EmbedBuilder()
         .setTitle('Unlink Nexus Mods account')
-        .setColor(0xda8e35)
+        .setColor(NEXUS_ORANGE)
         .setDescription('Your account is not current linked.')
-        .setFooter({ text: 'Discord Bot - Nexus Mods', iconURL: client?.user?.avatarURL() || '' })];
+        .setFooter(botFooter(client))];
 
         return interaction.editReply({ embeds: notLinkedEmbed });
 

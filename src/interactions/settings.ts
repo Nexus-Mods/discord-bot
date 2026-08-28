@@ -15,6 +15,7 @@ import { IGameStatic } from "../api/queries/other.js";
 import { autocompleteGameName } from "../api/util.js";
 import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions.js";
 import { ConditionType } from "../types/util.js";
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -331,7 +332,7 @@ const updateEmbed = (data: IBotServerChange): EmbedBuilder => {
     const newVal = (data.new as IGameStatic) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
     return new EmbedBuilder()
     .setTitle('Configuration updated')
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .setDescription(`${data.name} updated from ${curVal || data.cur} to ${newVal || data.new}`);
 }
 
@@ -354,7 +355,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     .setAuthor({ name: guild.name, iconURL })
     .setTitle(`Server Configuration - ${guild.name}`)
     .setDescription('Configure any of these options for your server by using the /settings command. **Linked Roles** can be set up in your role settings, [Learn More](https://discord.com/blog/connected-accounts-functionality-boost-linked-roles).')
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .addFields([
         {
             name: 'Default Search Filter',
@@ -365,7 +366,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
             value: roleAuthor ? `${roleAuthor.toString()}\n${conditionsToString(conditions, gameList)}` : '_Not set_'
         }
     ])
-    .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: client.user?.avatarURL() || '' });
+    .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: botIconUrl(client) });
 
     if (nexusChannel) embed.addFields({ name: 'Channel Settings', value: `**Log Channel:** ${nexusChannel?.toString()}`})
     if (newsChannel) embed.addFields({ name: 'Deprecated Channels', value: `News: ${newsChannel?.toString() || 'n/a'}`});

@@ -1,3 +1,4 @@
+import { NEXUS_ORANGE } from '../lib/embeds.js';
 
 import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient, ShardClientUtil, Client } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions.js';
@@ -379,7 +380,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                 }
             }
             else {
-                embed.setColor(0xda8e35)
+                embed.setColor(NEXUS_ORANGE)
                 .setAuthor({ name: `New Mod Upload (${mod.game.name})`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
                 .setTimestamp(new Date(mod.createdAt))
             }

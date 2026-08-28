@@ -4,6 +4,7 @@ import { getUserByDiscordId } from '../api/bot-db.js';
 import { CommandInteraction, Snowflake, EmbedBuilder, Client, User, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType, MessageFlags } from "discord.js";
 import { KnownDiscordServers, Logger } from '../api/util.js';
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 
 const cooldown: number = (1*60*1000);
 
@@ -33,9 +34,9 @@ const updateMeta = (prev: MetaData, cur: MetaData): boolean => {
 const replyCard = (client: Client, nexus: DiscordBotUser, discord: User): EmbedBuilder => {
     const result = new EmbedBuilder()
     .setTitle('Updating user data...')
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .setThumbnail(nexus.NexusModsAvatar || discord.avatarURL() || '' )
-    .setFooter({text: `Nexus Mods API link - ${discord.tag}`, iconURL: client.user?.avatarURL() || '' })
+    .setFooter({text: `Nexus Mods API link - ${discord.tag}`, iconURL: botIconUrl(client) })
     return result;
 }
 
@@ -43,11 +44,11 @@ const cancelCard = (client: Client, nexus: DiscordBotUser, discord: User) => {
     return new EmbedBuilder({
         title: 'Update cancelled',
         description: `You must wait at least ${cooldown/1000/60} minute(s) before refreshing your account.`,
-        color: 0xda8e35,
+        color: NEXUS_ORANGE,
         thumbnail: { url: (nexus.NexusModsAvatar || (discord.avatarURL() as string) || '') },
         footer: {
             text: `Nexus Mods API link - ${discord.tag}`,
-            iconURL: client.user?.avatarURL() || ''
+            iconURL: botIconUrl(client)
         }
     })
 }

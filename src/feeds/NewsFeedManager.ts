@@ -5,6 +5,7 @@ import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'disco
 import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
 import { IGameStatic } from '../api/queries/other.js';
 import { v2 } from '../api/queries/all.js';
+import { NEXUS_ORANGE } from '../lib/embeds.js';
 
 const pollTime = (1000*60*30)*1; //30 mins
 
@@ -165,6 +166,6 @@ function newsPostEmbed(news: News, gameDomain?: string) {
     .setDescription(news.summary.substring(0, 250)+'...')
     .setFooter({text: `${news.author.name} • ${news.newsCategory.name}`, iconURL: news.author.avatar })
     .setTimestamp(news.publishDate)
-    .setColor(0xda8e35);
+    .setColor(NEXUS_ORANGE);
     return embed;
 }

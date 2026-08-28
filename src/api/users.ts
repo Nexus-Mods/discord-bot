@@ -4,6 +4,7 @@ import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
 import { nexusModsTrackingUrl } from './util.js';
 import { DiscordBotUser } from './DiscordBotUser.js';
 import { logger } from './logger.js';
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     try {
@@ -142,10 +143,10 @@ async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuil
                 inline: true
             })
             .addFields({ name: "Discord", value: `${discordUser.toString()}\n${discordUser.tag}`, inline: true })
-            .setColor(0xda8e35)
+            .setColor(NEXUS_ORANGE)
             .setThumbnail(userData.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
             .setTimestamp(userData.lastupdate)
-            .setFooter({ text: `User ID: ${userData.id}`, iconURL: client.user?.avatarURL() || '' });
+            .setFooter({ text: `User ID: ${userData.id}`, iconURL: botIconUrl(client) });
 
 
         return embed;
@@ -174,10 +175,10 @@ async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<E
                 inline: true
             })
             .addFields({ name: "Discord", value: `${discordUser.toString()}\n${discordUser.tag}`, inline: true })
-            .setColor(0xda8e35)
+            .setColor(NEXUS_ORANGE)
             .setThumbnail(user.NexusModsAvatar || 'https://www.nexusmods.com/assets/images/default/avatar.png')
             .setTimestamp(user.LastUpdated)
-            .setFooter({ text: `User ID: ${user.NexusModsId}`, iconURL: client.user?.avatarURL() || '' });
+            .setFooter({ text: `User ID: ${user.NexusModsId}`, iconURL: botIconUrl(client) });
 
         return embed;
     }

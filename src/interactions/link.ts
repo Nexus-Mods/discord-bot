@@ -8,6 +8,7 @@ import { getUserByDiscordId } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from '../api/util.js';
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { unlinkUrl } from '../server/auth.js';
+import { NEXUS_ORANGE, apiLinkFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -49,14 +50,14 @@ const linkButton = (discordId: string) => new ActionRowBuilder()
 const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, client: Client, logger: Logger): Promise<{ embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] }> => {
     const components = [];
     const embed = new EmbedBuilder()
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .addFields([
         {
             name: 'Linked Roles',
             value: 'You can claim your roles using the "Linked Roles" option in the server drop-down menu.'
         }
     ])
-    .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
+    .setFooter(apiLinkFooter(client));
     if (user) {
         try {
             await user.NexusMods.Auth();

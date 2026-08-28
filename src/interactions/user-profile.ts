@@ -4,6 +4,8 @@ import { getUserByDiscordId, userProfileEmbed, userEmbed } from '../api/bot-db.j
 import { KnownDiscordServers, Logger } from "../api/util.js";
 import { NexusUser } from "../types/users.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { apiLinkFooter, botIconUrl } from '../lib/embeds.js';
+import { botUser, notAllowed } from '../lib/profile.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new ContextMenuCommandBuilder()
@@ -41,27 +43,3 @@ async function action(client: Client, baseinteraction: CommandInteraction, logge
     }
 
 }
-
-const botUser = (client: Client): NexusUser => {
-    const d_id: Snowflake = client.user?.id ? client.user?.id.toString() as Snowflake : '' as Snowflake;
-    const avatar_url = client.user?.avatarURL() || '';
-    return {
-        d_id,
-        id: 1234042,
-        name: 'Nexus Mods Discord Bot',
-        avatar_url,
-        premium: false,
-        supporter: false,
-        lastupdate: new Date()
-    }
-}
-
-const notAllowed = (client: Client): EmbedBuilder => {
-    return new EmbedBuilder()
-    .setTitle('⛔  Profile Unavailable')
-    .setColor('#ff0000')
-    .setDescription('The user you are looking for is not a member of this server.')
-    .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
-}
-
-export { discordInteraction };

@@ -7,6 +7,7 @@ import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { Logger } from "../api/util.js";
 import { ITip } from "../api/tips.js";
 import { TipCache } from "../types/util.js";
+import { NEXUS_ORANGE } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -68,7 +69,7 @@ function embedBulderWithOverrides(tip: ITip, data: EmbedData, interaction: ChatI
     return new EmbedBuilder(data)
     .setFooter({ text:`Last updated by ${tip.author || '???'}`, iconURL: interaction.user.avatarURL() || '' } )
     .setTimestamp(new Date(tip.updated))
-    .setColor(0xda8e35);
+    .setColor(NEXUS_ORANGE);
 }
 
 async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger: Logger) {

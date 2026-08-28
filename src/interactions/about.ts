@@ -8,6 +8,7 @@ import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getCountOfUsers } from '../api/bot-db.js';
 import { calcUptime, Logger } from "../api/util.js";
 import { getCountOfSubscriptions } from "../api/subscriptions.js";
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -68,8 +69,8 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
     const info = new EmbedBuilder()
     .setTitle(`Nexus Mods Discord Bot v${process.env.npm_package_version}`)
-    .setColor(0xda8e35)
-    .setThumbnail(client.user?.avatarURL() || '')
+    .setColor(NEXUS_ORANGE)
+    .setThumbnail(botIconUrl(client))
     .setDescription(`Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`)
     .addFields([
         {
@@ -80,7 +81,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             inline: true
         },
     ])
-    .setFooter({ text: `Uptime: ${upTime}`, iconURL: client.user?.avatarURL() || '' })
+    .setFooter({ text: `Uptime: ${upTime}`, iconURL: botIconUrl(client) })
     .setTimestamp(new Date());
 
     const buttons = new ActionRowBuilder<MessageActionRowComponentBuilder>()

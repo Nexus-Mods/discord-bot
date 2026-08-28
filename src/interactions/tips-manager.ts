@@ -15,6 +15,7 @@ import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { addTip, getAllTips, editTip } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
 import { deleteTip, ITip, setApprovedTip } from "../api/tips.js";
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -120,9 +121,9 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
         temp = validateModalResponse(submit, logger);
         if (temp.embedData) {
             newEmbed = new EmbedBuilder(temp.embedData)
-            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: botIconUrl(client) } )
             .setTimestamp(new Date())
-            .setColor(0xda8e35);
+            .setColor(NEXUS_ORANGE);
         }
         if (temp.tip.message) newMessage = temp.tip.message;
 
@@ -170,9 +171,9 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
         temp = validateModalResponse(submit, logger);
         if (temp.embedData) {
             newEmbed = new EmbedBuilder(temp.embedData)
-            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: botIconUrl(client) } )
             .setTimestamp(new Date())
-            .setColor(0xda8e35);
+            .setColor(NEXUS_ORANGE);
         }
         newMessage = temp.tip.message ?? undefined;
 
@@ -224,9 +225,9 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
         if (tip.embed) {
             postable.embeds = [
                 new EmbedBuilder(JSON.parse(tip.embed) as EmbedData)
-                .setFooter({ text:`Info added by ${tip.author || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+                .setFooter({ text:`Info added by ${tip.author || '???'}`, iconURL: botIconUrl(client) } )
                 .setTimestamp(new Date())
-                .setColor(0xda8e35)
+                .setColor(NEXUS_ORANGE)
             ];
         }
         if (tip.message) postable.content = `${tip.message}\n-# Title: ${tip.title} | Prompt: ${tip.prompt}`;
