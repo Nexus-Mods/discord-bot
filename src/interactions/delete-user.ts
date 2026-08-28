@@ -29,7 +29,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 

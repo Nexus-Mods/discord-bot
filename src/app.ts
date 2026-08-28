@@ -36,7 +36,7 @@ async function start() {
 
     // Set up the OAuth portal
     try {
-        const site = AuthSite.getInstance(bot.client, bot.logger);
+        AuthSite.getInstance(bot.client, bot.logger);
     }
     catch(err) {
         bot.logger.error('Failed to set up Auth website', err);

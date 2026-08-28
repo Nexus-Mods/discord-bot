@@ -1,4 +1,4 @@
-import { AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, hideLinkEmbed, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { autoCompleteGameID, autoCompleteModSearchIdOnly, autoCompleteUserSearch, KnownDiscordServers, Logger } from "../api/util.js";
 import { readJson } from "../api/http.js";

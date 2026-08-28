@@ -175,13 +175,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     }
 }
 
-async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, logger: Logger) {
+async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, _logger: Logger) {
     const filterGame: IGameStatic|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
     const view: EmbedBuilder = await serverEmbed(client, guild, server, gameList, filterGame?.name);
     return interaction.editReply({ embeds: [view] });
 }
 
-async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, logger: Logger): Promise<Partial<IBotServerChange>> {
+async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, _logger: Logger): Promise<Partial<IBotServerChange>> {
     const gameQuery: string | null = interaction.options.getString('game' as OptionNames);
     let foundGame : IGameStatic | undefined;
     if (gameQuery) {

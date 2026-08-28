@@ -65,7 +65,7 @@ async function action(client: ClientExt, interaction: CommandInteraction, logger
                 // If this check passed, reset the array.
                 else orChecks = [];
             }
-            const pass = await evaluateCondition(condition, user).catch(c => false);
+            const pass = await evaluateCondition(condition, user).catch(() => false);
             if (pass === true) condition.result = 'pass';
             else condition.result = 'fail';
 

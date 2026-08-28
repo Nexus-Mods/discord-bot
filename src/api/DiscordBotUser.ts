@@ -208,13 +208,13 @@ export class DiscordBotUser {
         const updatedFields: (keyof NexusUser)[] = [];
         const { name, avatar, membership_roles } = userData;
         const newData: Partial<NexusUser> = {};
-        if (name != this.NexusModsUsername) {
+        if (name !== this.NexusModsUsername) {
             this.NexusModsUsername = name;
             newData.name = name;
             updatedFields.push('name');
         }
 
-        if (avatar != this.NexusModsAvatar) {
+        if (avatar !== this.NexusModsAvatar) {
             this.NexusModsAvatar = avatar;
             newData.avatar_url = avatar;
             updatedFields.push('avatar_url');
@@ -264,7 +264,7 @@ export class DiscordBotUser {
                 this.LastUpdated = new Date();
             };
         }
-        catch(err) {
+        catch(_err) {
             throw new Error('Failed to save user data to database.');
         }
 

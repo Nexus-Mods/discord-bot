@@ -169,14 +169,14 @@ export const unexpectedErrorEmbed = (err: any, context: any, errorId?: string): 
  * @param {Record<string, string>} [extraParams] - Optional additional parameters to include in the query string. E.g. Tab selection on the mod page.
  * @returns {string} The full URL with tracking parameters.
  */
-function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: number } {
+export function modUidToGameAndModId(uid: bigint | string): { gameId: number, modId: number } {
     if (typeof uid === 'string') uid = BigInt(uid);
     const gameId = Number(uid >> BigInt(32)); // Use unsigned right shift (>>>)
     const modId = Number(uid & BigInt(0xFFFFFFFF));; // Bitwise AND with 0xFFFFFFFF (unsigned 32-bit mask)
     return { gameId, modId };
 }
 
-function modIdAndGameIdToModUid(gameId: number, modId: number): string {
+export function modIdAndGameIdToModUid(gameId: number, modId: number): string {
     // Convert the gameId and modId to BigInt
     const bigGameId = BigInt(gameId);
     const bigModId = BigInt(modId);

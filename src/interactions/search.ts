@@ -1,7 +1,7 @@
 import { 
     CommandInteraction, ActionRowBuilder, Client, EmbedBuilder, Message, 
-    ButtonBuilder, TextChannel, EmbedField, ButtonInteraction, ChatInputCommandInteraction, 
-    SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField,
+    ButtonBuilder, TextChannel, EmbedField, ChatInputCommandInteraction, 
+    SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, APIEmbedField,
     MessageFlags, 
 } from "discord.js";
 import { customEmojis } from "../types/util.js";
@@ -406,7 +406,7 @@ async function searchUsers(query: string, userId: number, ephemeral: boolean, cl
     .setFooter({ text: `Nexus Mods - Requested by ${interaction.user.displayName}`, iconURL: botIconUrl(client) });
 
     const searchTerm: string | number = query ?? userId;
-    if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, invalidSearch(), true, logger);
+    if (searchTerm === '' || Number(searchTerm) === 0) return postResult(interaction, invalidSearch(), true, logger);
     const foundUser = await user.NexusMods.API.v2.FindUser(searchTerm);
     if (!foundUser) return postResult(interaction, noUserFound(), true, logger);
     else return postResult(interaction, userResult(foundUser), ephemeral, logger);

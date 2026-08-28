@@ -44,7 +44,7 @@ const discordInteraction: DiscordInteraction = {
 //     }
 // ];
 
-async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
     const option: boolean | null = interaction.options.getBoolean('private');

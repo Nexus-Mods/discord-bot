@@ -17,7 +17,7 @@ const discordInteraction: DiscordInteraction = {
     action
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const discordId: Snowflake = interaction.user.id;
     await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
