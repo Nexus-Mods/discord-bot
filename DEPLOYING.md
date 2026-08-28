@@ -1,8 +1,32 @@
-# Deploying 3.17.0
+# Deploying
 
-Release 3.17.0 is the Phase 0 hardening pass (see `MODERNISATION.md`). It closes
-three unauthenticated endpoints, fixes 21 correctness defects, and removes the
-community map and the automod feed.
+## 4.0.0 - Phase 1, foundations
+
+Toolchain and internals only. **No behaviour changes to any command, feed or
+endpoint**, and no new configuration is required beyond what 3.17.0 introduced.
+
+| Change | What it means for a deploy |
+|---|---|
+| Build is tsup, not tsc | `npm run build` drops from ~15s to ~1.2s. `clean.cjs`, `add-js-extensions.cjs` and `build.sh` are deleted. Output layout is unchanged, so nothing downstream moves. |
+| Dockerfile is multi-stage on node 22 | Smaller runtime image, runs as `node` rather than root, dev dependencies pruned. **`CMD` is now exec form**, so the container receives SIGTERM directly - `docker stop` no longer waits out its timeout and SIGKILLs the bot mid-poll. |
+| Logging is pino | JSON on stdout in production, pretty in development. **If anything parses the bot's logs, it needs updating** - the format has changed from coloured text to structured JSON. `LOG_LEVEL` replaces `DEBUG_LOGGING`. |
+| OAuth tokens are redacted in logs | Anything under a credential-shaped key is replaced with `[redacted]`. |
+| Errors carry causes and user-facing messages | Users now see a generic message plus a short reference id rather than a raw error string. **The full error is logged against that id**, so support requests should quote it. |
+| CI gates on typecheck, lint and tests | Nothing is published unless all three pass. Images are tagged with the version and the commit sha as well as `latest`. |
+| Node 22 required | `engines` now declares `>=22`. The Docker image already uses it. |
+
+`npm ci` is needed for the new dependencies (pino, tsup, vitest) and for the
+removal of jsonwebtoken, path and copyfiles.
+
+Nothing else in this document changes for 4.0.0; the 3.17.0 notes below still
+describe the configuration this release runs on.
+
+---
+
+## 3.17.0 - Phase 0, hardening
+
+Release 3.17.0 closes three unauthenticated endpoints, fixes 21 correctness
+defects, and removes the community map and the automod feed.
 
 **It is not a drop-in deploy.** Three of the changes need configuration or
 coordination before the release goes out. Work through this list first.
@@ -84,17 +108,15 @@ Now:
 
 ## 4. Install and build
 
-`helmet` and `express-rate-limit` are new dependencies:
-
 ```bash
-npm install
+npm ci
 npm run typecheck   # must be clean
 npm run lint        # must report 0 errors
+npm test            # 91 tests
 npm run build
 ```
 
-The Docker image builds these itself, so CI needs no change beyond picking up
-the new `package-lock.json`.
+As of 4.0.0 CI runs all four and refuses to publish an image unless they pass.
 
 ---
 

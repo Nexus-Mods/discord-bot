@@ -78,23 +78,23 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             foundUser = allUsers.find(u => u.name.toLowerCase() === nexus.toLowerCase());
         }
 
-        if (!foundUser) interaction.followUp({content: 'No members found for your query.', ephemeral: true});
+        if (!foundUser) return interaction.followUp({content: 'No members found for your query.', flags: MessageFlags.Ephemeral});
         else {
             const botUser = new DiscordBotUser(foundUser, logger);
             // check if we should return the result. If the found user isn't in the current server, reject the request.
             const isAdmin: boolean = (client as ClientExt).config.ownerIDs?.includes(interaction.user.id);
             const isMe: boolean = interaction.user.id === botUser.DiscordId;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });
+            if (isAdmin || isMe || inGuild) return interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });
             else {
                 logger.info('Whois not authorised', {requester: userData, target: botUser, isAdmin, isMe, inGuild});
-                interaction.followUp({ embeds: [ notAllowed(client) ], flags: MessageFlags.Ephemeral });
+                return interaction.followUp({ embeds: [ notAllowed(client) ], flags: MessageFlags.Ephemeral });
             };
         }
                         
     }
     catch (err) {
-        interaction.followUp({ content: 'Error looking up users.', flags: MessageFlags.Ephemeral});
+        void interaction.followUp({ content: 'Error looking up users.', flags: MessageFlags.Ephemeral});
         logger.warn('Error looking up users from slash command', err);
         return;
     }

@@ -1,14 +1,18 @@
 # Nexus Mods Discord Bot — Modernisation & Simplification Plan
 
-**Status:** Phase 0 shipped in **3.17.0**. Phases 1–5 are still proposals.
+**Status:** Phase 0 shipped in **3.17.0**, Phase 1 in **4.0.0**. Phases 2–5 remain proposals.
 **Date:** 28 August 2026 (audited at `473db19`)
 **Scope:** `nexus-bot-typescript` — 89 TypeScript files, ~12,600 lines at time of audit.
 
 ---
 
-## Status as of 3.17.0
+## Status as of 4.0.0
 
-**Done.** Eight of the nine security findings, and all 21 correctness defects
+**Phase 1 (4.0.0).** Build is tsup, transpile-only, ~1.2s. Logging is pino with
+credential redaction. One error taxonomy replaced five conventions. 91 tests run
+under vitest, and CI gates on typecheck, lint and tests before publishing an image.
+
+**Phase 0 (3.17.0).** Eight of the nine security findings, and all 21 correctness defects
 (B9 included: the `mods` root field does accept `count: Int`, confirmed against the
 Nexus website's own `ModsListing` operation).
 The community map and the automod feed are removed. The ESLint config, which had
@@ -23,7 +27,6 @@ for what has to be configured before this release goes out.
 | **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
 | 44 `no-floating-promises` / `no-misused-promises` warnings | Phase 2. `npm run lint:strict` reports them as errors to track the count down. |
 | Query modules still return `[]` on failure | The ~18 v2 query files swallow errors and return an empty result, so callers cannot tell "no results" from "the API is down". Fixing this changes feed behaviour (a transient API error would propagate instead of being a silent no-op cycle), so it belongs with the Phase 3 data-layer contract work rather than being slipped into 1.3. |
-| No `.gitattributes` | `core.autocrlf` is set locally in one clone only; teammates still see a phantom 17,000-line diff. Phase 1.1. |
 
 **Nothing here has been run against a live Discord gateway or database.** The HTTP
 middleware chain and the unlink signing were verified in isolation; the OAuth round

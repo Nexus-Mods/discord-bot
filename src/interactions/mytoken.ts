@@ -1,4 +1,4 @@
-import { Client, SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction, Snowflake, PermissionFlagsBits } from "discord.js";
+import { Client, SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction, Snowflake, PermissionFlagsBits, MessageFlags } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { getUserByDiscordId } from "../api/users.js";
@@ -19,7 +19,7 @@ const discordInteraction: DiscordInteraction = {
 async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({ephemeral: true}).catch(err => { throw err });;
+    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     // Check if they are already linked.
     let userData : DiscordBotUser | undefined;
     try {
