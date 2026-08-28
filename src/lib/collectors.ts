@@ -1,6 +1,7 @@
 import {
-    ComponentType, Message, MessageFlags, Snowflake,
-    type ButtonInteraction, type RepliableInteraction,
+    ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder,
+    Message, MessageFlags, Snowflake,
+    type ButtonInteraction, type ChatInputCommandInteraction, type RepliableInteraction,
 } from 'discord.js';
 import { Logger } from '../api/logger.js';
 
@@ -66,4 +67,38 @@ export async function awaitButtonChoice(options: {
 export async function clearComponents(interaction: RepliableInteraction, logger: Logger): Promise<void> {
     await interaction.editReply({ components: [] })
         .catch((err) => logger.debug('Could not clear components', err));
+}
+
+/**
+ * Post an embed with one numbered button per item and return whichever the user
+ * picked, or undefined if they let it time out.
+ *
+ * searchMods and searchCollections each built this by hand - a button row, an
+ * editReply, a collector, then a find() to map the pressed customId back to the
+ * item it came from.
+ */
+export async function presentChoices<T>(options: {
+    interaction: ChatInputCommandInteraction;
+    embed: EmbedBuilder;
+    items: T[];
+    /** Must be unique within the set and at most 100 characters. */
+    customId: (item: T) => string;
+    label: (item: T, index: number) => string;
+    logger: Logger;
+    timeoutMs?: number;
+}): Promise<T | undefined> {
+    const { interaction, embed, items, customId, label, logger, timeoutMs } = options;
+
+    const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        items.map((item, index) => new ButtonBuilder()
+            .setCustomId(customId(item))
+            .setLabel(label(item, index))
+            .setStyle(ButtonStyle.Primary)),
+    );
+
+    const message = await interaction.editReply({ embeds: [embed], components: [buttons] }) as Message;
+    const chosen = await awaitButtonChoice({ message, userId: interaction.user.id, interaction, logger, timeoutMs });
+    if (!chosen) return undefined;
+
+    return items.find((item) => customId(item) === chosen);
 }

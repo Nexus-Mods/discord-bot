@@ -1,13 +1,12 @@
 import { 
-    CommandInteraction, ActionRowBuilder, Client, EmbedBuilder, Message, 
-    ButtonBuilder, TextChannel, EmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, APIEmbedField,
+    CommandInteraction, Client, EmbedBuilder, 
+    TextChannel, EmbedField, ChatInputCommandInteraction, 
+    SlashCommandBuilder, PermissionFlagsBits, APIEmbedField,
     MessageFlags, 
 } from "discord.js";
 import { customEmojis } from "../types/util.js";
 import { DiscordInteraction } from '../types/DiscordTypes.js';
 import { getUserByDiscordId, getServer } from '../api/bot-db.js';
-import Fuse, { type IFuseOptions } from 'fuse.js';
 import { gameArt, KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util.js";
 import { ICollectionsFilter } from "../types/GQLTypes.js";
 import { BotServer } from "../types/servers.js";
@@ -18,24 +17,12 @@ import { IUser } from "../api/queries/v2-finduser.js";
 import { IModResults } from "../api/queries/v2-mods.js";
 import { IGameStatic } from "../api/queries/other.js";
 import { NEXUS_ORANGE, apiLinkFooter, botIconUrl } from '../lib/embeds.js';
-import { awaitButtonChoice } from '../lib/collectors.js';
+import { presentChoices } from '../lib/collectors.js';
+import { resolveGameFilter, searchGamesByName } from '../lib/gameFilter.js';
 
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
-const options: IFuseOptions<any> = {
-    shouldSort: true,
-    findAllMatches: true,
-    threshold: 0.4,
-    location: 0,
-    distance: 7,
-    minMatchCharLength: 6,
-    keys: [
-        {name: "name", weight: 0.1},
-        {name: "id", weight: 0.6},
-        {name: "domain_name", weight: 0.3}
-    ]
-}
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -167,23 +154,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     logger.debug('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
-    let gameIdFilter: number = parseInt(server?.game_filter ?? '0') || 0;
-
-    if (gameQuery !== '' && allGames.length) {
-        // logMessage('Searching for game in mod search', gameQuery);
-        // Override the default server game filter. 
-        const fuse = new Fuse(allGames, options);
-
-        const results: IGameStatic[] = fuse.search(gameQuery).map(r => r.item);
-        if (results.length) {
-            // logMessage('Found game in mod search', results[0].name);
-            const closestMatch = results[0];
-            gameIdFilter = closestMatch.id;
-        }
-    }
-
-
-    const filterGame: IGameStatic|undefined = allGames.find(g => g.id === gameIdFilter);
+    const { filterGame } = resolveGameFilter(gameQuery, server, allGames);
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
     try {
@@ -217,17 +188,6 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             // Multiple results
             const choices = results.nodes?.slice(0,5) || [];
 
-            // Buttons for the search options
-            const buttons = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents( 
-                choices.map(
-                    (c, idx) => new ButtonBuilder()
-                    .setLabel(numberEmoji[idx])
-                    .setCustomId(c.slug)
-                    .setStyle(ButtonStyle.Primary)
-                )
-            );
-
             const createCollectionField = (c: ICollection, idx: number): APIEmbedField => {
                 return {
                     name: `${numberEmoji[idx]} - ${c.name}`,
@@ -248,22 +208,25 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             )
             .addFields(choices.map(createCollectionField));
             
-            // Post the result
-            const reply: Message = await interaction.editReply({ embeds: [multiResult], components: [buttons] }) as Message;
-            const chosen = await awaitButtonChoice({ message: reply, userId: interaction.user.id, interaction, logger });
-            if (!chosen) return;
-            const found: Partial<ICollection> | undefined = choices.find(c => c.slug === chosen);
-            if (!found) {
-                await interaction.editReply({ content: 'Search failed!', embeds: [], components: [] });
+            const found = await presentChoices({
+                interaction, embed: multiResult, items: choices, logger,
+                customId: (c) => c.slug,
+                label: (_c, idx) => numberEmoji[idx],
+            });
+            if (!found) return;
+
+            const collection = await user.NexusMods.API.v2.Collection(found.slug, found.game?.domainName ?? '', true).catch(() => undefined);
+            if (!collection) {
+                await interaction.editReply({ content: 'Could not load that collection.', embeds: [], components: [] });
                 return;
             }
-            const collection = await user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName ?? '', true).catch(() => undefined);
-            await postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
+            await postResult(interaction, collectionEmbed(client, collection, nsfw), ephemeral, logger);
         }
     }
     catch(err) {
+        // Was replying with the raw error message, which can contain anything.
         logger.warn('Failed collection search', err);
-        await interaction.editReply({ content: 'Error!'+((err as Error).message|| err) })
+        await interaction.editReply({ content: 'Search failed!', embeds: [], components: [] });
     }
 }
 
@@ -271,23 +234,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     logger.debug('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
-    let gameIdFilter: number = parseInt(server?.game_filter || '0') || 0;
-
-    if (!['', undefined, null].includes(gameQuery) && allGames.length) {
-        // logMessage('Searching for game in mod search', gameQuery);
-        // Override the default server game filter. 
-        const fuse = new Fuse(allGames, options);
-
-        const results: IGameStatic[] = fuse.search(gameQuery).map(r => r.item);
-        if (results.length) {
-            // logMessage('Found game in mod search', results[0].name);
-            const closestMatch = results[0];
-            gameIdFilter = closestMatch.id;
-        }
-    }
-
-
-    const filterGame: IGameStatic|undefined = allGames.find(g => g.id === gameIdFilter);
+    const { gameIdFilter, filterGame } = resolveGameFilter(gameQuery, server, allGames);
 
     // Need to escape brackets as this breaks Markdown on mobile
     const safeSearchURL = (input?: string) => input ? input.replace(/[()]/g, (c) => `%${c.charCodeAt(0).toString(16)}`): undefined;
@@ -323,16 +270,6 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             const fields: IModFieldResult[] = top5.map(
                 (mod, idx) => ({ id: numberEmoji[idx], mod, game: allGames.find(g => g.domain_name === mod.game.domainName) })
             );
-            // Create the button row.
-            const buttons = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                top5.map((r, idx) => {
-                    return  new ButtonBuilder()
-                    .setCustomId(r.modId.toString())
-                    .setLabel(numberEmoji[idx])
-                    .setStyle(ButtonStyle.Primary)
-                })
-            );
             const multiResult = new EmbedBuilder()
             .setTitle('Search Results')
             .setColor(NEXUS_ORANGE)
@@ -345,18 +282,14 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             .addFields(fields.map(createModResultField))
             if (!user) multiResult.addFields({ name: 'Get better results', value: 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.'});
 
-            // Post the result
-            const reply: Message = await interaction.editReply({ embeds: [multiResult], components: [buttons] }) as Message;
-            const chosen = await awaitButtonChoice({ message: reply, userId: interaction.user.id, interaction, logger });
-            if (!chosen) return;
-            const found: IModFieldResult | undefined = fields.find(f => f.mod.modId.toString() === chosen);
-            if (!found?.mod) {
-                await interaction.editReply({ content: 'Search failed!', embeds: [], components: [] });
-                return;
-            }
+            const found = await presentChoices({
+                interaction, embed: multiResult, items: fields, logger,
+                customId: (f) => f.mod.modId.toString(),
+                label: (_f, idx) => numberEmoji[idx],
+            });
+            if (!found) return;
+
             await postResult(interaction, singleModEmbed(client, found.mod, found.game), ephemeral, logger);
-
-
         }
     }
     catch(err) {
@@ -372,9 +305,7 @@ async function searchGames(query: string, ephemeral:boolean, client: Client, int
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', flags: MessageFlags.Ephemeral });
 
     const allGames = await user.NexusMods.API.Other.Games().catch(() => []);
-    const fuse = new Fuse(allGames, options);
-
-    const results: IGameStatic[] = fuse.search(query).map(r => r.item);
+    const results: IGameStatic[] = searchGamesByName(query, allGames);
     if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral, logger);
     else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral, logger);
     else return postResult(interaction, multiGameResult(client, results, query), ephemeral, logger);
