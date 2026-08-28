@@ -23,7 +23,6 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
-const cmPool = new Pool({...poolConfig, database: process.env.CM_DATABASE});
 
 const automodPool = new Pool({...poolConfig, database: process.env.AUTOMOD_DATABASE});
 
@@ -44,29 +43,6 @@ export async function queryPromise<T extends QueryResultRow>(query: string, valu
         if (!client) logger.error('Error acquiring client', { query, err: (err as Error).message });
         // values are deliberately not logged: for the users table they contain OAuth tokens.
         else logger.error('Error in query', { query, valueCount: values?.length ?? 0, err });
-        throw handleDatabaseError(err);
-    }
-    finally {
-        client?.release()
-    }
-}
-
-export async function queryCommunityMap<T extends QueryResultRow>(query: string, values?: any[], name?: string): Promise<QueryResult<T>> {
-    let client: PoolClient | undefined = undefined;
-    
-    try {
-        client = await cmPool.connect();
-        const result = await client.query<T>({
-            text: query,
-            values,
-            name,            
-        });
-        return result;
-        
-    }
-    catch(err) {
-        if (!client) logger.error('Error acquiring CM client', { query, err: (err as Error).message });
-        else logger.error('Error in CM query', { query, valueCount: values?.length ?? 0, err });
         throw handleDatabaseError(err);
     }
     finally {

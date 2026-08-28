@@ -4,7 +4,6 @@ import {
 } from "discord.js";
 import { NewsFeedManager } from "../feeds/NewsFeedManager";
 import { GameListCache, TipCache } from "./util";
-import { AutoModManager } from "../feeds/AutoModManager";
 import { SubscriptionManger } from "../feeds/SubscriptionManager";
 import { Logger } from "../api/util";
 
@@ -13,7 +12,6 @@ interface ClientExt extends Client {
     commands?: Collection<any, any>;
     interactions?: Collection<any, any>;
     newsFeed?: NewsFeedManager;
-    automod?: AutoModManager;
     subscriptions?: SubscriptionManger;
     updateInteractions?: (force?: boolean) => Promise<void>
     gamesList?: GameListCache;

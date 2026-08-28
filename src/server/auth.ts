@@ -32,7 +32,7 @@ export function checkSharedSecret(req: express.Request, envVar: string): boolean
  * Checked at boot so a missing value is loud rather than silent.
  */
 export const REQUIRED_SECRETS = ['COOKIE_SECRET', 'UNLINK_SECRET'];
-export const OPTIONAL_SECRETS = ['AUTOMOD_AUTHCODE', 'CM_AUTHCODE', 'ADMIN_AUTHCODE'];
+export const OPTIONAL_SECRETS = ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE'];
 
 /**
  * Standard options for any cookie this site sets.

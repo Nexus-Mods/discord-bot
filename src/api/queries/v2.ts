@@ -196,3 +196,35 @@ export enum ModFileCategory {
     Removed = 'REMOVED',
     Archived = 'ARCHIVED'
 }
+
+/**
+ * Result shape for the latestMods and updatedMods queries. These select a wider
+ * field set than IMod (uploader details, mirrors) because they were originally
+ * written for the automod feed.
+ */
+export interface IModForAutomod {
+    uid: string;
+    name: string;
+    summary: string;
+    adult: boolean;
+    game: {
+        domainName: string;
+        name: string;
+        id: number;
+    }
+    modId: number,
+    createdAt: string;
+    updatedAt: string;
+    description: string;
+    uploader: {
+        name: string;
+        memberId: number;
+        joined: string;
+        modCount: number;
+    }
+    pictureUrl: string;
+    mirrors?: {
+        name: string;
+        uri: string;
+    }[] | null;
+}

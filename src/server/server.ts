@@ -12,7 +12,6 @@ import { getSubscribedChannelsForGuild } from '../api/subscriptions';
 import { fileURLToPath } from 'url';
 import { SubscribedItem, SubscribedItemType } from '../types/subscriptions';
 import forumWebhook from './forumWebhook';
-import { communityMap, controversies } from './CommunityMap';
 import { automodRules } from './AutomodRules';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -53,7 +52,7 @@ export class AuthSite {
         if (!process.env.UNLINK_SECRET) {
             throw new Error('UNLINK_SECRET is not set. Unlink links are signed with it, so the site cannot start.');
         }
-        for (const name of ['AUTOMOD_AUTHCODE', 'CM_AUTHCODE', 'ADMIN_AUTHCODE']) {
+        for (const name of ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE']) {
             if (!process.env[name]) this.logger.warn(`${name} is not set - the endpoints it guards will reject every request.`);
         }
 
@@ -126,11 +125,7 @@ export class AuthSite {
 
         this.app.get('/timestamp', this.timestempPage.bind(this));
 
-        this.app.all('/communitymap', communityMap);
-
         this.app.all('/automod', express.json(), (req, res) => automodRules(req, res, this.logger));
-
-        this.app.all('/communitymap/controversies', controversies);
 
         // this.app.get('*', (req, res) => res.redirect('/'));
 
