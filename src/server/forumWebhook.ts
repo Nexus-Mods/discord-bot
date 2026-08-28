@@ -40,7 +40,7 @@ export default async function forumWebhook(req: express.Request, res: express.Re
             try {
                 await postToDiscord(webhookMessage, logger);
             }
-            catch(err) {
+            catch(_err) {
                 return;
             }
             
@@ -83,7 +83,7 @@ export default async function forumWebhook(req: express.Request, res: express.Re
             try {
                 await postToDiscord(webhookMessage, logger);
             }
-            catch(err) {
+            catch(_err) {
                 return;
             }
             

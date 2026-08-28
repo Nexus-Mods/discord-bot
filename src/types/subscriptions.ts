@@ -288,7 +288,7 @@ export class SubscriptionCache implements ISubscriptionCache {
     public add(type: 'collections', content: ICollection[], key: string) : void;
     public add(type: 'users', content: any, key: string) : void;
     public add(type: keyof ISubscriptionCache, content: any, key: string, updated:boolean = false) {
-        if (type == 'games') {
+        if (type === 'games') {
             if (updated) this[type].updated[key] = content;
             else this[type].new[key] = content;
         }

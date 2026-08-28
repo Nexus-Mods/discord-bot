@@ -15,7 +15,7 @@ import forumWebhook from './forumWebhook.js';
 import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { checkSharedSecret, cookieOptions, safeCompare, signValue, verifyValue } from './auth.js';
+import { checkSharedSecret, cookieOptions, safeCompare, verifyValue } from './auth.js';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -545,7 +545,7 @@ export class AuthSite {
         let ukTime = 'Invalid date';
         try {
             ukTime = new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: 'Europe/London' }).format(date);
-        } catch (e) {
+        } catch (_e) {
             // Intl may throw in unusual runtimes; fall back to ISO
             ukTime = iso;
         }

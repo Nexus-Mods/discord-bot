@@ -102,3 +102,4 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
 
 }
+export { discordInteraction };
