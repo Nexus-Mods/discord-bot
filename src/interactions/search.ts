@@ -258,12 +258,12 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
                 return;
             }
             const collection = await user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName ?? '', true).catch(() => undefined);
-            postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
+            await postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
         }
     }
     catch(err) {
         logger.warn('Failed collection search', err);
-        interaction.editReply({ content: 'Error!'+((err as Error).message|| err) })
+        await interaction.editReply({ content: 'Error!'+((err as Error).message|| err) })
     }
 }
 
@@ -315,7 +315,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             // const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( res.game_name, res.mod_id ))?.[0] : undefined;
             const gameForMod: IGameStatic|undefined = filterGame || allGames.find(g => g.domain_name === mod.game.domainName);
             const singleResult = singleModEmbed(client, mod, gameForMod);
-            postResult(interaction, singleResult, ephemeral, logger);
+            await postResult(interaction, singleResult, ephemeral, logger);
         }
         else {
             // Multiple results
@@ -354,7 +354,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
                 await interaction.editReply({ content: 'Search failed!', embeds: [], components: [] });
                 return;
             }
-            postResult(interaction, singleModEmbed(client, found.mod, found.game), ephemeral, logger);
+            await postResult(interaction, singleModEmbed(client, found.mod, found.game), ephemeral, logger);
 
 
         }
@@ -599,23 +599,22 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
 async function postResult(interaction: ChatInputCommandInteraction, embed: EmbedBuilder, ephemeral: boolean, logger: Logger) {
     const editReply: boolean = (interaction.deferred || interaction.replied)// ? interaction.editReply : interaction.reply;
 
+    // Each of these .catch callbacks used to return a floating promise of its own,
+    // so an error while reporting an error was itself unhandled.
+    const report = (e: unknown) => sendUnexpectedError(interaction, interaction, e as Error, logger);
+
     if (ephemeral) {
-        if (editReply) return interaction.editReply({content: undefined, embeds: [embed]})
-            .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
-        else return interaction.reply({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
+        if (editReply) return await interaction.editReply({content: undefined, embeds: [embed]}).catch(report);
+        else return await interaction.reply({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral}).catch(report);
     }
 
-    if (editReply) interaction.editReply({ content: 'Search result posted!', embeds:[], components: []})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
-    else interaction.reply({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
-    .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
+    if (editReply) await interaction.editReply({ content: 'Search result posted!', embeds:[], components: []}).catch(report);
+    else await interaction.reply({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral}).catch(report);
 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return interaction.followUp({content: '', embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
+    return await interaction.followUp({content: '', embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined}).catch(report);
 }
 
 export { discordInteraction };

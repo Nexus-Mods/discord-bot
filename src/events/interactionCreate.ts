@@ -31,7 +31,8 @@ const main: DiscordEventInterface = {
                 channelName: (interaction.channel as GuildChannel)?.name,
             }
             );
-            return interact.action(client, interaction, logger).catch(err => {sendUnexpectedError(interaction, (interaction as CommandInteraction), err, logger)});
+            return interact.action(client, interaction, logger)
+                .catch(async (err) => sendUnexpectedError(interaction, interaction as CommandInteraction, err, logger));
         }
     }
 }

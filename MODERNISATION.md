@@ -25,7 +25,6 @@ for what has to be configured before this release goes out.
 |---|---|
 | **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
 | **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
-| 38 `no-floating-promises` / `no-misused-promises` warnings | Phase 2. `npm run lint:strict` promotes them to errors, so the count can be tracked to zero. |
 | Query modules still return `[]` on failure | The ~18 v2 query files swallow errors and return an empty result, so callers cannot tell "no results" from "the API is down". Fixing this changes feed behaviour (a transient API error would propagate instead of being a silent no-op cycle), so it belongs with the Phase 3 data-layer contract work rather than being slipped into 1.3. |
 
 **Nothing here has been run against a live Discord gateway or database.** The HTTP
@@ -230,9 +229,8 @@ compile them into `dist/`.
 ## Phase 2 — Simplify the bot core (2–3 weeks)
 
 **Starting position after 4.0.0:** the async problems in this phase now have a number.
-`npm run lint:strict` reports **38** `no-floating-promises` / `no-misused-promises`
-findings; clearing them to zero and flipping the rules to `error` is the measurable exit
-criterion for 2.4. The `/automod` command and `AutoModManager` referenced below no longer
+~~38 `no-floating-promises` / `no-misused-promises` findings~~ — **cleared, and both rules
+are `error` now**, so CI will not let another in. The `/automod` command and `AutoModManager` referenced below no longer
 exist, so the duplication figures for this phase are smaller than the audit's.
 
 ### 2.1 A real command contract

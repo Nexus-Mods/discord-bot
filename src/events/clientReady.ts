@@ -15,7 +15,10 @@ const main: DiscordEventInterface = {
     name: 'clientReady',
     once: true,
     async execute(client: ClientExt, logger: Logger) {
-        if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
+        if (client.user?.username !== "Nexus Mods") {
+            await client.user?.setUsername("Nexus Mods")
+                .catch((err) => logger.warn('Could not set the bot username', err));
+        }
 
         // Pre-cache games list
         try {

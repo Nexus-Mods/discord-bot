@@ -16,6 +16,7 @@ import { autocompleteGameName } from "../api/util.js";
 import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions.js";
 import { ConditionType } from "../types/util.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
+import { voidAsync } from '../lib/async.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -308,7 +309,7 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
     // throw new Error('Not implemented');
     const collector = (await interaction.fetchReply()).createMessageComponentCollector({ max: conditionWithEmoji.length, time: 60_000, componentType: ComponentType.Button });
     collector.on('end', () => logger.debug('Collector ended'))
-    collector.on('collect', async (i: ButtonInteraction) => {
+    collector.on('collect', voidAsync(logger, 'role condition button', async (i: ButtonInteraction) => {
         await i.deferUpdate();
         const selection = i.customId;
         const conditionToRemove = conditionWithEmoji.find(c => c.emoji === selection);
@@ -323,7 +324,7 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
         catch(err) {
             logger.warn('Error removing condition', err);
         }
-    })
+    }));
 
 }
 

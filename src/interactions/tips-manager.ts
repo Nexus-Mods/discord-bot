@@ -16,6 +16,7 @@ import { addTip, getAllTips, editTip } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
 import { deleteTip, ITip, setApprovedTip } from "../api/tips.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
+import { voidAsync } from '../lib/async.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -139,7 +140,7 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
 
     const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
-    collector.on('collect', async (i: ButtonInteraction) => {
+    collector.on('collect', voidAsync(logger, 'tip confirmation button', async (i: ButtonInteraction) => {
         collector.stop(); 
         if (i.customId === 'confirm') {
             try {
@@ -151,7 +152,7 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
                 await message.edit({ content: 'Failed to insert new tip: '+(err as Error).message })
             }
         };
-    })
+    }));
     collector.on('end', () => { message.edit({ components: [] }).catch(e => logger.warn('Error ending collector', e)) });
 }
 
@@ -189,7 +190,7 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
     
     const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
-    collector.on('collect', async (i: ButtonInteraction) => {
+    collector.on('collect', voidAsync(logger, 'tip confirmation button', async (i: ButtonInteraction) => {
         collector.stop(); 
         if (i.customId === 'confirm') {
             try {
@@ -201,7 +202,7 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
                 await message.edit({ content: 'Failed to update tip: '+(err as Error).message })
             }
         };
-    })
+    }));
     collector.on('end', () => { message.edit({ components: [] }).catch(e => logger.warn('Error ending collector', e)) });
 }
 
@@ -237,7 +238,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
 
         const collectPromise = new Promise((resolve, reject) => {
 
-            collector.once('collect', async (i: ButtonInteraction) => { 
+            collector.once('collect', voidAsync(logger, 'tip approval button', async (i: ButtonInteraction) => { 
                 logger.debug('Button press', { customId: i.customId });
                 try {
                     await i.deferUpdate();
@@ -251,7 +252,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
                 catch(err) {
                     logger.warn('Error with ButtonInteraction', err);
                 }
-            });
+            }));
         });
 
         try {

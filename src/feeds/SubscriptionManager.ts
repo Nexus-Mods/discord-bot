@@ -18,6 +18,7 @@ import {
 } from '../api/subscriptions.js';
 import { v2 as API } from '../api/queries/all.js';
 import { baseheader } from "../api/util.js";
+import { voidAsync } from '../lib/async.js';
 
 
 export class SubscriptionManger {
@@ -56,14 +57,10 @@ export class SubscriptionManger {
             return this;
         }       
         this.pollTime = pollTime;
-        this.updateTimer = setInterval(async () => {
-            try {
-                await this.updateSubscriptions();
-            }
-            catch(err){
-                this.logger.error('Failed to run subscription event', err);
-            }
-        }, pollTime)
+        this.updateTimer = setInterval(
+            voidAsync(this.logger, 'subscription poll', () => this.updateSubscriptions()),
+            pollTime,
+        );
         // Trigger an update 1 minute after booting up. This lets the other shards spin up.
         setTimeout(() => {
             this.updateSubscriptions().catch(err => this.logger.error('Failed initial subscription update', err));
@@ -113,14 +110,10 @@ export class SubscriptionManger {
     public resume() {
         if (this.updateTimer) clearInterval(this.updateTimer);
         this.paused = false;
-        this.updateTimer = setInterval(async () => {
-            try {
-                await this.updateSubscriptions();
-            }
-            catch(err){
-                this.logger.error('Failed to run subscription event', err);
-            }
-        }, this.pollTime)
+        this.updateTimer = setInterval(
+            voidAsync(this.logger, 'subscription poll', () => this.updateSubscriptions()),
+            this.pollTime,
+        );
         this.logger.info('Subscription Manager resumed');
     }
 
@@ -198,7 +191,8 @@ export class SubscriptionManger {
         if (this.client.shard && this.client.shard.ids[0] === 0) {
             try {
                 await this.client.shard.broadcastEval((client: ClientExt, context) => {
-                    if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions();
+                    // Runs inside another shard's process, so nothing here can await it.
+                    if (client.shard?.ids[0] !== context.mainId) void client.subscriptions?.updateSubscriptions();
                 }, { context: { mainId: this.client.shard.ids[0] } })
             }
             catch(err) {

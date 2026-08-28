@@ -1,6 +1,7 @@
 import { AxiosError } from 'axios';
 import { other } from "../api/queries/all.js";
 import { Logger } from "../api/util.js";
+import { logger } from "../api/logger.js";
 import { IGameStatic } from "../api/queries/other.js";
 import { getAllTips, ITip } from "../api/tips.js";
 
@@ -140,11 +141,13 @@ export class TipCache {
     private nextUpdate: number = new Date().getTime() + 10000;
 
     constructor() {
+        // Constructor cannot await; without a catch this was an unhandled rejection.
         getAllTips()
         .then( t =>  {
             this.tips = t;
             this.setNextUpdate();
-        });
+        })
+        .catch((err) => logger.warn('Could not pre-load the tip cache', err));
     }
 
     private setNextUpdate(): void {

@@ -35,15 +35,15 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
     try {
         userData = discordId ? await getUserByDiscordId(discordId) : undefined;
-        if (!userData) interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
+        if (!userData) await interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
         else {
             const card: EmbedBuilder = await userData.ProfileEmbed(client);
-            interaction.followUp({ embeds: [card] });
+            await interaction.followUp({ embeds: [card] });
         }
     }
     catch(err) {
         logger.warn('Error checking if user exists in DB when linking', err);
-        interaction.followUp('An error occurred fetching your account details.');
+        await interaction.followUp('An error occurred fetching your account details.');
     }
 
 }

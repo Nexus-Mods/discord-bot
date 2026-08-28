@@ -54,12 +54,12 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     const userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
     if (!userData) {
-        interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', flags: MessageFlags.Ephemeral});
+        await interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', flags: MessageFlags.Ephemeral});
         return;
     }
 
     if (!nexus && !user) {
-        interaction.followUp({ content: 'You must provide a Discord user or Nexus Mods username.', flags: MessageFlags.Ephemeral});
+        await interaction.followUp({ content: 'You must provide a Discord user or Nexus Mods username.', flags: MessageFlags.Ephemeral});
         return;
     }
 

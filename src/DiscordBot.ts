@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import path from 'path';
 import { isTesting } from './api/util.js';
 import { logger, Logger } from './api/logger.js';
+import { voidAsync, fireAndForget } from './lib/async.js';
 import { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes.js';
 import { GameListCache } from './types/util.js';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -58,8 +59,9 @@ export class DiscordBot {
             testing: isTesting, 
             ownerIDs: process.env.OWNER_IDS?.split(',') || [] 
         };
-        this.client.application?.fetch();
-        this.setEventHandler();
+        // A constructor cannot await, so both of these were unhandled rejections.
+        fireAndForget(Promise.resolve(this.client.application?.fetch()), logger, 'fetching the application');
+        fireAndForget(this.setEventHandler(), logger, 'registering event handlers');
     }
 
     public async connect(): Promise<void> {
@@ -104,8 +106,10 @@ export class DiscordBot {
                     const event: DiscordEventInterface = (await import(eventPath)).default;
                     const eventName: string = file.split(".")[0];
                     if (!event.execute) return;
-                    if (event.once) this.client.once(eventName, (...args) => event.execute(this.client, logger, ...args));
-                    else this.client.on(eventName, (...args) => event.execute(this.client, logger, ...args));
+                    const handler = voidAsync(logger, `event ${eventName}`, async (...args: unknown[]) =>
+                        event.execute(this.client, logger, ...args));
+                    if (event.once) this.client.once(eventName, handler);
+                    else this.client.on(eventName, handler);
                 }
                 catch(err) {
                     logger.warn('Failed to register event '+ file, err);

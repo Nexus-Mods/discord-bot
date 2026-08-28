@@ -6,6 +6,7 @@ import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
 import { IGameStatic } from '../api/queries/other.js';
 import { v2 } from '../api/queries/all.js';
 import { NEXUS_ORANGE } from '../lib/embeds.js';
+import { voidAsync } from '../lib/async.js';
 
 const pollTime = (1000*60*30)*1; //30 mins
 
@@ -65,15 +66,10 @@ export class NewsFeedManager {
         }
         
         // Set the update interval.
-        this.updateTimer = setInterval(async () => {
-            try {
-                // this.checkNews()
-                await this.postLatestNews();
-            }
-            catch(err) {
-                this.logger.warn('Failed to check for latest news updates', err);
-            }
-        }, pollTime);
+        this.updateTimer = setInterval(
+            voidAsync(this.logger, 'news feed poll', () => this.postLatestNews()),
+            pollTime,
+        );
         logger.info('Initialised news feed, checking every 30mins.')
     }
 
@@ -149,7 +145,10 @@ export class NewsFeedManager {
 
     async forceUpdate(domain?: string): Promise<EmbedBuilder> {
         clearInterval(NewsFeedManager.instance.updateTimer);
-        NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.postLatestNews(), pollTime);
+        NewsFeedManager.instance.updateTimer = setInterval(
+            voidAsync(this.logger, 'news feed poll', () => NewsFeedManager.instance.postLatestNews()),
+            pollTime,
+        );
         // NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
         this.logger.info('Forced news feed update check', domain || 'all');
         // return NewsFeedManager.instance.checkNews(domain);

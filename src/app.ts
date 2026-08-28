@@ -4,7 +4,10 @@ import { DiscordBot } from './DiscordBot.js';
 import { AuthSite } from './server/server.js';
 
 const bot = DiscordBot.getInstance();
-start();
+start().catch((err) => {
+    bot.logger.error('Fatal error during startup', err);
+    process.exit(1);
+});
 
 async function start() {
     // Log the shard ID (if running in a shard)
