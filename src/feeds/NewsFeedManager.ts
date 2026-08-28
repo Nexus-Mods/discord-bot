@@ -1,5 +1,5 @@
 import { News, SavedNewsData } from '../types/feeds.js';
-import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db.js';
+import { updateSavedNews, getSavedNews } from '../api/bot-db.js';
 import { ClientExt } from "../types/DiscordTypes.js";
 import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'discord.js';
 import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
@@ -34,7 +34,6 @@ export class NewsFeedManager {
             let saved = undefined;
             if (!client.shard || NewsFeedManager.isInstanceForShard(client)) {
                 try {
-                    await ensureNewsDB(logger);
                     saved = await getSavedNews(logger);
                 }
                 catch(err) {

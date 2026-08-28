@@ -8,6 +8,9 @@ import { cp } from 'node:fs/promises';
 const assets = [
     ['src/server/views', 'dist/server/views'],
     ['src/server/public', 'dist/server/public'],
+    // The runtime Docker image only copies dist/, so the migration SQL has to
+    // live inside it or the bot starts with no migrations to apply.
+    ['drizzle', 'dist/drizzle'],
 ];
 
 for (const [from, to] of assets) {

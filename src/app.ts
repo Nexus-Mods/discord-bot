@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { DiscordBot } from './DiscordBot.js';
 import { AuthSite } from './server/server.js';
+import { runMigrations } from './db/migrate.js';
 
 const bot = DiscordBot.getInstance();
 start().catch((err) => {
@@ -10,6 +11,21 @@ start().catch((err) => {
 });
 
 async function start() {
+    // app.js is both the shard child process and the standalone entry point for
+    // `npm start`. ShardingManager sets SHARDING_MANAGER in the children, and the
+    // manager has already migrated by the time it spawns them, so only migrate
+    // when this process was started on its own. The advisory lock inside
+    // runMigrations makes a double run safe rather than merely unlikely.
+    if (!process.env.SHARDING_MANAGER) {
+        try {
+            await runMigrations();
+        }
+        catch (err) {
+            bot.logger.error('Database migration failed, refusing to start', err);
+            process.exit(1);
+        }
+    }
+
     // Log the shard ID (if running in a shard)
     if (bot.client.shard) {
         const shardId = bot.client.shard.ids[0];

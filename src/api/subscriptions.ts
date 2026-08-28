@@ -267,53 +267,8 @@ async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel:
     }
 }
 
-// DEBUG
-
-async function ensureSubscriptionsDB() {
-    try {
-        await queryPromise(
-            `CREATE TABLE IF NOT EXISTS SubscribedChannels (
-                id integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 2147483647 CACHE 1 ),           -- ID of the channel subscription
-                guild_id VARCHAR(255) NOT NULL,        -- Guild ID (Snowflake as a string)
-                channel_id VARCHAR(255) NOT NULL,      -- Channel ID (Snowflake as a string)
-                webhook_id VARCHAR(255) NOT NULL,      -- Webhook ID (Snowflake as a string)
-                webhook_token VARCHAR(255) NOT NULL,   -- Webhook token (string)
-                last_update timestamp with time zone DEFAULT CURRENT_TIMESTAMP,         -- Last update date
-                created timestamp with time zone DEFAULT CURRENT_TIMESTAMP              -- Created date
-            );`,
-            []
-        )
-        await queryPromise(
-            `CREATE TABLE IF NOT EXISTS SubscribedItems (
-                id integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 0 MINVALUE 0 MAXVALUE 2147483647 CACHE 1 ),           -- ID of the item
-                parent INT NOT NULL,                   -- Parent ID
-                title VARCHAR(255) NOT NULL,           -- Title of the item
-                entityid VARCHAR(255) NOT NULL,        -- Entity ID (can be a string or number, storing as string)
-                owner VARCHAR(255) NOT NULL,           -- Owner (Snowflake is a string)
-                last_update timestamp with time zone DEFAULT CURRENT_TIMESTAMP,         -- Last update date
-                created timestamp with time zone DEFAULT CURRENT_TIMESTAMP,             -- Created date
-                crosspost BOOLEAN,            -- Whether it is crossposted
-                compact BOOLEAN,              -- Whether it is compact
-                message TEXT,                 -- Message associated with the item
-                error_count INT NOT NULL DEFAULT 0,              -- Error count
-                type VARCHAR(50) NOT NULL,             -- Type of item (Game, Mod, Collection, User)
-                config JSONB,
-                CONSTRAINT fk_parent FOREIGN KEY (parent) REFERENCES SubscribedChannels(id)
-            );
-            `,
-            []
-        )
-
-    }
-    catch(err) {
-        logger.error('Critial Error creating tables for subscriptions!', err);
-        throw new Error('Failed to create database tables for subscriptions')
-    }
-}
-
-
 export { 
-    ensureSubscriptionsDB, totalItemsInGuild, getSubscribedChannelsForGuild,
+    totalItemsInGuild, getSubscribedChannelsForGuild,
     getSubscribedChannels, getCountOfSubscriptions, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, getSubscriptionsByChannel, createSubscription,
     updateSubscription, saveLastUpdatedForSub, deleteSubscription,

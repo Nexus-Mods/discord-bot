@@ -34,24 +34,4 @@ async function updateSavedNews(logger: Logger, title: string, date: Date, id: nu
     }
 }
 
-async function ensureNewsDB(logger: Logger): Promise<void> {
-    try {
-        await queryPromise(
-            `CREATE TABLE IF NOT EXISTS public.news
-            (
-                title character varying COLLATE pg_catalog."default" NOT NULL,
-                date timestamp with time zone NOT NULL,
-                id integer NOT NULL
-            )
-            `,
-            []
-        );
-
-    }
-    catch(err) {
-        logger.error('Error creating news table', err, true);
-        throw err;
-    }
-}
-
-export { getSavedNews, updateSavedNews, ensureNewsDB };
+export { getSavedNews, updateSavedNews };

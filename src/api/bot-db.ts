@@ -7,7 +7,7 @@ import { getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsNam
 import { getAllServers, getServer, addServer, updateServer, deleteServer } from './servers.js';
 
 // NEWS MANAGEMENT FUNCTIONS
-import { getSavedNews, updateSavedNews, ensureNewsDB } from './news.js';
+import { getSavedNews, updateSavedNews } from './news.js';
 
 // AUTOMOD
 import { getAutomodRules, createAutomodRule, deleteAutomodRule, getBadFiles, addBadFile, deleteBadFile } from './automod.js';
@@ -21,7 +21,7 @@ import { getConditionsForRole, addConditionForRole, changeRoleForConditions, del
 export {
     getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsName, getUserByNexusModsId, createUser, deleteUser, updateUser, userEmbed, userProfileEmbed,
     getAllServers, getServer, addServer, updateServer, deleteServer,
-    getSavedNews, updateSavedNews, ensureNewsDB,
+    getSavedNews, updateSavedNews,
     getAutomodRules, createAutomodRule, deleteAutomodRule,
     getBadFiles, addBadFile, deleteBadFile,
     getAllTips, addTip, deleteTip, editTip, setApprovedTip,

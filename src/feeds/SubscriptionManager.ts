@@ -11,7 +11,7 @@ import {
     SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType 
 } from '../types/subscriptions.js';
 import { 
-    deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, 
+    deleteSubscribedChannel, deleteSubscription, 
     getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, 
     saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
     updateSubscription 
@@ -77,13 +77,7 @@ export class SubscriptionManger {
     }
 
     private static async initialiseInstance(client: ClientExt, pollTime: number, logger: Logger): Promise<void> {
-        // Set up any missing tables
         try {
-            if (!client.shard || client.shard?.ids[0] === 0) {
-                // Only hit the database if we're either not running sharded or we're on shard 0;
-                await ensureSubscriptionsDB();
-                
-            }
             let channels: SubscribedChannel[] = await getSubscribedChannels();
             if (client.shard) {
                 // If we're sharded, we'll filter out the channels we can't manage.

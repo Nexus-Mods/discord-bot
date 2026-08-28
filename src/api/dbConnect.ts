@@ -8,7 +8,7 @@ dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === undefined;
 
-const poolConfig: PoolConfig = {
+export const poolConfig: PoolConfig = {
     user: process.env.DBUSER,
     password: process.env.DBPASS || '',
     host: process.env.HOST,
