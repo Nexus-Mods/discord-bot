@@ -26,15 +26,6 @@ export type DiscordBotSearchCollectionsQueryVariables = Types.Exact<{
 
 export type DiscordBotSearchCollectionsQuery = { collectionsV2: { nodesCount: number, nodesFilter: string | null, nodes: Array<{ id: number, slug: string, name: string, summary: string, overallRating: string | null, overallRatingCount: number | null, endorsements: number, totalDownloads: number, firstPublishedAt: string | null, updatedAt: string, draftRevisionNumber: number | null, category: { name: string } | null, latestPublishedRevision: { adultContent: boolean, fileSize: string, modCount: number, revisionNumber: number, updatedAt: string } | null, game: { id: number, domainName: string, name: string }, user: { memberId: number, avatar: string, name: string }, tileImage: { url: string, altText: string | null, thumbnailUrl: string } | null }> } };
 
-export type DiscordBotGetTotalDownloadsForCollectionsQueryVariables = Types.Exact<{
-  filters?: Types.InputMaybe<Types.CollectionsSearchFilter>;
-  offset: Types.Scalars['Int']['input'];
-  sort?: Types.InputMaybe<Array<Types.CollectionsSearchSort> | Types.CollectionsSearchSort>;
-}>;
-
-
-export type DiscordBotGetTotalDownloadsForCollectionsQuery = { collectionsV2: { nodesCount: number, nodesFilter: string | null, nodes: Array<{ slug: string, name: string, totalDownloads: number, uniqueDownloads: number, game: { domainName: string, name: string } }> } };
-
 export type DiscordBotUserByIdQueryVariables = Types.Exact<{
   id: Types.Scalars['Int']['input'];
 }>;

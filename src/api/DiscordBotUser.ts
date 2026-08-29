@@ -134,9 +134,7 @@ export class DiscordBotUser {
                     async (filters: GQLTypes.ICollectionsFilter, sort?: GQLTypes.CollectionsSort, adultContent?: boolean) => 
                         v2.collections(this.headers(), this.logger, filters, sort, adultContent),
                 Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), this.logger, slug, domain, adult),
-                CollectionsByUser: async (userId: number) => v2.collections(this.headers(), this.logger, { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),
-                CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), this.logger, userId),
-                FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
+                CollectionsByUser: async (userId: number) => v2.collections(this.headers(), this.logger, { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),                FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
                 LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), this.logger, since, gameIds, sort),
                 News: async (gameId?: number) => v2.news(this.headers(), this.logger, gameId),
                 ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), this.logger, gameId, modId),
@@ -170,8 +168,8 @@ export class DiscordBotUser {
         let collectiondownloads = 0;
         try {
             const savedMeta = await this.Discord.GetRemoteMetaData();
-            const newTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
-            collectiondownloads = newTotals.uniqueDownloads ?? savedMeta?.metadata.collectiondownloads;
+            const user = await this.NexusMods.API.v2.FindUser(this.NexusModsId);
+            collectiondownloads = user?.uniqueCollectionDownloads ?? savedMeta?.metadata.collectiondownloads ?? 0;
         }
         catch(err) {
             this.logger.warn('Error getting Collection download totals', { name: this.NexusModsUsername, err });
