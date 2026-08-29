@@ -1,8 +1,11 @@
 # Nexus Mods Discord Bot — Modernisation & Simplification Plan
 
-**Status:** Phase 0 shipped in **3.17.0**. Phase 1, Phase 2 and Phase 3.1 are on the 4.0.0 branch. Phases 3.2–5 remain proposals.
-**Date:** 28 August 2026 (audited at `473db19`)
-**Scope:** `nexus-bot-typescript` — 89 TypeScript files, ~12,600 lines at time of audit.
+**Status:** Phase 0 shipped in **3.17.0**. Phases 1, 2, 3.1 and 3.2 are on the 4.0.0
+branch, unreleased. Phases 3.3–3.6, 4 and 5 remain proposals.
+**Date:** 29 August 2026 (last updated at `109419b`; originally audited at `473db19`)
+**Scope:** `nexus-bot-typescript` — 96 source files, ~12,400 lines, plus 14 test files,
+~1,000 lines. The source count is up on the audit's 89 because Phases 1–3 split several
+large files apart; the line count is slightly down despite that.
 
 ---
 
@@ -46,6 +49,15 @@ for what has to be configured before this release goes out.
 | **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
 | **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
 | Query modules still return `[]` on failure | The ~18 v2 query files swallow errors and return an empty result, so callers cannot tell "no results" from "the API is down". Fixing this changes feed behaviour (a transient API error would propagate instead of being a silent no-op cycle), so it belongs with the Phase 3 data-layer contract work rather than being slipped into 1.3. |
+
+**Production scale**, from `/about` on 29 August 2026 — these numbers change what some of
+the remaining work involves, so they are recorded rather than left in a chat log:
+
+| | Count | Why it matters |
+|---|---|---|
+| Servers | 2,418 | 82 short of Discord's 2,500-guild mandatory-sharding threshold. Settles Phase 5: sharding stays. |
+| Linked accounts | 36,879 | 3.4 rewrites four token columns on every one of these rows. That is a batched migration with a rollback plan, not an `UPDATE`. |
+| Subscribed items | 2,757 | The per-cycle feed workload 3.5 changes the failure behaviour of. |
 
 **Nothing here has been run against a live Discord gateway or database.** The HTTP
 middleware chain and the unlink signing were verified in isolation; the OAuth round
@@ -246,7 +258,7 @@ compile them into `dist/`.
 
 ---
 
-## Phase 2 — Simplify the bot core (2–3 weeks)
+## Phase 2 — Simplify the bot core — **shipped in 4.0.0**
 
 **Starting position after 4.0.0:** the async problems in this phase now have a number.
 ~~38 `no-floating-promises` / `no-misused-promises` findings~~ — **cleared, and both rules
@@ -354,7 +366,10 @@ a third copy of the same shape plus 36 lines of commented code),
 
 ---
 
-## Phase 3 — Data layer (2–3 weeks)
+## Phase 3 — Data layer — **3.1 and 3.2 shipped in 4.0.0**
+
+3.3, 3.4, 3.5 and 3.6 remain. 3.5 and 3.6 were not in the original plan; they were added
+after doing 3.2, which is where both problems became measurable.
 
 ### 3.1 Migrations — **done (4.0.0)**
 
@@ -416,7 +431,7 @@ the advisory lock and one of them fails without it.
   there are **two import graphs for the same functions**. Pick one.
 
 **Shipped.** All of the above except the query modules' `[]`-on-failure contract,
-which is deferred to 3.4 because it changes feed behaviour and deserves its own testing.
+which is deferred to 3.5 because it changes feed behaviour and deserves its own testing.
 
 Two things found while doing it:
 
@@ -430,14 +445,7 @@ Two things found while doing it:
   `DiscordBotUser.ts` import each other, and every `queries/v2-*.ts` imports
   `queries/all.ts` which imports them back. ESM tolerates cycles, but they resolve to
   `undefined` at module-init time, which is exactly the kind of bug that only appears
-  under a particular import order. See 3.5.
-
-### 3.5 Import cycles
-
-Not in the original plan; added after measuring. 140 remain. The likely fix is mostly
-mechanical - `import type` for type-only edges, and moving the `ClientExt` service types
-out of `DiscordTypes.ts` - but it needs its own pass and its own verification, because
-the failure mode it prevents is invisible until it isn't.
+  under a particular import order. See 3.6.
 
 **A note on ORMs:** the SQL here is simple and mostly parameterised. Drizzle would give you
 typed rows and migrations from one tool, which is attractive. Kysely gives typed SQL with
@@ -481,6 +489,13 @@ Then consolidate the query files:
 
 ### 3.4 Auth tokens
 
+**Scale:** 36,879 linked accounts, four token columns each (`nexus_access`,
+`nexus_refresh`, `discord_access`, `discord_refresh`). Encrypting in place means reading
+and rewriting ~147,000 values. It needs batching, it needs to be resumable, and it needs
+a decision on what happens to a row that fails to decrypt afterwards — a user whose tokens
+are unreadable should be treated as unlinked and asked to re-link, not silently 500.
+
+
 - `NexusMods.Auth()` is called from only seven interactive paths. Every other call —
   **including the background feed managers** — goes through `headers()`
   (`DiscordBotUser.ts:92-105`), which reads `access_token` without checking `expires_at`.
@@ -498,6 +513,49 @@ Then consolidate the query files:
 - Encrypt tokens at rest (pgcrypto or app-level AES-GCM with a KMS key).
 
 ---
+
+### 3.5 Query modules: the `[]`-on-failure contract
+
+Deferred out of 3.2 deliberately, because it changes feed behaviour rather than internals.
+
+Seven of the twenty modules under `api/queries/` catch their errors and return `[]`, so a
+caller cannot tell "the API returned nothing" from "the API is down". For an interactive
+command that means a user is told there are no results when the truth is that Nexus Mods
+was unreachable. For a feed it is worse in a subtler way: a failed poll looks like a poll
+that found nothing, so the cycle is recorded as successful and the window moves on. Any
+mods published during an outage are skipped permanently, and nothing in the logs says so.
+
+The change is to let the error propagate and decide, per caller, what to do:
+
+- **Interactive commands** should say the API is unavailable, not "no results".
+- **Feeds** should abandon the cycle *without advancing `last_update`*, so the next poll
+  covers the same window. This is the part that needs care - it is the difference between
+  a missed article and a duplicated one, and the two failure modes want opposite handling.
+
+Needs a test per feed with a forced API failure, asserting the timestamp did not move.
+
+### 3.6 Import cycles
+
+Not in the original plan; added after measuring. **140 remain** (177 of the original 185
+were real at runtime rather than type-only; deleting the `bot-db.ts` barrel in 3.2 removed
+45 of them).
+
+The structural causes, in rough order of how many cycles each accounts for:
+
+- `types/DiscordTypes.ts` imports `feeds/NewsFeedManager.ts` and
+  `feeds/SubscriptionManager.ts` so that `ClientExt` can be typed. A types module pulling
+  in two implementations drags the whole graph into every file that wants a type.
+- `api/util.ts` and `api/DiscordBotUser.ts` import each other.
+- Every `api/queries/v2-*.ts` imports `api/queries/all.ts`, which imports all of them back.
+
+Most of this should fall to `import type` for the type-only edges plus moving the service
+types out of `DiscordTypes.ts` into their own module. ESM tolerates cycles, so nothing is
+visibly broken today - which is exactly the problem. A cycle resolves to `undefined` at
+module-init time, and this bot loads every interaction module by `readdir` and dynamic
+`import()`, so the resolution order is a function of filenames.
+
+Worth doing before Phase 4: if the schema and API client are going to be shared with a web
+app, they have to be extractable, and a cyclic graph is not.
 
 ## Phase 4 — The Next.js front-end (3–4 weeks)
 
@@ -591,8 +649,8 @@ behind a reverse proxy, and retire `server/` last. No big-bang cutover.
 
 ### 5.1 Does this bot need sharding?
 
-Probably not yet, and **the code half-admits it**. Almost every subsystem disables itself on
-non-zero shards:
+Yes — see the answer below. The code half-admits otherwise: almost every subsystem
+disables itself on non-zero shards:
 
 - `DiscordBot.ts:168` — only shard 0 registers commands.
 - `SubscriptionManager.ts:53-57` — non-zero shards get no timer.
@@ -607,10 +665,26 @@ Cross-shard communication is `broadcastEval` **string injection** in four places
 (`SubscriptionManager.ts:194-196, 217-233`, `NewsFeedManager.ts:83-87`, `about.ts:60`), with
 no message protocol — `handleForceUpdate` is a public method reachable only through an eval.
 
-**Recommendation:** confirm the current guild count. If under ~2,000, run a single process
-and delete `shards.ts` and every `if (client.shard)` branch — that removes three of the
-bugs above for free. If sharding is genuinely needed, replace `broadcastEval` with a typed
-IPC message protocol.
+**Answered, and the earlier recommendation is withdrawn.** Production reports **2,418
+servers**. Discord's limit is 2,500 guilds per shard, and an app in 2,500+ guilds *must*
+shard — a bad shard configuration past that point closes the gateway with code `4010`.
+That is **82 guilds** of headroom. Deleting `shards.ts` would buy a simpler codebase for
+a few weeks and then force the work to be redone under time pressure.
+
+So: **sharding stays.** What remains of this section is the part that was always worth
+doing regardless of the count — replacing `broadcastEval` string injection with a typed
+IPC message protocol. Four call sites (`SubscriptionManager.ts:194-196, 217-233`,
+`NewsFeedManager.ts:83-87`, `about.ts:60`) currently send JavaScript source as strings,
+with no protocol and no types; `handleForceUpdate` is a public method reachable only
+through an eval.
+
+The shard-0-only guards stay too, and they are load-bearing rather than vestigial: with
+`totalShards: 'auto'` Discord hands back roughly one shard per thousand guilds, so this
+bot is already running several processes in production. That is also why the migration
+advisory lock added in 3.1 matters — several shards do start at once.
+
+**Also in `shards.ts`:** `'Shard X died', true` (`:13`) still has a leftover argument.
+The version-gated migrations were removed in 3.1.
 
 Also in `shards.ts`: the version-gated migrations (dead), and `'Shard X died', true`
 (`:13`) with a leftover argument.
@@ -654,31 +728,62 @@ sleep papering over an ordering race.
 |---|---|---|---|
 | ~~0 — Security + crash bugs~~ | 3 days actual | Low | **shipped, 3.17.0** ✓ |
 | ~~1 — Build, logging, errors, tests, CI~~ | 1 week actual | Low | **shipped, 4.0.0** ✓ |
-| 2 — Command framework + dedupe | 2–3 weeks | Medium | Command by command |
-| 3 — Migrations, codegen, query layer | 2–3 weeks | Medium | Migrations first, then codegen |
+| ~~2 — Command framework + dedupe~~ | ~1 week actual | Medium | **on 4.0.0** ✓ |
+| ~~3.1 — Migrations~~ | 1 day actual | Medium | **on 4.0.0** ✓ |
+| ~~3.2 — Query layer~~ | 1 day actual | Medium | **on 4.0.0** ✓ |
+| 3.3 — GraphQL codegen | 3–5 days | Low | Query by query |
+| 3.4 — Auth token encryption (S9) | 2–3 days | **High** | One migration, not reversible in place |
+| 3.5 — Query error contract | 2–3 days | Medium | Changes feed behaviour |
+| 3.6 — Import cycles | 2–3 days | Low | Mechanical, but wide |
 | 4 — Next.js split | 3–4 weeks | Medium | Route group by route group |
-| 5 — Sharding decision + dead code | 1 week | Low | Any time — Phase 1 is done |
+| 5 — Sharding decision + dead code | 1 week | Low | Any time |
 
-Phases 2 and 3 can run in parallel with different people. Phase 4 depends on Phase 3's
-`packages/db`. Phase 5's dead-code sweep can happen any time and makes everything else
-smaller.
+**Remaining: roughly 5–7 weeks of one engineer**, down from 7–10 at the last revision.
+Phases 0–2 and 3.1–3.2 took about two and a half weeks against a 5.5–9 week estimate,
+so the remaining figures are probably still pessimistic — but 3.4 and Phase 4 are the two
+items with genuine unknowns in them, and they are what the estimate hangs on.
 
-**Remaining: roughly 7–10 weeks of one engineer.** Phases 0 and 1 took about a week and a
-half between them, against a 1.5–3 week estimate.
+**Order matters in three places.** 3.6 should come before Phase 4, because a shared
+`packages/db` cannot be extracted from a cyclic graph. 3.4 should not run at the same time
+as anything else touching `users`, since it rewrites every token column. 3.5 wants to land
+on its own, so that a change in feed behaviour can be attributed if something looks wrong
+after a deploy.
 
 ---
 
-## Three decisions needed before starting
+## Open decisions
 
 1. ~~**Is automod coming back?**~~ **Answered: no.** Superseded by an external app. The
    feed, the `/automod` slash command and `moderationWebhooks` were removed in 3.17.0; the
    `/automod` HTTP endpoint and the rules data layer stay.
-2. **What is the current guild count?** Still open. It determines whether sharding stays,
-   and that decision cascades into Phases 2, 4 and 5. Until it is answered, Phase 5 cannot
-   start and parts of Phase 2 have to keep the shard branches alive.
-3. **Monorepo or two repos?** Still open, and now the nearest blocker: Phase 4 assumes a
-   pnpm workspace so the bot and web app can share the schema and the Nexus API client.
-   Two repos means publishing those as packages, or duplicating them.
+2. ~~**What is the current guild count?**~~ **Answered: 2,418 servers.** That is 82 short
+   of the 2,500 at which Discord makes sharding mandatory, so sharding stays and the
+   shard-aware branches stay with it. Phase 5 shrinks to the `broadcastEval` protocol
+   work, which was worth doing either way. See 5.1.
+3. **Monorepo or two repos?** Still open, and the nearest blocker for Phase 4, which
+   assumes a workspace so the bot and web app can share the schema and the Nexus API
+   client. Two repos means publishing those as packages, or duplicating them. 3.6 is a
+   prerequisite either way.
+4. **What can the Invision forum send to `POST /webhook`?** (New.) S3 is the last
+   unresolved security finding and the only one still exploitable. The fix depends
+   entirely on what the sending side supports: a static shared-secret header, an HMAC
+   signature over the body, or a fixed source IP range. Any of the three is a short
+   change; picking one without knowing what Invision offers is not.
+5. **Where does the encryption key for 3.4 live?** (New.) Encrypting the OAuth tokens at
+   rest needs a key, and the key needs somewhere to live that is not the same database.
+   An env var is the cheap answer and is a real improvement over plaintext; a managed KMS
+   is the better one. This also decides whether key rotation is a feature or a redeploy.
+
+---
+
+## Operational note carried out of 3.2
+
+`AUTOMOD_DATABASE` was unset in the working `.env`. `pg` does not error on an undefined
+database name — it falls back to `PGDATABASE` and then to the *user name* — so the automod
+rules API was querying a database nobody had configured. The pool now refuses to be built
+without it. **The deployed environment needs checking**: if it is unset there too, the
+`/automod` endpoints will start returning errors instead of silently reading the wrong
+place. That is the intended outcome, but it should not be a surprise.
 
 ---
 
@@ -692,7 +797,7 @@ just the individual fixes.
 |---|---|---|
 | Copy-paste with an incomplete edit | B5 (`c.channel_id === c.channel_id`), `automod.ts:234` wrong error string, `queryAutoMod` logging "CM client", `trackUser`'s `currentGameSub` | Phase 2.2 / 3.2 dedupe |
 | Boolean logic inverted | S1, B4, B6, B18 | Phase 1.4 tests ✓ — the fail-closed and redaction cases now have regression tests that were verified to fail against the original bugs |
-| Un-awaited or unguarded async | B12, `SubscriptionManager.ts:68`, `setEventHandler` floating from the constructor | Phase 1.3 taxonomy ✓ + lint rule ✓ — the rule is on and reports 38 remaining warnings, cleared in Phase 2 |
+| Un-awaited or unguarded async | B12, `SubscriptionManager.ts:68`, `setEventHandler` floating from the constructor | Phase 1.3 taxonomy ✓ + lint rule ✓ — both rules are `error` and the 38 warnings are cleared |
 | Untyped boundary | B16 (`config: any`), B9 (undeclared GraphQL variable), `Collection<any,any>` | Phase 2.1 + 3.3 codegen |
 | No integration coverage | B7, B8, B10, B13 | Phase 1.4 ✓ for B8; B7, B10 and B13 still have no test, because they need a database or an HTTP fixture |
 
@@ -700,5 +805,6 @@ Adding `@typescript-eslint/no-floating-promises`, `no-misused-promises` and
 `no-self-compare` to `eslint.config.mjs` catches three of these five families
 **mechanically**. This was the cheapest single action in the document and it shipped in
 4.0.0 — the config had never run successfully before then, so nothing in this repository
-had ever been linted. The first working run found 173 problems; all 103 errors are fixed
-and the 38 async warnings that remain are the Phase 2 worklist.
+had ever been linted. The first working run found 173 problems; all 103 errors are fixed,
+the 38 async warnings were cleared in Phase 2, and both async rules are now `error`. What
+remains is 16 warnings, all of them unused declarations.
