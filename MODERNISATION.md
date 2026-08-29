@@ -45,14 +45,14 @@ carry them.
 | | Work | Why it is here | Blocked by |
 |---|---|---|---|
 | 1 | Deploy 4.0.0 | See above | — |
-| 2 | Re-measure CPU and memory with the container as the only bot | The 94.4% was a stale PM2 process, not the bot. Every sizing conclusion below rests on numbers taken while it was running. | Stopping PM2 (done) |
-| 3 | Droplet sizing, if still needed | Was called a hard blocker on a false premise | The re-measurement |
+| 2 | Measure free memory with the container as the only bot | CPU resolved to 1-2% once the stale instance was stopped. Memory is the one number Phase 4 still turns on. | Stopping PM2 (done) |
+| 3 | ~~Droplet sizing~~ | Withdrawn. CPU is 1-2%; only memory is open, and it may well already fit. | — |
 | 4 | **3.5** Query error contract | Highest user-visible correctness win left: feeds currently record a failed poll as a successful empty one | Nothing |
 | 5 | **3.3** GraphQL codegen | Self-contained, low risk, kills the untyped-boundary bug family | Nothing |
 | 6 | **3.4** OAuth token encryption | Highest risk item. ~147,000 values rewritten. | The key-storage decision |
 | 7 | **5.1** Replace `broadcastEval` string injection | Sharding is staying, so this is permanent debt | Nothing |
 | 8 | **5.2** Dead code sweep | Makes everything after it smaller | Nothing |
-| 9 | **Phase 4** Next.js front-end | The largest piece, and the one with the most unknowns | Re-measurement, repo decision |
+| 9 | **Phase 4** Next.js front-end | The largest piece, and the one with the most unknowns | The repo decision, and one memory reading |
 
 3.5 is placed ahead of 3.3 deliberately: it fixes a real defect users can hit, where 3.3
 improves how the code is written. 3.4 sits behind both because it is the only item that
@@ -163,15 +163,34 @@ could not be seen. The measurement that settled it took ten minutes.
 
 ### What this means for Phase 4
 
-**Unknown, pending re-measurement.** This document previously stated that Phase 4 had a
-hardware prerequisite because the droplet was at 94.4%. That figure was a stale process.
-At ~40% - with the container now doing all the work rather than sharing it - a Next.js
-process may well fit. Memory should also be re-measured: the 50% figure was taken while
-both instances were running.
+**The hardware blocker is withdrawn.** With the stale instance stopped the droplet settled
+at **1-2% CPU**. This document previously said Phase 4 could not happen on this box; that
+was based on a figure belonging to a process that is no longer running.
+
+CPU is no longer a constraint in any meaningful sense. The web layer here serves OAuth
+callbacks, tracking pages and a status page - it is not a CPU-bound workload, and 1 vCPU
+running at 1-2% has room for it.
+
+**Memory is the only remaining question**, and it is unanswered: the 80% and 50% readings
+were both taken while two bots were running. What matters on a 2 GB box:
+
+| | Rough cost | Note |
+|---|---|---|
+| Bot (manager + 3 shards) | measure it | The message cache cap in 5.3 already took a large bite out of this |
+| Next.js, running | 200-400 MB | A small production app |
+| Next.js, **building** | 1 GB+ | **Do not build on the droplet.** CI already builds and pushes images; keep it that way or a build will OOM the box |
+| Postgres | 200-400 MB | Only if it is on the droplet. PgBouncer suggests DigitalOcean's managed pool, in which case it is not - worth confirming |
+
+If the bot's real figure leaves roughly a gigabyte free, Phase 4 fits on the current
+droplet without an upgrade. If Postgres turns out to be local as well, it will be tight
+and an upgrade to 2 vCPU / 4 GB is the cheap answer.
+
+**The repo decision is the blocker again**, having been demoted behind hardware that
+turned out not to be in the way.
 
 Sharding still has to stay regardless (2,418 guilds against a 2,500-per-shard limit), but
-whether three shards on one core is the right shape is now an open question rather than a
-settled complaint.
+whether three shards is the right shape is now an open question rather than a complaint -
+at 1-2% there is no pressure either way.
 
 **Nothing here has been run against a live Discord gateway or database.** The HTTP
 middleware chain and the unlink signing were verified in isolation; the OAuth round
@@ -190,10 +209,10 @@ trip, the subscription feed and the news feed have not been exercised end to end
    of the 2,500 at which Discord makes sharding mandatory, so sharding stays and the
    shard-aware branches stay with it. Phase 5 shrinks to the `broadcastEval` protocol
    work, which was worth doing either way. See 5.1.
-3. **Monorepo or two repos?** Still open. This was previously marked as blocked behind a
-   droplet upgrade, on the basis of a 94.4% CPU figure that turned out to be a stale PM2
-   deployment rather than the bot. With that stopped the droplet is at ~40% and the
-   hardware question is genuinely open again. On the repo itself, which
+3. **Monorepo or two repos?** Open, and **the nearest blocker for Phase 4 again**. It was
+   demoted behind a droplet upgrade on the basis of a 94.4% CPU figure that belonged to a
+   stale PM2 deployment; with that stopped the droplet sits at 1-2% and the hardware
+   objection is gone. On the repo itself, which
    assumes a workspace so the bot and web app can share the schema and the Nexus API
    client. Two repos means publishing those as packages, or duplicating them. 3.6 is a
    prerequisite either way.
@@ -217,7 +236,8 @@ trip, the subscription feed and the news feed have not been exercised end to end
 
 ## 5.4 Move the anti-spam bait channel into its own process
 
-> **Probably unnecessary — do not start this without re-measuring first.** This section was
+> **Not worth building.** The droplet settled at **1-2% CPU** once the stale instance was
+> stopped, so there is no cost here to remove. This section was
 > written on the belief that the bot's `GuildMessages` intent was consuming the droplet's
 > CPU. It was not: the consumer was a stale PM2 deployment running outside Docker. The
 > containerised bot measured 2-3%. Unless a re-measurement says otherwise, the cost this
