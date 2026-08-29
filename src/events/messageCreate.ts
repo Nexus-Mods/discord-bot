@@ -9,7 +9,7 @@ const main: DiscordEventInterface = {
         if (!WATCHED_CHANNEL_ID) return;
         if (message.channel.id !== WATCHED_CHANNEL_ID) return;
         if (message.author.bot) return;
-        if (!message.member?.bannable) return;
+        if (!message.member?.bannable) return logger.info("Unbannable user posted in bait channel", message.member?.displayName);
 
         try {
             const dmChannel = await message.member.createDM(true);
