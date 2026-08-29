@@ -1,13 +1,13 @@
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 
-import { APIEmbed, EmbedBuilder, Guild, GuildMember, Snowflake, TextChannel, WebhookClient, ShardClientUtil, Client } from 'discord.js';
+import { type APIEmbed, EmbedBuilder, type Guild, type GuildMember, type Snowflake, type TextChannel, WebhookClient, ShardClientUtil, type Client } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions.js';
-import { gameArt, Logger, nexusModsTrackingUrl } from '../api/util.js';
-import { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2.js';
+import { gameArt, type Logger, nexusModsTrackingUrl } from '../api/util.js';
+import type { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2.js';
 import { getUserByNexusModsId } from '../api/users.js';
-import { IUser } from '../api/queries/v2-finduser.js';
+import type { IUser } from '../api/queries/v2-finduser.js';
 import { customEmojis } from './util.js';
-import { ModStatus } from './GQLTypes.js';
+import type { ModStatus } from './GQLTypes.js';
 
 export interface ISubscribedChannel {
     id: number;

@@ -1,6 +1,6 @@
-import axios, { AxiosError } from 'axios';
-import { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
-import { Logger } from '../util.js';
+import axios, { type AxiosError } from 'axios';
+import type { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
+import type { Logger } from '../util.js';
 import { logger } from '../logger.js';
 import { NexusApiError } from '../errors.js';
 

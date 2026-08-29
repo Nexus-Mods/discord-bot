@@ -1,19 +1,19 @@
 import { 
-    CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, 
-    EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, 
+    type CommandInteraction, ActionRowBuilder, type Client, ButtonBuilder, 
+    EmbedBuilder, type Message, type ButtonInteraction, type ChatInputCommandInteraction, 
     ButtonStyle, ComponentType, SlashCommandBuilder, TextInputBuilder, TextInputStyle, 
-    ModalActionRowComponentBuilder, ModalBuilder, EmbedData, MessageFlags, 
-    ModalSubmitInteraction,
-    CacheType,
-    InteractionReplyOptions,
-    AutocompleteInteraction,
-    InteractionEditReplyOptions,
+    type ModalActionRowComponentBuilder, ModalBuilder, type EmbedData, MessageFlags, 
+    type ModalSubmitInteraction,
+    type CacheType,
+    type InteractionReplyOptions,
+    type AutocompleteInteraction,
+    type InteractionEditReplyOptions,
     PermissionFlagsBits
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { addTip, editTip, getAllTips } from '../api/tips.js';
-import { KnownDiscordServers, Logger } from "../api/util.js";
-import { deleteTip, ITip, setApprovedTip } from "../api/tips.js";
+import { KnownDiscordServers, type Logger } from "../api/util.js";
+import { deleteTip, type ITip, setApprovedTip } from "../api/tips.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 import { voidAsync } from '../lib/async.js';
 import { getTipCache } from '../lib/caches.js';

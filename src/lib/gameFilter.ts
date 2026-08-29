@@ -1,6 +1,6 @@
 import Fuse, { type IFuseOptions } from 'fuse.js';
-import { IGameStatic } from '../api/queries/other.js';
-import { BotServer } from '../types/servers.js';
+import type { IGameStatic } from '../api/queries/other.js';
+import type { BotServer } from '../types/servers.js';
 
 /**
  * Fuzzy game lookup, shared by the search subcommands.

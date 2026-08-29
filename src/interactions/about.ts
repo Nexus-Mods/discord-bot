@@ -1,11 +1,11 @@
 import { 
-    Client, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
-    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction, 
+    type Client, SlashCommandBuilder, PermissionFlagsBits, type ChatInputCommandInteraction, 
+    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, type MessageActionRowComponentBuilder, type CommandInteraction, 
     InteractionContextType
 } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getCountOfUsers } from '../api/users.js';
-import { calcUptime, Logger } from "../api/util.js";
+import { calcUptime, type Logger } from "../api/util.js";
 import { getCountOfSubscriptions } from "../api/subscriptions.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 

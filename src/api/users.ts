@@ -1,12 +1,9 @@
 import query from '../api/dbConnect.js';
-import { buildUpdate } from '../db/sql.js';
-import { users as usersTable } from '../db/schema.js';
-import { NexusUser } from '../types/users.js';
-import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
-import { nexusModsTrackingUrl } from './util.js';
+import type { NexusUser } from '../types/users.js';
+import type { Snowflake } from 'discord.js';
 import { DiscordBotUser } from './DiscordBotUser.js';
+import { updateUserRecord } from './userRecord.js';
 import { logger } from './logger.js';
-import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     try {
@@ -116,81 +113,11 @@ async function deleteUser(discordId: string): Promise<void> {
 }
 
 async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<DiscordBotUser> {
-    // Column names cannot be bind parameters, so buildUpdate checks each one against
-    // the schema instead of interpolating whatever keys it was handed.
-    const { text, values } = buildUpdate(
-        usersTable,
-        'users',
-        { ...newUser, lastupdate: new Date() },
-        { column: 'd_id', value: discordId },
-    );
-
-    try {
-        const result = await query<NexusUser>(`${text} RETURNING *`, values);
-        return new DiscordBotUser(result?.rows[0], logger);
-    }
-    catch (err) {
-        logger.error('Error updating user', { discordId, err });
-        throw err;
-    }
+    return new DiscordBotUser(await updateUserRecord(discordId, newUser), logger);
 }
 
-async function userEmbed(userData: NexusUser, client: Client): Promise<EmbedBuilder> {
-    try {
-        const discordUser: User = await client.users.fetch(userData.d_id);
-        if (!discordUser) throw new Error('Unknown User');
-
-        const embed = new EmbedBuilder()
-            .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || undefined })
-            .addFields({
-                name: "Nexus Mods",
-                value: `[${userData.name}](https://nexusmods.com/users/${userData.id})\n${userData.premium ? "Premium Member" : userData.supporter ? "Supporter" : "Member"}`,
-                inline: true
-            })
-            .addFields({ name: "Discord", value: `${discordUser.toString()}\n${discordUser.tag}`, inline: true })
-            .setColor(NEXUS_ORANGE)
-            .setThumbnail(userData.avatar_url || 'https://www.nexusmods.com/assets/images/default/avatar.png')
-            .setTimestamp(userData.lastupdate)
-            .setFooter({ text: `User ID: ${userData.id}`, iconURL: botIconUrl(client) });
 
 
-        return embed;
-    }
-    catch (err) {
-        logger.error('Error creating user embed', { userData, err });
-        throw err;
-    }
-}
-
-async function userProfileEmbed(user: DiscordBotUser, client: Client): Promise<EmbedBuilder> {
-    try {
-        const discordUser: User = await user.Discord.User(client);
-        if (!discordUser) throw new Error('Unknown User');
-
-        const roleToShow: string = user.NexusModsRoles.has('premium')
-            ? "Premium Member" : user.NexusModsRoles.has('modauthor')
-                ? "Mod Author" : user.NexusModsRoles.has('supporter')
-                    ? "Supporter" : "Member";
-
-        const embed = new EmbedBuilder()
-            .setAuthor({ name: "Member Search Results", iconURL: discordUser.avatarURL() || undefined })
-            .addFields({
-                name: "Nexus Mods",
-                value: `[${user.NexusModsUsername}](${nexusModsTrackingUrl(`https://nexusmods.com/users/${user.NexusModsId}`, 'profile')})\n${roleToShow}`,
-                inline: true
-            })
-            .addFields({ name: "Discord", value: `${discordUser.toString()}\n${discordUser.tag}`, inline: true })
-            .setColor(NEXUS_ORANGE)
-            .setThumbnail(user.NexusModsAvatar || 'https://www.nexusmods.com/assets/images/default/avatar.png')
-            .setTimestamp(user.LastUpdated)
-            .setFooter({ text: `User ID: ${user.NexusModsId}`, iconURL: botIconUrl(client) });
-
-        return embed;
-    }
-    catch (err) {
-        logger.error('Error creating user profile embed', { nexusModsId: user.NexusModsId, err });
-        throw err;
-    }
-}
-
-export { getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, userEmbed, getUserByNexusModsId, userProfileEmbed };
+export { getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, getUserByNexusModsId };
+// Presentation moved to lib/profile.ts. Re-exported so existing importers keep working.
+export { userEmbed, userProfileEmbed } from '../lib/profile.js';

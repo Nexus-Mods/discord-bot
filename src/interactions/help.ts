@@ -1,5 +1,5 @@
-import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, SlashCommandBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { type Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, SlashCommandBuilder, ButtonStyle, type ChatInputCommandInteraction, type CommandInteraction } from "discord.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {

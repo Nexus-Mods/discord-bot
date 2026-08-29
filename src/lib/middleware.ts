@@ -1,9 +1,9 @@
 import {
-    CommandInteraction, MessageFlags, PermissionsBitField,
+    type CommandInteraction, MessageFlags, PermissionsBitField,
     type InteractionDeferReplyOptions,
 } from 'discord.js';
-import { Logger } from '../api/logger.js';
-import { DiscordBotUser } from '../api/DiscordBotUser.js';
+import type { Logger } from '../api/logger.js';
+import type { DiscordBotUser } from '../api/DiscordBotUser.js';
 import { getUserByDiscordId } from '../api/users.js';
 
 /**

@@ -1,12 +1,12 @@
-import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, InteractionContextType } from "discord.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { SlashCommandBuilder, type CommandInteraction, type Role, EmbedBuilder, InteractionContextType } from "discord.js";
+import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { ConditionType } from "../types/util.js";
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { getConditionsForRole } from '../api/server_role_conditions.js';
 import { getServer } from '../api/servers.js';
-import { BotServer } from "../types/servers.js";
-import { Logger } from "../api/util.js";
-import { IConditionForRole } from "../api/server_role_conditions.js";
+import type { BotServer } from "../types/servers.js";
+import type { Logger } from "../api/util.js";
+import type { IConditionForRole } from "../api/server_role_conditions.js";
 import type { InteractionContext } from '../lib/middleware.js';
 
 const discordInteraction: DiscordInteraction = {

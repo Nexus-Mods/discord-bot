@@ -1,9 +1,9 @@
 import {
-    ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder,
-    Message, MessageFlags, Snowflake,
+    ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, type EmbedBuilder,
+    type Message, MessageFlags, type Snowflake,
     type ButtonInteraction, type ChatInputCommandInteraction, type RepliableInteraction,
 } from 'discord.js';
-import { Logger } from '../api/logger.js';
+import type { Logger } from '../api/logger.js';
 
 /**
  * Wait for the invoking user to press one of the buttons on a message.

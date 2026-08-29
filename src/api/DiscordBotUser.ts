@@ -1,13 +1,13 @@
 import * as NexusModsOAuth from '../server/NexusModsOAuth.js';
 import * as DiscordOAuth from '../server/DiscordOAuth.js';
-import { NexusUser } from '../types/users.js';
-import { baseheader, Logger } from './util.js';
-import { updateUser } from './users.js';
-import { Client, EmbedBuilder, User } from 'discord.js';
+import type { NexusUser } from '../types/users.js';
+import { baseheader, type Logger } from './util.js';
+import { updateUserRecord } from './userRecord.js';
+import type { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v2 } from './queries/all.js';
-import * as GQLTypes from '../types/GQLTypes.js';
-import { userProfileEmbed } from './users.js';
-import { IModsFilter, IModsSort } from './queries/v2.js';
+import type * as GQLTypes from '../types/GQLTypes.js';
+import { userProfileEmbed } from '../lib/profile.js';
+import type { IModsFilter, IModsSort } from './queries/v2.js';
 
 interface OAuthTokens {
     access_token: string;
@@ -260,7 +260,7 @@ export class DiscordBotUser {
 
         try {
             if (Object.keys(newData).length) {
-                await updateUser(this.DiscordId, newData);
+                await updateUserRecord(this.DiscordId, newData);
                 this.LastUpdated = new Date();
             };
         }
@@ -289,7 +289,7 @@ export class DiscordBotUser {
             nexus_refresh: refresh_token 
         };
 
-        return updateUser(this.DiscordId, newData);
+        return updateUserRecord(this.DiscordId, newData);
     }
 
     public Discord = {

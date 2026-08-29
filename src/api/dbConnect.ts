@@ -1,4 +1,4 @@
-import pg, { PoolConfig, PoolClient, QueryResult, QueryResultRow } from 'pg';
+import pg, { type PoolConfig, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
 import type { Pool as PgPool } from 'pg';
 // Aliased: pg exports a DatabaseError too, and ours is the one that gets thrown.
 const { Pool, DatabaseError: PgDatabaseError } = pg;

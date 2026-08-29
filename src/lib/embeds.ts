@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder } from 'discord.js';
+import { type Client, EmbedBuilder } from 'discord.js';
 
 /**
  * Shared embed furniture.

@@ -73,6 +73,17 @@ export default [
             "no-constant-binary-expression": "error",
             "require-atomic-updates": "warn",
 
+            // Type-only imports are erased by the compiler, so an edge that exists
+            // only to carry a type cannot cause a cycle at runtime. Marking them
+            // explicitly is what turns most of this codebase's import cycles from
+            // real into imaginary. `inline-type-imports` keeps mixed imports on one
+            // line rather than splitting them into two statements.
+            "@typescript-eslint/consistent-type-imports": ["error", {
+                prefer: "type-imports",
+                fixStyle: "separate-type-imports",
+                disallowTypeAnnotations: false,
+            }],
+
             // --- Hygiene ---
             "no-var": "error",
             "prefer-const": "error",

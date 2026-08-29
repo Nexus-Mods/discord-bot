@@ -1,7 +1,7 @@
-import { CommandInteraction, Snowflake, Client, SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { type CommandInteraction, type Snowflake, type Client, SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType } from "discord.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
-import { KnownDiscordServers, Logger } from "../api/util.js";
+import { KnownDiscordServers, type Logger } from "../api/util.js";
 import { unlinkUrl } from '../server/auth.js';
 import { NEXUS_ORANGE, botFooter } from '../lib/embeds.js';
 

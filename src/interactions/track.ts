@@ -1,10 +1,11 @@
 import { 
-    CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    TextChannel, Collection, Snowflake, Webhook, PermissionFlagsBits, InteractionContextType
+    type CommandInteraction, EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction, type AutocompleteInteraction,
+    type TextChannel, Collection, type Snowflake, type Webhook, PermissionFlagsBits, InteractionContextType
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch, gameArt, Logger } from "../api/util.js";
-import { SubscribedChannel, SubscribedItemType } from "../types/subscriptions.js";
+import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { gameArt, type Logger } from '../api/util.js';
+import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch } from '../lib/autocomplete.js';
+import { type SubscribedChannel, SubscribedItemType } from "../types/subscriptions.js";
 import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions.js";
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
 import { AppError, NotFoundError, ValidationError } from '../api/errors.js';

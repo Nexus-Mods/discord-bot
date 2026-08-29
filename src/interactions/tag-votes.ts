@@ -1,6 +1,7 @@
-import { AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { autoCompleteGameID, autoCompleteModSearchIdOnly, autoCompleteUserSearch, KnownDiscordServers, Logger } from "../api/util.js";
+import { type AutocompleteInteraction, type ChatInputCommandInteraction, type CommandInteraction, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { KnownDiscordServers, type Logger } from '../api/util.js';
+import { autoCompleteGameID, autoCompleteModSearchIdOnly, autoCompleteUserSearch } from '../lib/autocomplete.js';
 import { readJson } from "../api/http.js";
 
 const discordInteraction: DiscordInteraction = {

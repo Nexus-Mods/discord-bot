@@ -1,13 +1,13 @@
 import { 
-    CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction,
-    PermissionFlagsBits, GuildChannel, APIEmbedField,ActionRowBuilder, StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder, ComponentType, StringSelectMenuInteraction,
+    type CommandInteraction, EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction,
+    PermissionFlagsBits, type GuildChannel, type APIEmbedField,ActionRowBuilder, StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder, type ComponentType, type StringSelectMenuInteraction,
     InteractionContextType
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { SubscribedItem, SubscribedItemType } from "../types/subscriptions.js";
+import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { type SubscribedItem, SubscribedItemType } from "../types/subscriptions.js";
 import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "../api/subscriptions.js";
-import { Logger } from "../api/util.js";
+import type { Logger } from "../api/util.js";
 import { voidAsync } from '../lib/async.js';
 
 const discordInteraction: DiscordInteraction = {

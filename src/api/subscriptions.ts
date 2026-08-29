@@ -1,5 +1,5 @@
-import { Snowflake } from 'discord.js';
-import { ISubscribedChannel, ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, SubscribedItemType } from '../types/subscriptions.js';
+import type { Snowflake } from 'discord.js';
+import { type ISubscribedChannel, type ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, type SubscribedItemType } from '../types/subscriptions.js';
 import { queryPromise } from './dbConnect.js';
 import { logger } from './logger.js';
 import { DatabaseError } from './errors.js';

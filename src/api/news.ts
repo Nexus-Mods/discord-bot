@@ -1,6 +1,6 @@
 import { query, withTransaction } from './dbConnect.js';
-import { Logger } from './util.js';
-import { SavedNewsData } from '../types/feeds.js';
+import type { Logger } from './util.js';
+import type { SavedNewsData } from '../types/feeds.js';
 
 async function getSavedNews(logger: Logger): Promise<SavedNewsData> {
     try {

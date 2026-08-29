@@ -1,13 +1,13 @@
-import { ClientExt } from "../types/DiscordTypes.js";
+import type { ClientExt } from "../types/DiscordTypes.js";
 import { 
-    DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel, 
-    WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError 
+    type DiscordAPIError, EmbedBuilder, type Guild, type Snowflake, type TextChannel, 
+    type WebhookMessageCreateOptions, ShardClientUtil, type DiscordjsError 
 } from 'discord.js';
-import { isTesting, Logger } from '../api/util.js';
-import { CollectionStatus, IMod, IModFile, IModsFilter, IModsSort, ModFileCategory } from '../api/queries/v2.js';
+import { isTesting, type Logger } from '../api/util.js';
+import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
 import { 
-    IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, 
-    SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, 
+    type IModWithFiles, type IPostableSubscriptionUpdate, type ISubscribedItem, 
+    type SubscribedChannel, type SubscribedItem, subscribedItemEmbed, SubscribedItemType, 
     SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType 
 } from '../types/subscriptions.js';
 import { 

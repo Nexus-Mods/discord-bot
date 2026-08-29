@@ -1,8 +1,8 @@
 import query from '../api/dbConnect.js';
 import { buildUpdate } from '../db/sql.js';
 import { servers as serversTable } from '../db/schema.js';
-import { BotServer } from '../types/servers.js';
-import { Guild } from 'discord.js';
+import type { BotServer } from '../types/servers.js';
+import type { Guild } from 'discord.js';
 import { logger } from './logger.js';
 import { NotFoundError } from './errors.js';
 

@@ -1,19 +1,19 @@
 import { 
-    CommandInteraction, Client, Guild, EmbedBuilder, 
-    Role, ThreadChannel, GuildChannel, GuildMember, 
-    SlashCommandBuilder, ChatInputCommandInteraction, 
-    PermissionFlagsBits, APIRole, ActionRowBuilder,
+    type CommandInteraction, type Client, type Guild, EmbedBuilder, 
+    type Role, type ThreadChannel, type GuildChannel, type GuildMember, 
+    SlashCommandBuilder, type ChatInputCommandInteraction, 
+    PermissionFlagsBits, type APIRole, ActionRowBuilder,
     ButtonBuilder, ButtonStyle, ComponentType,
-    ButtonInteraction
+    type ButtonInteraction
 } from "discord.js";
 import { addConditionForRole, getConditionsForRole } from '../api/server_role_conditions.js';
 import { getServer, updateServer } from '../api/servers.js';
-import { BotServer } from "../types/servers.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
-import { KnownDiscordServers, Logger } from "../api/util.js";
-import { IGameStatic } from "../api/queries/other.js";
-import { autocompleteGameName } from "../api/util.js";
-import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions.js";
+import type { BotServer } from "../types/servers.js";
+import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { KnownDiscordServers, type Logger } from '../api/util.js';
+import type { IGameStatic } from "../api/queries/other.js";
+import { autocompleteGameName } from '../lib/autocomplete.js';
+import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, type IConditionForRole } from "../api/server_role_conditions.js";
 import { ConditionType } from "../types/util.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 import { voidAsync } from '../lib/async.js';

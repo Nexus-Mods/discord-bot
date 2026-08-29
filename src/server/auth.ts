@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import express from 'express';
+import type express from 'express';
 
 /**
  * Compare two strings without leaking length-independent timing information.

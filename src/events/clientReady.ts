@@ -1,8 +1,8 @@
-import { EmbedBuilder, Guild, TextChannel, GuildBasedChannel, ShardClientUtil } from 'discord.js';
+import { EmbedBuilder, type Guild, type TextChannel, type GuildBasedChannel, ShardClientUtil } from 'discord.js';
 import { deleteServer, getAllServers } from '../api/servers.js';
-import { BotServer } from '../types/servers.js';
-import { Logger } from '../api/util.js';
-import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
+import type { BotServer } from '../types/servers.js';
+import type { Logger } from '../api/util.js';
+import type { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
 import { GameListCache } from '../types/util.js';
 

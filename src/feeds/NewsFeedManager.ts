@@ -1,9 +1,9 @@
-import { News, SavedNewsData } from '../types/feeds.js';
+import type { News, SavedNewsData } from '../types/feeds.js';
 import { getSavedNews, updateSavedNews } from '../api/news.js';
-import { ClientExt } from "../types/DiscordTypes.js";
-import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'discord.js';
-import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
-import { IGameStatic } from '../api/queries/other.js';
+import type { ClientExt } from "../types/DiscordTypes.js";
+import { EmbedBuilder, ShardClientUtil, type TextChannel, WebhookClient } from 'discord.js';
+import { type Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
+import type { IGameStatic } from '../api/queries/other.js';
 import { v2 } from '../api/queries/all.js';
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 import { voidAsync } from '../lib/async.js';

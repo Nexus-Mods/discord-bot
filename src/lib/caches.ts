@@ -1,4 +1,4 @@
-import { ClientExt } from '../types/DiscordTypes.js';
+import type { ClientExt } from '../types/DiscordTypes.js';
 import { TipCache } from '../types/util.js';
 
 /**

@@ -1,11 +1,8 @@
-import { 
-    Snowflake, CommandInteraction, Collection, 
-    Client, ContextMenuCommandBuilder, SlashCommandBuilder, AutocompleteInteraction,
-} from "discord.js";
-import { NewsFeedManager } from "../feeds/NewsFeedManager.js";
-import { GameListCache, TipCache } from "./util.js";
-import { SubscriptionManger } from "../feeds/SubscriptionManager.js";
-import { Logger } from "../api/util.js";
+import type { Snowflake, CommandInteraction, Collection, Client, ContextMenuCommandBuilder, SlashCommandBuilder, AutocompleteInteraction } from "discord.js";
+import type { NewsFeedManager } from "../feeds/NewsFeedManager.js";
+import type { GameListCache, TipCache } from "./util.js";
+import type { SubscriptionManger } from "../feeds/SubscriptionManager.js";
+import type { Logger } from "../api/util.js";
 import type { DeferOption, InteractionContext } from "../lib/middleware.js";
 
 /**

@@ -1,6 +1,6 @@
-import { Client } from 'discord.js';
-import { Logger } from '../api/util.js';
-import { DiscordEventInterface } from '../types/DiscordTypes.js';
+import type { Client } from 'discord.js';
+import type { Logger } from '../api/util.js';
+import type { DiscordEventInterface } from '../types/DiscordTypes.js';
 
 const main: DiscordEventInterface = {
     name: 'error',

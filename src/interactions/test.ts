@@ -1,7 +1,7 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { KnownDiscordServers, Logger } from "../api/util.js";
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type ChatInputCommandInteraction, type CommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import { KnownDiscordServers, type Logger } from "../api/util.js";
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { customEmojis } from "../types/util.js";
 import type { InteractionContext } from '../lib/middleware.js';
 

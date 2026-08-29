@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { baseheader, Logger } from '../api/util.js';
+import { baseheader, type Logger } from '../api/util.js';
 import { readJson, expiresAt } from '../api/http.js';
 import { findUser } from '../api/queries/v2-finduser.js';
 

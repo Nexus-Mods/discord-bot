@@ -1,5 +1,5 @@
 import query from './dbConnect.js';
-import { IAutomodRule, IBadFileRule } from "../types/util.js";
+import type { IAutomodRule, IBadFileRule } from "../types/util.js";
 
 // query() throws a DatabaseError with its cause attached, so the try/catch blocks
 // that only did `return Promise.reject(error)` have been removed.

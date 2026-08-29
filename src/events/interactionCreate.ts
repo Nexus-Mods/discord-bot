@@ -1,11 +1,11 @@
 import { 
-    InteractionReplyOptions, GuildChannel, CommandInteraction, AutocompleteInteraction, 
+    type InteractionReplyOptions, type GuildChannel, type CommandInteraction, type AutocompleteInteraction, 
     MessageFlags,
-    ChatInputCommandInteraction
+    type ChatInputCommandInteraction
 } from 'discord.js';
-import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util.js';
+import { isTesting, type Logger, unexpectedErrorEmbed } from '../api/util.js';
 import { randomUUID } from 'node:crypto';
-import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
+import type { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
 import {
     deferOptions, describePermissions, isBotOwner, missingPermissions, resolveDeferVisibility,
     resolveLinkedUser, LINK_REQUIRED_MESSAGE, type InteractionContext,

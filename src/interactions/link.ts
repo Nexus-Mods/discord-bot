@@ -1,10 +1,10 @@
 import { 
-    CommandInteraction, Snowflake, EmbedBuilder, Client, SlashCommandBuilder, PermissionFlagsBits, 
-    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType} from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
+    type CommandInteraction, type Snowflake, EmbedBuilder, type Client, SlashCommandBuilder, PermissionFlagsBits, 
+    type ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType} from "discord.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
-import { KnownDiscordServers, Logger } from '../api/util.js';
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { KnownDiscordServers, type Logger } from '../api/util.js';
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { linkUrl, unlinkUrl } from '../server/auth.js';
 import { NEXUS_ORANGE, apiLinkFooter } from '../lib/embeds.js';
 

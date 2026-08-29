@@ -1,8 +1,8 @@
-import { DiscordInteraction } from "../types/DiscordTypes.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
-import { CommandInteraction, Snowflake, EmbedBuilder, Client, CommandInteractionOption, SlashCommandBuilder, ChatInputCommandInteraction, InteractionContextType } from "discord.js";
-import { KnownDiscordServers, Logger } from '../api/util.js';
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { type CommandInteraction, type Snowflake, type EmbedBuilder, type Client, CommandInteractionOption, SlashCommandBuilder, type ChatInputCommandInteraction, InteractionContextType } from "discord.js";
+import { KnownDiscordServers, type Logger } from '../api/util.js';
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

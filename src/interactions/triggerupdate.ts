@@ -1,6 +1,6 @@
-import { CommandInteraction, SlashCommandBuilder, ChatInputCommandInteraction, GuildChannel, PermissionFlagsBits, InteractionContextType } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { Logger } from "../api/util.js";
+import { type CommandInteraction, SlashCommandBuilder, type ChatInputCommandInteraction, type GuildChannel, PermissionFlagsBits, InteractionContextType } from "discord.js";
+import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import type { Logger } from "../api/util.js";
 import { getSubscribedChannel } from "../api/subscriptions.js";
 
 const timezones = [

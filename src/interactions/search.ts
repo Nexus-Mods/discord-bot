@@ -1,21 +1,21 @@
 import { 
-    CommandInteraction, Client, EmbedBuilder, 
-    TextChannel, EmbedField, ChatInputCommandInteraction, 
-    SlashCommandBuilder, PermissionFlagsBits, APIEmbedField,
+    type CommandInteraction, type Client, EmbedBuilder, 
+    type TextChannel, type EmbedField, type ChatInputCommandInteraction, 
+    SlashCommandBuilder, PermissionFlagsBits, type APIEmbedField,
     MessageFlags, InteractionContextType} from "discord.js";
 import { customEmojis } from "../types/util.js";
-import { DiscordInteraction } from '../types/DiscordTypes.js';
+import type { DiscordInteraction } from '../types/DiscordTypes.js';
 import { getServer } from '../api/servers.js';
 import { getUserByDiscordId } from '../api/users.js';
-import { gameArt, KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util.js";
-import { ICollectionsFilter } from "../types/GQLTypes.js";
-import { BotServer } from "../types/servers.js";
+import { gameArt, KnownDiscordServers, type Logger, nexusModsTrackingUrl } from "../api/util.js";
+import type { ICollectionsFilter } from "../types/GQLTypes.js";
+import type { BotServer } from "../types/servers.js";
 import { sendUnexpectedError } from '../events/interactionCreate.js';
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
-import { IUser } from "../api/queries/v2-finduser.js";
-import { IModResults } from "../api/queries/v2-mods.js";
-import { IGameStatic } from "../api/queries/other.js";
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import type { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
+import type { IUser } from "../api/queries/v2-finduser.js";
+import type { IModResults } from "../api/queries/v2-mods.js";
+import type { IGameStatic } from "../api/queries/other.js";
 import { NEXUS_ORANGE, apiLinkFooter, botIconUrl } from '../lib/embeds.js';
 import { presentChoices } from '../lib/collectors.js';
 import { resolveGameFilter, searchGamesByName } from '../lib/gameFilter.js';
