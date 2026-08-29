@@ -2,7 +2,7 @@ import {
     CommandInteraction, Snowflake, EmbedBuilder, Client, SlashCommandBuilder, PermissionFlagsBits, 
     ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType} from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes.js";
-import { getUserByDiscordId } from '../api/bot-db.js';
+import { getUserByDiscordId } from '../api/users.js';
 import { KnownDiscordServers, Logger } from '../api/util.js';
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { linkUrl, unlinkUrl } from '../server/auth.js';

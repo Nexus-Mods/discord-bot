@@ -6,7 +6,8 @@ import {
     ButtonBuilder, ButtonStyle, ComponentType,
     ButtonInteraction
 } from "discord.js";
-import { updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db.js';
+import { addConditionForRole, getConditionsForRole } from '../api/server_role_conditions.js';
+import { getServer, updateServer } from '../api/servers.js';
 import { BotServer } from "../types/servers.js";
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { KnownDiscordServers, Logger } from "../api/util.js";

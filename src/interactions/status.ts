@@ -1,6 +1,6 @@
 import {ChatInputCommandInteraction, CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { getUserByDiscordId } from '../api/bot-db.js';
+import { getUserByDiscordId } from '../api/users.js';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
 import { IStatusPageFullResponse } from "../types/util.js";
 import { KnownDiscordServers, Logger } from "../api/util.js";

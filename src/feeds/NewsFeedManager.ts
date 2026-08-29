@@ -1,5 +1,5 @@
 import { News, SavedNewsData } from '../types/feeds.js';
-import { updateSavedNews, getSavedNews } from '../api/bot-db.js';
+import { getSavedNews, updateSavedNews } from '../api/news.js';
 import { ClientExt } from "../types/DiscordTypes.js";
 import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'discord.js';
 import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';

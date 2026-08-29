@@ -11,7 +11,7 @@ import {
     PermissionFlagsBits
 } from "discord.js";
 import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { addTip, getAllTips, editTip } from '../api/bot-db.js';
+import { addTip, editTip, getAllTips } from '../api/tips.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
 import { deleteTip, ITip, setApprovedTip } from "../api/tips.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';

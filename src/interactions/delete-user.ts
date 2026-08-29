@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, CommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { getUserByDiscordId, getUserByNexusModsName, deleteUser } from '../api/bot-db.js';
+import { deleteUser, getUserByDiscordId, getUserByNexusModsName } from '../api/users.js';
 import { KnownDiscordServers, Logger } from "../api/util.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
 

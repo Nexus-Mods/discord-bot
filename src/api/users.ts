@@ -1,4 +1,6 @@
 import query from '../api/dbConnect.js';
+import { buildUpdate } from '../db/sql.js';
+import { users as usersTable } from '../db/schema.js';
 import { NexusUser } from '../types/users.js';
 import { Client, EmbedBuilder, User, Snowflake } from 'discord.js';
 import { nexusModsTrackingUrl } from './util.js';
@@ -17,15 +19,21 @@ async function getAllUsers(): Promise<NexusUser[]> {
     }
 }
 
+/**
+ * How many linked users there are.
+ *
+ * `pg` returns COUNT(*) as a string, because a bigint does not fit in a JS number -
+ * hence the conversion. This was typed `{ count: number }` and then converted
+ * anyway, so the type was a lie that the runtime quietly worked around.
+ *
+ * It also used to swallow failures and return 0, which is indistinguishable from a
+ * genuine empty table. The one caller (`/about`) already falls back to 0 itself, so
+ * reporting the failure here costs nothing and stops "0 users" from being displayed
+ * as a fact when the database is simply unreachable.
+ */
 async function getCountOfUsers(): Promise<number> {
-    try {
-        const result = await query<{ count: number }>('SELECT COUNT(*) FROM users', []);
-        return Number(result.rows[0].count);
-    }
-    catch (err) {
-        logger.error('Error getting all users', err);
-        return 0;
-    }
+    const result = await query<{ count: string }>('SELECT COUNT(*) FROM users', [], 'GetCountOfUsers');
+    return Number(result.rows[0].count);
 }
 
 async function getUserByDiscordId(discordId: Snowflake | string): Promise<DiscordBotUser | undefined> {
@@ -108,20 +116,17 @@ async function deleteUser(discordId: string): Promise<void> {
 }
 
 async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promise<DiscordBotUser> {
-    newUser.lastupdate = new Date();
-    const values: any[] = [];
-    const updateString: string[] = [];
-
-    Object.entries(newUser).forEach(([key, value], idx) => {
-        values.push(value);
-        updateString.push(`${key} = $${idx + 1}`);
-    });
-    values.push(discordId);
-
-    const updateQuery = `UPDATE users SET ${updateString.join(', ')} WHERE d_id = $${values.length} RETURNING *`;
+    // Column names cannot be bind parameters, so buildUpdate checks each one against
+    // the schema instead of interpolating whatever keys it was handed.
+    const { text, values } = buildUpdate(
+        usersTable,
+        'users',
+        { ...newUser, lastupdate: new Date() },
+        { column: 'd_id', value: discordId },
+    );
 
     try {
-        const result = await query<NexusUser>(updateQuery, values);
+        const result = await query<NexusUser>(`${text} RETURNING *`, values);
         return new DiscordBotUser(result?.rows[0], logger);
     }
     catch (err) {

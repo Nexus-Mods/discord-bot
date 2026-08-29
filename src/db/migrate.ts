@@ -1,12 +1,16 @@
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { poolConfig } from '../api/dbConnect.js';
 import { logger } from '../api/logger.js';
 import { ConfigError, DatabaseError, toError } from '../api/errors.js';
+
+// Entry point: `node dist/db/migrate.js` runs this without app.ts having loaded .env.
+dotenv.config();
 
 const { Pool } = pg;
 
@@ -57,7 +61,7 @@ export async function runMigrations(): Promise<void> {
     const folder = migrationsFolder();
     // A dedicated pool, separate from the app's. max: 2 because one connection
     // holds the advisory lock for the whole run while the migrator uses another.
-    const pool = new Pool({ ...poolConfig, max: 2, idleTimeoutMillis: 0 });
+    const pool = new Pool({ ...poolConfig(), max: 2, idleTimeoutMillis: 0 });
     let lockClient: pg.PoolClient | undefined;
 
     try {

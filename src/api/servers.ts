@@ -1,8 +1,10 @@
 import query from '../api/dbConnect.js';
+import { buildUpdate } from '../db/sql.js';
+import { servers as serversTable } from '../db/schema.js';
 import { BotServer } from '../types/servers.js';
 import { Guild } from 'discord.js';
 import { logger } from './logger.js';
-import { DatabaseError, NotFoundError } from './errors.js';
+import { NotFoundError } from './errors.js';
 
 // query() already throws a DatabaseError carrying its cause and a user-facing
 // message, so the try/catch blocks that only did `return Promise.reject(error)`
@@ -36,31 +38,22 @@ async function addServer(guild: Guild): Promise<boolean> {
     return true;
 }
 
+/**
+ * Update a server's settings.
+ *
+ * This used to issue one UPDATE per key inside a Promise.all, which meant a failure
+ * part-way through left the row partly updated with no way to tell which half had
+ * landed. One statement is atomic, so it either all applies or none of it does.
+ */
 async function updateServer(guildId: string, newData: Partial<BotServer>): Promise<void> {
-    // Each key is a separate statement, so a failure part-way through leaves the row
-    // partly updated. This used to count failures and return a boolean, discarding
-    // the actual database error; now the first failure surfaces.
-    const failures: { key: string; error: unknown }[] = [];
-    await Promise.all(Object.keys(newData).map(async (key) => {
-        try {
-            await query(
-                `UPDATE servers SET ${key} = $1 WHERE id = $2`,
-                [newData[key as keyof BotServer], guildId],
-                `UpdateServer-${key}`,
-            );
-        }
-        catch (error) {
-            failures.push({ key, error });
-        }
-    }));
+    const { text, values } = buildUpdate(
+        serversTable,
+        'servers',
+        newData,
+        { column: 'id', value: guildId },
+    );
 
-    if (failures.length) {
-        throw new DatabaseError(`Failed to update ${failures.length} server setting(s).`, {
-            cause: failures[0].error,
-            context: { guildId, keys: failures.map((f) => f.key) },
-            userMessage: 'Your server settings could not be saved. Please try again in a few minutes.',
-        });
-    }
+    await query(text, values, undefined);
 }
 
 async function deleteServer(guildId: string): Promise<void> {

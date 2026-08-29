@@ -4,7 +4,7 @@ import {
     InteractionContextType
 } from "discord.js";
 import { DiscordInteraction } from "../types/DiscordTypes.js";
-import { getCountOfUsers } from '../api/bot-db.js';
+import { getCountOfUsers } from '../api/users.js';
 import { calcUptime, Logger } from "../api/util.js";
 import { getCountOfSubscriptions } from "../api/subscriptions.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';

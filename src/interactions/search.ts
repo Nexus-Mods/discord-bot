@@ -5,7 +5,8 @@ import {
     MessageFlags, InteractionContextType} from "discord.js";
 import { customEmojis } from "../types/util.js";
 import { DiscordInteraction } from '../types/DiscordTypes.js';
-import { getUserByDiscordId, getServer } from '../api/bot-db.js';
+import { getServer } from '../api/servers.js';
+import { getUserByDiscordId } from '../api/users.js';
 import { gameArt, KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util.js";
 import { ICollectionsFilter } from "../types/GQLTypes.js";
 import { BotServer } from "../types/servers.js";

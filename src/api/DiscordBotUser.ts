@@ -6,7 +6,7 @@ import { updateUser } from './users.js';
 import { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v2 } from './queries/all.js';
 import * as GQLTypes from '../types/GQLTypes.js';
-import { userProfileEmbed } from './bot-db.js';
+import { userProfileEmbed } from './users.js';
 import { IModsFilter, IModsSort } from './queries/v2.js';
 
 interface OAuthTokens {

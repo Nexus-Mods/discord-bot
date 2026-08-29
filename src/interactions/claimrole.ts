@@ -2,7 +2,8 @@ import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, Interactio
 import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { ConditionType } from "../types/util.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { getServer, getConditionsForRole } from "../api/bot-db.js";
+import { getConditionsForRole } from '../api/server_role_conditions.js';
+import { getServer } from '../api/servers.js';
 import { BotServer } from "../types/servers.js";
 import { Logger } from "../api/util.js";
 import { IConditionForRole } from "../api/server_role_conditions.js";

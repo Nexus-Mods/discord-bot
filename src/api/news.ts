@@ -1,10 +1,10 @@
-import { queryPromise } from './dbConnect.js';
+import { query, withTransaction } from './dbConnect.js';
 import { Logger } from './util.js';
 import { SavedNewsData } from '../types/feeds.js';
 
 async function getSavedNews(logger: Logger): Promise<SavedNewsData> {
     try {
-        const data = await queryPromise<SavedNewsData>(
+        const data = await query<SavedNewsData>(
             'SELECT * FROM news',
             []
         )
@@ -16,16 +16,23 @@ async function getSavedNews(logger: Logger): Promise<SavedNewsData> {
     }
 }
 
+/**
+ * Replace the stored news cursor.
+ *
+ * The DELETE and the INSERT have to be one transaction. As two separate statements,
+ * a crash or a failed INSERT between them left the table empty, and an empty table
+ * is not "no news yet" to the caller - the next poll found no cursor and treated
+ * every existing article as new, so the feed reposted its whole backlog.
+ */
 async function updateSavedNews(logger: Logger, title: string, date: Date, id: number): Promise<boolean> {
     try {
-        await queryPromise(
-            'DELETE FROM news', 
-            []
-        );
-        await queryPromise(
-            'INSERT INTO news (title, date, id) VALUES ($1, $2, $3)',
-            [title, date, id]
-        );
+        await withTransaction(async (tx) => {
+            await tx('DELETE FROM news', []);
+            await tx(
+                'INSERT INTO news (title, date, id) VALUES ($1, $2, $3)',
+                [title, date, id],
+            );
+        });
         return true;
     }
     catch(err) {
