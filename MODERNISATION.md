@@ -64,6 +64,18 @@ the remaining work involves, so they are recorded rather than left in a chat log
 | Linked accounts | 36,879 | 3.4 rewrites four token columns on every one of these rows. That is a batched migration with a rollback plan, not an `UPDATE`. |
 | Subscribed items | 2,757 | The per-cycle feed workload 3.5 changes the failure behaviour of. |
 
+**The host it runs on**, as of 29 August 2026: DigitalOcean Basic, **1 vCPU, 2 GB RAM,
+25 GB disk**, sitting at **94.4% CPU and 80% memory** with none of the 4.0.0 work
+deployed. That reframes several things in this document:
+
+- **Phase 4 cannot happen on this droplet.** A Next.js process wants 200-400 MB and CPU
+  that is not there. Phase 4 now has a hardware prerequisite, not just a repo decision.
+- **The CPU figure had a cause**, and it is fixed in 4.0.0 - see 5.3. The bot was
+  requesting six gateway intents and consuming one.
+- **Three shards on one core is 3x the process overhead for the same event volume.**
+  Sharding still has to stay (2,418 guilds, 2,500 is the hard limit), but the shard count
+  and the box size need considering together rather than left at `'auto'`.
+
 **Nothing here has been run against a live Discord gateway or database.** The HTTP
 middleware chain and the unlink signing were verified in isolation; the OAuth round
 trip, the subscription feed and the news feed have not been exercised end to end.
@@ -710,6 +722,42 @@ The version-gated migrations were removed in 3.1.
 Also in `shards.ts`: the version-gated migrations (dead), and `'Shard X died', true`
 (`:13`) with a leftover argument.
 
+### 5.3 Gateway intents — **done (4.0.0)**
+
+Found while answering "can the droplet host Phase 4". It is a Phase 5 item by subject
+matter - what the bot asks Discord for - but it was fixed immediately because the box is
+at 94.4% CPU today.
+
+An intent is a subscription to a firehose. Every event it admits is decompressed, parsed,
+turned into a discord.js object and cached, on every shard, across all 2,418 guilds,
+whether or not a handler exists. **Six were requested. One is consumed.**
+
+| Intent | Consumed by | Verdict |
+|---|---|---|
+| `Guilds` | The guild and channel caches the whole bot depends on | Keep |
+| `GuildMessages` | One anti-spam handler that returns on its second line unless `WATCHED_CHANNEL_ID` is set | Now requested **only when that variable is set** |
+| `GuildMessageReactions` | Nothing — no reaction handler exists | Dropped |
+| `GuildIntegrations` | Nothing | Dropped |
+| `GuildWebhooks` | Nothing — webhooks are created over REST, which needs no intent | Dropped |
+| `DirectMessages` | Nothing — `createDM`/`send` are REST; the intent only receives | Dropped |
+
+Intent bitfield **5681 → 1**, or 513 with the bait channel configured.
+
+Intents are per-connection and cannot be scoped to a guild, which is the whole problem:
+one channel's worth of anti-spam cost every message in 2,418 servers. If that feature is
+wanted permanently it belongs in a small separate process that is only in the Nexus Mods
+guild. **Worth confirming whether it is live at all** — `WATCHED_CHANNEL_ID` is not in the
+working `.env` and was not in `.env.example`.
+
+Message and reaction caches are capped at zero; nothing reads `messages.cache` and
+discord.js otherwise keeps 200 per channel. `GuildMemberManager` is left uncapped on
+purpose — without the `GuildMembers` intent it only fills from explicit fetches, and
+capping it would turn the uploader lookup in `types/subscriptions.ts` into a REST call per
+announcement.
+
+`tests/architecture/intents.test.ts` pins it, because the failure mode is invisible in
+development: in a handful of test guilds an unused intent costs nothing.
+
 ### 5.2 Dead code inventory
 
 Rows marked ✓ have been removed — in 3.17.0 (community map, automod, duplicate queries)
@@ -780,7 +828,9 @@ after a deploy.
    of the 2,500 at which Discord makes sharding mandatory, so sharding stays and the
    shard-aware branches stay with it. Phase 5 shrinks to the `broadcastEval` protocol
    work, which was worth doing either way. See 5.1.
-3. **Monorepo or two repos?** Still open, and the nearest blocker for Phase 4, which
+3. **Monorepo or two repos?** Still open, but no longer the nearest blocker for Phase 4 —
+   **the droplet is**. 1 vCPU and 2 GB at 94.4%/80% will not host a Next.js process
+   whatever the repo shape. Answer the hardware question first. On the repo itself, which
    assumes a workspace so the bot and web app can share the schema and the Nexus API
    client. Two repos means publishing those as packages, or duplicating them. 3.6 is a
    prerequisite either way.
