@@ -51,7 +51,14 @@ export async function Games(headers: Record<string, string>): Promise<IGameStati
     }
     catch(err) {
         logger.error('Error getting games list from static file', err, true);
-        return [];
+        // Returning [] here was worse than it looks. GameListCache.getGames() assigns
+        // the result straight into its cache and stamps it valid for five minutes, so a
+        // single transient failure blanked the game list for every lookup until it
+        // expired. Throwing leaves the previously good list in place to be retried.
+        throw new NexusApiError('Could not fetch the static games list', {
+            cause: err instanceof Error ? err : new Error(String(err)),
+            userMessage: 'Nexus Mods could not be reached. Please try again shortly.',
+        });
     }
 }
 

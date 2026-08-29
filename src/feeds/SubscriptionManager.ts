@@ -140,8 +140,19 @@ export class SubscriptionManger {
         // Always refresh the channel list. This used to be behind a flag whose sense was
         // inverted, so the recurring timers never picked up newly subscribed channels.
         await this.updateChannels();
-        // Prepare the cache
-        await this.prepareCache();
+        // Prepare the cache. Failures here are not fatal - a domain that did not
+        // pre-cache falls through to a per-item fetch, which now throws rather than
+        // returning [] - but they were previously invisible, because mapWithConcurrency
+        // settles rather than rejects and the results were discarded.
+        const prefetch = await this.prepareCache();
+        const prefetchFailures = prefetch.filter((r) => r.status === 'rejected');
+        if (prefetchFailures.length) {
+            this.logger.warn('Some subscription pre-fetches failed; those games will be fetched per item', {
+                failed: prefetchFailures.length,
+                of: prefetch.length,
+                firstReason: (prefetchFailures[0] as PromiseRejectedResult).reason,
+            });
+        }
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels in batches of ${this.batchSize}`);
         this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
@@ -268,6 +279,10 @@ export class SubscriptionManger {
         }
         // Get the postable info for each subscribed item
         const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
+        // Counted so an empty result set can be told apart from a failed one. Advancing
+        // the channel's window after a failure is how updates published during an
+        // outage get skipped permanently.
+        let failedItems = 0;
         for (const item of items) {
             let updates: IPostableSubscriptionUpdate<typeof item.type>[] = [];
 
@@ -288,6 +303,11 @@ export class SubscriptionManger {
                 this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type}) since ${item.last_update.toISOString()}`);
             }
             catch(err) {
+                // `continue` without touching item.last_update is already right: the item
+                // is skipped and the next poll retries the same window. What was missing
+                // is that the error never got here, because the query layer returned []
+                // instead of throwing.
+                failedItems += 1;
                 this.logger.warn('Error updating subscription', { id: item.id, type: item.type, entity: item.entityid, config: item.config, error: err });
                 continue;
             }           
@@ -299,6 +319,16 @@ export class SubscriptionManger {
 
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
+            if (failedItems) {
+                // Nothing to post *because things broke*, which is not the same as nothing
+                // to post. Leaving the timestamp where it is means the next poll covers
+                // this window again; moving it would step over whatever was published
+                // while the API was unreachable, and nothing would ever report that.
+                this.logger.warn('Skipping channel timestamp update, some subscriptions failed', {
+                    guild: guild.name, channel: discordChannel.name, failedItems, totalItems: items.length,
+                });
+                return;
+            }
             this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
             channel = await updateSubscribedChannel(channel, new Date());
             channel.last_update = new Date();

@@ -1,4 +1,5 @@
 import { request, gql, type Variables } from "graphql-request";
+import { NexusApiError } from '../errors.js';
 import type { Logger } from "../util.js";
 import { v2API, NexusGQLError } from './v2.js';
 import type { BaseFilterValue, BaseSortValue, FilterLogicalOperator } from "../../types/GQLTypes.js";
@@ -74,6 +75,12 @@ export async function users(headers: Record<string,string>, logger: Logger, name
     catch(err) {
         const error = new NexusGQLError(err as any, 'users');
         logger.error('Error in users v2 request', error, true);
-        return [];
+        // Propagate rather than returning []. An empty array is a real answer -
+        // "there are none" - and returning it on failure made the two indistinguishable,
+        // which is how a failed feed poll came to look like a successful empty one.
+        throw new NexusApiError('Nexus Mods API request failed (users)', {
+            cause: error,
+            userMessage: 'Nexus Mods could not be reached. Please try again shortly.',
+        });
     }
 }

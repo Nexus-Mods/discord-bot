@@ -153,7 +153,12 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 async function searchCollections(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
     logger.debug('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
-    const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
+    // The games list is only needed to resolve a game filter. If none was asked for, a
+    // failure to fetch it is harmless. If one was, searching without it would quietly
+    // return results for the wrong game - worse than saying the API is unreachable.
+    const allGames: IGameStatic[] = user
+        ? await user.NexusMods.API.Other.Games().catch((err) => { if (gameQuery) throw err; return []; })
+        : [];
     const { filterGame } = resolveGameFilter(gameQuery, server, allGames);
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
@@ -233,7 +238,12 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
 async function searchMods(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
     logger.debug('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
-    const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
+    // The games list is only needed to resolve a game filter. If none was asked for, a
+    // failure to fetch it is harmless. If one was, searching without it would quietly
+    // return results for the wrong game - worse than saying the API is unreachable.
+    const allGames: IGameStatic[] = user
+        ? await user.NexusMods.API.Other.Games().catch((err) => { if (gameQuery) throw err; return []; })
+        : [];
     const { gameIdFilter, filterGame } = resolveGameFilter(gameQuery, server, allGames);
 
     // Need to escape brackets as this breaks Markdown on mobile
@@ -304,7 +314,9 @@ async function searchGames(query: string, ephemeral:boolean, client: Client, int
     logger.debug('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', flags: MessageFlags.Ephemeral });
 
-    const allGames = await user.NexusMods.API.Other.Games().catch(() => []);
+    // No catch: here the games list is the thing being searched, so returning [] on
+    // failure told the user "no games matched" when Nexus Mods was simply unreachable.
+    const allGames = await user.NexusMods.API.Other.Games();
     const results: IGameStatic[] = searchGamesByName(query, allGames);
     if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral, logger);
     else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral, logger);
