@@ -53,14 +53,51 @@ describe('database port', () => {
 });
 
 describe('ssl', () => {
-    // Previously `NODE_ENV === 'production' || NODE_ENV === undefined`, so verification
-    // was off by accident on any machine that had not set NODE_ENV.
-    it('encrypts without verifying by default, preserving current behaviour', async () => {
+    // The NODE_ENV default has to reproduce pre-4.0.0 behaviour exactly: on for
+    // 'production' and for unset, off for everything else.
+    //
+    // These cases are spelled out one value at a time on purpose. The first version of
+    // this code checked for 'development' and 'test' - neither of which this repository
+    // uses - so every local run went down the TLS path and `npm start` died with "The
+    // server does not support SSL connections". The tests passed anyway, because vitest
+    // sets NODE_ENV=test and that happened to be one of the invented values. Asserting
+    // on the real vocabulary is the point of this block.
+    it('encrypts without verifying when NODE_ENV is unset', async () => {
         expect((await loadConfig()).ssl).toEqual({ rejectUnauthorized: false });
     });
 
-    it('is off for local development', async () => {
-        process.env.NODE_ENV = 'development';
+    it('encrypts without verifying in production', async () => {
+        process.env.NODE_ENV = 'production';
+        expect((await loadConfig()).ssl).toEqual({ rejectUnauthorized: false });
+    });
+
+    // 'testing' is this repository's local value - see isTesting in api/util.ts,
+    // shards.ts and NexusModsOAuth.ts. This is the case that regressed.
+    it('is off when NODE_ENV is "testing", the value this repo actually uses', async () => {
+        process.env.NODE_ENV = 'testing';
+        expect((await loadConfig()).ssl).toBe(false);
+    });
+
+    it.each(['development', 'test', 'staging', 'anything-else'])(
+        'is off for NODE_ENV=%s, so no unrecognised value turns TLS on',
+        async (env) => {
+            process.env.NODE_ENV = env;
+            expect((await loadConfig()).ssl).toBe(false);
+        },
+    );
+
+    it('lets DB_SSL override the NODE_ENV default in both directions', async () => {
+        process.env.NODE_ENV = 'testing';
+        process.env.DB_SSL = 'on';
+        expect((await loadConfig()).ssl).toEqual({ rejectUnauthorized: false });
+
+        process.env.NODE_ENV = 'production';
+        process.env.DB_SSL = 'off';
+        expect((await loadConfig()).ssl).toBe(false);
+    });
+
+    it('tolerates whitespace and case in DB_SSL', async () => {
+        process.env.DB_SSL = '  OFF ';
         expect((await loadConfig()).ssl).toBe(false);
     });
 

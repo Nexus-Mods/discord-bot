@@ -25,23 +25,37 @@ function envInt(value: string | undefined, fallback: number, name: string): numb
 /**
  * Whether to verify the database server's TLS certificate.
  *
- * This used to be `NODE_ENV === 'production' || NODE_ENV === undefined`, which meant
- * certificate verification was disabled by accident on any machine that had simply
- * not set NODE_ENV - the common case. It is now a deliberate setting.
- *
- * The default is still off, because the managed Postgres this bot connects to
- * presents a certificate that does not verify against the public roots, and turning
- * verification on without configuring a CA would take the bot down. That is a real
- * weakness rather than a solved problem: the connection is encrypted but not
- * authenticated, so it is not protected against an active man-in-the-middle.
+ * DB_SSL makes this an explicit setting rather than something inferred from NODE_ENV:
  *
  *   DB_SSL=verify   verify the certificate (set DB_SSL_CA if a custom root is needed)
- *   DB_SSL=on       encrypt without verifying (the default, and the status quo)
+ *   DB_SSL=on       encrypt without verifying - the long-standing production behaviour
  *   DB_SSL=off      no TLS at all - local databases only
+ *
+ * When DB_SSL is unset the NODE_ENV default below applies, and it reproduces the
+ * pre-4.0.0 behaviour exactly. Verification is still off by default because the managed
+ * Postgres this bot connects to presents a certificate that does not verify against the
+ * public roots; turning it on without configuring a CA would take the bot down. That is
+ * a real weakness rather than a solved problem - the connection is encrypted but not
+ * authenticated, so it is not protected against an active man-in-the-middle.
  */
+
+/**
+ * The NODE_ENV default, kept faithful to the behaviour before 4.0.0: TLS on when
+ * NODE_ENV is 'production' or unset, off for every other value.
+ *
+ * This repository spells the local value **'testing'**, not 'development' or 'test' -
+ * see `isTesting` in api/util.ts, the shard count in shards.ts, and the OAuth scope in
+ * NexusModsOAuth.ts. A first version of this function checked for 'development' and
+ * 'test' instead, which sent every local run down the TLS path and broke `npm start`
+ * against a local Postgres with "The server does not support SSL connections". The unit
+ * tests missed it because vitest sets NODE_ENV=test, one of the two invented values.
+ */
+function defaultSslMode(): 'on' | 'off' {
+    const env = process.env.NODE_ENV;
+    return env === 'production' || env === undefined ? 'on' : 'off';
+}
 function sslConfig(): PoolConfig['ssl'] {
-    const mode = (process.env.DB_SSL ?? '').toLowerCase()
-        || (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? 'off' : 'on');
+    const mode = (process.env.DB_SSL ?? '').trim().toLowerCase() || defaultSslMode();
 
     switch (mode) {
         case 'off':
@@ -269,11 +283,18 @@ function handleDatabaseError(error: unknown): DatabaseError {
     }
 
     if (err.message === 'The server does not support SSL connections') {
-        return new DatabaseError('Database rejected the SSL connection', {
-            cause: err,
-            isOperational: false,
-            userMessage: 'SSL connection error. Please report this issue as it is a problem with the database settings.',
-        });
+        // Almost always a local database, which Postgres ships with ssl=off. Naming the
+        // setting that fixes it is worth more here than asking for a bug report.
+        return new DatabaseError(
+            'Database rejected the SSL connection. The server has TLS disabled - set DB_SSL=off '
+            + 'if that is expected (a local database), or enable TLS on the server.',
+            {
+                cause: err,
+                isOperational: false,
+                context: { DB_SSL: process.env.DB_SSL ?? '(unset)', NODE_ENV: process.env.NODE_ENV ?? '(unset)' },
+                userMessage: 'The database refused a secure connection. If this is a local database, set DB_SSL=off.',
+            },
+        );
     }
     if (err.message.includes('no pg_hba.conf entry for host')) {
         return new DatabaseError('Database refused the connection (pg_hba.conf)', {
