@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type express from 'express';
-import { safeCompare, signValue, verifyValue, checkSharedSecret, cookieOptions, unlinkUrl } from '../../src/server/auth.js';
+import { safeCompare, signValue, verifyValue, checkSharedSecret, cookieOptions, unlinkUrl, linkUrl } from '../../src/server/auth.js';
 
 const SECRET = 'test-unlink-secret';
 
@@ -110,6 +110,27 @@ describe('cookieOptions', () => {
     });
 });
 
+describe("linkUrl", () => {
+    const original = { secret: process.env.UNLINK_SECRET, base: process.env.SITE_BASE_URL };
+    afterEach(() => {
+        process.env.UNLINK_SECRET = original.secret;
+        process.env.SITE_BASE_URL = original.base;
+    });
+
+    it('produces a valid URL including the passed discord id', () => {
+        process.env.UNLINK_SECRET = SECRET;
+        process.env.SITE_BASE_URL = 'https://example.test/';
+        const url = new URL(linkUrl('4242'));
+        expect(url.origin + url.pathname).toBe('https://example.test/linked-role');
+        expect(url.searchParams.get('id')).toBe('4242');
+    });
+
+    it('omits the token entirely when no secret is configured', () => {
+        delete process.env.UNLINK_SECRET;
+        expect(unlinkUrl('4242')).not.toContain('token=');
+    });
+})
+
 describe('unlinkUrl', () => {
     const original = { secret: process.env.UNLINK_SECRET, base: process.env.SITE_BASE_URL };
     afterEach(() => {
@@ -119,7 +140,7 @@ describe('unlinkUrl', () => {
 
     it('produces a URL whose token verifies for that discord id', () => {
         process.env.UNLINK_SECRET = SECRET;
-        process.env.SITE_BASE_URL = 'https://example.test';
+        process.env.SITE_BASE_URL = 'https://example.test/';
         const url = new URL(unlinkUrl('4242'));
         expect(url.origin + url.pathname).toBe('https://example.test/revoke');
         expect(url.searchParams.get('id')).toBe('4242');
