@@ -410,7 +410,7 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
 
     const url = `https://next.nexusmods.com/${res.game?.domainName}/collections/${res.slug}`;
 
-    if (!nsfw && res.latestPublishedRevision.adultContent) {
+    if (!nsfw && res.latestPublishedRevision.adultContent === true) {
         const nsfwEmbed = new EmbedBuilder()
         .setColor('DarkRed')
         .setFooter(apiLinkFooter(client))
@@ -455,7 +455,7 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
             inline: true
         },
         {
-            name: `${successRatingIcon(parseFloat(res.overallRating.toString() || '0'), res.overallRatingCount || 0)} Success Rating`,
+            name: `${successRatingIcon(parseFloat(res.overallRating?.toString() || '0'), res.overallRatingCount || 0)} Success Rating`,
             value: `${res.overallRatingCount! >= 3 ? `${res.overallRating}%` : '_TBC_'}`,
             inline: true
         },

@@ -20,7 +20,7 @@ export interface ICollection {
     category: {
         name: string;
     };
-    overallRating: number;
+    overallRating: string;
     overallRatingCount: number;
     endorsements: number;
     totalDownloads: number;
@@ -28,7 +28,7 @@ export interface ICollection {
     lastPublishedAt: string;
     firstPublishedAt: string;
     latestPublishedRevision: {
-        fileSize: number;
+        fileSize: string;
         modCount: number;
         revisionNumber: number;
         adultContent: boolean;

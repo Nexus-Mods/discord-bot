@@ -38,6 +38,13 @@ jobs:
       - name: Test
         run: npm test
 
+      # The generated GraphQL types are committed so the build does not depend on a
+      # remote endpoint. This regenerates them and fails if the result differs from
+      # what is in the repository - which catches both a stale checkout and a schema
+      # that has changed under us. A failure here is informative either way.
+      - name: GraphQL types are up to date
+        run: npm run codegen:check
+
   docker:
     name: Build and push image
     runs-on: ubuntu-latest
