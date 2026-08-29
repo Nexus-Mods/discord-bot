@@ -66,12 +66,21 @@ export function signValue(value: string, ttlMs: number, secret: string): string 
  * Build the unlink URL handed to a user in Discord. The Discord ID is signed so a
  * link cannot be edited to point at somebody else's account.
  */
+export function linkUrl(discordId: string): string {
+    const base = process.env.SITE_BASE_URL ?? 'https://discordbot.nexusmods.com/';
+    return `${base}linked-role?id=${encodeURIComponent(discordId)}`;
+}
+
+/**
+ * Build the unlink URL handed to a user in Discord. The Discord ID is signed so a
+ * link cannot be edited to point at somebody else's account.
+ */
 export function unlinkUrl(discordId: string): string {
-    const base = process.env.SITE_BASE_URL ?? 'https://discordbot.nexusmods.com';
+    const base = process.env.SITE_BASE_URL ?? 'https://discordbot.nexusmods.com/';
     const secret = process.env.UNLINK_SECRET;
-    if (!secret) return `${base}/revoke`;
+    if (!secret) return `${base}revoke`;
     const token = signValue(discordId, 1000 * 60 * 60 * 24, secret);
-    return `${base}/revoke?id=${encodeURIComponent(discordId)}&token=${encodeURIComponent(token)}`;
+    return `${base}revoke?id=${encodeURIComponent(discordId)}&token=${encodeURIComponent(token)}`;
 }
 
 /**

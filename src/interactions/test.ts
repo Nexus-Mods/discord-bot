@@ -17,7 +17,8 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.Moderator,
 
     ],
-    defer: 'ephemeral',
+    defer: 'ephemeral',
+
     requiresLink: true,
     action
 }
@@ -77,6 +78,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         return interaction.editReply({ content: formatted, embeds: [embed], components: [button] });
     }
     catch(err) {
+        logger.error("Test command failed", err);
         return interaction.editReply({ content: 'Error! '+err });
     }
 }

@@ -5,7 +5,7 @@ import { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/bot-db.js';
 import { KnownDiscordServers, Logger } from '../api/util.js';
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { unlinkUrl } from '../server/auth.js';
+import { linkUrl, unlinkUrl } from '../server/auth.js';
 import { NEXUS_ORANGE, apiLinkFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
@@ -37,12 +37,13 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
 }
 
-const linkButton = (discordId: string) => new ActionRowBuilder()
+const linkButton = (discordId: string) =>
+    new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
             .setLabel('Link Account')
             .setStyle(ButtonStyle.Link)
-            .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
+            .setURL(linkUrl(discordId))
         );
 
 const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, client: Client, logger: Logger): Promise<{ embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] }> => {

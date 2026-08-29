@@ -48,7 +48,10 @@ export function getOAuthUrl(sharedState: string, logger: Logger): OAuthURL {
     url.searchParams.set('redirect_uri', NEXUS_REDIRECT_URI);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('state', state);
-    url.searchParams.set('scope', 'openid email profile');
+    // Do to a strange oversight on the Nexus Mods end, legacy applications and new ones have different scopes. 
+    // When testing we're using a newer app that doesn't have the "email" scope.
+    if (process.env.NODE_ENV === 'testing') url.searchParams.set('scope', 'public openid profile');
+    else url.searchParams.set('scope', 'openid email profile');
     // url.searchParams.set('approval_prompt', 'auto'); // Skips the auth prompt?
     return { state, url: url.toString() };
 }
@@ -110,7 +113,7 @@ export async function getUserData(tokens: NexusOAuthTokens, logger: Logger): Pro
 export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> {
     const { NEXUS_OAUTH_ID, NEXUS_OAUTH_SECRET } = process.env;
 
-    if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Error getting Discord access token, ENV VARS are undefined.');
+    if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Error getting Nexus Mods access token, ENV VARS are undefined.');
 
     // logMessage('CHECKING NEXUS MODS ACCESS TOKENS', { expires: new Date((tokens.expires_at)), timestamp: tokens.expires_at});
 
