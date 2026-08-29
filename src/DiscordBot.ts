@@ -15,11 +15,44 @@ export { logger };
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Gateway intents, kept to what the code actually consumes.
+ *
+ * An intent is a subscription to a firehose. Every event it admits is decompressed,
+ * parsed, turned into a discord.js object and cached, on every shard, for all 2,418
+ * guilds - whether or not anything reads it. Four of the six intents this bot used to
+ * request fed nothing at all:
+ *
+ *   GuildMessageReactions  no reaction handler exists anywhere in the codebase.
+ *   GuildIntegrations      nothing references integrations.
+ *   GuildWebhooks          the bot creates webhooks over REST, which needs no intent;
+ *                          there is no webhookUpdate handler.
+ *   DirectMessages         createDM/send are REST calls. This intent is only needed to
+ *                          *receive* DMs, and nothing handles an incoming one.
+ *
+ * REST calls are unaffected by any of this - `channel.messages.fetch()` in
+ * NewsFeedManager and SubscriptionManager needs channel permissions, not an intent.
+ */
 const intents: GatewayIntentBits[] = [
-    IntentsBitField.Flags.Guilds, IntentsBitField.Flags.DirectMessages,
-    IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.GuildWebhooks,
-    IntentsBitField.Flags.GuildMessageReactions, IntentsBitField.Flags.GuildIntegrations
+    // Guilds is required: it populates the guild and channel caches the whole bot
+    // relies on, and it is cheap - the events are joins, leaves and channel edits.
+    IntentsBitField.Flags.Guilds,
 ];
+
+/**
+ * The anti-spam bait channel is the only consumer of message events, and it watches
+ * exactly one channel. Intents are per-connection and cannot be scoped to a guild, so
+ * requesting GuildMessages means every message in every guild arrives here to be parsed
+ * and discarded by the first line of the messageCreate handler.
+ *
+ * Tying the intent to the setting keeps that cost opt-in: no WATCHED_CHANNEL_ID, no
+ * firehose. If the feature is wanted permanently, it is worth moving to a small separate
+ * process that is only in the Nexus Mods guild - that gets the feature without every
+ * other server's traffic.
+ */
+if (process.env.WATCHED_CHANNEL_ID) {
+    intents.push(IntentsBitField.Flags.GuildMessages);
+}
 
 export class DiscordBot {
     private static instance: DiscordBot;
@@ -28,6 +61,19 @@ export class DiscordBot {
     private clientId: Snowflake = process.env.DISCORD_CLIENT_ID as Snowflake;
     public client: ClientExt = new Client({
         intents,
+        // Nothing in this codebase reads `messages.cache` - the two places that want a
+        // message call `messages.fetch()`, which is a REST call. discord.js otherwise
+        // keeps 200 messages per channel by default, across every channel in every
+        // guild, evicted only when the hourly sweeper runs.
+        makeCache: Options.cacheWithLimits({
+            ...Options.DefaultMakeCacheSettings,
+            MessageManager: 0,
+            ReactionManager: 0,
+            // GuildMemberManager is deliberately left alone. Without the GuildMembers
+            // intent the member cache only fills from explicit fetches, so it is small
+            // and the hourly sweeper already bounds it - and capping it would turn the
+            // uploader lookup in types/subscriptions.ts into a REST call per announcement.
+        }),
         // discord.js doesn't evict cached users or members by default, so they pile up until the bot has to be restarted. Sweep them on a timer.
         sweepers: {
             ...Options.DefaultSweeperSettings,
