@@ -254,9 +254,9 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
     // Search for mods
     try {
-        const modsFilter: IModsFilter = { name: { value: query , op: 'WILDCARD' }};
-        if (gameIdFilter !== 0) modsFilter.gameId = { value: gameIdFilter.toString(), op: 'EQUALS' };
-        if (!(interaction.channel as TextChannel)?.nsfw) modsFilter.adultContent = { value: false, op: 'EQUALS' };
+        const modsFilter: IModsFilter = { name: [{ value: query, op: 'WILDCARD' }] };
+        if (gameIdFilter !== 0) modsFilter.gameId = [{ value: gameIdFilter.toString(), op: 'EQUALS' }];
+        if (!(interaction.channel as TextChannel)?.nsfw) modsFilter.adultContent = [{ value: false, op: 'EQUALS' }];
         
         const search: IModResults = await user.NexusMods.API.v2.Mods(modsFilter);
         if (!search.nodes.length) {

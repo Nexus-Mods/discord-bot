@@ -51,9 +51,9 @@ export async function autoCompleteModSearch(acInteraction: AutocompleteInteracti
     try {
         const user = new DiscordBotUser(DummyNexusModsUser, logger);
         const modFilter: IModsFilter = {};
-        if (focused) modFilter.name = { value: focused, op: 'WILDCARD' };
-        if (gameDomain) modFilter.gameDomainName = { value: gameDomain, op: 'EQUALS' };
-        if (gameId) modFilter.gameId = { value: String(gameId), op: 'EQUALS' };
+        if (focused) modFilter.name = [{ value: focused, op: 'WILDCARD' }];
+        if (gameDomain) modFilter.gameDomainName = [{ value: gameDomain, op: 'EQUALS' }];
+        if (gameId) modFilter.gameId = [{ value: String(gameId), op: 'EQUALS' }];
         const modSearch = await user.NexusMods.API.v2.Mods(
             modFilter,
             { endorsements: { direction: 'DESC' }}
@@ -74,9 +74,9 @@ export async function autoCompleteModSearchIdOnly(acInteraction: AutocompleteInt
     try {
         const user = new DiscordBotUser(DummyNexusModsUser, logger);
         const modFilter: IModsFilter = {};
-        if (focused) modFilter.name = { value: focused, op: 'WILDCARD' };
-        if (gameDomain) modFilter.gameDomainName = { value: gameDomain, op: 'EQUALS' };
-        if (gameId) modFilter.gameId = { value: String(gameId), op: 'EQUALS' };
+        if (focused) modFilter.name = [{ value: focused, op: 'WILDCARD' }];
+        if (gameDomain) modFilter.gameDomainName = [{ value: gameDomain, op: 'EQUALS' }];
+        if (gameId) modFilter.gameId = [{ value: String(gameId), op: 'EQUALS' }];
         const modSearch = await user.NexusMods.API.v2.Mods(
             modFilter,
             { endorsements: { direction: 'DESC' }}

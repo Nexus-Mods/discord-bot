@@ -1,8 +1,12 @@
 import { ClientError } from "graphql-request";
-import type { DiscordBotGetCollectionRevisionDataQuery, DiscordBotModFilesQuery, DiscordBotSearchCollectionsQuery } from '../generated/operations.js';
-import type { DiscordBotGetCollectionDataQuery } from '../generated/operations.js';
-import type { DiscordBotModsQuery } from '../generated/operations.js';
-import type * as GQLTypes from '../../types/GQLTypes.js';
+import type {
+    DiscordBotGetCollectionDataQuery,
+    DiscordBotGetCollectionRevisionDataQuery,
+    DiscordBotModFilesQuery,
+    DiscordBotModsQuery,
+    DiscordBotSearchCollectionsQuery,
+} from '../generated/operations.js';
+import type { ModsFilter as GeneratedModsFilter, ModsSort as GeneratedModsSort } from '../generated/types.js';
 
 
 export const v2API: string = 'https://api.nexusmods.com/v2/graphql';
@@ -28,10 +32,6 @@ export type ICollection = DiscordBotGetCollectionDataQuery['collection'];
 
 export type ICollectionRevision = DiscordBotGetCollectionRevisionDataQuery['collection']['revisions'][number];
 
-interface ICollectionChangelog {
-    description: string;
-}
-
 export type ICollectionSearchResult = DiscordBotSearchCollectionsQuery['collectionsV2'] & {
     /** Not from the API: the /search command attaches the web search URL for a 'see all' link. */
     searchURL?: string;
@@ -39,42 +39,17 @@ export type ICollectionSearchResult = DiscordBotSearchCollectionsQuery['collecti
 
 export type IMod = DiscordBotModsQuery['mods']['nodes'][number];
 
-export interface IModsSort {
-    relevance?: GQLTypes.BaseSortValue
-    name?: GQLTypes.BaseSortValue
-    downloads?: GQLTypes.BaseSortValue 
-    endorsements?: GQLTypes.BaseSortValue
-    random?: { seed: number }
-    createdAt?: GQLTypes.BaseSortValue
-    updatedAt?: GQLTypes.BaseSortValue
-}
-
-export interface IModsFilter {
-    filter?: IModsFilter[];
-    op?: GQLTypes.FilterLogicalOperator;
-    name?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    nameStemmed?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    gameId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[]; //This is the numerical ID for a game, not the domain. 
-    gameDomainName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    createdAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    updatedAt?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    hasUpdated?: GQLTypes.BooleanFilterValue | GQLTypes.BooleanFilterValue[];
-    uploaderId?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    adultContent?: GQLTypes.BooleanFilterValue | GQLTypes.BooleanFilterValue[];
-    fileSize?: GQLTypes.IntFilterValue | GQLTypes.IntFilterValue[];
-    downloads?: GQLTypes.IntFilterValue | GQLTypes.IntFilterValue[];
-    endorsements?: GQLTypes.IntFilterValue | GQLTypes.IntFilterValue[];
-    tag?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    description?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    author?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    uploader?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    supportsVortex?: GQLTypes.BooleanFilterValue | GQLTypes.BooleanFilterValue[];
-    languageName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    categoryName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    status?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    gameName?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-    primaryImage?: GQLTypes.BaseFilterValue | GQLTypes.BaseFilterValue[];
-}
+/**
+ * Input types for the mods() query, taken straight from the schema.
+ *
+ * Every filter field is a list in the SDL. GraphQL coerces a single value into a
+ * one-element list, which is why the hand-written version accepted `T | T[]` - but
+ * that also let through combinations the schema does not describe (`name` was typed
+ * as BaseFilterValue, permitting operators the API rejects for that field). Wrapping
+ * at the call site keeps the type identical to the wire contract.
+ */
+export type IModsSort = GeneratedModsSort;
+export type IModsFilter = GeneratedModsFilter;
 
 export class NexusGQLError extends Error {
     public code?: number;
@@ -100,11 +75,6 @@ export class NexusGQLError extends Error {
     }
 
 }
-
-export type VirusScannedStatus = 
-    |"NOT_SCANNED" | "QUEUED" | "WAITING_REPORT" | "VERIFIED" 
-    | "INTERNALLY_VERIFIED" | "QUARANTINED" | "MANUALLY_VERIFIED"
-    | "MOD_DOES_NOT_EXIST" | "FILE_NOT_FOUND" | "REPORT_ERROR" | "TOO_LARGE";
 
 export type IModFile = DiscordBotModFilesQuery['modFiles'][number];
 

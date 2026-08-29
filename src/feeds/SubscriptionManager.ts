@@ -419,13 +419,13 @@ export class SubscriptionManger {
         if (!newMods.length && item.config.show_new) {
             this.logger.debug('Re-fetching new mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
-                gameDomainName: { value: domain, op: 'EQUALS' },
-                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+                gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                createdAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
             }
             // Hide SFW content
-            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
+            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = [{ value: true, op: 'EQUALS' }];
             // Hide NSFW content
-            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
+            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = [{ value: false, op: 'EQUALS' }];
             const res = await this.NexusModsAPI.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
@@ -462,14 +462,14 @@ export class SubscriptionManger {
         if (!updatedMods.length && item.config.show_updates) {
             this.logger.debug('Re-fetching updated mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
-                gameDomainName: { value: domain, op: 'EQUALS' },
-                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
-                hasUpdated: { value: true, op: 'EQUALS' }
+                gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                updatedAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
+                hasUpdated: [{ value: true, op: 'EQUALS' }]
             }
             // Hide SFW content
-            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
+            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = [{ value: true, op: 'EQUALS' }];
             // Hide NSFW content
-            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
+            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = [{ value: false, op: 'EQUALS' }];
             const res = await this.NexusModsAPI.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
@@ -671,8 +671,8 @@ export class SubscriptionManger {
         // See if they have any new content since the last check
         const newMods = await this.NexusModsAPI.v2.Mods(
             {
-                uploaderId: { value: userId.toString(), op: 'EQUALS' },
-                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+                uploaderId: [{ value: userId.toString(), op: 'EQUALS' }],
+                createdAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
             },
             { createdAt: { direction: 'ASC' } }
         );
@@ -689,9 +689,9 @@ export class SubscriptionManger {
         }
         const updatedMods = await this.NexusModsAPI.v2.Mods(
             {
-                uploaderId: { value: userId.toString(), op: 'EQUALS' },
-                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
-                hasUpdated: { value: true, op: 'EQUALS' }
+                uploaderId: [{ value: userId.toString(), op: 'EQUALS' }],
+                updatedAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
+                hasUpdated: [{ value: true, op: 'EQUALS' }]
             },
             { updatedAt: { direction: 'ASC' } }
         );
@@ -712,7 +712,7 @@ export class SubscriptionManger {
         // const newCollections = await this.NexusModsAPI.v2.Collections(
         //     {
         //         userId: { value: userId.toString(), op: 'EQUALS' },
-        //         createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+        //         createdAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }]
         //     },
         //     { createdAt: { direction: 'ASC' } }
         // );
@@ -729,7 +729,7 @@ export class SubscriptionManger {
         // const updatedCollections = await this.NexusModsAPI.v2.Collections(
         //     {
         //         userId: { value: userId.toString(), op: 'EQUALS' },
-        //         updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+        //         updatedAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }]
         //     },
         //     { updatedAt: { direction: 'ASC' } }
         // );
@@ -786,8 +786,8 @@ const PREPARE_CACHE_CONCURRENCY = 5;
         const newGamePromises = Object.entries(oldestPerNewGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
-                    gameDomainName: { value: domain, op: 'EQUALS' },
-                    createdAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }
+                    gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                    createdAt: [{ value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }]
                 },
                 { createdAt: { direction: 'ASC' } }
             );
@@ -803,9 +803,9 @@ const PREPARE_CACHE_CONCURRENCY = 5;
         const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
-                    gameDomainName: { value: domain, op: 'EQUALS' },
-                    updatedAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' },
-                    hasUpdated: { value: true, op:'EQUALS' }
+                    gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                    updatedAt: [{ value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }],
+                    hasUpdated: [{ value: true, op:'EQUALS' }]
                 },
                 { updatedAt: { direction: 'ASC' } }
             );

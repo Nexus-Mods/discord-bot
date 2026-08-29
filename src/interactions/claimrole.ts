@@ -136,8 +136,8 @@ async function evaluateCondition(condition: IConditionForRole, user: DiscordBotU
         case 'modDownloads' : {
             const mods = await user.NexusMods.API.v2.Mods(
                 { 
-                    uploaderId: { value: user.NexusMods.ID().toString(), op: 'EQUALS' },
-                    gameDomainName: { value: condition.game, op: 'EQUALS' }
+                    uploaderId: [{ value: user.NexusMods.ID().toString(), op: 'EQUALS' }],
+                    gameDomainName: [{ value: condition.game, op: 'EQUALS' }]
                 }, 
                 { downloads: { direction: 'DESC' } });
             const total = mods.nodes.reduce((prev, cur) => { return prev = prev + cur.downloads }, 0);
@@ -146,8 +146,8 @@ async function evaluateCondition(condition: IConditionForRole, user: DiscordBotU
         case 'modsPublished' : {
             const mods = await user.NexusMods.API.v2.Mods(
                 { 
-                    uploaderId: { value: user.NexusMods.ID().toString(), op: 'EQUALS' },
-                    gameDomainName: { value: condition.game, op: 'EQUALS' }
+                    uploaderId: [{ value: user.NexusMods.ID().toString(), op: 'EQUALS' }],
+                    gameDomainName: [{ value: condition.game, op: 'EQUALS' }]
                 }, 
                 { downloads: { direction: 'DESC' } });
 
