@@ -1,5 +1,27 @@
 # Deploying
 
+## 4.1.0 - Phase 3.5, the query error contract
+
+**One behaviour change, and it is in the feeds.** Query modules that used to return `[]`
+on failure now throw, so a failed poll is no longer indistinguishable from a poll that
+found nothing.
+
+| Change | What it means for a deploy |
+|---|---|
+| A failed Nexus API call propagates | Previously it returned `[]`. For a feed that read as "nothing new", the cycle was recorded as successful and `last_update` advanced - so anything published during an outage was skipped permanently and silently. |
+| Feed cycles no longer advance the window on failure | The next poll covers the same period again. **Expect the occasional repeated post after a Nexus API blip** - that is the intended trade, and the opposite failure (a silent gap) is the one being removed. |
+| Interactive commands say the API is unreachable | Rather than "no results found". |
+| `/search games` fails instead of returning nothing | The games list is the thing being searched, so `[]` was a lie when the API was down. |
+
+**What to watch after deploying:** feed volume for a few cycles. A short burst of repeats
+after an upstream hiccup is correct. Sustained duplicates are not - check the logs for
+`Skipping channel timestamp update, some subscriptions failed`, which names how many
+items failed and in which channel.
+
+Nothing here needs configuration. No migration runs.
+
+---
+
 ## 4.0.0 - Phase 1, foundations
 
 Toolchain and internals only. **No behaviour changes to any command, feed or
