@@ -1,4 +1,5 @@
 import express from 'express';
+import { BOT_VERSION } from '../version.js';
 import cookieparser from 'cookie-parser';
 import * as DiscordOAuth from './DiscordOAuth.js';
 import * as NexusModsOAuth from './NexusModsOAuth.js';
@@ -84,7 +85,7 @@ export class AuthSite {
                     timestamp: `${now.toLocaleDateString('en-GB')} ${now.toTimeString()}`, 
                     pageTitle: undefined, 
                     clientId: process.env.DISCORD_CLIENT_ID,
-                    version: process.env.npm_package_version ?? '0.0.0',
+                    version: BOT_VERSION,
                     upTime: calcUptime(process.uptime()) ?? "Unknown",
                 }
             );

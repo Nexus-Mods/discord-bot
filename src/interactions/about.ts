@@ -4,6 +4,7 @@ import {
     InteractionContextType
 } from "discord.js";
 import type { DiscordInteraction } from "../types/DiscordTypes.js";
+import { BOT_VERSION } from '../version.js';
 import { getCountOfUsers } from '../api/users.js';
 import { calcUptime, type Logger } from "../api/util.js";
 import { getCountOfSubscriptions } from "../api/subscriptions.js";
@@ -65,7 +66,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, _logg
     // const permissionsList: string = buildPermsList(botPermsissons, minPermissions);
 
     const info = new EmbedBuilder()
-    .setTitle(`Nexus Mods Discord Bot v${process.env.npm_package_version}`)
+    .setTitle(`Nexus Mods Discord Bot v${BOT_VERSION}`)
     .setColor(NEXUS_ORANGE)
     .setThumbnail(botIconUrl(client))
     .setDescription(`Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`)

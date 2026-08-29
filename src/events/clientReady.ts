@@ -1,4 +1,5 @@
 import { EmbedBuilder, type Guild, type TextChannel, type GuildBasedChannel, ShardClientUtil } from 'discord.js';
+import { BOT_VERSION } from '../version.js';
 import { deleteServer, getAllServers } from '../api/servers.js';
 import type { BotServer } from '../types/servers.js';
 import type { Logger } from '../api/util.js';
@@ -26,7 +27,7 @@ const main: DiscordEventInterface = {
         // Publish online message to servers. (Cache server listing?)
         if (client.config?.testing) {
             logger.debug('Testing mode - did not send online message');
-            logger.info(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
+            logger.info(`v${BOT_VERSION} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
             client.emit('readyForAction');
             return;
         }
@@ -69,7 +70,7 @@ const main: DiscordEventInterface = {
 
         }
 
-        logger.info(`v${process.env.npm_package_version ?? '0.0.0'} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
+        logger.info(`v${BOT_VERSION} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
         client.emit('readyForAction');
 
     }

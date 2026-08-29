@@ -4,6 +4,7 @@ import {
     type ChatInputCommandInteraction
 } from 'discord.js';
 import { isTesting, type Logger, unexpectedErrorEmbed } from '../api/util.js';
+import { BOT_VERSION } from '../version.js';
 import { randomUUID } from 'node:crypto';
 import type { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
 import {
@@ -121,7 +122,7 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
         server: `${interaction.guild?.name} (${interaction.guildId})`,
         channelName: (interaction.channel as any)?.name,
         requestedBy: interaction.user.tag,
-        botVersion: process.env.npm_package_version,
+        botVersion: BOT_VERSION,
         interaction: !i.isCommand() ? interaction.commandName : interaction.toString(),
     }
 

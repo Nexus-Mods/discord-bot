@@ -1,4 +1,5 @@
 import { EmbedBuilder } from "discord.js";
+import { BOT_VERSION } from '../version.js';
 import { AppError } from './errors.js';
 // Moved to ./formatting.ts, which has no discord.js dependency. Re-exported here
 // so the existing imports from api/util.js keep working.
@@ -10,7 +11,7 @@ export const isTesting = process.env.NODE_ENV === 'testing';
 
 export const baseheader: Readonly<Record<string, string>> = {
     'Application-Name': 'Nexus Mods Discord Bot',
-    'Application-Version': process.env.npm_package_version || '0.0.0'
+    'Application-Version': BOT_VERSION
 };
 
 
