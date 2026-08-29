@@ -1,7 +1,7 @@
 # Nexus Mods Discord Bot — Modernisation & Simplification Plan
 
-**Status:** Phase 0 shipped in **3.17.0**. Phases 1, 2, 3.1 and 3.2 are on the 4.0.0
-branch, unreleased. Phases 3.3–3.6, 4 and 5 remain proposals.
+**Status:** Phase 0 shipped in **3.17.0**. Phases 1, 2, 3.1, 3.2 and 3.6 are on the
+4.0.0 branch, unreleased. Phases 3.3–3.5, 4 and 5 remain proposals.
 **Date:** 29 August 2026 (last updated at `109419b`; originally audited at `473db19`)
 **Scope:** `nexus-bot-typescript` — 96 source files, ~12,400 lines, plus 14 test files,
 ~1,000 lines. The source count is up on the audit's 89 because Phases 1–3 split several
@@ -10,6 +10,11 @@ large files apart; the line count is slightly down despite that.
 ---
 
 ## Status as of 4.0.0
+
+**Phase 3.6 (4.0.0).** Runtime import cycles measured against the emitted JavaScript
+rather than the source, which corrected an earlier bad count of 185 down to a real 12,
+then reduced to 2. Three grab-bag modules split up; `consistent-type-imports` enforced;
+a test pins the count. The two that remain are the subscriptions active-record pair.
 
 **Phase 3.2 (4.0.0).** One pool-parameterised `query` replaces the two near-identical
 wrappers. The pool config no longer falls back to port 0, no longer disables TLS
@@ -439,13 +444,10 @@ Two things found while doing it:
   it falls back to `PGDATABASE` and then to the *user name* - so the automod rules API
   was querying a database nobody had configured. It now fails with a message naming the
   setting. Worth checking what the deployed environment has.
-- **185 import cycles**, 177 of them real at runtime rather than type-only. Deleting the
-  `bot-db.ts` barrel removed 45 of them. The rest are structural: `types/DiscordTypes.ts`
-  imports the two feed *implementations* to type `ClientExt`, `api/util.ts` and
-  `DiscordBotUser.ts` import each other, and every `queries/v2-*.ts` imports
-  `queries/all.ts` which imports them back. ESM tolerates cycles, but they resolve to
-  `undefined` at module-init time, which is exactly the kind of bug that only appears
-  under a particular import order. See 3.6.
+- **Import cycles.** A count of 185 was reported here at the time and it was wrong: it
+  came from a source-level scan that counted type-only imports, which the compiler
+  erases. Measured against the emitted JavaScript the real figure was **12**. See 3.6,
+  which corrects it and takes it to 2.
 
 **A note on ORMs:** the SQL here is simple and mostly parameterised. Drizzle would give you
 typed rows and migrations from one tool, which is attractive. Kysely gives typed SQL with
@@ -534,28 +536,47 @@ The change is to let the error propagate and decide, per caller, what to do:
 
 Needs a test per feed with a forced API failure, asserting the timestamp did not move.
 
-### 3.6 Import cycles
+### 3.6 Import cycles — **done (4.0.0)**
 
-Not in the original plan; added after measuring. **140 remain** (177 of the original 185
-were real at runtime rather than type-only; deleting the `bot-db.ts` barrel in 3.2 removed
-45 of them).
+Not in the original plan; added after 3.2.
 
-The structural causes, in rough order of how many cycles each accounts for:
+**A correction first.** This section previously reported 185 cycles, 177 of them "real at
+runtime". Both numbers were wrong. They came from scanning the TypeScript source and
+counting every import, including type-only ones — which TypeScript erases, so they cannot
+form a runtime cycle. Measured against the emitted JavaScript in `dist/`, the only
+measurement that means anything, the real starting point was **12**. The lesson is worth
+keeping: measure the artefact that runs, not the source that produces it.
 
-- `types/DiscordTypes.ts` imports `feeds/NewsFeedManager.ts` and
-  `feeds/SubscriptionManager.ts` so that `ClientExt` can be typed. A types module pulling
-  in two implementations drags the whole graph into every file that wants a type.
-- `api/util.ts` and `api/DiscordBotUser.ts` import each other.
-- Every `api/queries/v2-*.ts` imports `api/queries/all.ts`, which imports all of them back.
+**12 → 2.** All three fixes were the same shape — a module that had accreted unrelated
+things, so importing one of them dragged in everything else:
 
-Most of this should fall to `import type` for the type-only edges plus moving the service
-types out of `DiscordTypes.ts` into their own module. ESM tolerates cycles, so nothing is
-visibly broken today - which is exactly the problem. A cycle resolves to `undefined` at
-module-init time, and this bot loads every interaction module by `readdir` and dynamic
-`import()`, so the resolution order is a function of filenames.
+| Was | Why it cycled | Now |
+|---|---|---|
+| `NexusAPIServerError` in `types/util.ts` | That file also holds `GameListCache`, which calls `other.Games()` → `queries/all.ts` → `queries/v1.ts`, which needed the error | `types/NexusAPIError.ts`, no dependencies but the Axios error type |
+| Six autocomplete handlers in `api/util.ts` | Each builds a `DiscordBotUser`; `DiscordBotUser` imports `api/util.ts` back, with `api/users.ts` in between | `src/lib/autocomplete.ts` — they are interaction helpers, not utilities |
+| `userEmbed` / `userProfileEmbed` in `api/users.ts` | `DiscordBotUser` imported persistence purely to render itself | `lib/profile.ts`; they take the user as a parameter, so the edge is type-only and erased |
+| `DiscordBotUser` calling `updateUser` | The model imported persistence to save itself; persistence imported the model to build return values | `api/userRecord.ts` — row in, row out, no model. `users.updateUser` wraps it |
 
-Worth doing before Phase 4: if the schema and API client are going to be shared with a web
-app, they have to be extractable, and a cyclic graph is not.
+`@typescript-eslint/consistent-type-imports` is on as an error and converted 235 imports.
+**On its own it changed nothing at runtime** — the compiler was already eliding them. It
+is insurance: if `verbatimModuleSyntax` or `isolatedModules` is ever enabled, or the build
+moves to a bundler, implicit elision stops and every one of those edges becomes real.
+
+**Two cycles remain, deliberately.** `SubscribedChannel` and `SubscribedItem` are
+active-record classes whose methods call the persistence layer, while the persistence
+layer constructs them in ten places. Splitting model from storage across a 730-line file
+is its own change with its own testing, and it is the code behind 2,757 live
+subscriptions. It is benign today: neither module touches the other at module scope, only
+inside methods, so ESM's live bindings are resolved by the time anything runs. The options
+when it is tackled, in increasing order of invasiveness: move the four persistence calls
+out to the callers; inject a store interface at a composition root; or fully separate the
+row types from the behaviour.
+
+`tests/architecture/cycles.test.ts` pins the count and names the known pair, so a new one
+fails CI. It analyses source rather than `dist`, which is only trustworthy *because* the
+lint rule makes every type-only import explicit — the result was checked against the
+emitted JavaScript and matches exactly. Verified by introducing a real cycle and
+confirming the test fails and names the offending edge.
 
 ## Phase 4 — The Next.js front-end (3–4 weeks)
 
@@ -734,7 +755,7 @@ sleep papering over an ordering race.
 | 3.3 — GraphQL codegen | 3–5 days | Low | Query by query |
 | 3.4 — Auth token encryption (S9) | 2–3 days | **High** | One migration, not reversible in place |
 | 3.5 — Query error contract | 2–3 days | Medium | Changes feed behaviour |
-| 3.6 — Import cycles | 2–3 days | Low | Mechanical, but wide |
+| ~~3.6 — Import cycles~~ | 1 day actual | Low | **on 4.0.0** ✓ (2 left, documented) |
 | 4 — Next.js split | 3–4 weeks | Medium | Route group by route group |
 | 5 — Sharding decision + dead code | 1 week | Low | Any time |
 
@@ -743,8 +764,7 @@ Phases 0–2 and 3.1–3.2 took about two and a half weeks against a 5.5–9 wee
 so the remaining figures are probably still pessimistic — but 3.4 and Phase 4 are the two
 items with genuine unknowns in them, and they are what the estimate hangs on.
 
-**Order matters in three places.** 3.6 should come before Phase 4, because a shared
-`packages/db` cannot be extracted from a cyclic graph. 3.4 should not run at the same time
+**Order matters in two places.** 3.6 is done, so the Phase 4 prerequisite is met. 3.4 should not run at the same time
 as anything else touching `users`, since it rewrites every token column. 3.5 wants to land
 on its own, so that a change in feed behaviour can be attributed if something looks wrong
 after a deploy.
