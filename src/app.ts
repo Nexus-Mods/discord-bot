@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { DiscordBot } from './DiscordBot.js';
-import { runMigrations } from './db/migrate.js';
 
 const bot = DiscordBot.getInstance();
 start().catch((err) => {
@@ -10,26 +9,21 @@ start().catch((err) => {
 });
 
 async function start() {
-    // app.js is both the shard child process and the standalone entry point for
-    // `npm start`. ShardingManager sets SHARDING_MANAGER in the children, and the
-    // manager has already migrated by the time it spawns them, so only migrate
-    // when this process was started on its own. The advisory lock inside
-    // runMigrations makes a double run safe rather than merely unlikely.
+    // This file is the shard child, not an entry point. It used to be both, and the
+    // standalone path is what let local runs take `if (!client.shard)` branches that
+    // production never takes. ShardingManager sets SHARDING_MANAGER in its children;
+    // without it, nothing has migrated the database or decided how many shards there
+    // should be, so starting here would be a different program than the one that runs
+    // in production.
     if (!process.env.SHARDING_MANAGER) {
-        try {
-            await runMigrations();
-        }
-        catch (err) {
-            bot.logger.error('Database migration failed, refusing to start', err);
-            process.exit(1);
-        }
+        bot.logger.error(
+            'dist/app.js is the shard process and cannot be started directly. Run `npm start` (dist/shards.js), which migrates the database and spawns the shards. To run a single shard, set BOT_SHARD_COUNT=1.',
+        );
+        process.exit(1);
     }
 
-    // Log the shard ID (if running in a shard)
-    if (bot.client.shard) {
-        const shardId = bot.client.shard.ids[0];
-        bot.logger.info(`Starting shard ${shardId}`);
-    }
+    const shardId = bot.client.shard?.ids[0];
+    bot.logger.info(`Starting shard ${shardId}`);
 
     // Login with the Discord bot. 
     try {

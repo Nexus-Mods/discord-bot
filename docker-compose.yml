@@ -1,5 +1,8 @@
 # Local development. Production runs its own compose file on the droplet; this one
 # exists so the two-container shape can be exercised before it gets there.
+#
+# Values come from .env, which Compose also reads for the ${...} interpolation below,
+# so the database service and the two app services cannot disagree about credentials.
 services:
   # The Discord bot: gateway connections, commands and feeds. No HTTP.
   bot:
@@ -11,6 +14,14 @@ services:
     command: ["node", "dist/shards.js"]
     env_file:
       - .env
+    environment: &db_overrides
+      # .env points at a database reachable from the host. Inside a container,
+      # localhost is the container - these override it to the compose service.
+      HOST: postgres
+      PORT: 5432
+      # The local Postgres below has no TLS. Without this, an unset or production
+      # NODE_ENV defaults SSL on and the connection is refused.
+      DB_SSL: "off"
     depends_on:
       - postgres
     restart: unless-stopped
@@ -26,6 +37,7 @@ services:
     env_file:
       - .env
     environment:
+      <<: *db_overrides
       AUTH_PORT: 3000
     ports:
       - "3000:3000"
@@ -36,12 +48,15 @@ services:
     # single-replica by construction. Scaling it needs that moved out first.
     scale: 1
 
+  # Matches production (PostgreSQL 17). A postgres_data volume created by an older
+  # image will refuse to start under 17 - remove the volume to recreate it empty,
+  # since migrations rebuild the schema on first boot anyway.
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: discord_bot
+      POSTGRES_USER: ${DBUSER}
+      POSTGRES_PASSWORD: ${DBPASS}
+      POSTGRES_DB: ${DATABASE}
     ports:
       - "5432:5432"
     volumes:

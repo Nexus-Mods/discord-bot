@@ -139,10 +139,31 @@ describe('the bot stays out of the web process', () => {
     });
 });
 
-describe('both processes migrate', () => {
+describe('entry points', () => {
     // Two containers from one image start in either order. runMigrations takes a Postgres
     // advisory lock, so whichever wins does the work and the other finds nothing to do.
-    it.each(['src/shards.ts', 'src/app.ts', 'src/web.ts'])('%s runs migrations', (entry) => {
+    it.each(['src/shards.ts', 'src/web.ts'])('%s migrates before it starts', (entry) => {
         expect(reachableFrom(entry).has('src/db/migrate.ts')).toBe(true);
+    });
+
+    // app.ts is the shard child, spawned by shards.ts after it has already migrated.
+    // If it migrates too, every shard races on the lock at startup for nothing.
+    it('the shard child does not migrate', () => {
+        expect(reachableFrom('src/app.ts').has('src/db/migrate.ts')).toBe(false);
+    });
+
+    // The unsharded path is gone: it is what let local runs take `if (!client.shard)`
+    // branches production never takes. There is one way to start the bot.
+    it('npm start runs the sharding manager, not the shard child', () => {
+        const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts as Record<string, string>;
+        expect(scripts.start).toBe('node dist/shards.js');
+        const startsTheChild = Object.entries(scripts)
+            .filter(([, cmd]) => /\bdist\/app\.js\b/.test(cmd))
+            .map(([name]) => name);
+        expect(startsTheChild).toEqual([]);
+    });
+
+    it('the Dockerfile default is the sharding manager', () => {
+        expect(readFileSync('Dockerfile', 'utf8')).toContain('CMD ["node", "dist/shards.js"]');
     });
 });

@@ -36,6 +36,18 @@ They are a second container, from the same image, started with a different comma
    started and reject it as unknown state. Moving that to the database is what a second
    replica needs; nothing else does.
 
+### The bot only runs sharded now
+
+`dist/app.js` is the shard child and refuses to start on its own; `npm start` and the
+image default are both `dist/shards.js`, which is what production already runs. Nothing
+changes in a container that was already using the image default.
+
+The unsharded path existed for local development, and it meant local runs exercised
+`if (!client.shard)` branches production never takes. `BOT_SHARD_COUNT` forces a shard
+count when one is wanted - `BOT_SHARD_COUNT=1` is the supported way to run a single
+gateway connection, and `client.shard` is still populated, so it is the same code path.
+Left unset, the count is still `auto`.
+
 ### What does not change
 
 - **No migration runs.** No schema change in this release.
