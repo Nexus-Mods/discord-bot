@@ -158,6 +158,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
             // updateServer now throws a DatabaseError carrying its cause, so wrapping
             // it in a fresh Error here would only discard the stack.
+            logger.info("Settings updat data", newData)
             await updateServer(server.id, newData.data ?? {});
             return interaction.editReply({ embeds: [updateEmbed(newData as IBotServerChange)] });
         }

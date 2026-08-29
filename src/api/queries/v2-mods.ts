@@ -66,6 +66,7 @@ export async function mods(headers: Record<string,string>, logger: Logger, filte
     }
 
     try {
+        logger.info("Mod search started", vars);
         const result: IResult = await request(v2API, query, vars, headers);
         return result.mods;
     }

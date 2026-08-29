@@ -52,15 +52,6 @@ export type DiscordBotGetModAuthorStatusQueryVariables = Types.Exact<{
 
 export type DiscordBotGetModAuthorStatusQuery = { user: { name: string, recognizedAuthor: boolean } | null };
 
-export type DiscordBotLatestModsQueryVariables = Types.Exact<{
-  filter?: Types.InputMaybe<Types.ModsFilter>;
-  sort?: Types.InputMaybe<Array<Types.ModsSort> | Types.ModsSort>;
-  count?: Types.InputMaybe<Types.Scalars['Int']['input']>;
-}>;
-
-
-export type DiscordBotLatestModsQuery = { mods: { totalCount: number, nodes: Array<{ uid: string, name: string, summary: string, modId: number, createdAt: string, updatedAt: string, description: string, pictureUrl: string | null, game: { domainName: string, name: string, id: number }, uploader: { name: string, memberId: number, joined: string, modCount: number }, mirrors: Array<{ name: string, uri: string | null }> | null }> } };
-
 export type DiscordBotModsQueryVariables = Types.Exact<{
   filter?: Types.InputMaybe<Types.ModsFilter>;
   sort?: Types.InputMaybe<Array<Types.ModsSort> | Types.ModsSort>;
@@ -105,15 +96,6 @@ export type DiscordBotNewsQueryVariables = Types.Exact<{
 
 
 export type DiscordBotNewsQuery = { news: { nodes: Array<{ id: string, title: string, summary: string, date: any, header: string | null, image: string | null, newsCategory: { name: string }, author: { name: string, avatar: string } }> } };
-
-export type DiscordBotGetUpdatedModsQueryVariables = Types.Exact<{
-  filter?: Types.InputMaybe<Types.ModsFilter>;
-  sort?: Types.InputMaybe<Array<Types.ModsSort> | Types.ModsSort>;
-  count?: Types.InputMaybe<Types.Scalars['Int']['input']>;
-}>;
-
-
-export type DiscordBotGetUpdatedModsQuery = { mods: { totalCount: number, nodes: Array<{ uid: string, name: string, summary: string, modId: number, createdAt: string, updatedAt: string, description: string, pictureUrl: string | null, game: { domainName: string, name: string, id: number }, uploader: { name: string, memberId: number, joined: string, modCount: number } }> } };
 
 export type DiscordBotUserSearchQueryVariables = Types.Exact<{
   filter?: Types.InputMaybe<Types.UsersSearchFilter>;

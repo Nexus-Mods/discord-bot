@@ -13,7 +13,7 @@ import type { ICollectionsFilter } from "../types/GQLTypes.js";
 import type { BotServer } from "../types/servers.js";
 import { sendUnexpectedError } from '../events/interactionCreate.js';
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
-import type { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
+import type { ICollection, ICollectionSearchResult, IMod, IModsFilter } from "../api/queries/v2.js";
 import type { IUser } from "../api/queries/v2-finduser.js";
 import type { IModResults } from "../api/queries/v2-mods.js";
 import type { IGameStatic } from "../api/queries/other.js";
@@ -194,7 +194,9 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             // Multiple results
             const choices = results.nodes?.slice(0,5) || [];
 
-            const createCollectionField = (c: ICollection, idx: number): APIEmbedField => {
+            // A search result node, not a full collection: the search query selects
+            // fewer fields, so ICollection here would claim more than the API returned.
+            const createCollectionField = (c: ICollectionSearchResult['nodes'][number], idx: number): APIEmbedField => {
                 return {
                     name: `${numberEmoji[idx]} - ${c.name}`,
                     value: `Game: ${c.game?.name} - Author: [${c.user?.name}](https://nexusmods.com/users/${c.user?.memberId}) - [View](https://next.nexusmods.com/${c.game?.domainName}/collections/${c.slug})`,

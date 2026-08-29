@@ -23,6 +23,9 @@ import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 import type { ModStatus } from "../types/GQLTypes.js";
 
 
+/** File categories that mean the file is no longer downloadable, so not worth posting. */
+const UNAVAILABLE_FILE_CATEGORIES: ModFileCategory[] = [ModFileCategory.Archived, ModFileCategory.Removed];
+
 /** The statuses a subscription was still being posted under, before it became unavailable. */
 const WAS_AVAILABLE: CollectionStatus[] = [CollectionStatus.Listed, CollectionStatus.Unlisted];
 
@@ -545,7 +548,7 @@ export class SubscriptionManger {
             // File date is greater than last_update on this item.
             if (fileDate.getTime() <= last_update.getTime()) return false;
             // Not archived or deleted
-            return ![ModFileCategory.Archived, ModFileCategory.Removed].includes(f.category)
+            return !UNAVAILABLE_FILE_CATEGORIES.includes(f.category)
         })
         .slice(0,5); // Max of 5 due to embed limits
         // logMessage('New files found', newFiles.length);

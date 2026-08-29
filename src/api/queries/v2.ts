@@ -1,4 +1,5 @@
 import { ClientError } from "graphql-request";
+import type { DiscordBotGetCollectionRevisionDataQuery, DiscordBotModFilesQuery, DiscordBotSearchCollectionsQuery } from '../generated/operations.js';
 import type { DiscordBotGetCollectionDataQuery } from '../generated/operations.js';
 import type { DiscordBotModsQuery } from '../generated/operations.js';
 import type * as GQLTypes from '../../types/GQLTypes.js';
@@ -25,27 +26,16 @@ export type CollectionStatus = (typeof CollectionStatus)[keyof typeof Collection
 
 export type ICollection = DiscordBotGetCollectionDataQuery['collection'];
 
-export interface ICollectionRevision {
-    id: number;
-    revisionNumber: number;
-    fileSize: number;
-    modCount: number;
-    adultContent: boolean;
-    updatedAt: string;
-    collectionChangelog: ICollectionChangelog;
-    status: 'draft' | 'published' | 'retracted';
-}
+export type ICollectionRevision = DiscordBotGetCollectionRevisionDataQuery['collection']['revisions'][number];
 
 interface ICollectionChangelog {
     description: string;
 }
 
-export interface ICollectionSearchResult {
-    nodes: ICollection[];
-    nodesFilter: string;
-    nodesCount: number;
+export type ICollectionSearchResult = DiscordBotSearchCollectionsQuery['collectionsV2'] & {
+    /** Not from the API: the /search command attaches the web search URL for a 'see all' link. */
     searchURL?: string;
-}
+};
 
 export type IMod = DiscordBotModsQuery['mods']['nodes'][number];
 
@@ -116,58 +106,21 @@ export type VirusScannedStatus =
     | "INTERNALLY_VERIFIED" | "QUARANTINED" | "MANUALLY_VERIFIED"
     | "MOD_DOES_NOT_EXIST" | "FILE_NOT_FOUND" | "REPORT_ERROR" | "TOO_LARGE";
 
-export interface IModFile {
-    uid: string;
-    uri: string;
-    category: ModFileCategory;
-    changelogText: string[];
-    date: number;
-    fileId: number;
-    name: string;
-    version: string;
-    description: string;
-    manager: number;
-    scannedV2: VirusScannedStatus;
-}
-
-export enum ModFileCategory {
-    Main = 'MAIN',
-    Update = 'UPDATE',
-    Optional = 'OPTIONAL',
-    Old = 'OLD_VERSION',
-    Misc = 'MISCELLANEOUS',
-    Removed = 'REMOVED',
-    Archived = 'ARCHIVED'
-}
+export type IModFile = DiscordBotModFilesQuery['modFiles'][number];
 
 /**
- * Result shape for the latestMods and updatedMods queries. These select a wider
- * field set than IMod (uploader details, mirrors) because they were originally
- * written for the automod feed.
+ * A const object rather than an enum, for the reason given on CollectionStatus: codegen
+ * emits string unions, and a TypeScript enum member is not assignable to one.
  */
-export interface IModForAutomod {
-    uid: string;
-    name: string;
-    summary: string;
-    adult: boolean;
-    game: {
-        domainName: string;
-        name: string;
-        id: number;
-    }
-    modId: number,
-    createdAt: string;
-    updatedAt: string;
-    description: string;
-    uploader: {
-        name: string;
-        memberId: number;
-        joined: string;
-        modCount: number;
-    }
-    pictureUrl: string;
-    mirrors?: {
-        name: string;
-        uri: string;
-    }[] | null;
-}
+export const ModFileCategory = {
+    Main: 'MAIN',
+    Update: 'UPDATE',
+    Optional: 'OPTIONAL',
+    Old: 'OLD_VERSION',
+    Misc: 'MISCELLANEOUS',
+    Removed: 'REMOVED',
+    Archived: 'ARCHIVED',
+} as const;
+
+export type ModFileCategory = (typeof ModFileCategory)[keyof typeof ModFileCategory];
+
