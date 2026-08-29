@@ -1,4 +1,3 @@
--- drizzle/0001_drop_unused_tables.sql
-DROP TABLE IF EXISTS "game_feeds";
-DROP TABLE IF EXISTS "user_mods";
-DROP TABLE IF EXISTS "user_servers";
+DROP TABLE "game_feeds" CASCADE;--> statement-breakpoint
+DROP TABLE "user_mods" CASCADE;--> statement-breakpoint
+DROP TABLE "user_servers" CASCADE;
