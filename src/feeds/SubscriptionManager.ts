@@ -1,4 +1,5 @@
 import type { ClientExt } from "../types/DiscordTypes.js";
+import { assertPresent } from '../lib/assert.js';
 import { 
     type DiscordAPIError, EmbedBuilder, type Guild, type Snowflake, type TextChannel, 
     type WebhookMessageCreateOptions, ShardClientUtil, type DiscordjsError 
@@ -21,6 +22,9 @@ import { baseheader } from "../api/util.js";
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 import type { ModStatus } from "../types/GQLTypes.js";
 
+
+/** The statuses a subscription was still being posted under, before it became unavailable. */
+const WAS_AVAILABLE: CollectionStatus[] = [CollectionStatus.Listed, CollectionStatus.Unlisted];
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -578,21 +582,25 @@ export class SubscriptionManger {
         if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
         if (collection.collectionStatus === CollectionStatus.Moderated) {
             this.logger.info('Collection under moderation', item.title);
-            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.config.last_status as CollectionStatus)) {
+            if (WAS_AVAILABLE.includes(item.config.last_status as CollectionStatus)) {
                 results.push(unavailableUpdate<SubscribedItemType.Collection>(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
-                await saveLastUpdatedForSub(item.id, results[0].date, collection.collectionStatus);
+                await saveLastUpdatedForSub(item.id, results[0].date, collection.collectionStatus ?? undefined);
             }
             return results;
         }
         else if (collection.collectionStatus === CollectionStatus.Discarded) {
             this.logger.info('Collection has been discarded', item.title);
-            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.config.last_status as CollectionStatus)) {
+            if (WAS_AVAILABLE.includes(item.config.last_status as CollectionStatus)) {
                 results.push(unavailableUpdate<SubscribedItemType.Collection>(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
                 await deleteSubscription(item.id);
             }
             return results;
         }
-        const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
+        const latestRevision = assertPresent(
+            collection.latestPublishedRevision,
+            'a published collection always has a published revision',
+        );
+        const collectionUpdatedAt = new Date(latestRevision.updatedAt);
         if (collectionUpdatedAt.getTime() < last_update.getTime()) {
             // Collection hasn't been updated since we last checked.
             // logMessage('No updates found', item.title);
@@ -623,7 +631,7 @@ export class SubscriptionManger {
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate, collection.collectionStatus);
+        await saveLastUpdatedForSub(item.id, lastDate, collection.collectionStatus ?? undefined);
         item.last_update = lastDate;
                 
         return results;

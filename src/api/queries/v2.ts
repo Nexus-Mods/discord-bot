@@ -1,57 +1,29 @@
 import { ClientError } from "graphql-request";
+import type { DiscordBotGetCollectionDataQuery } from '../generated/operations.js';
 import type { DiscordBotModsQuery } from '../generated/operations.js';
 import type * as GQLTypes from '../../types/GQLTypes.js';
 
 
 export const v2API: string = 'https://api.nexusmods.com/v2/graphql';
 
-export enum CollectionStatus {
-    Listed = 'listed',
-    Unlisted = 'unlisted',
-    Moderated = 'under_moderation',
-    Discarded = 'discarded'
-}
+/**
+ * Kept as a const object rather than an enum.
+ *
+ * codegen emits `CollectionStatus` as a string union (`enumsAsTypes`), and a TypeScript
+ * enum is nominally typed - so `CollectionStatus.Listed` from an enum is not assignable
+ * to the generated union even though both are the string 'listed'. `as const` keeps the
+ * named-member ergonomics while the values stay literals the generated type accepts.
+ */
+export const CollectionStatus = {
+    Listed: 'listed',
+    Unlisted: 'unlisted',
+    Moderated: 'under_moderation',
+    Discarded: 'discarded',
+} as const;
 
-export interface ICollection {
-    id: number;
-    slug: string;
-    name: string;
-    summary: string;
-    collectionStatus: CollectionStatus
-    category: {
-        name: string;
-    };
-    overallRating: string;
-    overallRatingCount: number;
-    endorsements: number;
-    totalDownloads: number;
-    draftRevisionNumber: number;
-    lastPublishedAt: string;
-    firstPublishedAt: string;
-    latestPublishedRevision: {
-        fileSize: string;
-        modCount: number;
-        revisionNumber: number;
-        adultContent: boolean;
-        updatedAt: string;
-    }
-    game: {
-        id: number;
-        domainName: string;
-        name: string;
-    }
-    user: {
-        memberId: number;
-        avatar: string;
-        name: string;
-    }
-    tileImage: {
-        url: string;
-        altText: string;
-        thumbnailUrl: string;
-    }
-    updatedAt: string;
-}
+export type CollectionStatus = (typeof CollectionStatus)[keyof typeof CollectionStatus];
+
+export type ICollection = DiscordBotGetCollectionDataQuery['collection'];
 
 export interface ICollectionRevision {
     id: number;

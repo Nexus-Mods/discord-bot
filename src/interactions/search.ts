@@ -4,6 +4,7 @@ import {
     SlashCommandBuilder, PermissionFlagsBits, type APIEmbedField,
     MessageFlags, InteractionContextType} from "discord.js";
 import { customEmojis } from "../types/util.js";
+import { assertPresent } from '../lib/assert.js';
 import type { DiscordInteraction } from '../types/DiscordTypes.js';
 import { getServer } from '../api/servers.js';
 import { getUserByDiscordId } from '../api/users.js';
@@ -409,8 +410,9 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
     }
 
     const url = `https://next.nexusmods.com/${res.game?.domainName}/collections/${res.slug}`;
+    const revision = assertPresent(res.latestPublishedRevision, 'a published collection always has a published revision');
 
-    if (!nsfw && res.latestPublishedRevision.adultContent === true) {
+    if (!nsfw && revision.adultContent === true) {
         const nsfwEmbed = new EmbedBuilder()
         .setColor('DarkRed')
         .setFooter(apiLinkFooter(client))
@@ -422,11 +424,11 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
     const embed = new EmbedBuilder()
     .setColor(NEXUS_ORANGE)
     .setFooter(apiLinkFooter(client))
-    .setThumbnail(res.tileImage.thumbnailUrl || client.user?.avatarURL() || null)
+    .setThumbnail(res.tileImage?.thumbnailUrl || client.user?.avatarURL() || null)
     .setURL(url)
     .setTitle(res.name || 'Unknown Collection')
     .setDescription(res.summary || 'No summary')
-    .setTimestamp(new Date(parseInt(res.updatedAt as any) || 0))
+    .setTimestamp(new Date(revision.updatedAt))
     .setAuthor({ name: res.user?.name || '???', url: `https://nexusmods.com/users/${res.user?.memberId || 0}`, iconURL: res.user?.avatar })
     .addFields(
         {
@@ -436,12 +438,12 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
         },
         {
             name: `<:mod:${customEmojis.mod}> Mods`,
-            value: `${(res.latestPublishedRevision.modCount || 0).toLocaleString()}`,
+            value: `${(revision.modCount || 0).toLocaleString()}`,
             inline: true
         },
         {
             name: `<:collection:${customEmojis.collection}> Revisions`,
-            value: `${res.latestPublishedRevision.revisionNumber || 1}`,
+            value: `${revision.revisionNumber || 1}`,
             inline: true
         },
         {
