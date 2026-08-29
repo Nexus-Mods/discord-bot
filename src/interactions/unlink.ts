@@ -1,8 +1,9 @@
-import { CommandInteraction, Snowflake, Client, SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType, MessageFlags } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
-import { getUserByDiscordId } from '../api/bot-db.js';
-import { KnownDiscordServers, Logger } from "../api/util.js";
+import { type CommandInteraction, type Snowflake, type Client, SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType } from "discord.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
+import { getUserByDiscordId } from '../api/users.js';
+import { KnownDiscordServers, type Logger } from "../api/util.js";
 import { unlinkUrl } from '../server/auth.js';
+import { NEXUS_ORANGE, botFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -13,24 +14,24 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
     action
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const discordId: Snowflake = interaction.user.id;
-    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     // See if they have existing data
     const userData = await getUserByDiscordId(discordId);
     if (userData) {
         // Existing user
         const unlinkEmbed = [new EmbedBuilder()
         .setTitle('Unlink Nexus Mods account')
-        .setColor(0xda8e35)
+        .setColor(NEXUS_ORANGE)
         .setURL(unlinkUrl(discordId))
         .setDescription('Unlinking your account will remove all roles granted by your Nexus Mods account and you will not be able to use all features of the bot anymore.')
         .setThumbnail(userData.NexusModsAvatar || null)
-        .setFooter({ text: 'Discord Bot - Nexus Mods', iconURL: client?.user?.avatarURL() || '' })];
+        .setFooter(botFooter(client))];
 
         const unlinkButton = [new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
@@ -47,9 +48,9 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         // Not linked!
         const notLinkedEmbed = [new EmbedBuilder()
         .setTitle('Unlink Nexus Mods account')
-        .setColor(0xda8e35)
+        .setColor(NEXUS_ORANGE)
         .setDescription('Your account is not current linked.')
-        .setFooter({ text: 'Discord Bot - Nexus Mods', iconURL: client?.user?.avatarURL() || '' })];
+        .setFooter(botFooter(client))];
 
         return interaction.editReply({ embeds: notLinkedEmbed });
 

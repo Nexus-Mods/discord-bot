@@ -1,6 +1,6 @@
 import { ShardingManager } from 'discord.js';
 import dotenv from 'dotenv';
-import * as dbMigrations from './api/migrations.js';
+import { runMigrations } from './db/migrate.js';
 import { logger } from './api/logger.js';
 dotenv.config();
 
@@ -17,14 +17,17 @@ manager.on('shardCreate', (shard) => {
 });
 
 async function start() {
-    // Run migrations
-    const version = process.env.npm_package_version;
+    // Migrate before any shard exists. This used to be a pair of hand-written
+    // migrations gated on npm_package_version, so they ran only if the version
+    // string happened to match on that particular deploy and were skipped forever
+    // otherwise. Failures were logged and swallowed, and the bot went on to start
+    // against whatever schema it found.
     try {
-        if (version === '3.13.0') await dbMigrations.migrationDeleteAPIkeyColumn();
-        if (version === '3.13.1') await dbMigrations.migrationMoveConfigOptionsToJSON();
+        await runMigrations();
     }
-    catch(err) {
-        logger.error('Failed to run database migrations', err);
+    catch (err) {
+        logger.error('Database migration failed, refusing to start', err);
+        process.exit(1);
     }
 
     void manager.spawn(); // Spawn the shards

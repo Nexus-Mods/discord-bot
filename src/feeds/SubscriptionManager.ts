@@ -1,23 +1,24 @@
-import { ClientExt } from "../types/DiscordTypes.js";
+import type { ClientExt } from "../types/DiscordTypes.js";
 import { 
-    DiscordAPIError, EmbedBuilder, Guild, Snowflake, TextChannel, 
-    WebhookMessageCreateOptions, ShardClientUtil, DiscordjsError 
+    type DiscordAPIError, EmbedBuilder, type Guild, type Snowflake, type TextChannel, 
+    type WebhookMessageCreateOptions, ShardClientUtil, type DiscordjsError 
 } from 'discord.js';
-import { isTesting, Logger } from '../api/util.js';
-import { CollectionStatus, IMod, IModFile, IModsFilter, IModsSort, ModFileCategory } from '../api/queries/v2.js';
+import { isTesting, type Logger } from '../api/util.js';
+import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
 import { 
-    IModWithFiles, IPostableSubscriptionUpdate, ISubscribedItem, 
-    SubscribedChannel, SubscribedItem, subscribedItemEmbed, SubscribedItemType, 
+    type IModWithFiles, type IPostableSubscriptionUpdate, type ISubscribedItem, 
+    type SubscribedChannel, type SubscribedItem, subscribedItemEmbed, SubscribedItemType, 
     SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType 
 } from '../types/subscriptions.js';
 import { 
-    deleteSubscribedChannel, deleteSubscription, ensureSubscriptionsDB, 
+    deleteSubscribedChannel, deleteSubscription, 
     getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, 
     saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
     updateSubscription 
 } from '../api/subscriptions.js';
 import { v2 as API } from '../api/queries/all.js';
 import { baseheader } from "../api/util.js";
+import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 
 
 export class SubscriptionManger {
@@ -26,7 +27,6 @@ export class SubscriptionManger {
     private updateTimer?: NodeJS.Timeout;
     private pollTime: number = 0;
     private channels: SubscribedChannel[];
-    private channelGuildSet: Set<string>;
     private cache: SubscriptionCache = new SubscriptionCache();
     private logger: Logger;
     private batchSize: number = 10;
@@ -47,7 +47,6 @@ export class SubscriptionManger {
     private constructor(client: ClientExt, pollTime: number, channels: SubscribedChannel[], logger: Logger) {
         this.logger = logger;
         this.channels = channels;
-        this.channelGuildSet = new Set(channels.map(c => c.guild_id)); 
         // Save the client for later
         this.client = client;
         if (client.shard && client.shard.ids[0] !== 0) {
@@ -56,14 +55,10 @@ export class SubscriptionManger {
             return this;
         }       
         this.pollTime = pollTime;
-        this.updateTimer = setInterval(async () => {
-            try {
-                await this.updateSubscriptions();
-            }
-            catch(err){
-                this.logger.error('Failed to run subscription event', err);
-            }
-        }, pollTime)
+        this.updateTimer = setInterval(
+            voidAsync(this.logger, 'subscription poll', () => this.updateSubscriptions()),
+            pollTime,
+        );
         // Trigger an update 1 minute after booting up. This lets the other shards spin up.
         setTimeout(() => {
             this.updateSubscriptions().catch(err => this.logger.error('Failed initial subscription update', err));
@@ -82,13 +77,7 @@ export class SubscriptionManger {
     }
 
     private static async initialiseInstance(client: ClientExt, pollTime: number, logger: Logger): Promise<void> {
-        // Set up any missing tables
         try {
-            if (!client.shard || client.shard?.ids[0] === 0) {
-                // Only hit the database if we're either not running sharded or we're on shard 0;
-                await ensureSubscriptionsDB();
-                
-            }
             let channels: SubscribedChannel[] = await getSubscribedChannels();
             if (client.shard) {
                 // If we're sharded, we'll filter out the channels we can't manage.
@@ -113,14 +102,10 @@ export class SubscriptionManger {
     public resume() {
         if (this.updateTimer) clearInterval(this.updateTimer);
         this.paused = false;
-        this.updateTimer = setInterval(async () => {
-            try {
-                await this.updateSubscriptions();
-            }
-            catch(err){
-                this.logger.error('Failed to run subscription event', err);
-            }
-        }, this.pollTime)
+        this.updateTimer = setInterval(
+            voidAsync(this.logger, 'subscription poll', () => this.updateSubscriptions()),
+            this.pollTime,
+        );
         this.logger.info('Subscription Manager resumed');
     }
 
@@ -143,8 +128,6 @@ export class SubscriptionManger {
         if (!channel) return this.logger.warn('Attempted to remove channel but it was not found.', id);
         this.channels.splice(this.channels.indexOf(channel), 1);
         this.logger.info('Removed channel from SubscriptionManager', id);
-        const remaining = this.channels.filter(c => c.guild_id === channel.guild_id).length;
-        if (!remaining) this.channelGuildSet.delete(channel.guild_id);
     }
 
     public updateChannel(channel: SubscribedChannel) {
@@ -198,7 +181,8 @@ export class SubscriptionManger {
         if (this.client.shard && this.client.shard.ids[0] === 0) {
             try {
                 await this.client.shard.broadcastEval((client: ClientExt, context) => {
-                    if (client.shard?.ids[0] !== context.mainId) client.subscriptions?.updateSubscriptions();
+                    // Runs inside another shard's process, so nothing here can await it.
+                    if (client.shard?.ids[0] !== context.mainId) void client.subscriptions?.updateSubscriptions();
                 }, { context: { mainId: this.client.shard.ids[0] } })
             }
             catch(err) {
@@ -328,7 +312,7 @@ export class SubscriptionManger {
         let currentSub: number = postableUpdates[0].subId;
         for (const update of postableUpdates) {
             // If we've swapped type, sub or we've got more than 5 embeds already
-            if (update.type !== currentType || update.subId != currentSub || blocks[blocks.length - 1].message.embeds!.length === maxBlockSize) blocks.push({ message: { embeds: [] }, crosspost: false});
+            if (update.type !== currentType || update.subId !== currentSub || blocks[blocks.length - 1].message.embeds!.length === maxBlockSize) blocks.push({ message: { embeds: [] }, crosspost: false});
             const myBlock = blocks[blocks.length - 1];
             myBlock.message.embeds = myBlock.message.embeds ? [...myBlock.message.embeds, update.embed] : [update.embed];
             if (!myBlock.message.content && update.message) myBlock.message.content = update.message;
@@ -349,7 +333,7 @@ export class SubscriptionManger {
                         try {
                             await message.crosspost();
                         }
-                        catch(err) {
+                        catch(_err) {
                             this.logger.warn('Failed to crosspost webhook message', { channel: discordChannel.name, guild: guild.name });
                             await webHookClient.send({ content: '-# Failed to crosspost the message. Please check the channel is an announcement channel and the bot has the `MANAGE_MESSAGE` permission.' }).catch(() => null);
                         }
@@ -369,7 +353,6 @@ export class SubscriptionManger {
                     // Delete the channel and all associated tracked items.
                     await deleteSubscribedChannel(channel);
                     this.channels = this.channels.filter(c => c.id !== channel.id);
-                    this.channelGuildSet.delete(channel.guild_id);
                     throw Error('Webhook no longer exists');
                 }
                 this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
@@ -622,7 +605,7 @@ export class SubscriptionManger {
         const last_update = item.last_update;
         const user = await this.NexusModsAPI.v2.FindUser(userId);
         if (!user) throw new Error(`User not found for ${userId}`);
-        if (user.banned === true || user.deleted == true) {
+        if (user.banned === true || user.deleted === true) {
             this.logger.info(`${user.name} has been banned or deleted from Nexus Mods`);
             results.push(unavailableUserUpdate(user, item));
             await deleteSubscription(item.id);
@@ -743,7 +726,11 @@ export class SubscriptionManger {
         }
         this.logger.debug('Preparing cache for subscriptions', { subs: subs.length, channels: this.channels.length });
 
-        const promises: Promise<void>[] = [];
+        // Tasks, not started promises - see mapWithConcurrency below.
+
+/** Simultaneous pre-cache API requests. One per tracked game, so this is a rate-limit guard. */
+const PREPARE_CACHE_CONCURRENCY = 5;
+        const tasks: (() => Promise<unknown>)[] = [];
 
         const allGameSubs: SubscribedItem<SubscribedItemType.Game>[] = subs.filter(
             (s): s is SubscribedItem<SubscribedItemType.Game> => s.type === SubscribedItemType.Game
@@ -754,7 +741,7 @@ export class SubscriptionManger {
         const newGames = new Set<string>(newGameSubs.map(s => s.entityid as string));
         // For each game, get the date of the oldest possible mod to show.
         const oldestPerNewGame = getMaxiumDatesForGame(newGameSubs, newGames);
-        const newGamePromises = Object.entries(oldestPerNewGame).map(async ([ domain, date ]) => {
+        const newGamePromises = Object.entries(oldestPerNewGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
@@ -765,13 +752,13 @@ export class SubscriptionManger {
             this.cache.add('games', mods.nodes, domain);
             if (isTesting || mods.totalCount > 0) this.logger.debug(`Pre-cached ${mods.nodes.length}/${mods.totalCount} new mods for ${domain} since ${date}`)
         });
-        promises.push(...newGamePromises);
+        tasks.push(...newGamePromises);
 
         // UPDATED MODS FOR GAMES
         const updatedGameSubs = allGameSubs.filter(s => s.config?.show_updates ?? false);
         const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityid as string));
         const oldestPerUpdatedGame = getMaxiumDatesForGame(updatedGameSubs, updatedGames);
-        const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(async ([ domain, date ]) => {
+        const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
                     gameDomainName: { value: domain, op: 'EQUALS' },
@@ -783,12 +770,14 @@ export class SubscriptionManger {
             this.cache.add('games', mods.nodes, domain, true);
             if (isTesting || mods.totalCount > 0) this.logger.debug(`Pre-cached ${mods.nodes.length}/${mods.totalCount} updated mods for ${domain} since ${date}`)
         });
-        promises.push(...updatedGamePromises);
+        tasks.push(...updatedGamePromises);
 
         // TODO - We could cache the values of common mods, users and collections here, but it's an improvement.
 
-        // Let all the promises resolve
-        return await Promise.allSettled(promises);
+        // One API request per tracked game, so this used to fire all of them at once -
+        // exactly the shape that trips rate limits on a busy bot, and there is still no
+        // retry handling (Phase 3).
+        return await mapWithConcurrency(tasks, PREPARE_CACHE_CONCURRENCY, (task: () => Promise<unknown>) => task());
     }
 }
 

@@ -1,11 +1,13 @@
-import { SlashCommandBuilder, CommandInteraction, Role, EmbedBuilder, MessageFlags, InteractionContextType } from "discord.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { SlashCommandBuilder, type CommandInteraction, type Role, EmbedBuilder, InteractionContextType } from "discord.js";
+import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { ConditionType } from "../types/util.js";
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { getUserByDiscordId, getServer, getConditionsForRole } from "../api/bot-db.js";
-import { BotServer } from "../types/servers.js";
-import { Logger } from "../api/util.js";
-import { IConditionForRole } from "../api/server_role_conditions.js";
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { getConditionsForRole } from '../api/server_role_conditions.js';
+import { getServer } from '../api/servers.js';
+import type { BotServer } from "../types/servers.js";
+import type { Logger } from "../api/util.js";
+import type { IConditionForRole } from "../api/server_role_conditions.js";
+import type { InteractionContext } from '../lib/middleware.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -14,25 +16,22 @@ const discordInteraction: DiscordInteraction = {
     .setContexts(InteractionContextType.Guild) as SlashCommandBuilder,
     public: true,
     guilds: [],
+    defer: 'ephemeral',
+    requiresLink: true,
     action
 }
 
-async function action(client: ClientExt, interaction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: ClientExt, interaction: CommandInteraction, logger: Logger, ctx: InteractionContext): Promise<any> {
+    const user = ctx.user!;
     if (!interaction.guild) return interaction.reply('This command only works in servers.');
     
     // Defer while we check this out.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-    // Check if the user has linked their accounts
-    let user : DiscordBotUser|undefined = undefined;
 
     // Get server info
     const server : BotServer = await getServer(interaction.guild);
     if (!server.role_author) return interaction.editReply('No claimable role in this server. Please check <id:customize> or [Linked Roles](https://support.discord.com/hc/en-us/articles/8063233404823-Connections-Linked-Roles-Community-Members#h_01GK286J648XF4HPGKZYW9AMQF) for more options.');
 
     try {
-        user = await getUserByDiscordId(interaction.user.id);
-        if (!user) return interaction.editReply('Please [link your Nexus Mods account](https://discordbot.nexusmods.com/linked-role), to claim a role.')
         await user.NexusMods.Auth();
         
     }
@@ -65,7 +64,7 @@ async function action(client: ClientExt, interaction: CommandInteraction, logger
                 // If this check passed, reset the array.
                 else orChecks = [];
             }
-            const pass = await evaluateCondition(condition, user).catch(c => false);
+            const pass = await evaluateCondition(condition, user).catch(() => false);
             if (pass === true) condition.result = 'pass';
             else condition.result = 'fail';
 

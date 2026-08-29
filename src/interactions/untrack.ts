@@ -1,14 +1,14 @@
 import { 
-    CommandInteraction, EmbedBuilder, SlashCommandBuilder, ChatInputCommandInteraction,
-    PermissionFlagsBits, GuildChannel, APIEmbedField,ActionRowBuilder, StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder, ComponentType,
-    MessageFlags,
+    type CommandInteraction, EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction,
+    PermissionFlagsBits, type GuildChannel, type APIEmbedField,ActionRowBuilder, StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder, type ComponentType, type StringSelectMenuInteraction,
     InteractionContextType
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { SubscribedItem, SubscribedItemType } from "../types/subscriptions.js";
+import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { type SubscribedItem, SubscribedItemType } from "../types/subscriptions.js";
 import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "../api/subscriptions.js";
-import { Logger } from "../api/util.js";
+import type { Logger } from "../api/util.js";
+import { voidAsync } from '../lib/async.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -18,12 +18,12 @@ const discordInteraction: DiscordInteraction = {
     .setDescription('Untrack a game, mod, collection or user in this channel'),
     public: true,
     guilds: [],
+    defer: 'ephemeral',
     action
 };
 
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });
 
     const channel = interaction.channel;
     if (channel?.isThread() || channel?.isDMBased()) {
@@ -65,7 +65,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
     const collector = reply.createMessageComponentCollector<ComponentType.StringSelect>({ time: 3_600_000 });
 
-    collector.on('collect', async i => {
+    collector.on('collect', voidAsync(logger, 'untrack select', async (i: StringSelectMenuInteraction) => {
         await i.deferUpdate();
         collector.stop('Completed action');
         await i.editReply({ components: [] });
@@ -92,7 +92,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
             client.subscriptions?.updateChannel(subbedChannel);
         }
         return i.editReply({ content:`Untracked ${selected.length} item(s)` });
-    });
+    }));
 }
 
 function subscribedItemEmbedField(i: SubscribedItem<SubscribedItemType>): APIEmbedField {

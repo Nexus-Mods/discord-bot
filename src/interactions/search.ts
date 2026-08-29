@@ -1,45 +1,34 @@
 import { 
-    CommandInteraction, ActionRowBuilder, Client, EmbedBuilder, Message, 
-    ButtonBuilder, TextChannel, EmbedField, ButtonInteraction, ChatInputCommandInteraction, 
-    SlashCommandBuilder, PermissionFlagsBits, ButtonStyle, ComponentType, APIEmbedField,
-    MessageFlags, 
-} from "discord.js";
+    type CommandInteraction, type Client, EmbedBuilder, 
+    type TextChannel, type EmbedField, type ChatInputCommandInteraction, 
+    SlashCommandBuilder, PermissionFlagsBits, type APIEmbedField,
+    MessageFlags, InteractionContextType} from "discord.js";
 import { customEmojis } from "../types/util.js";
-import { DiscordInteraction } from '../types/DiscordTypes.js';
-import { getUserByDiscordId, getServer } from '../api/bot-db.js';
-import Fuse, { type IFuseOptions } from 'fuse.js';
-import { gameArt, KnownDiscordServers, Logger, nexusModsTrackingUrl } from "../api/util.js";
-import { ICollectionsFilter } from "../types/GQLTypes.js";
-import { BotServer } from "../types/servers.js";
+import type { DiscordInteraction } from '../types/DiscordTypes.js';
+import { getServer } from '../api/servers.js';
+import { getUserByDiscordId } from '../api/users.js';
+import { gameArt, KnownDiscordServers, type Logger, nexusModsTrackingUrl } from "../api/util.js";
+import type { ICollectionsFilter } from "../types/GQLTypes.js";
+import type { BotServer } from "../types/servers.js";
 import { sendUnexpectedError } from '../events/interactionCreate.js';
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
-import { IUser } from "../api/queries/v2-finduser.js";
-import { IModResults } from "../api/queries/v2-mods.js";
-import { IGameStatic } from "../api/queries/other.js";
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import type { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
+import type { IUser } from "../api/queries/v2-finduser.js";
+import type { IModResults } from "../api/queries/v2-mods.js";
+import type { IGameStatic } from "../api/queries/other.js";
+import { NEXUS_ORANGE, apiLinkFooter, botIconUrl } from '../lib/embeds.js';
+import { presentChoices } from '../lib/collectors.js';
+import { resolveGameFilter, searchGamesByName } from '../lib/gameFilter.js';
 
 
 const numberEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
-const options: IFuseOptions<any> = {
-    shouldSort: true,
-    findAllMatches: true,
-    threshold: 0.4,
-    location: 0,
-    distance: 7,
-    minMatchCharLength: 6,
-    keys: [
-        {name: "name", weight: 0.1},
-        {name: "id", weight: 0.6},
-        {name: "domain_name", weight: 0.3}
-    ]
-}
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('search')
     .setDescription('Quickly search for games, mods or users.')
-    .setDMPermission(true)
+    .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM)
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
     .addSubcommand(sc => 
         sc.setName('mods')
@@ -116,6 +105,7 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
     action
 }
 
@@ -138,7 +128,6 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     if (!searchType) return interaction.reply({ content:'Invalid search parameters', flags: MessageFlags.Ephemeral });
 
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(err => { throw err });;
 
     const user: DiscordBotUser|undefined = await getUserByDiscordId(interaction.user.id);
     const server: BotServer | null = interaction.guild ? await getServer(interaction?.guild) : null;
@@ -165,23 +154,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
     logger.debug('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
-    let gameIdFilter: number = parseInt(server?.game_filter ?? '0') || 0;
-
-    if (gameQuery !== '' && allGames.length) {
-        // logMessage('Searching for game in mod search', gameQuery);
-        // Override the default server game filter. 
-        const fuse = new Fuse(allGames, options);
-
-        const results: IGameStatic[] = fuse.search(gameQuery).map(r => r.item);
-        if (results.length) {
-            // logMessage('Found game in mod search', results[0].name);
-            const closestMatch = results[0];
-            gameIdFilter = closestMatch.id;
-        }
-    }
-
-
-    const filterGame: IGameStatic|undefined = allGames.find(g => g.id === gameIdFilter);
+    const { filterGame } = resolveGameFilter(gameQuery, server, allGames);
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
     try {
@@ -198,8 +171,8 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             const noResults: EmbedBuilder = new EmbedBuilder()
             .setTitle('Search complete')
             .setDescription(`No results for "${query}".\nTry using the [full search](${results.searchURL}) on the website.`)
-            .setThumbnail(client.user?.avatarURL() || '')
-            .setColor(0xda8e35);
+            .setThumbnail(botIconUrl(client))
+            .setColor(NEXUS_ORANGE);
 
             return interaction.editReply({ content: null, embeds:[noResults] });
         }
@@ -215,17 +188,6 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             // Multiple results
             const choices = results.nodes?.slice(0,5) || [];
 
-            // Buttons for the search options
-            const buttons = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents( 
-                choices.map(
-                    (c, idx) => new ButtonBuilder()
-                    .setLabel(numberEmoji[idx])
-                    .setCustomId(c.slug)
-                    .setStyle(ButtonStyle.Primary)
-                )
-            );
-
             const createCollectionField = (c: ICollection, idx: number): APIEmbedField => {
                 return {
                     name: `${numberEmoji[idx]} - ${c.name}`,
@@ -237,7 +199,7 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             // Create the embed
             const multiResult = new EmbedBuilder()
             .setTitle('Search Results')
-            .setColor(0xda8e35)
+            .setColor(NEXUS_ORANGE)
             .setThumbnail(`https://staticdelivery.nexusmods.com/images/News/14778_tile_1667225117.jpg`)
             .setDescription(
                 `Showing the top **${choices.length}** collections for your query ([See all](${results.searchURL}))\n`+
@@ -246,36 +208,25 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             )
             .addFields(choices.map(createCollectionField));
             
-            // Post the result
-            const reply: Message = await interaction.editReply({ embeds: [multiResult], components: [buttons] }) as Message;
-            // Record button presses
-            const collector = reply.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60000 });
-            // respond to the collect event
-            collector.on('collect', async (i: ButtonInteraction) => {
-                collector.stop('Collected');
-                await i.update({ components: [], fetchReply: true });
-                const id = i.customId;
-                const found: Partial<ICollection> = choices.find(c => c.slug === id)!;
-                if (!found) {
-                    interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
-                    return;
-                }
-                const collection = await user.NexusMods.API.v2.Collection(found.slug!, found.game?.domainName ?? '', true).catch(() => undefined);
-                postResult(interaction, collectionEmbed(client, collection!, nsfw), ephemeral, logger);
+            const found = await presentChoices({
+                interaction, embed: multiResult, items: choices, logger,
+                customId: (c) => c.slug,
+                label: (_c, idx) => numberEmoji[idx],
             });
+            if (!found) return;
 
-            // On timeout there are no collected interactions, so the components have to be
-            // cleared through the original reply rather than through ic.first().
-            collector.on('end', async ic => {
-                if (ic.size) return;
-                await interaction.editReply({ components: [] })
-                    .catch(err => logger.debug('Could not clear components after timeout', err));
-            });
+            const collection = await user.NexusMods.API.v2.Collection(found.slug, found.game?.domainName ?? '', true).catch(() => undefined);
+            if (!collection) {
+                await interaction.editReply({ content: 'Could not load that collection.', embeds: [], components: [] });
+                return;
+            }
+            await postResult(interaction, collectionEmbed(client, collection, nsfw), ephemeral, logger);
         }
     }
     catch(err) {
+        // Was replying with the raw error message, which can contain anything.
         logger.warn('Failed collection search', err);
-        interaction.editReply({ content: 'Error!'+((err as Error).message|| err) })
+        await interaction.editReply({ content: 'Search failed!', embeds: [], components: [] });
     }
 }
 
@@ -283,23 +234,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
     logger.debug('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
     const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
-    let gameIdFilter: number = parseInt(server?.game_filter || '0') || 0;
-
-    if (!['', undefined, null].includes(gameQuery) && allGames.length) {
-        // logMessage('Searching for game in mod search', gameQuery);
-        // Override the default server game filter. 
-        const fuse = new Fuse(allGames, options);
-
-        const results: IGameStatic[] = fuse.search(gameQuery).map(r => r.item);
-        if (results.length) {
-            // logMessage('Found game in mod search', results[0].name);
-            const closestMatch = results[0];
-            gameIdFilter = closestMatch.id;
-        }
-    }
-
-
-    const filterGame: IGameStatic|undefined = allGames.find(g => g.id === gameIdFilter);
+    const { gameIdFilter, filterGame } = resolveGameFilter(gameQuery, server, allGames);
 
     // Need to escape brackets as this breaks Markdown on mobile
     const safeSearchURL = (input?: string) => input ? input.replace(/[()]/g, (c) => `%${c.charCodeAt(0).toString(16)}`): undefined;
@@ -316,8 +251,8 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             const noResults: EmbedBuilder = new EmbedBuilder()
             .setTitle('Search Results')
             .setDescription(`No results for "${query}".\nTry using the [full search](${safeSearchURL(search.fullSearchUrl)}) on the website.`)
-            .setThumbnail(client.user?.avatarURL() || '')
-            .setColor(0xda8e35);
+            .setThumbnail(botIconUrl(client))
+            .setColor(NEXUS_ORANGE);
 
             return interaction.editReply({ content: null, embeds:[noResults] });
         }
@@ -327,7 +262,7 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             // const mod: IMod|undefined  = user ? (await user.NexusMods.API.v2.Mod( res.game_name, res.mod_id ))?.[0] : undefined;
             const gameForMod: IGameStatic|undefined = filterGame || allGames.find(g => g.domain_name === mod.game.domainName);
             const singleResult = singleModEmbed(client, mod, gameForMod);
-            postResult(interaction, singleResult, ephemeral, logger);
+            await postResult(interaction, singleResult, ephemeral, logger);
         }
         else {
             // Multiple results
@@ -335,19 +270,9 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             const fields: IModFieldResult[] = top5.map(
                 (mod, idx) => ({ id: numberEmoji[idx], mod, game: allGames.find(g => g.domain_name === mod.game.domainName) })
             );
-            // Create the button row.
-            const buttons = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                top5.map((r, idx) => {
-                    return  new ButtonBuilder()
-                    .setCustomId(r.modId.toString())
-                    .setLabel(numberEmoji[idx])
-                    .setStyle(ButtonStyle.Primary)
-                })
-            );
             const multiResult = new EmbedBuilder()
             .setTitle('Search Results')
-            .setColor(0xda8e35)
+            .setColor(NEXUS_ORANGE)
             .setThumbnail(gameArt(gameIdFilter))
             .setDescription(
                 `Showing ${search.totalCount < 5 ? search.totalCount : 5} of ${search.totalCount} results ([See all](${search.fullSearchUrl || 'https://nexusmods.com/mods/'}))\n`+
@@ -357,33 +282,14 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
             .addFields(fields.map(createModResultField))
             if (!user) multiResult.addFields({ name: 'Get better results', value: 'Filter your search by game and get more mod info in your result by linking in your account. See `!nm link` for more.'});
 
-            // Post the result
-            const reply: Message = await interaction.editReply({ embeds: [multiResult], components: [buttons] }) as Message;
-            // Record button presses
-            const collector = reply.createMessageComponentCollector({ componentType: ComponentType.Button, time: 60000 });
-
-            collector.on('collect', async (i: ButtonInteraction) => {
-                collector.stop('Collected');
-                await i.update({ components: [], withResponse: true });
-                const id = i.customId;
-                const found: IModFieldResult|undefined = fields.find(f => f.mod.modId.toString() === id);
-                const mod = found?.mod;
-                if (!mod) {
-                    interaction.editReply({ content: 'Search failed!', embeds:[], components: []});
-                    return;
-                }
-                postResult(interaction, singleModEmbed(client, mod, found?.game), ephemeral, logger);
+            const found = await presentChoices({
+                interaction, embed: multiResult, items: fields, logger,
+                customId: (f) => f.mod.modId.toString(),
+                label: (_f, idx) => numberEmoji[idx],
             });
+            if (!found) return;
 
-            // On timeout there are no collected interactions, so the components have to be
-            // cleared through the original reply rather than through ic.first().
-            collector.on('end', async ic => {
-                if (ic.size) return;
-                await interaction.editReply({ components: [] })
-                    .catch(err => logger.debug('Could not clear components after timeout', err));
-            });
-
-
+            await postResult(interaction, singleModEmbed(client, found.mod, found.game), ephemeral, logger);
         }
     }
     catch(err) {
@@ -399,9 +305,7 @@ async function searchGames(query: string, ephemeral:boolean, client: Client, int
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', flags: MessageFlags.Ephemeral });
 
     const allGames = await user.NexusMods.API.Other.Games().catch(() => []);
-    const fuse = new Fuse(allGames, options);
-
-    const results: IGameStatic[] = fuse.search(query).map(r => r.item);
+    const results: IGameStatic[] = searchGamesByName(query, allGames);
     if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral, logger);
     else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral, logger);
     else return postResult(interaction, multiGameResult(client, results, query), ephemeral, logger);
@@ -415,25 +319,25 @@ async function searchUsers(query: string, userId: number, ephemeral: boolean, cl
     const invalidSearch = () => new EmbedBuilder()
     .setTitle('Invalid search')
     .setDescription(`Please provide a username or ID.`)
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client));
     
     const noUserFound = () => new EmbedBuilder()
     .setTitle('No results found')
     .setDescription(`No users found for ${query ?? userId ?? 'NULL'}. This feature only supports exact matches so please check your spelling.`)
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' });
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client));
 
     const userResult = (u: IUser) => new EmbedBuilder()
     .setAuthor({ name: u.name, url: `https://nexusmods.com/users/${u.memberId}` })
     .setDescription(`User ID: ${u.memberId}\n[View ${u.name}'s profile on Nexus Mods](https://nexusmods.com/users/${u.memberId})`)
     .addFields([ { name: 'Total Unique Mod Downloads', value: u.uniqueModDownloads.toLocaleString() } ])
     .setThumbnail(u.avatar)
-    .setColor(0xda8e35)
-    .setFooter({ text: `Nexus Mods - Requested by ${interaction.user.displayName}`, iconURL: client.user?.avatarURL() || '' });
+    .setColor(NEXUS_ORANGE)
+    .setFooter({ text: `Nexus Mods - Requested by ${interaction.user.displayName}`, iconURL: botIconUrl(client) });
 
     const searchTerm: string | number = query ?? userId;
-    if (searchTerm === '' || Number(searchTerm) == 0) return postResult(interaction, invalidSearch(), true, logger);
+    if (searchTerm === '' || Number(searchTerm) === 0) return postResult(interaction, invalidSearch(), true, logger);
     const foundUser = await user.NexusMods.API.v2.FindUser(searchTerm);
     if (!foundUser) return postResult(interaction, noUserFound(), true, logger);
     else return postResult(interaction, userResult(foundUser), ephemeral, logger);
@@ -459,9 +363,9 @@ const searchCancelled = (): EmbedBuilder => {
 
 const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGameStatic): EmbedBuilder => {
     const embed = new EmbedBuilder()
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
-    .setThumbnail(game ? gameArt(game.id) : client.user?.avatarURL() || '')
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
+    .setThumbnail(game ? gameArt(game.id) : botIconUrl(client))
 
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
@@ -497,15 +401,15 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
     if (!nsfw && res.latestPublishedRevision.adultContent) {
         const nsfwEmbed = new EmbedBuilder()
         .setColor('DarkRed')
-        .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+        .setFooter(apiLinkFooter(client))
         .setTitle('Adult content')
         .setDescription(`[${res.name}](${url}) contains adult content. This Discord channel is not age-restricted so you must view this content on the website.`)
         return nsfwEmbed;
     }
 
     const embed = new EmbedBuilder()
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
     .setThumbnail(res.tileImage.thumbnailUrl || client.user?.avatarURL() || null)
     .setURL(url)
     .setTitle(res.name || 'Unknown Collection')
@@ -556,16 +460,16 @@ const noGameResults = (client: Client, gameList: IGameStatic[], searchTerm: stri
     return new EmbedBuilder()
     .setTitle("Game Search Results")
     .setDescription(`I checked all ${gameList.length.toLocaleString()} games for "${searchTerm}" but couldn't find anything. Please check your spelling or try expanding any acronyms (SSE -> Skyrim Special Edition)`)
-    .setThumbnail(client.user?.avatarURL() || '')
-    .setColor(0xda8e35)
-    .setFooter({ text: "Nexus Mods API link", iconURL: client.user?.avatarURL() || '' })
+    .setThumbnail(botIconUrl(client))
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
     .addFields({ name:`Looking to upload a mod for "${searchTerm}"?`, value: `If you've made a mod for ${searchTerm} we'd love it if you shared it on Nexus Mods!\n[You can find out more about adding a mod for a new game here.](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`})
 }
 
 const oneGameResult = (client: Client, gameInfo: IGameStatic): EmbedBuilder => {
     const game = new EmbedBuilder()
     .setTitle(gameInfo.name)
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .setURL(`https://www.nexusmods.com/${gameInfo.domain_name || ''}`)
     .setThumbnail(gameArt(gameInfo.id))
     .addFields([
@@ -595,7 +499,7 @@ const oneGameResult = (client: Client, gameInfo: IGameStatic): EmbedBuilder => {
             inline: true 
         }
     ])
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+    .setFooter(apiLinkFooter(client))
     if (!gameInfo.approved_date || gameInfo.approved_date <= 1) {
         game.addFields({ name: "Unapproved Game", value: `${gameInfo.name} is pending approval by Nexus Mods staff. Once a mod has been uploaded and reviewed the game will be approved.\n[How can I add a new game to Nexus Mods?](https://help.nexusmods.com/article/104-how-can-i-add-a-new-game-to-nexus-mods)`})
         .setThumbnail(`https://staticdelivery.nexusmods.com/Images/games/4_3/tile_empty.png`);
@@ -610,9 +514,9 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
     return new EmbedBuilder()
     .setTitle("Game Search Results")
     .setDescription(`Showing ${results.length < 5 ? results.length : 5} results for "${query}". [See all${results.length > 5 ? " "+results.length : "" }...](https://www.nexusmods.com/games)`)
-    .setThumbnail(client.user?.avatarURL() || '')
-    .setColor(0xda8e35)
-    .setFooter({ text: 'Nexus Mods API link', iconURL: client.user?.avatarURL() || '' })
+    .setThumbnail(botIconUrl(client))
+    .setColor(NEXUS_ORANGE)
+    .setFooter(apiLinkFooter(client))
     .addFields(displayable.map((game: IGameStatic): EmbedField => {
         return {
             name: game.name,
@@ -626,23 +530,22 @@ const multiGameResult = (client: Client, results: IGameStatic[], query: string):
 async function postResult(interaction: ChatInputCommandInteraction, embed: EmbedBuilder, ephemeral: boolean, logger: Logger) {
     const editReply: boolean = (interaction.deferred || interaction.replied)// ? interaction.editReply : interaction.reply;
 
+    // Each of these .catch callbacks used to return a floating promise of its own,
+    // so an error while reporting an error was itself unhandled.
+    const report = (e: unknown) => sendUnexpectedError(interaction, interaction, e as Error, logger);
+
     if (ephemeral) {
-        if (editReply) return interaction.editReply({content: undefined, embeds: [embed]})
-            .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
-        else return interaction.reply({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
+        if (editReply) return await interaction.editReply({content: undefined, embeds: [embed]}).catch(report);
+        else return await interaction.reply({content: undefined, embeds: [embed], flags: MessageFlags.Ephemeral}).catch(report);
     }
 
-    if (editReply) interaction.editReply({ content: 'Search result posted!', embeds:[], components: []})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
-    else interaction.reply({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral})
-    .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
+    if (editReply) await interaction.editReply({ content: 'Search result posted!', embeds:[], components: []}).catch(report);
+    else await interaction.reply({ content: 'Search result posted!', embeds:[], components: [], flags: MessageFlags.Ephemeral}).catch(report);
 
     // wait 100 ms - If the wait is too short, the original reply will end up appearing after the embed in single-result searches
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return interaction.followUp({content: '', embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined})
-        .catch(e => {sendUnexpectedError(interaction, interaction, e, logger)});
+    return await interaction.followUp({content: '', embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined}).catch(report);
 }
 
 export { discordInteraction };

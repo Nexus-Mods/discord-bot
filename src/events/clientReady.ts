@@ -1,32 +1,30 @@
-import { EmbedBuilder, Guild, TextChannel, GuildBasedChannel, ShardClientUtil } from 'discord.js';
-import { getAllServers, deleteServer } from '../api/bot-db.js';
-import { BotServer } from '../types/servers.js';
-import { Logger } from '../api/util.js';
-import { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
+import { EmbedBuilder, type Guild, type TextChannel, type GuildBasedChannel, ShardClientUtil } from 'discord.js';
+import { deleteServer, getAllServers } from '../api/servers.js';
+import type { BotServer } from '../types/servers.js';
+import type { Logger } from '../api/util.js';
+import type { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
 import { GameListCache } from '../types/util.js';
-
-// Prepare the online status embed for quick reuse.
-const onlineEmbed = new EmbedBuilder()
-.setTitle('Nexus Mods Discord Bot is online.')
-.setColor(0x009933);
 
 const main: DiscordEventInterface = {
     name: 'clientReady',
     once: true,
     async execute(client: ClientExt, logger: Logger) {
-        if (client.user?.username !== "Nexus Mods") client.user?.setUsername("Nexus Mods");
+        if (client.user?.username !== "Nexus Mods") {
+            await client.user?.setUsername("Nexus Mods")
+                .catch((err) => logger.warn('Could not set the bot username', err));
+        }
 
-        // Pre-cache games list
+        // DiscordBot.connect() already primes this; only retry if that failed.
         try {
-            client.gamesList = await new GameListCache().init(logger);
+            if (!client.gamesList) client.gamesList = await new GameListCache().init(logger);
         }
         catch(err) {
             logger.warn('Could not pre-cache the games list', err);
         }
 
         // Publish online message to servers. (Cache server listing?)
-        if (client.config.testing) {
+        if (client.config?.testing) {
             logger.debug('Testing mode - did not send online message');
             logger.info(`v${process.env.npm_package_version} Startup complete. Ready to serve in ${client.guilds.cache.size} servers.`);
             client.emit('readyForAction');
@@ -34,8 +32,12 @@ const main: DiscordEventInterface = {
         }
 
         try {
-            // Set the startup time
-            onlineEmbed.setTimestamp(new Date());
+            // Built here rather than at module scope, where it was a shared mutable
+            // object whose timestamp was set before being sent to every guild.
+            const onlineEmbed = new EmbedBuilder()
+            .setTitle('Nexus Mods Discord Bot is online.')
+            .setColor(0x009933)
+            .setTimestamp(new Date());
             // Get all known servers
             const servers: BotServer[] = await getAllServers().catch(() => []);
             for (const server of servers) {

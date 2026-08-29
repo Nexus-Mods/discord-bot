@@ -1,13 +1,13 @@
 import * as NexusModsOAuth from '../server/NexusModsOAuth.js';
 import * as DiscordOAuth from '../server/DiscordOAuth.js';
-import { NexusUser } from '../types/users.js';
-import { baseheader, Logger } from './util.js';
-import { updateUser } from './users.js';
-import { Client, EmbedBuilder, User } from 'discord.js';
+import type { NexusUser } from '../types/users.js';
+import { baseheader, type Logger } from './util.js';
+import { updateUserRecord } from './userRecord.js';
+import type { Client, EmbedBuilder, User } from 'discord.js';
 import { other, v2 } from './queries/all.js';
-import * as GQLTypes from '../types/GQLTypes.js';
-import { userProfileEmbed } from './bot-db.js';
-import { IModsFilter, IModsSort } from './queries/v2.js';
+import type * as GQLTypes from '../types/GQLTypes.js';
+import { userProfileEmbed } from '../lib/profile.js';
+import type { IModsFilter, IModsSort } from './queries/v2.js';
 
 interface OAuthTokens {
     access_token: string;
@@ -208,13 +208,13 @@ export class DiscordBotUser {
         const updatedFields: (keyof NexusUser)[] = [];
         const { name, avatar, membership_roles } = userData;
         const newData: Partial<NexusUser> = {};
-        if (name != this.NexusModsUsername) {
+        if (name !== this.NexusModsUsername) {
             this.NexusModsUsername = name;
             newData.name = name;
             updatedFields.push('name');
         }
 
-        if (avatar != this.NexusModsAvatar) {
+        if (avatar !== this.NexusModsAvatar) {
             this.NexusModsAvatar = avatar;
             newData.avatar_url = avatar;
             updatedFields.push('avatar_url');
@@ -260,11 +260,11 @@ export class DiscordBotUser {
 
         try {
             if (Object.keys(newData).length) {
-                await updateUser(this.DiscordId, newData);
+                await updateUserRecord(this.DiscordId, newData);
                 this.LastUpdated = new Date();
             };
         }
-        catch(err) {
+        catch(_err) {
             throw new Error('Failed to save user data to database.');
         }
 
@@ -289,7 +289,7 @@ export class DiscordBotUser {
             nexus_refresh: refresh_token 
         };
 
-        return updateUser(this.DiscordId, newData);
+        return updateUserRecord(this.DiscordId, newData);
     }
 
     public Discord = {

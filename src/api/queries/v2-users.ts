@@ -1,7 +1,7 @@
-import { request, gql, Variables } from "graphql-request";
-import { Logger } from "../util.js";
+import { request, gql, type Variables } from "graphql-request";
+import type { Logger } from "../util.js";
 import { v2API, NexusGQLError } from './v2.js';
-import { BaseFilterValue, BaseSortValue, FilterLogicalOperator } from "../../types/GQLTypes.js";
+import type { BaseFilterValue, BaseSortValue, FilterLogicalOperator } from "../../types/GQLTypes.js";
 
 interface IResult {
     users: IUserResults;

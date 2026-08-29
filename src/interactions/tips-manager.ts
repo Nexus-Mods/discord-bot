@@ -1,20 +1,22 @@
 import { 
-    CommandInteraction, ActionRowBuilder, Client, ButtonBuilder, 
-    EmbedBuilder, Message, ButtonInteraction, ChatInputCommandInteraction, 
+    type CommandInteraction, ActionRowBuilder, type Client, ButtonBuilder, 
+    EmbedBuilder, type Message, type ButtonInteraction, type ChatInputCommandInteraction, 
     ButtonStyle, ComponentType, SlashCommandBuilder, TextInputBuilder, TextInputStyle, 
-    ModalActionRowComponentBuilder, ModalBuilder, EmbedData, MessageFlags, 
-    ModalSubmitInteraction,
-    CacheType,
-    InteractionReplyOptions,
-    AutocompleteInteraction,
-    InteractionEditReplyOptions,
+    type ModalActionRowComponentBuilder, ModalBuilder, type EmbedData, MessageFlags, 
+    type ModalSubmitInteraction,
+    type CacheType,
+    type InteractionReplyOptions,
+    type AutocompleteInteraction,
+    type InteractionEditReplyOptions,
     PermissionFlagsBits
 } from "discord.js";
-import { TipCache } from "../types/util.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { addTip, getAllTips, editTip } from '../api/bot-db.js';
-import { KnownDiscordServers, Logger } from "../api/util.js";
-import { deleteTip, ITip, setApprovedTip } from "../api/tips.js";
+import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import { addTip, editTip, getAllTips } from '../api/tips.js';
+import { KnownDiscordServers, type Logger } from "../api/util.js";
+import { deleteTip, type ITip, setApprovedTip } from "../api/tips.js";
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
+import { voidAsync } from '../lib/async.js';
+import { getTipCache } from '../lib/caches.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -44,6 +46,7 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.BotDemo,
         KnownDiscordServers.App
     ],
+    defer: 'public',
     action,
     autocomplete
 }
@@ -64,7 +67,9 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     }
 }
 
-const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
+// Factories, not shared instances. Builders are mutable, so one instance handed to
+// two concurrent invocations of the command is one object with two owners.
+const yesNoButtons = (): ActionRowBuilder<ButtonBuilder>[] => [
     new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
         new ButtonBuilder({
@@ -80,7 +85,7 @@ const yesNoButtons: ActionRowBuilder<ButtonBuilder>[] = [
     )
 ];
 
-const approvalButtons: ActionRowBuilder<ButtonBuilder>[] = [
+const approvalButtons = (): ActionRowBuilder<ButtonBuilder>[] => [
     new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
         new ButtonBuilder({
@@ -120,9 +125,9 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
         temp = validateModalResponse(submit, logger);
         if (temp.embedData) {
             newEmbed = new EmbedBuilder(temp.embedData)
-            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: botIconUrl(client) } )
             .setTimestamp(new Date())
-            .setColor(0xda8e35);
+            .setColor(NEXUS_ORANGE);
         }
         if (temp.tip.message) newMessage = temp.tip.message;
 
@@ -136,9 +141,9 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
     if (newEmbed) exampleReplyPayload.embeds = [newEmbed];
     await submit.reply(exampleReplyPayload);
 
-    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
+    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons() });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
-    collector.on('collect', async (i: ButtonInteraction) => {
+    collector.on('collect', voidAsync(logger, 'tip confirmation button', async (i: ButtonInteraction) => {
         collector.stop(); 
         if (i.customId === 'confirm') {
             try {
@@ -150,7 +155,7 @@ async function addNewTip(client: Client, interaction: ChatInputCommandInteractio
                 await message.edit({ content: 'Failed to insert new tip: '+(err as Error).message })
             }
         };
-    })
+    }));
     collector.on('end', () => { message.edit({ components: [] }).catch(e => logger.warn('Error ending collector', e)) });
 }
 
@@ -170,9 +175,9 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
         temp = validateModalResponse(submit, logger);
         if (temp.embedData) {
             newEmbed = new EmbedBuilder(temp.embedData)
-            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+            .setFooter({ text:`Info added by ${interaction.user.displayName || '???'}`, iconURL: botIconUrl(client) } )
             .setTimestamp(new Date())
-            .setColor(0xda8e35);
+            .setColor(NEXUS_ORANGE);
         }
         newMessage = temp.tip.message ?? undefined;
 
@@ -186,9 +191,9 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
     if (newEmbed) exampleReplyPayload.embeds = [newEmbed];
     await submit.reply(exampleReplyPayload);
     
-    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons });
+    const message: Message = await interaction.followUp({ content: `# Save this tip shown above with title "${temp.tip.title}"? \n-# Prompt: ${temp.tip.prompt}`, components: yesNoButtons() });
     const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: 30000 });
-    collector.on('collect', async (i: ButtonInteraction) => {
+    collector.on('collect', voidAsync(logger, 'tip confirmation button', async (i: ButtonInteraction) => {
         collector.stop(); 
         if (i.customId === 'confirm') {
             try {
@@ -200,15 +205,13 @@ async function editExistingTip(client: Client, interaction: ChatInputCommandInte
                 await message.edit({ content: 'Failed to update tip: '+(err as Error).message })
             }
         };
-    })
+    }));
     collector.on('end', () => { message.edit({ components: [] }).catch(e => logger.warn('Error ending collector', e)) });
 }
 
 async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInputCommandInteraction, tips: ITip[], logger: Logger) {
-    await interaction.deferReply();
 
-    if (!client.tipCache) client.tipCache = new TipCache();
-    const unapprovedTips = await client.tipCache?.getPendingTips();
+    const unapprovedTips = await getTipCache(client)?.getPendingTips();
     logger.debug("Tips to approve "+unapprovedTips.length);
 
     if (!unapprovedTips.length) return interaction.editReply("No tips to approve");  
@@ -219,14 +222,14 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
     for (const tip of unapprovedTips) {
         if (collector.ended) break;  
         logger.info('Displaying Tip', { prompt: tip.prompt, title: tip.title });
-        const postable: InteractionEditReplyOptions = { components: approvalButtons };
+        const postable: InteractionEditReplyOptions = { components: approvalButtons() };
 
         if (tip.embed) {
             postable.embeds = [
                 new EmbedBuilder(JSON.parse(tip.embed) as EmbedData)
-                .setFooter({ text:`Info added by ${tip.author || '???'}`, iconURL: client.user?.avatarURL() || '' } )
+                .setFooter({ text:`Info added by ${tip.author || '???'}`, iconURL: botIconUrl(client) } )
                 .setTimestamp(new Date())
-                .setColor(0xda8e35)
+                .setColor(NEXUS_ORANGE)
             ];
         }
         if (tip.message) postable.content = `${tip.message}\n-# Title: ${tip.title} | Prompt: ${tip.prompt}`;
@@ -236,7 +239,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
 
         const collectPromise = new Promise((resolve, reject) => {
 
-            collector.once('collect', async (i: ButtonInteraction) => { 
+            collector.once('collect', voidAsync(logger, 'tip approval button', async (i: ButtonInteraction) => { 
                 logger.debug('Button press', { customId: i.customId });
                 try {
                     await i.deferUpdate();
@@ -250,7 +253,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
                 catch(err) {
                     logger.warn('Error with ButtonInteraction', err);
                 }
-            });
+            }));
         });
 
         try {
@@ -263,7 +266,7 @@ async function reviewTipsPendingApproval(client: ClientExt, interaction: ChatInp
         continue;
     }
 
-    await client.tipCache.bustCache().catch(() => null);
+    await getTipCache(client).bustCache().catch(() => null);
 
     if (!collector.ended) collector.stop();
     await interaction.editReply({ content: 'All tips reviewed', embeds:[], components: [] }).catch(e => logger.warn("Failed to finish tip review", e));
@@ -364,8 +367,7 @@ function validateModalResponse(submit: ModalSubmitInteraction<CacheType>, logger
 async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger?: Logger) {
     const focused = interaction.options.getFocused().toLowerCase();
     try {
-        if (!client.tipCache) client.tipCache = new TipCache();
-        const tips = await client.tipCache.getTips();
+        const tips = await getTipCache(client).getTips();
         const filtered = tips.filter(t => focused === '' || t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
         await interaction.respond(
             filtered.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)

@@ -1,4 +1,4 @@
-import { Snowflake } from 'discord.js';
+import type { Snowflake } from 'discord.js';
 
 interface NexusUser {
     d_id: Snowflake;

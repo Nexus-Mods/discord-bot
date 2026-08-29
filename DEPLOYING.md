@@ -18,6 +18,79 @@ endpoint**, and no new configuration is required beyond what 3.17.0 introduced.
 `npm ci` is needed for the new dependencies (pino, tsup, vitest) and for the
 removal of jsonwebtoken, path and copyfiles.
 
+### Phase 3, database migrations
+
+The schema is now in the repository and applied by drizzle on startup. This is
+the one part of 4.0.0 that touches the live database, so read it before deploying.
+
+| Change | What it means for a deploy |
+|---|---|
+| `drizzle/0000_baseline.sql` describes the schema as it exists today | On the first 4.0.0 start it is recorded as applied. It uses `CREATE TABLE IF NOT EXISTS` and guards its one foreign key, so **it does not modify the existing schema** - verified by applying it to a copy of a production dump and diffing before and after. |
+| Migrations run before any shard spawns | A migration failure now **stops the bot from starting** (exit 1) instead of being logged and ignored. This is deliberate: running against an unexpected schema produces confusing per-command failures and some of them write bad data. |
+| A Postgres advisory lock wraps the run | Safe when the sharding manager, its shards, or a second container start at once. |
+| `api/migrations.ts` is gone | Its two functions were gated on `npm_package_version === '3.13.0'`/`'3.13.1'` and had not run in a long time. Neither is still needed - both were verified applied in production. |
+| Lazy `CREATE TABLE IF NOT EXISTS` calls are gone | `ensureNewsDB` and `ensureSubscriptionsDB` no longer run on feed startup. |
+| `npm run db:migrate` | Runs migrations without starting the bot, for running them by hand or from CI. |
+
+**Before the first 4.0.0 start:** take a schema dump. The baseline should be a
+no-op, but it is the first release that runs DDL at startup and a dump costs
+nothing.
+
+**After the first start**, confirm the baseline was recorded rather than replayed:
+
+```sql
+SELECT * FROM drizzle.__drizzle_migrations;   -- expect exactly one row
+```
+
+**One known piece of drift**, not touched by this release: production has a
+sequence `mod_feeds__id_seq` owned by no table, left behind when `mod_feeds` was
+dropped. It is harmless. `DROP SEQUENCE public.mod_feeds__id_seq;` clears it
+whenever convenient; until then `drizzle-kit push` will keep offering to drop it.
+(Use `db:generate` and `db:migrate`, not `push` - `push` skips the migration
+history.)
+
+Three orphaned tables are in the same category and *are* modelled in
+`src/db/schema.ts` so that drizzle does not propose dropping them: `game_feeds`,
+`user_mods` and `user_servers`. No code reads any of them.
+
+### Before the first 4.0.0 start
+
+This release is large, and none of it has run against a live gateway or database. Work
+through this list rather than reading it.
+
+| Check | Why | If it's wrong |
+|---|---|---|
+| Take a schema dump | First release that runs DDL at startup | &mdash; |
+| `AUTOMOD_DATABASE` is set in the container's environment | The automod pool now refuses to be built without it, instead of silently connecting to a database named after the user | `/automod` endpoints return errors on first use |
+| `WATCHED_CHANNEL_ID` is set in the container's environment | It now gates the `GuildMessages` intent, not just the handler | The anti-spam bait channel silently stops working |
+| `DB_SSL` is unset, or set to `on` | Unset reproduces the old behaviour exactly (TLS on when `NODE_ENV` is `production` or absent) | Set it to `on` explicitly if `NODE_ENV` is something else in production |
+| Note the current image tag | CI tags by version and commit sha, so rollback is running the previous tag | &mdash; |
+
+Note that `.dockerignore` excludes `*.env`, so configuration is injected at run time rather
+than baked into the image. Whatever mechanism does that needs to carry the two variables
+above; the compose file in this repository is a local development setup and is not what
+production uses.
+
+### After the first start
+
+```sql
+SELECT * FROM drizzle.__drizzle_migrations;   -- expect exactly one row
+```
+
+Then watch two graphs for the first hour:
+
+- **Memory should fall.** discord.js was holding 200 messages per channel across every
+  channel in every guild, swept hourly, while nothing read that cache. It is capped at
+  zero now. On a box running at 80% this is the change most likely to be visible.
+- **CPU should fall somewhat, not dramatically.** Four unused intents are gone, but
+  `GuildMessages` stays while the bait channel is live, and that is the dominant event
+  stream. Getting the rest of it means moving that feature into its own process &mdash;
+  see MODERNISATION.md 5.3.
+
+If either graph moves the wrong way, the previous image tag is the rollback. Migrations
+are forward-only, but 0000 is the baseline and creates nothing that 3.17.0 did not have,
+so rolling the image back does not require rolling the database back.
+
 Nothing else in this document changes for 4.0.0; the 3.17.0 notes below still
 describe the configuration this release runs on.
 

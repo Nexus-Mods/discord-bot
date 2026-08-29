@@ -1,10 +1,12 @@
-import { News, SavedNewsData } from '../types/feeds.js';
-import { updateSavedNews, getSavedNews, ensureNewsDB } from '../api/bot-db.js';
-import { ClientExt } from "../types/DiscordTypes.js";
-import { EmbedBuilder, ShardClientUtil, TextChannel, WebhookClient } from 'discord.js';
-import { Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
-import { IGameStatic } from '../api/queries/other.js';
+import type { News, SavedNewsData } from '../types/feeds.js';
+import { getSavedNews, updateSavedNews } from '../api/news.js';
+import type { ClientExt } from "../types/DiscordTypes.js";
+import { EmbedBuilder, ShardClientUtil, type TextChannel, WebhookClient } from 'discord.js';
+import { type Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
+import type { IGameStatic } from '../api/queries/other.js';
 import { v2 } from '../api/queries/all.js';
+import { NEXUS_ORANGE } from '../lib/embeds.js';
+import { voidAsync } from '../lib/async.js';
 
 const pollTime = (1000*60*30)*1; //30 mins
 
@@ -32,7 +34,6 @@ export class NewsFeedManager {
             let saved = undefined;
             if (!client.shard || NewsFeedManager.isInstanceForShard(client)) {
                 try {
-                    await ensureNewsDB(logger);
                     saved = await getSavedNews(logger);
                 }
                 catch(err) {
@@ -64,15 +65,10 @@ export class NewsFeedManager {
         }
         
         // Set the update interval.
-        this.updateTimer = setInterval(async () => {
-            try {
-                // this.checkNews()
-                await this.postLatestNews();
-            }
-            catch(err) {
-                this.logger.warn('Failed to check for latest news updates', err);
-            }
-        }, pollTime);
+        this.updateTimer = setInterval(
+            voidAsync(this.logger, 'news feed poll', () => this.postLatestNews()),
+            pollTime,
+        );
         logger.info('Initialised news feed, checking every 30mins.')
     }
 
@@ -148,7 +144,10 @@ export class NewsFeedManager {
 
     async forceUpdate(domain?: string): Promise<EmbedBuilder> {
         clearInterval(NewsFeedManager.instance.updateTimer);
-        NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.postLatestNews(), pollTime);
+        NewsFeedManager.instance.updateTimer = setInterval(
+            voidAsync(this.logger, 'news feed poll', () => NewsFeedManager.instance.postLatestNews()),
+            pollTime,
+        );
         // NewsFeedManager.instance.updateTimer = setInterval(() => NewsFeedManager.instance.checkNews(), pollTime);
         this.logger.info('Forced news feed update check', domain || 'all');
         // return NewsFeedManager.instance.checkNews(domain);
@@ -165,6 +164,6 @@ function newsPostEmbed(news: News, gameDomain?: string) {
     .setDescription(news.summary.substring(0, 250)+'...')
     .setFooter({text: `${news.author.name} • ${news.newsCategory.name}`, iconURL: news.author.avatar })
     .setTimestamp(news.publishDate)
-    .setColor(0xda8e35);
+    .setColor(NEXUS_ORANGE);
     return embed;
 }

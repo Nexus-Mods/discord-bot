@@ -1,31 +1,30 @@
 import { 
-    CommandInteraction, Snowflake, EmbedBuilder, Client, SlashCommandBuilder, PermissionFlagsBits, 
-    ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, 
-    MessageFlags
-} from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
-import { getUserByDiscordId } from '../api/bot-db.js';
-import { KnownDiscordServers, Logger } from '../api/util.js';
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { unlinkUrl } from '../server/auth.js';
+    type CommandInteraction, type Snowflake, EmbedBuilder, type Client, SlashCommandBuilder, PermissionFlagsBits, 
+    type ChatInputCommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType} from "discord.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
+import { getUserByDiscordId } from '../api/users.js';
+import { KnownDiscordServers, type Logger } from '../api/util.js';
+import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { linkUrl, unlinkUrl } from '../server/auth.js';
+import { NEXUS_ORANGE, apiLinkFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
     .setName('link')
     .setDescription('Link your Nexus Mods account to Discord.')
-    .setDMPermission(true)
+    .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM)
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     public: true,
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
     action
 }
 
 async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
     const discordId: Snowflake = interaction.user.id;
-    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
     try {
         const userData: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
         const response: { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } = await linkingEmbed(userData, discordId, client, logger);
@@ -38,25 +37,26 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
 }
 
-const linkButton = (discordId: string) => new ActionRowBuilder()
+const linkButton = (discordId: string) =>
+    new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
             .setLabel('Link Account')
             .setStyle(ButtonStyle.Link)
-            .setURL(`https://discordbot.nexusmods.com/linked-role?id=${discordId}`)
+            .setURL(linkUrl(discordId))
         );
 
 const linkingEmbed = async (user: DiscordBotUser|undefined, discordId: string, client: Client, logger: Logger): Promise<{ embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] }> => {
     const components = [];
     const embed = new EmbedBuilder()
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .addFields([
         {
             name: 'Linked Roles',
             value: 'You can claim your roles using the "Linked Roles" option in the server drop-down menu.'
         }
     ])
-    .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
+    .setFooter(apiLinkFooter(client));
     if (user) {
         try {
             await user.NexusMods.Auth();

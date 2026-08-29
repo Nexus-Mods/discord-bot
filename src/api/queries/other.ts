@@ -1,6 +1,6 @@
-import axios, { AxiosError } from 'axios';
-import { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
-import { Logger } from '../util.js';
+import axios, { type AxiosError } from 'axios';
+import type { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
+import type { Logger } from '../util.js';
 import { logger } from '../logger.js';
 import { NexusApiError } from '../errors.js';
 
@@ -103,7 +103,7 @@ class downloadStatsCache {
             return undefined;
         }
         // If there's no game data or mod ID return whatever we found.
-        if (modId == -1) return game.data;
+        if (modId === -1) return game.data;
 
         // Find the mod.
         const mod = game.data.find(m => m.id === modId);
@@ -124,7 +124,7 @@ class downloadStatsCache {
         });
         const endSize = JSON.stringify(this.downloadStats).length;
         const change = endSize - startSize;
-        if (startSize != endSize) logger.info('Clean up of download stats cache done', { change });
+        if (startSize !== endSize) logger.info('Clean up of download stats cache done', { change });
     }
 }
 
@@ -146,7 +146,7 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
             (row: string) => {
                 if (row === '') return;
                 const values = row.split(',');
-                if (values.length != 4) {
+                if (values.length !== 4) {
                     // Since 2021-04-28 the CSV now includes page views as the 4th value.
                     logger.warn(`Invalid CSV row for Game (${gameId}): ${row}`);
                     return;

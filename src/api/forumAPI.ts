@@ -2,7 +2,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { ForumTopic } from "../types/ForumWebhookTypes.js";
+import type { ForumTopic } from "../types/ForumWebhookTypes.js";
 import { readJson } from './http.js';
 
 export async function getTopic(id: number): Promise<ForumTopic> {

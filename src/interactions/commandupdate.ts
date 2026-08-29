@@ -1,9 +1,9 @@
 import { 
-    SlashCommandBuilder, PermissionFlagsBits, CommandInteraction, 
-    ChatInputCommandInteraction, MessageFlags, InteractionContextType 
+    SlashCommandBuilder, PermissionFlagsBits, type CommandInteraction, 
+    type ChatInputCommandInteraction, MessageFlags, InteractionContextType 
 } from "discord.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
-import { KnownDiscordServers, Logger } from "../api/util.js";
+import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { KnownDiscordServers, type Logger } from "../api/util.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -16,13 +16,13 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.BotDemo,
         KnownDiscordServers.Main
     ],
+    defer: 'ephemeral',
     action
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch((err) => { throw err });
 
     try {
         await client.updateInteractions?.(true);

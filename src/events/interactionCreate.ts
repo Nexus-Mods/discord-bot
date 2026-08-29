@@ -1,11 +1,15 @@
 import { 
-    InteractionReplyOptions, GuildChannel, CommandInteraction, AutocompleteInteraction, 
+    type InteractionReplyOptions, type GuildChannel, type CommandInteraction, type AutocompleteInteraction, 
     MessageFlags,
-    ChatInputCommandInteraction
+    type ChatInputCommandInteraction
 } from 'discord.js';
-import { isTesting, Logger, unexpectedErrorEmbed } from '../api/util.js';
+import { isTesting, type Logger, unexpectedErrorEmbed } from '../api/util.js';
 import { randomUUID } from 'node:crypto';
-import { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
+import type { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
+import {
+    deferOptions, describePermissions, isBotOwner, missingPermissions, resolveDeferVisibility,
+    resolveLinkedUser, LINK_REQUIRED_MESSAGE, type InteractionContext,
+} from '../lib/middleware.js';
 
 const ignoreErrors: string[] = [ 
     'Unknown interaction', 
@@ -31,9 +35,62 @@ const main: DiscordEventInterface = {
                 channelName: (interaction.channel as GuildChannel)?.name,
             }
             );
-            return interact.action(client, interaction, logger).catch(err => {sendUnexpectedError(interaction, (interaction as CommandInteraction), err, logger)});
+            return runCommand(client, interact, interaction, logger)
+                .catch(async (err) => sendUnexpectedError(interaction, interaction as CommandInteraction, err, logger));
         }
     }
+}
+
+/**
+ * Run the declarative middleware a command asked for, then the command itself.
+ *
+ * Deferring, requiring a linked account and checking permissions were previously
+ * each command's own problem, which is why the defer was spelled seven different
+ * ways and the "you need to link" message had six different wordings. A command that
+ * declares none of these behaves exactly as it did before.
+ */
+async function runCommand(
+    client: ClientExt,
+    interact: DiscordInteraction,
+    interaction: CommandInteraction,
+    logger: Logger,
+): Promise<void> {
+    const ctx: InteractionContext = {};
+
+    if (interact.defer) {
+        await interaction.deferReply(deferOptions(resolveDeferVisibility(interact.defer, interaction)));
+    }
+
+    if (interact.requiredPermissions?.length) {
+        const missing = missingPermissions(interaction.memberPermissions, interact.requiredPermissions, {
+            isBotOwner: isBotOwner(interaction, client.config?.ownerIDs),
+        });
+        if (missing.length) {
+            logger.info('Command refused, missing permissions', {
+                command: interaction.commandName,
+                requestedBy: interaction.user.tag,
+                missing: describePermissions(missing),
+            });
+            await respond(interaction, `You need the following permission(s) to use this command: ${describePermissions(missing)}.`);
+            return;
+        }
+    }
+
+    if (interact.requiresLink) {
+        ctx.user = await resolveLinkedUser(interaction, logger);
+        if (!ctx.user) {
+            await respond(interaction, LINK_REQUIRED_MESSAGE);
+            return;
+        }
+    }
+
+    return interact.action(client, interaction, logger, ctx);
+}
+
+/** Reply or edit, depending on whether the command asked us to defer first. */
+async function respond(interaction: CommandInteraction, content: string): Promise<void> {
+    if (interaction.deferred || interaction.replied) await interaction.editReply({ content });
+    else await interaction.reply({ content, flags: MessageFlags.Ephemeral });
 }
 
 async function handleAutoComplete(client: ClientExt, interaction: AutocompleteInteraction, logger: Logger) {
@@ -75,8 +132,9 @@ export async function sendUnexpectedError(interaction: CommandInteraction|undefi
     else logger.warn('Interaction action errored out', { err, interact: (interaction as ChatInputCommandInteraction).options, ...context });
 
     if (interaction.replied || interaction.deferred) {
+        // The follow-up carries its own ephemeral flag; assigning to the interaction's
+        // own `ephemeral` field changed nothing but confused later reads of it.
         if (!interaction.ephemeral) await interaction.deleteReply()
-        interaction.ephemeral = true;
         interaction.followUp(reply).catch((replyError:Error) => errorReplyCatch(replyError, 'following up'));
     } else {
         interaction.reply(reply).catch((replyError:Error) => errorReplyCatch(replyError, 'replying'));

@@ -1,9 +1,10 @@
-import { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { NexusUser } from "../types/users.js";
-import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/bot-db.js';
-import { Snowflake, EmbedBuilder, Client, User, ChatInputCommandInteraction, SlashCommandBuilder, CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
-import { KnownDiscordServers, Logger } from "../api/util.js";
+import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
+import type { NexusUser } from "../types/users.js";
+import { getAllUsers, getUserByDiscordId, userEmbed, userProfileEmbed } from '../api/users.js';
+import { type Snowflake, type Client, type User, type ChatInputCommandInteraction, SlashCommandBuilder, type CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
+import { KnownDiscordServers, type Logger } from "../api/util.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { botUser, notAllowed } from '../lib/profile.js';
 
 
 const discordInteraction: DiscordInteraction = {
@@ -30,6 +31,7 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: (i) => ((i as ChatInputCommandInteraction).options.getBoolean('private') ?? true) ? 'ephemeral' : 'public',
     action
 }
 
@@ -47,17 +49,16 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
     // Get sender info.
     const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({ephemeral: show}).catch(err => { throw err });
     // Check if they are already linked.
     const userData : DiscordBotUser | undefined = discordId ? await getUserByDiscordId(discordId).catch(() => undefined) : undefined;
 
     if (!userData) {
-        interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', flags: MessageFlags.Ephemeral});
+        await interaction.followUp({content: 'You need to link a Nexus Mods account to use this feature. See /link for more.', flags: MessageFlags.Ephemeral});
         return;
     }
 
     if (!nexus && !user) {
-        interaction.followUp({ content: 'You must provide a Discord user or Nexus Mods username.', flags: MessageFlags.Ephemeral});
+        await interaction.followUp({ content: 'You must provide a Discord user or Nexus Mods username.', flags: MessageFlags.Ephemeral});
         return;
     }
 
@@ -82,10 +83,10 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         else {
             const botUser = new DiscordBotUser(foundUser, logger);
             // check if we should return the result. If the found user isn't in the current server, reject the request.
-            const isAdmin: boolean = (client as ClientExt).config.ownerIDs?.includes(interaction.user.id);
+            const isAdmin: boolean = (client as ClientExt).config?.ownerIDs?.includes(interaction.user.id) ?? false;
             const isMe: boolean = interaction.user.id === botUser.DiscordId;
             const inGuild: boolean = !!interaction.guild //!!foundServers.find(link => link.server_id === interaction.guild?.id);
-            if (isAdmin || isMe || inGuild) return interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], ephemeral: show });
+            if (isAdmin || isMe || inGuild) return interaction.followUp({ embeds: [await userProfileEmbed(botUser, client)], flags: show ? MessageFlags.Ephemeral : undefined });
             else {
                 logger.info('Whois not authorised', {requester: userData, target: botUser, isAdmin, isMe, inGuild});
                 return interaction.followUp({ embeds: [ notAllowed(client) ], flags: MessageFlags.Ephemeral });
@@ -101,27 +102,4 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
 
 }
-
-const botUser = (client: Client): NexusUser => {
-    const d_id: Snowflake = client.user?.id ? client.user?.id.toString() as Snowflake : '' as Snowflake;
-    const avatar_url = client.user?.avatarURL() || '';
-    return {
-        d_id,
-        id: 1234042,
-        name: 'Nexus Mods Discord Bot',
-        avatar_url,
-        premium: false,
-        supporter: false,
-        lastupdate: new Date()
-    }
-}
-
-const notAllowed = (client: Client): EmbedBuilder => {
-    return new EmbedBuilder()
-    .setTitle('⛔  Profile Unavailable')
-    .setColor('#ff0000')
-    .setDescription('The user you are looking for is not a member of this server.')
-    .setFooter({ text: `Nexus Mods API Link`, iconURL: client.user?.avatarURL() || '' });
-}
-
 export { discordInteraction };

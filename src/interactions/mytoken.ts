@@ -1,8 +1,8 @@
-import { Client, SlashCommandBuilder, ChatInputCommandInteraction, CommandInteraction, Snowflake, PermissionFlagsBits, MessageFlags } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
-import { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { getUserByDiscordId } from "../api/users.js";
+import { type Client, SlashCommandBuilder, type ChatInputCommandInteraction, type CommandInteraction, PermissionFlagsBits } from "discord.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { KnownDiscordServers } from "../api/util.js";
+import type { InteractionContext } from '../lib/middleware.js';
+import type { Logger } from '../api/util.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -13,18 +13,15 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
+    requiresLink: true,
     action,
 }
 
-async function action(client: Client, baseInteraction: CommandInteraction): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger, ctx: InteractionContext): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    const discordId: Snowflake | undefined = interaction.user.id;
-    await interaction.deferReply({flags: MessageFlags.Ephemeral}).catch(err => { throw err });;
-    // Check if they are already linked.
-    let userData : DiscordBotUser | undefined;
+    const userData = ctx.user!;
     try {
-        userData = discordId ? await getUserByDiscordId(discordId) : undefined;
-        if (!userData) throw new Error('User not found; please link your account first.');
         return interaction.editReply({
             content: `OAuth Access Token`,
             files: [{ attachment: Buffer.from(userData.NexusMods.Token()?.access_token ?? 'No token', 'utf-8'), name: 'access_token.txt' }]

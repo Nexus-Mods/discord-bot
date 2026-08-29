@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
-import { Logger } from "../util.js";
-import { v2API, ICollection, NexusGQLError, ICollectionRevision } from './v2.js';
+import type { Logger } from "../util.js";
+import { v2API, type ICollection, NexusGQLError, type ICollectionRevision } from './v2.js';
 
 interface IResult {
     collection: ICollection & { revisions: ICollectionRevision[] };

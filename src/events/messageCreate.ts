@@ -1,5 +1,5 @@
-import { DiscordEventInterface } from "../types/DiscordTypes.js";
-import { Message, TextChannel } from 'discord.js';
+import type { DiscordEventInterface } from "../types/DiscordTypes.js";
+import type { Message, TextChannel } from 'discord.js';
 
 const main: DiscordEventInterface = {
     name: 'messageCreate',

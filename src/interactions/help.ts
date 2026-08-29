@@ -1,5 +1,6 @@
-import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, SlashCommandBuilder, ButtonStyle, ChatInputCommandInteraction, CommandInteraction } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
+import { type Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, SlashCommandBuilder, ButtonStyle, type ChatInputCommandInteraction, type CommandInteraction } from "discord.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
+import { NEXUS_ORANGE } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -12,7 +13,7 @@ const discordInteraction: DiscordInteraction = {
 const helpEmbed: EmbedBuilder = new EmbedBuilder()
 .setTitle('Help')
 .setDescription('You can visit Modding.wiki for a list of commands or report an issue on GitHub.')
-.setColor(0xda8e35)
+.setColor(NEXUS_ORANGE)
 .setImage('https://images.nexusmods.com/oauth/applications/api_app_logo_1598554289_php9fzf1a.png');
 
 const actions: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()

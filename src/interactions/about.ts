@@ -1,13 +1,13 @@
 import { 
-    Client, SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, 
-    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageActionRowComponentBuilder, CommandInteraction, 
-    InteractionContextType,
-    MessageFlags
+    type Client, SlashCommandBuilder, PermissionFlagsBits, type ChatInputCommandInteraction, 
+    EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, type MessageActionRowComponentBuilder, type CommandInteraction, 
+    InteractionContextType
 } from "discord.js";
-import { DiscordInteraction } from "../types/DiscordTypes.js";
-import { getCountOfUsers } from '../api/bot-db.js';
-import { calcUptime, Logger } from "../api/util.js";
+import type { DiscordInteraction } from "../types/DiscordTypes.js";
+import { getCountOfUsers } from '../api/users.js';
+import { calcUptime, type Logger } from "../api/util.js";
 import { getCountOfSubscriptions } from "../api/subscriptions.js";
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -21,6 +21,7 @@ const discordInteraction: DiscordInteraction = {
     .setContexts([InteractionContextType.Guild, InteractionContextType.BotDM])
     .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages) as SlashCommandBuilder,
     public: true,
+    defer: (i) => (i as ChatInputCommandInteraction).options.getBoolean('private') ?? true ? 'ephemeral' : 'public',
     action
 }
 
@@ -43,13 +44,10 @@ const discordInteraction: DiscordInteraction = {
 //     }
 // ];
 
-async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: Client, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    const option: boolean | null = interaction.options.getBoolean('private');
-    const ephemeral: boolean = option !== null ? option : true;
 
-    await interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined }).catch((err) => { throw err });
     
     const upTime: string = calcUptime(process.uptime());
     const allUsers: number = await getCountOfUsers().catch(() => 0);
@@ -68,8 +66,8 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 
     const info = new EmbedBuilder()
     .setTitle(`Nexus Mods Discord Bot v${process.env.npm_package_version}`)
-    .setColor(0xda8e35)
-    .setThumbnail(client.user?.avatarURL() || '')
+    .setColor(NEXUS_ORANGE)
+    .setThumbnail(botIconUrl(client))
     .setDescription(`Integrate your community with Nexus Mods using our Discord bot. Link accounts, search, get notified of the latest mods for your favourite games and more.`)
     .addFields([
         {
@@ -80,7 +78,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
             inline: true
         },
     ])
-    .setFooter({ text: `Uptime: ${upTime}`, iconURL: client.user?.avatarURL() || '' })
+    .setFooter({ text: `Uptime: ${upTime}`, iconURL: botIconUrl(client) })
     .setTimestamp(new Date());
 
     const buttons = new ActionRowBuilder<MessageActionRowComponentBuilder>()

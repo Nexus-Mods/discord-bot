@@ -58,12 +58,12 @@ export default [
             // --- The rules that catch the bug families found in the Phase 0 audit ---
             // Un-awaited promises: AutoModManager.clearRuleCache, the startup
             // setTimeout in SubscriptionManager, setEventHandler in DiscordBot.
-            // 44 existing findings as of the Phase 0 audit. Kept at "warn" so lint can
-            // gate CI on errors today; Phase 2 works the count down to zero and these
-            // become errors. Run `npm run lint:strict` to see them as errors.
-            "@typescript-eslint/no-floating-promises": "warn",
+            // Both were at "warn" through 4.0.0's Phase 1 with 38 outstanding findings.
+            // Phase 2 cleared them, so they are errors now and CI will not let another in.
+            // An unhandled rejection here is a crashed shard, not a style nit.
+            "@typescript-eslint/no-floating-promises": "error",
             // async callbacks passed where a void return is expected.
-            "@typescript-eslint/no-misused-promises": "warn",
+            "@typescript-eslint/no-misused-promises": "error",
             // find(c => c.channel_id === c.channel_id)
             "no-self-compare": "error",
             // if (a) {} else { if (b) {} }
@@ -72,6 +72,17 @@ export default [
             "no-cond-assign": ["error", "always"],
             "no-constant-binary-expression": "error",
             "require-atomic-updates": "warn",
+
+            // Type-only imports are erased by the compiler, so an edge that exists
+            // only to carry a type cannot cause a cycle at runtime. Marking them
+            // explicitly is what turns most of this codebase's import cycles from
+            // real into imaginary. `inline-type-imports` keeps mixed imports on one
+            // line rather than splitting them into two statements.
+            "@typescript-eslint/consistent-type-imports": ["error", {
+                prefer: "type-imports",
+                fixStyle: "separate-type-imports",
+                disallowTypeAnnotations: false,
+            }],
 
             // --- Hygiene ---
             "no-var": "error",

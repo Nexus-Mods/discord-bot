@@ -1,6 +1,6 @@
-import { request, gql, ClientError } from "graphql-request";
-import { Logger } from "../util.js";
-import { v2API, IMod, NexusGQLError } from './v2.js';
+import { request, gql, type ClientError } from "graphql-request";
+import type { Logger } from "../util.js";
+import { v2API, type IMod, NexusGQLError } from './v2.js';
 
 interface IResult {
     legacyModsByDomain: {
@@ -64,7 +64,7 @@ export async function mods(headers: Record<string,string>, logger: Logger, mods:
     for (const page of pages) {
         try {
             const pageData = await modsQuery(headers, logger, page);
-            if (pageData.length != page.length) logger.warn('Did not get back the same number of mods as sent', { sent: page.length, got: pageData.length }, true);
+            if (pageData.length !== page.length) logger.warn('Did not get back the same number of mods as sent', { sent: page.length, got: pageData.length }, true);
             results = [...results, ...pageData];
         }
         catch(err) {

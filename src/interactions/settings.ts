@@ -1,20 +1,22 @@
 import { 
-    CommandInteraction, Client, Guild, EmbedBuilder, 
-    Role, ThreadChannel, GuildChannel, GuildMember, 
-    SlashCommandBuilder, ChatInputCommandInteraction, 
-    PermissionFlagsBits, APIRole, ActionRowBuilder,
+    type CommandInteraction, type Client, type Guild, EmbedBuilder, 
+    type Role, type ThreadChannel, type GuildChannel, type GuildMember, 
+    SlashCommandBuilder, type ChatInputCommandInteraction, 
+    PermissionFlagsBits, type APIRole, ActionRowBuilder,
     ButtonBuilder, ButtonStyle, ComponentType,
-    ButtonInteraction,
-    MessageFlags
+    type ButtonInteraction
 } from "discord.js";
-import { updateServer, getServer, getConditionsForRole, addConditionForRole } from '../api/bot-db.js';
-import { BotServer } from "../types/servers.js";
-import { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
-import { KnownDiscordServers, Logger } from "../api/util.js";
-import { IGameStatic } from "../api/queries/other.js";
-import { autocompleteGameName } from "../api/util.js";
-import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, IConditionForRole } from "../api/server_role_conditions.js";
+import { addConditionForRole, getConditionsForRole } from '../api/server_role_conditions.js';
+import { getServer, updateServer } from '../api/servers.js';
+import type { BotServer } from "../types/servers.js";
+import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
+import { KnownDiscordServers, type Logger } from '../api/util.js';
+import type { IGameStatic } from "../api/queries/other.js";
+import { autocompleteGameName } from '../lib/autocomplete.js';
+import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, type IConditionForRole } from "../api/server_role_conditions.js";
 import { ConditionType } from "../types/util.js";
+import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
+import { voidAsync } from '../lib/async.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -99,6 +101,9 @@ const discordInteraction: DiscordInteraction = {
     guilds: [
         KnownDiscordServers.BotDemo
     ],
+    defer: 'ephemeral',
+    // ManageGuild, or a bot owner - the middleware applies the owner bypass.
+    requiredPermissions: [PermissionFlagsBits.ManageGuild],
     action,
     autocomplete: autocompleteGameName
 }
@@ -117,28 +122,19 @@ interface IBotServerChange {
 async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Outcomes: update, null
     const subComGroup: SubCommandGroups | null = interaction.options.getSubcommandGroup(false) as SubCommandGroups;
     // Outcomes: view, filter, role, channel
     const subCom: SubCommands = interaction.options.getSubcommand() as SubCommands;
     // Some important IDs
-    const discordId : string = interaction.user.id;
     const guild : Guild | null = interaction.guild;
     if (!guild) throw new Error('This interaction only works in a valid server');
-
-    // Check we're dealing with a server admin.
-    if (!interaction.memberPermissions?.toArray().includes('ManageGuild') 
-    && !client.config.ownerIDs?.includes(discordId)) {
-        return interaction.editReply('Server settings are only accessible by Guild managers');
-    }
 
     // Get user and guild data
     try {
         const server: BotServer = await getServer(guild)
         .catch((err) => { throw new Error('Could not retrieve server details'+err.message) }); 
-        // const user: DiscordBotUser|undefined = await getUserByDiscordId(discordId);
         const gameList: IGameStatic[] = await client.gamesList?.getGames() ?? [];
 
         // Viewing the current settings
@@ -173,13 +169,13 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     }
 }
 
-async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, logger: Logger) {
+async function viewServerInfo(client: ClientExt, interaction: CommandInteraction, guild: Guild, gameList: IGameStatic[], server: BotServer, _logger: Logger) {
     const filterGame: IGameStatic|undefined = gameList.find(g => g.id.toString() === server.game_filter?.toString());
     const view: EmbedBuilder = await serverEmbed(client, guild, server, gameList, filterGame?.name);
     return interaction.editReply({ embeds: [view] });
 }
 
-async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, logger: Logger): Promise<Partial<IBotServerChange>> {
+async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, _logger: Logger): Promise<Partial<IBotServerChange>> {
     const gameQuery: string | null = interaction.options.getString('game' as OptionNames);
     let foundGame : IGameStatic | undefined;
     if (gameQuery) {
@@ -302,12 +298,11 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
         options.map(e => (new ButtonBuilder().setCustomId(e.emoji).setLabel(e.emoji).setStyle(ButtonStyle.Secondary)))
     )
 
-    await interaction.editReply({content: 'Choose a condition to delete.', embeds: [embed(conditionWithEmoji)], components: [buttons(conditionWithEmoji)]});
+    const reply = await interaction.editReply({content: 'Choose a condition to delete.', embeds: [embed(conditionWithEmoji)], components: [buttons(conditionWithEmoji)]});
 
-    // throw new Error('Not implemented');
-    const collector = (await interaction.fetchReply()).createMessageComponentCollector({ max: conditionWithEmoji.length, time: 60_000, componentType: ComponentType.Button });
+    const collector = reply.createMessageComponentCollector({ max: conditionWithEmoji.length, time: 60_000, componentType: ComponentType.Button });
     collector.on('end', () => logger.debug('Collector ended'))
-    collector.on('collect', async (i: ButtonInteraction) => {
+    collector.on('collect', voidAsync(logger, 'role condition button', async (i: ButtonInteraction) => {
         await i.deferUpdate();
         const selection = i.customId;
         const conditionToRemove = conditionWithEmoji.find(c => c.emoji === selection);
@@ -322,7 +317,7 @@ async function removeRoleConditions(interaction: ChatInputCommandInteraction, ga
         catch(err) {
             logger.warn('Error removing condition', err);
         }
-    })
+    }));
 
 }
 
@@ -331,7 +326,7 @@ const updateEmbed = (data: IBotServerChange): EmbedBuilder => {
     const newVal = (data.new as IGameStatic) ? data.new?.name : !data.new ? '*none*' : data.cur?.toString();
     return new EmbedBuilder()
     .setTitle('Configuration updated')
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .setDescription(`${data.name} updated from ${curVal || data.cur} to ${newVal || data.new}`);
 }
 
@@ -354,7 +349,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
     .setAuthor({ name: guild.name, iconURL })
     .setTitle(`Server Configuration - ${guild.name}`)
     .setDescription('Configure any of these options for your server by using the /settings command. **Linked Roles** can be set up in your role settings, [Learn More](https://discord.com/blog/connected-accounts-functionality-boost-linked-roles).')
-    .setColor(0xda8e35)
+    .setColor(NEXUS_ORANGE)
     .addFields([
         {
             name: 'Default Search Filter',
@@ -365,7 +360,7 @@ const serverEmbed = async (client: Client, guild: Guild, server: BotServer, game
             value: roleAuthor ? `${roleAuthor.toString()}\n${conditionsToString(conditions, gameList)}` : '_Not set_'
         }
     ])
-    .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: client.user?.avatarURL() || '' });
+    .setFooter({ text: `Server ID: ${guild.id} | Owner: ${owner?.user.tag}`, iconURL: botIconUrl(client) });
 
     if (nexusChannel) embed.addFields({ name: 'Channel Settings', value: `**Log Channel:** ${nexusChannel?.toString()}`})
     if (newsChannel) embed.addFields({ name: 'Deprecated Channels', value: `News: ${newsChannel?.toString() || 'n/a'}`});

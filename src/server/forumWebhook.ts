@@ -1,7 +1,7 @@
-import { EmbedBuilder, RESTPostAPIWebhookWithTokenJSONBody } from 'discord.js';
-import { Logger } from '../api/util.js';
-import { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
-import express from 'express';
+import { EmbedBuilder, type RESTPostAPIWebhookWithTokenJSONBody } from 'discord.js';
+import type { Logger } from '../api/util.js';
+import type { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
+import type express from 'express';
 import { htmlToText } from 'html-to-text';
 import { getTopic } from '../api/forumAPI.js';
 import axios from 'axios';
@@ -40,7 +40,7 @@ export default async function forumWebhook(req: express.Request, res: express.Re
             try {
                 await postToDiscord(webhookMessage, logger);
             }
-            catch(err) {
+            catch(_err) {
                 return;
             }
             
@@ -83,7 +83,7 @@ export default async function forumWebhook(req: express.Request, res: express.Re
             try {
                 await postToDiscord(webhookMessage, logger);
             }
-            catch(err) {
+            catch(_err) {
                 return;
             }
             

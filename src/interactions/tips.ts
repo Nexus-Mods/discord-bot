@@ -1,12 +1,12 @@
 import { 
-    CommandInteraction, EmbedBuilder, User, 
-    SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction,
-    EmbedData, InteractionEditReplyOptions
-} from "discord.js";
-import { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { Logger } from "../api/util.js";
-import { ITip } from "../api/tips.js";
-import { TipCache } from "../types/util.js";
+    type CommandInteraction, EmbedBuilder, type User, 
+    SlashCommandBuilder, type ChatInputCommandInteraction, type AutocompleteInteraction,
+    type EmbedData, type InteractionEditReplyOptions, InteractionContextType} from "discord.js";
+import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
+import type { Logger } from "../api/util.js";
+import type { ITip } from "../api/tips.js";
+import { NEXUS_ORANGE } from '../lib/embeds.js';
+import { getTipCache } from '../lib/caches.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -23,22 +23,21 @@ const discordInteraction: DiscordInteraction = {
         .setDescription('The user to ping in the reply. (Optional)')
         .setRequired(false)    
     )
-    .setDMPermission(true) as SlashCommandBuilder,
+    .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM) as SlashCommandBuilder,
     public: true,
     guilds: [],
+    defer: 'public',
     action,
     autocomplete
 }
 
-async function action(client: ClientExt, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
+async function action(client: ClientExt, baseInteraction: CommandInteraction, _logger: Logger): Promise<any> {
     const interaction = (baseInteraction as ChatInputCommandInteraction);
-    await interaction.deferReply().catch(err => { throw err });
     
     const message: string = interaction.options.getString('prompt', true);
     const user: User | null = interaction.options.getUser('user');
 
-    if (!client.tipCache) client.tipCache = new TipCache();
-    const tips: ITip[] = await client.tipCache.getTips().catch(() => []);
+    const tips: ITip[] = await getTipCache(client).getTips().catch(() => []);
     const replyMessage: InteractionEditReplyOptions = { content: '' };
 
     if (message) {
@@ -68,14 +67,13 @@ function embedBulderWithOverrides(tip: ITip, data: EmbedData, interaction: ChatI
     return new EmbedBuilder(data)
     .setFooter({ text:`Last updated by ${tip.author || '???'}`, iconURL: interaction.user.avatarURL() || '' } )
     .setTimestamp(new Date(tip.updated))
-    .setColor(0xda8e35);
+    .setColor(NEXUS_ORANGE);
 }
 
 async function autocomplete(client: ClientExt, interaction: AutocompleteInteraction, logger: Logger) {
     const focused = interaction.options.getFocused().toLowerCase();
     try {
-        if (!client.tipCache) client.tipCache = new TipCache();
-        let tips = await client.tipCache.getApprovedTips();
+        let tips = await getTipCache(client).getApprovedTips();
         if(focused.length) tips = tips.filter(t => t.prompt.toLowerCase().includes(focused) || t.title.toLowerCase().includes(focused) );
         await interaction.respond(
             tips.map(t => ({ name: t.title, value: t.prompt })).slice(0, 25)
