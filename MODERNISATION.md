@@ -8,6 +8,13 @@
 
 ## Status as of 4.0.0
 
+**Phase 3.2 (4.0.0).** One pool-parameterised `query` replaces the two near-identical
+wrappers. The pool config no longer falls back to port 0, no longer disables TLS
+verification by accident, has its statement timeout enabled and no longer drops idle
+connections after two seconds. Transactions exist, and `updateSavedNews` uses one.
+Column names are checked against the schema instead of interpolated. The `bot-db.ts`
+barrel is gone.
+
 **Phase 3.1 (4.0.0).** The schema is in the repository for the first time, as
 `src/db/schema.ts` plus a drizzle baseline migration generated from it. The baseline
 was verified against a schema-only dump of production - applying it to an empty
@@ -387,7 +394,7 @@ and `pg_sequences` diffed between the two until they were identical. Concurrency
 tested the same way — four processes migrating an empty database at once succeed with
 the advisory lock and one of them fails without it.
 
-### 3.2 Query layer
+### 3.2 Query layer — **done (4.0.0)**, except the error contract
 
 - Collapse `queryPromise` and `queryAutoMod` into one pool-parameterised function.
   ~~`queryCommunityMap`~~ went with the community map in 3.17.0, and the copy-pasted
@@ -407,6 +414,30 @@ the advisory lock and one of them fails without it.
   `pg` returns `COUNT(*)` as a string. Either configure a type parser or type it honestly.
 - `api/bot-db.ts` is a 29-line re-export barrel that omits `subscriptions.ts` entirely, so
   there are **two import graphs for the same functions**. Pick one.
+
+**Shipped.** All of the above except the query modules' `[]`-on-failure contract,
+which is deferred to 3.4 because it changes feed behaviour and deserves its own testing.
+
+Two things found while doing it:
+
+- **`AUTOMOD_DATABASE` was unset.** `pg` does not error on an undefined database name -
+  it falls back to `PGDATABASE` and then to the *user name* - so the automod rules API
+  was querying a database nobody had configured. It now fails with a message naming the
+  setting. Worth checking what the deployed environment has.
+- **185 import cycles**, 177 of them real at runtime rather than type-only. Deleting the
+  `bot-db.ts` barrel removed 45 of them. The rest are structural: `types/DiscordTypes.ts`
+  imports the two feed *implementations* to type `ClientExt`, `api/util.ts` and
+  `DiscordBotUser.ts` import each other, and every `queries/v2-*.ts` imports
+  `queries/all.ts` which imports them back. ESM tolerates cycles, but they resolve to
+  `undefined` at module-init time, which is exactly the kind of bug that only appears
+  under a particular import order. See 3.5.
+
+### 3.5 Import cycles
+
+Not in the original plan; added after measuring. 140 remain. The likely fix is mostly
+mechanical - `import type` for type-only edges, and moving the `ClientExt` service types
+out of `DiscordTypes.ts` - but it needs its own pass and its own verification, because
+the failure mode it prevents is invisible until it isn't.
 
 **A note on ORMs:** the SQL here is simple and mostly parameterised. Drizzle would give you
 typed rows and migrations from one tool, which is attractive. Kysely gives typed SQL with
