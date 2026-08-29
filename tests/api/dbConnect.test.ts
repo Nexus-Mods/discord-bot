@@ -118,10 +118,41 @@ describe('ssl', () => {
     });
 });
 
-describe('other settings', () => {
-    it('sets a statement timeout, which used to be commented out', async () => {
-        expect((await loadConfig()).statement_timeout).toBe(15000);
+describe('query timeout', () => {
+    // The problem being solved is client-side: a stuck query holding a pool connection.
+    //
+    // 4.0.0 used pg's `statement_timeout` pool option, which pg sends in the **startup
+    // packet**. PgBouncer - which production connects through - rejects startup
+    // parameters outside its allow-list with a FATAL "unsupported startup parameter"
+    // (SQLSTATE 08P01), so every connection was refused and the bot could not start.
+    // `query_timeout` is a pg-side timer, sends nothing at connection time, and passes
+    // through a pooler. Verified against PgBouncer 1.22 in transaction mode.
+    it('uses query_timeout, not statement_timeout', async () => {
+        const cfg = await loadConfig();
+        expect(cfg.query_timeout).toBe(15000);
+        expect(cfg.statement_timeout).toBeUndefined();
     });
+
+    it('never sets a startup parameter that a pooler would refuse', async () => {
+        const cfg = await loadConfig() as Record<string, unknown>;
+        // pg forwards these to the server at connection time.
+        for (const key of ['statement_timeout', 'idle_in_transaction_session_timeout', 'options', 'application_name']) {
+            expect(cfg[key]).toBeUndefined();
+        }
+    });
+
+    it('can be disabled with 0, for a database that sets it on the role instead', async () => {
+        process.env.DB_STATEMENT_TIMEOUT_MS = '0';
+        expect((await loadConfig()).query_timeout).toBe(0);
+    });
+
+    it('is configurable', async () => {
+        process.env.DB_STATEMENT_TIMEOUT_MS = '4000';
+        expect((await loadConfig()).query_timeout).toBe(4000);
+    });
+});
+
+describe('other settings', () => {
 
     it('no longer drops idle connections after two seconds', async () => {
         expect((await loadConfig()).idleTimeoutMillis).toBe(30000);
