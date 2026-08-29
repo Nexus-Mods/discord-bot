@@ -1,0 +1,2852 @@
+type AbstainFromModEndorsementMutationPayload {
+  endorsement: ModEndorsement!
+  success: Boolean!
+}
+
+type AcceptModerationFixMutationPayload {
+  moderationFix: ModerationFix!
+  success: Boolean!
+}
+
+type AddBadgeToCollectionMutationPayload {
+  success: Boolean!
+}
+
+type AddFavouriteGameMutationPayload {
+  success: Boolean!
+}
+
+type AddHeaderImageToCollectionMutationPayload {
+  image: CollectionImage!
+}
+
+type AddImageToCollectionMutationPayload {
+  image: CollectionImage!
+}
+
+type AddTagToCollectionMutationPayload {
+  success: Boolean!
+}
+
+type AddTileImageToCollectionMutationPayload {
+  image: CollectionImage!
+}
+
+type AddVideoToCollectionMutationPayload {
+  video: CollectionVideo!
+}
+
+type AgeVerificationId {
+  createdAt: DateTime!
+  externalVerificationId: String!
+}
+
+type AgeVerificationInfo {
+  externalVerificationIds: [AgeVerificationId!]!
+  verified: Boolean!
+}
+
+type AmendModerationMutationPayload {
+  moderation: Moderation!
+  success: Boolean!
+}
+
+type ApiApplication {
+  active: Boolean!
+  id: ID!
+  image: String!
+  key: String
+  name: String!
+  slug: String!
+  summary: String!
+}
+
+type ApiKey implements Node {
+  applicationId: ID
+  id: ID!
+  key: String!
+  userId: Int!
+}
+
+type AppMetric {
+  clientString: String
+  createdAt: ISO8601DateTime!
+  entityId: String!
+  entityType: String!
+  eventType: AppMetricEventType!
+  id: BigInt!
+  metadata: JSON
+  userId: BigInt
+}
+
+enum AppMetricEntityType {
+  collection
+}
+
+enum AppMetricEventType {
+  collection_completed
+  collection_started
+}
+
+type ArtworkSchemaV1 {
+  tile: String!
+  tileBlurred: String!
+}
+
+type ArtworkSchemaV2 {
+  hero: String!
+  thumbnail: String!
+  tile: String!
+}
+
+interface Attachable {
+  attachments: [Attachment!]
+}
+
+type Attachment implements Node {
+  filename: String!
+  id: ID!
+  url: String!
+}
+
+type AverageRating {
+  average: Float!
+  positive: Int!
+  total: Int!
+}
+
+type Badge {
+  automated: Boolean!
+  description: String!
+  id: Int!
+  name: String!
+}
+
+input BaseFilterValue {
+  value: String!
+  op: FilterComparisonOperator
+}
+
+input BaseFilterValueEqualsMatches {
+  value: String!
+  op: FilterComparisonOperatorEqualsMatches
+}
+
+input BaseFilterValueEqualsWildcard {
+  value: String!
+  op: FilterComparisonOperatorEqualsWildcard
+}
+
+input BaseFilterValueNumeric {
+  value: String!
+  op: FilterComparisonOperatorNumeric
+}
+
+input BaseSortValue {
+  direction: SortDirection!
+}
+
+scalar BigInt
+
+type BlockModsFromEarningDpMutationPayload {
+  success: Boolean!
+}
+
+type BlockTagMutationPayload {
+  success: Boolean!
+}
+
+type BlockUserMutationPayload {
+  success: Boolean!
+}
+
+type BlockedMod {
+  id: String!
+  isBlocked: Boolean!
+}
+
+type BlockedModsPage {
+  nodes: [BlockedMod!]!
+  pageInfo: BlockedModsPageInfo!
+}
+
+type BlockedModsPageInfo {
+  totalCount: Int!
+}
+
+input BooleanFilterValue {
+  value: Boolean!
+  op: FilterComparisonOperator
+}
+
+enum BugReportClosureReason {
+  none
+  resolved
+  not_a_bug
+  wont_fix
+}
+
+enum BugReportModerationStatus {
+  none
+  hidden
+}
+
+enum BugReportStatus {
+  open
+  closed
+}
+
+type Category {
+  approved: Boolean!
+  approvedBy: Int
+  categoryGames: [Game!]
+  createdAt: DateTime!
+  description: String!
+  discardedAt: DateTime
+  id: Int!
+  name: String!
+  parentId: Int!
+  suggestedBy: Int!
+  updatedAt: DateTime!
+}
+
+type ClearCollectionBugReportModerationStatusMutationPayload {
+  collectionBugReport: CollectionBugReport!
+}
+
+type ClearCommentModerationStatusMutationPayload {
+  comment: Comment!
+}
+
+type ClearThreadModerationStatusMutationPayload {
+  commentThread: CommentThread!
+}
+
+type CloseCollectionBugReportMutationPayload {
+  collectionBugReport: CollectionBugReport!
+}
+
+type Collection {
+  adultContent: Boolean @deprecated(reason: "Adult content is now indicated at the revision level")
+  allowUserMedia: Boolean
+  badges: [Badge!]
+  bugReport(bugReportId: ID!): CollectionBugReport!
+  bugReports(status: BugReportStatus!, sortBy: String, sortDirection: String, after: String, before: String, first: Int, last: Int): CollectionBugReportConnection!
+  category: Category
+  collectionChangelogs: [CollectionChangelog!]
+  collectionSchemaId: Int
+  collectionStatus: CollectionStatus
+  commentLink: String
+  commentThread: CommentThread!
+  createdAt: DateTime!
+  currentRevision(revision: Int): CollectionRevision! @deprecated(reason: "Deprecated in favour of using a 'collectionRevision' query")
+  description: String!
+  discardReason: CollectionDiscardReason
+  discardedAt: DateTime
+  draftRevisionNumber: Int
+  editors: [User!]
+  endorsements: Int!
+  firstPublishedAt: DateTime
+  forumTopic: ForumTopic @deprecated(reason: "Use `commentThread` instead.")
+  game: Game!
+  gameId: Int!
+  headerImage: CollectionImage
+  id: Int!
+  lastPublishedAt: DateTime
+  latestPublishedRevision: CollectionRevision
+  latestPublishedRevisionRating: String
+  listedAt: DateTime
+  manuallyVerifyMedia: Boolean
+  media: [CollectionMediaUnion!]!
+  metadata: CollectionMetadata
+  moderationJwt: String!
+  moderations: [Moderation!]
+  name: String!
+  overallRating: String
+  overallRatingCount: Int
+  permissions: [Permission!]
+  publicRevisions: [PublicCollectionRevision!]
+  publishedAt: DateTime @deprecated(reason: "Use `last_published_at` instead.")
+  recentRating: String
+  recentRatingCount: Int
+  revisions: [CollectionRevision!]!
+  slug: String!
+  summary: String!
+  tags: [Tag!]!
+  tileImage: CollectionImage
+  totalDownloads: Int!
+  uniqueDownloads: Int!
+  updatedAt: DateTime!
+  user: User!
+  userId: Int!
+  viewerBlocked: Boolean! @deprecated(reason: "Use `viewerHasIgnored` instead.")
+  viewerHasIgnored: Boolean!
+  viewerIsBlocked: Boolean
+}
+
+type CollectionBugReport implements Attachable {
+  attachments: [Attachment!]
+  closedAt: DateTime
+  closureReason: BugReportClosureReason
+  collection: Collection!
+  collectionRevisionNumber: Int!
+  commentThread: CommentThread!
+  createdAt: DateTime!
+  description: String
+  hiddenBy: User
+  hiddenInternalReason: String
+  hiddenReason: String
+  id: ID!
+  moderationJwt: String!
+  moderationStatus: BugReportModerationStatus!
+  openedAt: DateTime
+  permissions: [Permission!]
+  reporter: User!
+  status: BugReportStatus!
+  title: String!
+  updatedAt: DateTime!
+  viewerHasIgnored: Boolean!
+}
+
+type CollectionBugReportConnection {
+  edges: [CollectionBugReportEdge]
+  nodes: [CollectionBugReport]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionBugReportEdge {
+  cursor: String!
+  node: CollectionBugReport
+}
+
+type CollectionChangelog {
+  collectionRevisionId: Int!
+  createdAt: DateTime!
+  description: String!
+  id: Int!
+  revisionNumber: Int!
+  updatedAt: DateTime!
+}
+
+type CollectionDiscardReason {
+  collectionId: Int!
+  createdAt: DateTime!
+  id: Int!
+  reason: String!
+  updatedAt: DateTime!
+}
+
+input CollectionGeneralSearchFilterValue {
+  value: String!
+  op: FilterComparisonOperator
+}
+
+type CollectionImage implements GloballyIdentifiable & Reorderable {
+  altText: String
+  collection: Collection!
+  createdAt: DateTime!
+  discardedAt: DateTime
+  globalId: ID
+  id: ID!
+  imageType: ImageTypes!
+  order: String!
+  revision: CollectionRevision
+  thumbnailUrl(size: ThumbnailSize!): String!
+  title: String
+  updatedAt: DateTime!
+  url: String!
+  user: User!
+}
+
+input CollectionManifest {
+  info: CollectionManifestInfo!
+  mods: [CollectionManifestMod!]!
+}
+
+input CollectionManifestInfo {
+  author: String!
+  authorUrl: String
+  name: String!
+  description: String
+  summary: String
+  domainName: String!
+  gameVersions: [String!]
+}
+
+input CollectionManifestMod {
+  name: String!
+  version: String!
+  optional: Boolean!
+  domainName: String!
+  source: CollectionManifestModSource!
+  author: String
+}
+
+input CollectionManifestModSource {
+  type: ModSource!
+  modId: Int
+  fileId: Int
+  md5: String
+  fileSize: Int
+  updatePolicy: UpdatePolicy
+  logicalFilename: String
+  fileExpression: String
+  url: String
+  adultContent: Boolean
+}
+
+union CollectionMediaUnion = CollectionImage | CollectionVideo
+
+type CollectionMetadata {
+  downloadedAt: DateTime
+  endorsementValue: Int
+  latestDownloadedRevisionNumber: Int
+}
+
+type CollectionPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [Collection!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+input CollectionPayload {
+  adultContent: Boolean!
+  collectionManifest: CollectionManifest!
+  collectionSchemaId: Int!
+}
+
+type CollectionRevision {
+  adultContent: Boolean!
+  assetsSizeBytes: BigInt!
+  badges: [Badge!]!
+  collection: Collection!
+  collectionChangelog: CollectionChangelog
+  collectionId: Int!
+  collectionSchema: CollectionSchema!
+  collectionSchemaId: Int!
+  contentPreviewLink: String!
+  createdAt: DateTime!
+  discardedAt: DateTime
+  downloadLink: String!
+  externalResources: [ExternalResource!]!
+  fileSize: BigInt! @deprecated(reason: "Use \"totalSize\" instead.")
+  gameVersions: [GameVersion!]
+  id: Int!
+  installationInfo: String
+  latest: Boolean!
+  metadata: CollectionRevisionMetadata
+  modAuthors(after: String, before: String, first: Int, last: Int): UserConnection!
+  modCount: Int!
+  modFiles: [CollectionRevisionMod!]!
+  overallRating: String
+  overallRatingCount: Int
+  rating: AverageRating! @deprecated(reason: "Deprecated in favour of 'overallRating' and 'overallRatingCount'")
+  retractionReason: RetractionReason
+  revision: Int! @deprecated(reason: "Use \"revisionNumber\" instead.")
+  revisionNumber: Int!
+  revisionStatus: String!
+  status: String!
+  totalDownloads: Int!
+  totalSize: BigInt!
+  uniqueDownloads: Int!
+  updatedAt: DateTime!
+}
+
+type CollectionRevisionMetadata {
+  downloadedAt: DateTime
+  ratingValue: RatingOptions
+}
+
+type CollectionRevisionMod {
+  collectionRevisionId: Int!
+  file: ModFile
+  fileId: Int!
+  gameId: Int!
+  id: ID!
+  optional: Boolean!
+  updatePolicy: String!
+  version: String!
+}
+
+type CollectionSchema {
+  createdAt: DateTime!
+  id: Int!
+  updatedAt: DateTime!
+  version: String!
+}
+
+enum CollectionStatus {
+  listed
+  unlisted
+  under_moderation
+  discarded
+}
+
+type CollectionVideo implements GloballyIdentifiable & Reorderable {
+  collection: Collection!
+  createdAt: DateTime!
+  discardedAt: DateTime
+  globalId: ID
+  id: ID!
+  order: String!
+  revision: CollectionRevision
+  thumbnailUrl: String!
+  title: String!
+  updatedAt: DateTime!
+  url: String!
+  user: User!
+}
+
+input CollectionsFacet {
+  adultContent: [String!]
+  categoryName: [String!]
+  collectionRating: [String!]
+  collectionStatus: [String!]
+  gameName: [String!]
+  gameIds: [String!]
+  gameVersion: [String!]
+  tag: [String!]
+  badges: [String!]
+  schemaId: [String!]
+}
+
+input CollectionsFilter {
+  filter: [CollectionsFilter!]
+  op: FilterLogicalOperator
+  name: [BaseFilterValue!]
+  collectionRating: [BaseFilterValue!]
+  collectionStatus: [BaseFilterValue!]
+  gameId: [BaseFilterValue!]
+  gameDomain: [BaseFilterValue!]
+  gameName: [BaseFilterValue!]
+  categoryId: [BaseFilterValue!]
+  categoryName: [BaseFilterValue!]
+  gameVersion: [BaseFilterValue!]
+  modUid: [BaseFilterValue!]
+  tag: [BaseFilterValue!]
+  adultContent: [BooleanFilterValue!]
+  hasDraftRevision: [BooleanFilterValue!]
+  hasPublishedRevision: [BooleanFilterValue!]
+  generalSearch: [CollectionGeneralSearchFilterValue!]
+}
+
+input CollectionsSearchFilter {
+  filter: [CollectionsSearchFilter!]
+  op: FilterLogicalOperator
+  userId: [BaseFilterValue!]
+  name: [BaseFilterValue!]
+  collectionRating: [BaseFilterValue!]
+  recentRating: [FloatFilterValue!]
+  recentRatingCount: [IntFilterValue!]
+  createdAt: [BaseFilterValue!]
+  updatedAt: [BaseFilterValue!]
+  collectionStatus: [BaseFilterValue!]
+  gameId: [BaseFilterValue!]
+  gameDomain: [BaseFilterValue!]
+  gameName: [BaseFilterValue!]
+  categoryId: [BaseFilterValue!]
+  categoryName: [BaseFilterValue!]
+  gameVersion: [BaseFilterValue!]
+  modUid: [BaseFilterValue!]
+  tag: [BaseFilterValue!]
+  adultContent: [BooleanFilterValue!]
+  hasDraftRevision: [BooleanFilterValue!]
+  hasPublishedRevision: [BooleanFilterValue!]
+  schemaId: [IntFilterValue!]
+  badges: [ExistsFilter!]
+  generalSearch: [CollectionGeneralSearchFilterValue!]
+}
+
+input CollectionsSearchSort {
+  relevance: BaseSortValue
+  createdAt: BaseSortValue
+  updatedAt: BaseSortValue
+  endorsements: BaseSortValue
+  downloads: BaseSortValue
+  rating: BaseSortValue
+  recentRating: BaseSortValue
+}
+
+type Comment implements Attachable {
+  attachments: [Attachment!]
+  body: String!
+  createdAt: DateTime!
+  creator: User!
+  cursor: String!
+  discardedAt: DateTime
+  discardedBy: User
+  hiddenAt: DateTime
+  hiddenBy: User
+  hiddenInternalReason: String
+  hiddenReason: String
+  id: ID!
+  isDiscarded: Boolean!
+  isPinned: Boolean!
+  likesCount: Int!
+  lockedAt: DateTime
+  lockedBy: User
+  moderatedByAdmin: Boolean!
+  moderationJwt: String!
+  moderationStatus: CommentModerationStatus!
+  parent: Comment
+  pinPriority: Int
+  pinnedBy: User
+  pinnedByAdmin: Boolean!
+  replies(after: String, before: String, first: Int, last: Int): CommentConnection!
+  revisions: [CommentRevision!]!
+  updatedAt: DateTime!
+  viewerHasIgnored: Boolean!
+  viewerHasLiked: Boolean!
+}
+
+type CommentConnection {
+  edges: [CommentEdge]
+  nodes: [Comment]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CommentEdge {
+  cursor: String!
+  node: Comment
+}
+
+enum CommentModerationStatus {
+  none
+  hidden
+  locked
+}
+
+type CommentRevision implements Node {
+  body: String!
+  createdAt: DateTime!
+  id: ID!
+  updatedAt: DateTime!
+}
+
+type CommentSearchResultConnection {
+  edges: [CommentSearchResultEdge]
+  nodes: [Comment]
+  pageInfo: PageInfo!
+  timeTaken: Int!
+  totalCount: Int!
+}
+
+type CommentSearchResultEdge {
+  cursor: String!
+  node: Comment
+  relevance: Float!
+}
+
+type CommentThread {
+  comments(sortBy: String, sortDirection: String, after: String, before: String, first: Int, last: Int): CommentConnection!
+  id: ID!
+  lockedAt: DateTime
+  lockedBy: User
+  moderatedByAdmin: Boolean!
+  moderationStatus: CommentThreadModerationStatus!
+  owner: User!
+}
+
+enum CommentThreadModerationStatus {
+  none
+  locked
+}
+
+input CommentsSearchFilter {
+  filter: [CommentsSearchFilter!]
+  op: FilterLogicalOperator
+  query: [BaseFilterValue!]
+  threadId: [BaseFilterValue!]
+}
+
+input CommentsSearchSort {
+  relevance: BaseSortValue
+}
+
+input CompositeDomainWithIdInput {
+  gameDomain: String!
+  modId: Int!
+}
+
+input CompositeIdInput {
+  gameId: Int!
+  modId: Int!
+}
+
+type CreateApiKeyMutationPayload {
+  apiKey: ApiKey!
+  success: Boolean!
+}
+
+type CreateChangelogMutationPayload {
+  changelogId: Int!
+  success: Boolean!
+}
+
+type CreateCollectionBugReportMutationPayload {
+  collectionBugReport: CollectionBugReport!
+}
+
+type CreateCollectionMutationPayload {
+  collection: Collection!
+  collectionId: Int!
+  revision: CollectionRevision!
+  revisionId: Int!
+  success: Boolean!
+}
+
+type CreateCommentMutationPayload {
+  comment: Comment!
+}
+
+type CreateCsamDeletionRequestPayload {
+  csamDeletionRequest: CsamDeletionRequest
+}
+
+type CreateEndorsementMutationPayload {
+  endorsement: Endorsement!
+  success: Boolean!
+}
+
+type CreateMessagePayload {
+  success: Boolean!
+}
+
+type CreateModEndorsementMutationPayload {
+  endorsement: ModEndorsement!
+  success: Boolean!
+}
+
+type CreateNoteAboutUserMutationPayload {
+  success: Boolean
+}
+
+type CreateOrUpdateRevisionMutationPayload {
+  collection: Collection!
+  collectionId: Int!
+  revision: CollectionRevision!
+  revisionId: Int!
+  revisionNumber: Int!
+  success: Boolean!
+}
+
+type CreateRatingMutationPayload {
+  averageRating: AverageRating!
+  rating: Rating!
+  success: Boolean!
+}
+
+type CreateTagMutationPayload {
+  success: Boolean!
+  tag: Tag
+}
+
+type CsamDeletionRequest {
+  createdAt: DateTime!
+  csamUrls: String!
+  id: ID!
+  requesterMemberId: ID!
+  status: CsamDeletionRequestStatus!
+}
+
+input CsamDeletionRequestCDNFilePathResult {
+  path: String!
+  status: String!
+  message: String!
+}
+
+input CsamDeletionRequestCDNResult {
+  hostname: String!
+  processedAt: DateTime!
+  summary: CsamDeletionRequestCDNSummary!
+  results: [CsamDeletionRequestCDNUrlResult!]!
+}
+
+input CsamDeletionRequestCDNSummary {
+  total: Int!
+  succeeded: Int!
+  failed: Int!
+}
+
+input CsamDeletionRequestCDNUrlResult {
+  url: String!
+  success: Boolean!
+  message: String!
+  filePaths: [CsamDeletionRequestCDNFilePathResult!]!
+  foundCount: Int!
+  deletedCount: Int!
+  failedCount: Int!
+}
+
+enum CsamDeletionRequestStatus {
+  PENDING
+  IN_PROGRESS_BACKBLAZE
+  IN_PROGRESS_CDN
+  IN_PROGRESS_CLOUDFLARE_CACHE
+  COMPLETED_SUCCESSFULLY
+  COMPLETED_WITH_FAILURES
+}
+
+scalar DateTime
+
+type DeleteApiKeyMutationPayload {
+  message: String
+  success: Boolean!
+}
+
+type DeletePersonalApiKeyMutationPayload {
+  message: String
+  success: Boolean!
+}
+
+type DiscardCollectionMutationPayload {
+  success: Boolean!
+}
+
+type DiscardCommentMutationPayload {
+  comment: Comment!
+}
+
+type DiscardRevisionMutationPayload {
+  success: Boolean!
+}
+
+type DiscardTagMutationPayload {
+  success: Boolean!
+}
+
+enum DonationReport {
+  UNIQUE_DOWNLOADS
+  I20_GAME_ADJUSTED
+  I20_GAME_POOLS
+}
+
+type EditCollectionMutationPayload {
+  collection: Collection!
+  success: Boolean!
+}
+
+type Endorsement {
+  modelId: BigInt!
+  modelType: String!
+  status: String!
+  userId: Int!
+}
+
+input ExistsFilter {
+  op: FilterComparisonOperatorExists!
+}
+
+type ExternalResource {
+  author: String
+  collectionRevisionId: Int!
+  fileExpression: String!
+  id: Int!
+  instructions: String @deprecated(reason: "This field is no longer being used")
+  name: String!
+  optional: Boolean!
+  resourceType: String!
+  resourceUrl: String
+  version: String
+}
+
+type ExternalVideo {
+  embedUrl: String!
+  id: ID!
+  platform: ExternalVideoPlatform!
+  thumbnailUrl: String!
+  title: String!
+}
+
+enum ExternalVideoPlatform {
+  youtube
+}
+
+type FileHash {
+  createdAt: DateTime!
+  fileName: String!
+  fileSize: BigInt!
+  fileType: String!
+  gameId: Int!
+  md5: String!
+  modFile: ModFile
+  modFileId: Int!
+}
+
+enum FilterComparisonOperator {
+  EQUALS
+  NOT_EQUALS
+  MATCHES
+  WILDCARD
+  GT
+  GTE
+  LT
+  LTE
+}
+
+enum FilterComparisonOperatorEqualsMatches {
+  EQUALS
+  NOT_EQUALS
+  MATCHES
+}
+
+enum FilterComparisonOperatorEqualsWildcard {
+  EQUALS
+  NOT_EQUALS
+  WILDCARD
+}
+
+enum FilterComparisonOperatorExists {
+  EXISTS
+  NOT_EXISTS
+}
+
+enum FilterComparisonOperatorNumeric {
+  EQUALS
+  NOT_EQUALS
+  GT
+  GTE
+  LT
+  LTE
+}
+
+enum FilterLogicalOperator {
+  AND
+  OR
+}
+
+input FloatFilterValue {
+  value: Float!
+  op: FilterComparisonOperator
+}
+
+enum FormalOrInformalWarning {
+  INFORMAL_WARNING
+  FORMAL_WARNING
+}
+
+type ForumPost {
+  authorId: Int!
+  authorName: String!
+  id: Int!
+  post: String!
+  postDate: Int!
+  user: User!
+}
+
+type ForumTopic {
+  approved: Boolean!
+  description: String!
+  forumId: Int!
+  id: Int!
+  pinned: Boolean!
+  posts: [ForumPost!]
+  postsCount: Int!
+  state: String!
+  title: String!
+  titleSeo: String!
+  topicUrl: String
+  views: Int!
+  visible: String!
+}
+
+type Game {
+  approvedAt: DateTime
+  artworkSchema: GameArtworkSchema
+  availableTags: [Tag!]
+  collectionCount: Int
+  copyrightedName: Boolean!
+  domainName: String!
+  downloadCount: BigInt
+  forumUrl: String
+  genre: String
+  id: Int!
+  imageCount: Int
+  mediaCount: Int
+  modCount: Int
+  name: String!
+  specificTags: [Tag!]
+  supporterImageCount: Int
+  supportsVortex: Boolean!
+  trendingPeriodDays: Int!
+  uniqueDownloadCount: BigInt
+  videoCount: Int
+}
+
+type GameArtwork {
+  schemaV1: ArtworkSchemaV1!
+  schemaV2: ArtworkSchemaV2!
+}
+
+enum GameArtworkSchema {
+  V1
+  V2
+}
+
+type GameConnection {
+  edges: [GameEdge]
+  nodes: [Game]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type GameEdge {
+  cursor: String!
+  node: Game
+}
+
+type GameExpansion {
+  gameId: ID!
+  id: ID!
+  name: String!
+}
+
+input GameNameFieldFilterValue {
+  value: String!
+  op: FilterComparisonOperator
+}
+
+type GamePage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [Game!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+type GameVersion {
+  id: ID!
+  reference: String!
+}
+
+input GamesFacet {
+  genre: [String!]
+  hasCollections: [String!]
+  supportsVortex: [String!]
+}
+
+input GamesSearchFilter {
+  filter: [GamesSearchFilter!]
+  op: FilterLogicalOperator
+  name: [GameNameFieldFilterValue!]
+}
+
+input GamesSearchSort {
+  downloads: BaseSortValue
+  mods: BaseSortValue
+  collections: BaseSortValue
+  name: BaseSortValue
+  approved: BaseSortValue
+  relevance: BaseSortValue
+}
+
+type GiveKudosMutationPayload {
+  success: Boolean!
+}
+
+type GlobalNotice {
+  content: String!
+  date: DateTime!
+  staff: User!
+}
+
+interface GloballyIdentifiable {
+  globalId: ID
+  id: ID!
+}
+
+type HashCheckResult {
+  hashValue: String!
+  match: Boolean!
+}
+
+type HideCollectionBugReportMutationPayload {
+  collectionBugReport: CollectionBugReport!
+}
+
+type HideCommentMutationPayload {
+  comment: Comment!
+}
+
+scalar ISO8601DateTime
+
+type IgnoreUserMutationPayload {
+  success: Boolean!
+}
+
+type Image implements Node {
+  adult: Boolean
+  allowComments: Boolean
+  allowRating: Boolean
+  caption: String!
+  category: ImageCategory!
+  createdAt: DateTime!
+  description: String!
+  game: Game!
+  id: ID!
+  mediaStatus: MediaStatus!
+  name: String!
+  owner: User!
+  rating: Int!
+  siteUrl: String!
+  thumbnailUrl: String!
+  title: String
+  url: String!
+  viewerBlocked: Boolean!
+  views: Int!
+}
+
+type ImageCategory {
+  date: Int
+  gameId: Int!
+  id: ID!
+  name: String!
+}
+
+enum ImageTypes {
+  gallery
+  tile
+  header
+}
+
+input IntFilterValue {
+  value: Int!
+  op: FilterComparisonOperator
+}
+
+type IssueWarningToUserMutationPayload {
+  success: Boolean
+}
+
+scalar JSON
+
+type LegacyTag implements Node {
+  blockable: Boolean!
+  games(after: String, before: String, first: Int, last: Int): GameConnection
+  global: Boolean!
+  id: ID!
+  name: String!
+  parentId: ID
+  searchable: Boolean!
+}
+
+type LegacyUpdateModerationWarningMutationPayload {
+  success: Boolean
+}
+
+type LegacyUpdatePreferencesMutationPayload {
+  success: Boolean
+}
+
+type LegacyUserDonationPreferences implements Node {
+  donateAuthorpremium: Boolean!
+  donateOwnpremium: Boolean!
+  donatePremiumMax: Int!
+  donateProfile: Boolean!
+  donateStraight: Boolean!
+  id: ID!
+  paypal: String!
+}
+
+type LikeCommentMutationPayload {
+  comment: Comment!
+}
+
+type ListCollectionMutationPayload {
+  success: Boolean!
+}
+
+type LockCommentMutationPayload {
+  comment: Comment!
+}
+
+type LockThreadMutationPayload {
+  commentThread: CommentThread!
+}
+
+input MediaFacet {
+  category: [String!]
+  type: [String!]
+  gameId: [String!]
+}
+
+input MediaGeneralSearchFilterValue {
+  value: String!
+  op: FilterComparisonOperator
+}
+
+input MediaSearchFilter {
+  filter: [MediaSearchFilter!]
+  op: FilterLogicalOperator
+  gameId: [BaseFilterValue!]
+  gameName: [BaseFilterValue!]
+  createdAt: [BaseFilterValue!]
+  adultContent: [BooleanFilterValue!]
+  type: [BaseFilterValue!]
+  owner: [BaseFilterValue!]
+  mediaStatus: [BaseFilterValue!]
+  generalSearch: [MediaGeneralSearchFilterValue!]
+}
+
+input MediaSearchSort {
+  createdAt: BaseSortValue
+  rating: BaseSortValue
+  views: BaseSortValue
+  random: RandomSortValue
+}
+
+enum MediaStatus {
+  published
+  under_moderation
+  hidden
+}
+
+union MediaUnion = Image | SupporterImage | Video
+
+type MediaUnionPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [MediaUnion!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+type Mod {
+  adult: Boolean @deprecated(reason: "Deprecated in favour of `adult_content`.")
+  adultContent: Boolean
+  author: String
+  category: String!
+  createdAt: DateTime!
+  description: String!
+  directDownloadEnabled: Boolean!
+  downloads: Int!
+  endorsements: Int!
+  fileSize: Int
+  game: Game!
+  gameId: Int!
+  id: ID!
+  isBlockedFromEarningDp: Boolean
+  legacyModRequirementsEnabled: Boolean!
+  mirrors: [ModMirror!]
+  modCategory: ModCategory
+  modId: Int!
+  modRequirements(skipDisabledRequirements: Boolean = false): ModRequirements!
+  name: String!
+  pictureUrl: String
+  status: String!
+  summary: String!
+  supportsVortex: Boolean!
+  tags: [LegacyTag!]!
+  thumbnailBlurredUrl: String
+  thumbnailLargeBlurredUrl: String
+  thumbnailLargeUrl: String
+  thumbnailUrl: String
+  uid: ID!
+  updatedAt: DateTime!
+  uploader: User!
+  version: String!
+  viewerBlocked: Boolean!
+  viewerDownloaded: DateTime
+  viewerEndorsed: Boolean
+  viewerIsBlocked: Boolean
+  viewerTracked: Boolean!
+  viewerUpdateAvailable: Boolean
+}
+
+enum ModAffiliation {
+  OWNER
+  CONTRIBUTOR
+}
+
+type ModAnalyticsByMonthNode {
+  month: Int!
+  totalDownloads: BigInt!
+  uniqueDownloads: BigInt!
+  year: Int!
+}
+
+type ModAnalyticsByMonthPage {
+  nodes: [ModAnalyticsByMonthNode!]!
+  pageInfo: OffsetBasedPageInfo!
+  totalDownloads: BigInt!
+  totalUniqueDownloads: BigInt!
+}
+
+enum ModAnalyticsByMonthSortBy {
+  DATE
+  TOTAL_DOWNLOADS
+  UNIQUE_DOWNLOADS
+}
+
+type ModAnalyticsForMonthNode {
+  mod: Mod!
+  totalDownloads: BigInt!
+  uniqueDownloads: BigInt!
+}
+
+type ModAnalyticsForMonthPage {
+  nodes: [ModAnalyticsForMonthNode!]!
+  pageInfo: OffsetBasedPageInfo!
+  totalDownloads: BigInt!
+  totalUniqueDownloads: BigInt!
+}
+
+enum ModAnalyticsForMonthSortBy {
+  TOTAL_DOWNLOADS
+  UNIQUE_DOWNLOADS
+}
+
+type ModCategory {
+  categoryId: Int!
+  date: Int
+  gameId: Int!
+  id: ID!
+  name: String!
+  tags: String @deprecated(reason: "These tag identifiers are no longer used")
+}
+
+type ModEndorsement {
+  modUid: BigInt!
+  status: String!
+  userId: Int!
+}
+
+type ModEndorserConnection {
+  edges: [ModEndorserEdge]
+  nodes: [User]
+  pageInfo: PageInfo!
+}
+
+type ModEndorserEdge {
+  cursor: String!
+  endorsedAt: DateTime!
+  node: User
+}
+
+type ModFile implements Node {
+  category: ModFileCategory!
+  categoryId: Int!
+  changelogText: [String!]!
+  count: Int!
+  date: Int!
+  description: String
+  fileId: Int!
+  game: Game!
+  groupId: Int
+  id: ID!
+  manager: Int!
+  mod: Mod!
+  modId: Int!
+  name: String!
+  owner: User!
+  primary: Int!
+  reportLink: String!
+  requirementsAlert: Int!
+  scanned: Int!
+  scannedV2: VirusScanStatus!
+  size: Int!
+  sizeInBytes: BigInt
+  totalDownloads: Int!
+  uCount: Int!
+  uid: ID!
+  uniqueDownloads: Int!
+  uri: String!
+  version: String!
+}
+
+enum ModFileCategory {
+  MAIN
+  UPDATE
+  OPTIONAL
+  OLD_VERSION
+  MISCELLANEOUS
+  REMOVED
+  ARCHIVED
+}
+
+type ModFileContent {
+  fileExtension: String!
+  fileId: Int!
+  fileName: String!
+  filePath: String!
+  filePathParts: [String!]!
+  fileSize: BigInt!
+  gameId: Int!
+  id: String!
+  modId: Int!
+}
+
+type ModFileContentPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [ModFileContent!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+input ModFileContentSearchFilter {
+  filter: [ModFileContentSearchFilter!]
+  op: FilterLogicalOperator
+  fileId: [IntFilterValue!]
+  modId: [IntFilterValue!]
+  gameId: [IntFilterValue!]
+  filePathWildcard: [BaseFilterValueEqualsWildcard!]
+  filePathPartsExact: [BaseFilterValueEqualsMatches!]
+  fileNameWildcard: [BaseFilterValueEqualsWildcard!]
+  fileExtensionExact: [BaseFilterValueEqualsMatches!]
+  fileSize: [BaseFilterValueNumeric!]
+}
+
+input ModFileContentSearchSort {
+  gameId: BaseSortValue
+  modId: BaseSortValue
+  fileId: BaseSortValue
+}
+
+type ModFilePage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [ModFile!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+type ModMirror {
+  count: Int
+  gameId: Int!
+  id: ID!
+  modId: Int!
+  name: String!
+  totalDownloads: Int
+  uri: String
+}
+
+type ModPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [Mod!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+type ModRequirement {
+  externalRequirement: Boolean!
+  gameId: ID!
+  id: ID!
+  modId: ID!
+  modName: String!
+  notes: String
+  url: String!
+}
+
+type ModRequirementPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [ModRequirement!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+type ModRequirements {
+  dlcRequirements: [ModRequirementsDlc!]!
+  modsRequiringThisMod(offset: Int, count: Int): ModRequiringPage!
+  nexusRequirements(offset: Int, count: Int): ModRequirementPage!
+}
+
+type ModRequirementsDlc {
+  gameExpansion: GameExpansion!
+  notes: String
+}
+
+type ModRequiring {
+  externalRequirement: Boolean!
+  gameId: ID!
+  id: ID!
+  modId: ID!
+  modName: String!
+  notes: String
+  url: String!
+}
+
+type ModRequiringPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [ModRequiring!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+enum ModSource {
+  nexus
+  direct
+  browse
+  manual
+  bundle
+}
+
+type ModUpload {
+  chunksCurrent: Int
+  chunksTotal: Int
+  claimed: Boolean
+  contentPreviewGenerated: Boolean
+  createdAt: String!
+  discardedAt: String
+  fileChunksReassembled: Boolean
+  fileId: Int
+  game: Game
+  hasAlternateDataStreams: Boolean
+  id: String!
+  internalVirusScanStatus: Int
+  lastError: String
+  magicBytesScanStatus: Int
+  md5: String
+  modFile: ModFile
+  modId: Int
+  processingEngine: String
+  s3UploadComplete: Boolean
+  s3Url: String
+  sha256: String
+  sizeBytes: String
+  status: String
+  systemFileName: String
+  tempFileName: String!
+  temporalWorkflowUrl: String
+  updatedAt: String!
+  uploadType: String
+  user: User
+  virusTotalChunkScans: [VirusTotalChunkScan!]
+  virusTotalPositives: Int
+  virusTotalStatus: Int
+  virusTotalUrl: String
+  yaraScanStatus: Int
+}
+
+enum Moderatable {
+  Collection
+}
+
+type ModerateMutationPayload {
+  moderation: Moderation!
+  success: Boolean!
+}
+
+type Moderation {
+  createdAt: DateTime!
+  editable: Boolean!
+  id: ID!
+  moderatableId: ID!
+  moderatableType: Moderatable!
+  moderationFixes: [ModerationFix!]
+  moderationReason: ModerationReason!
+  staffId: ID!
+  staffNote: String
+  unlockedAt: DateTime
+  unlockedBy: ID
+  unlockedNote: String
+  updatedAt: DateTime!
+  user: User!
+  userNote: String
+}
+
+type ModerationFix {
+  author: User!
+  authorId: ID!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  moderation: Moderation!
+  status: ModerationFixStatus!
+  updatedAt: DateTime!
+}
+
+enum ModerationFixStatus {
+  submitted
+  accepted
+  rejected
+}
+
+type ModerationReason {
+  createdAt: DateTime!
+  id: ID!
+  reason: String!
+  resolution: String
+  updatedAt: DateTime!
+}
+
+input ModerationRestrictionInput {
+  restriction: ModerationRestrictions!
+  timeframe: Int!
+  modId: ID
+  gameId: ID
+}
+
+enum ModerationRestrictions {
+  FILE_UPLOAD
+  MOD_TOOLS
+  FILE_DOWNLOAD
+  POST
+  COMMENT_FILE
+  IMAGE_UPLOAD
+  ENDORSE_MOD
+  ENDORSE_MEDIA
+  BLOCK_PM
+  ADD_VIDEOS
+}
+
+type ModerationWarning implements Node {
+  category: ModerationWarningCategoryEnum!
+  date: Int!
+  id: ID!
+  isRead: Boolean!
+  link: String!
+  moderationWarningRestrictions(after: String, before: String, first: Int, last: Int): ModerationWarningRestrictionConnection
+  post: ForumPost
+  postId: ID
+  publicReason: String
+  reason: String!
+  removedBy: ID
+  removedDate: Int
+  removedReason: String
+  staff: User!
+  user: User!
+}
+
+enum ModerationWarningCategoryEnum {
+  INFORMAL_WARNING
+  FORMAL_WARNING
+  BAN
+  UNBAN
+  CLOSE_ACCOUNT
+  AUTOMATIC_MESSAGE
+  MANUAL_MESSAGE
+}
+
+type ModerationWarningConnection {
+  edges: [ModerationWarningEdge]
+  nodes: [ModerationWarning]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ModerationWarningEdge {
+  cursor: String!
+  node: ModerationWarning
+}
+
+type ModerationWarningRestriction implements Node {
+  duration: Int!
+  featureId: ModerationWarningRestrictionFeatureEnum
+  id: ID!
+}
+
+type ModerationWarningRestrictionConnection {
+  edges: [ModerationWarningRestrictionEdge]
+  nodes: [ModerationWarningRestriction]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ModerationWarningRestrictionEdge {
+  cursor: String!
+  node: ModerationWarningRestriction
+}
+
+enum ModerationWarningRestrictionFeatureEnum {
+  FileUpload
+  ModTools
+  FileDownload
+  Post
+  CommentFile
+  ImageUpload
+  EndorseMod
+  EndorseImage
+  ChatBan
+  BlockPM
+  AddVideos
+  EndorseVideos
+}
+
+type ModifyImageForCollectionMutationPayload {
+  image: CollectionImage!
+  updated: Boolean!
+}
+
+input ModsFacet {
+  gameDomainName: [String!]
+  gameName: [String!]
+  gameId: [String!]
+  adult: [String!]
+  languageName: [String!]
+  status: [String!]
+  categoryName: [String!]
+  tag: [String!]
+}
+
+input ModsFilter {
+  filter: [ModsFilter!]
+  op: FilterLogicalOperator
+  name: [BaseFilterValueEqualsWildcard!]
+  nameStemmed: [BaseFilterValue!]
+  modId: [BaseFilterValue!]
+  id: [BaseFilterValue!]
+  gameId: [BaseFilterValue!]
+  gameDomainName: [BaseFilterValue!]
+  createdAt: [BaseFilterValue!]
+  updatedAt: [BaseFilterValue!]
+  hasUpdated: [BooleanFilterValue!]
+  uploaderId: [BaseFilterValue!]
+  adultContent: [BooleanFilterValue!]
+  fileSize: [IntFilterValue!]
+  downloads: [IntFilterValue!]
+  endorsements: [IntFilterValue!]
+  tag: [BaseFilterValue!]
+  description: [BaseFilterValueEqualsMatches!]
+  author: [BaseFilterValue!]
+  uploader: [BaseFilterValue!]
+  supportsVortex: [BooleanFilterValue!]
+  languageName: [BaseFilterValue!]
+  categoryName: [BaseFilterValue!]
+  status: [BaseFilterValue!]
+  gameName: [BaseFilterValue!]
+  primaryImage: [BaseFilterValue!]
+  directDownloadEnabled: [BooleanFilterValue!]
+}
+
+input ModsSort {
+  relevance: BaseSortValue
+  name: BaseSortValue
+  downloads: BaseSortValue
+  uniqueDownloads: BaseSortValue
+  endorsements: BaseSortValue
+  random: RandomSortValue
+  createdAt: BaseSortValue
+  updatedAt: BaseSortValue
+  size: BaseSortValue
+  lastComment: BaseSortValue
+}
+
+type Mutation {
+  abstainFromModEndorsement(modUid: String!): AbstainFromModEndorsementMutationPayload
+  acceptModerationFix(moderationFixId: ID!): AcceptModerationFixMutationPayload
+  addBadgeToCollection(badgeId: ID!, collectionId: Int!): AddBadgeToCollectionMutationPayload
+  addFavouriteGame(gameId: ID!): AddFavouriteGameMutationPayload
+  addHeaderImageToCollection(image: UploadImageInput!, collectionId: ID!): AddHeaderImageToCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  addImageToCollection(image: UploadImageInput!, collectionId: ID!, collectionRevisionId: ID): AddImageToCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  addTagToCollection(tagIds: [ID!]!, collectionId: Int!): AddTagToCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  addTileImageToCollection(image: UploadImageInput!, collectionId: ID!): AddTileImageToCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  addVideoToCollection(video: UploadVideoInput!, collectionId: ID!, collectionRevisionId: ID): AddVideoToCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  amendModeration(id: ID!, userNote: String, staffNote: String, editable: Boolean, unlocked: Boolean, unlockedNote: String, collectionStatus: CollectionStatus, moderationReasonId: ID): AmendModerationMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  blockAuthor(userName: String, userId: ID, authorName: String, authorId: ID): BlockUserMutationPayload @deprecated(reason: "This mutation will be replaced with ignore_user mutation")
+  blockModsFromEarningDp(userId: ID): BlockModsFromEarningDpMutationPayload
+  blockTag(tagId: ID!): BlockTagMutationPayload
+  clearCollectionBugReportModerationStatus(bugReportId: ID!): ClearCollectionBugReportModerationStatusMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  clearCommentModerationStatus(commentId: ID!): ClearCommentModerationStatusMutationPayload
+  clearCommentThreadModerationStatus(commentThreadId: ID!): ClearThreadModerationStatusMutationPayload
+  closeCollectionBugReport(bugReportId: ID!, closureReason: BugReportClosureReason!): CloseCollectionBugReportMutationPayload
+  createApiKey(applicationId: ID): CreateApiKeyMutationPayload
+  createChangelog(revisionId: ID!, description: String!): CreateChangelogMutationPayload
+  createCollection(collectionData: CollectionPayload!, uuid: String!): CreateCollectionMutationPayload
+  createCollectionBugReport(collectionId: ID!, collectionRevisionNumber: Int!, title: String!, description: String, attachmentIds: [ID!]): CreateCollectionBugReportMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  createComment(commentThreadId: ID!, body: String!, replyToId: ID, attachmentIds: [ID!]): CreateCommentMutationPayload
+  createCsamDeletionRequest(csamUrls: String!): CreateCsamDeletionRequestPayload
+  createMessage(to: [Int!]!, title: String!, body: String!): CreateMessagePayload
+  createModEndorsement(modUid: String!): CreateModEndorsementMutationPayload
+  createNoteAboutUser(userId: ID!, note: String!): CreateNoteAboutUserMutationPayload
+  createOrUpdateRevision(collectionData: CollectionPayload!, collectionId: Int!, uuid: String!): CreateOrUpdateRevisionMutationPayload
+  createTag(name: String!, categoryId: ID, gameIds: [ID!], global: Boolean, adult: Boolean): CreateTagMutationPayload
+  deleteApiKey(applicationId: ID!): DeleteApiKeyMutationPayload
+  deletePersonalApiKey: DeletePersonalApiKeyMutationPayload
+  discardCollection(collectionId: ID!, reason: String!): DiscardCollectionMutationPayload
+  discardComment(commentId: ID!): DiscardCommentMutationPayload
+  discardRevision(collectionId: ID!, revisionNumber: Int!, reason: String): DiscardRevisionMutationPayload
+  discardTag(id: ID!): DiscardTagMutationPayload
+  editCollection(collectionId: Int!, name: String, summary: String, description: String, categoryId: ID, allowUserMedia: Boolean, manuallyVerifyMedia: Boolean): EditCollectionMutationPayload
+  endorse(abstain: Boolean, modelId: Int!, modelType: String!): CreateEndorsementMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  giveKudos(kudosUserId: ID): GiveKudosMutationPayload
+  hideCollectionBugReport(bugReportId: ID!, reason: String, internalReason: String): HideCollectionBugReportMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  hideComment(commentId: ID!, reason: String!, internalReason: String): HideCommentMutationPayload
+  ignoreUser(userName: String, userId: ID): IgnoreUserMutationPayload
+  issueWarningToUser(userId: ID!, warning: FormalOrInformalWarning!, reason: String!, publicReason: String, referenceLinks: [String!], commentId: ID, restrictions: [ModerationRestrictionInput!]): IssueWarningToUserMutationPayload
+  likeComment(commentId: ID!): LikeCommentMutationPayload
+  listCollection(collectionId: Int!): ListCollectionMutationPayload
+  lockComment(commentId: ID!): LockCommentMutationPayload
+  lockCommentThread(commentThreadId: ID!): LockThreadMutationPayload
+  moderate(id: ID!, type: Moderatable!, userNote: String, staffNote: String, editable: Boolean, moderationReasonId: ID!): ModerateMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  modifyImageForCollection(image: UpdateImageInput!, collectionId: ID!): ModifyImageForCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  openCollectionBugReport(bugReportId: ID!): OpenCollectionBugReportMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  pinComment(commentId: ID!): PinCommentMutationPayload
+  publishRevision(revisionId: ID!, collectionStatus: CollectionStatus, hasAdultResources: Boolean): PublishRevisionMutationPayload
+  rate(id: ID!, type: Ratable!, rating: RatingOptions!): CreateRatingMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  rejectModerationFix(moderationFixId: ID!): RejectModerationFixMutationPayload
+  removeBadgeFromCollection(badgeId: ID!, collectionId: Int!): RemoveBadgeFromCollectionMutationPayload
+  removeCommentLike(commentId: ID!): RemoveCommentLikeMutationPayload
+  removeFavouriteGame(gameId: ID!): RemoveFavouriteGameMutationPayload
+  removeHeaderImageFromCollection(collectionId: ID!): RemoveHeaderImageFromCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  removeImageFromCollection(imageId: ID!, collectionId: ID!): RemoveImageFromCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  removeKudos(kudosUserId: ID): RemoveKudosMutationPayload
+  removeTagFromCollection(tagIds: [ID!]!, collectionId: ID!): RemoveTagFromCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  removeTileImageFromCollection(collectionId: ID!): RemoveTileImageFromCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  removeVideoFromCollection(videoId: ID!, collectionId: ID!): RemoveVideoFromCollectionMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  reorderItem(id: ID!, targetId: ID!, location: ReorderLocation!): ReorderItemPayload
+  reorderPinnedComments(commentIds: [ID!]!): ReorderPinnedCommentsMutationPayload
+  replayTemporalArchiveHistory(historyId: ID!): ReplayTemporalArchiveHistoryMutationPayload
+  replayTemporalWorkflow(uploadId: ID!, role: TemporalWorkflowRole!): ReplayTemporalWorkflowMutationPayload
+  rescanVirusTotal(uploadId: ID!): RescanVirusTotalMutationPayload
+  restartUploadProcessing(uploadId: ID!): RestartUploadProcessingMutationPayload
+  restoreComment(commentId: ID!): RestoreCommentMutationPayload
+  retractRevision(revisionId: ID!, reason: String!): RetractRevisionMutationPayload
+  startTemporalArchiveSearch(uploadId: ID!, closedFrom: ISO8601DateTime, closedTo: ISO8601DateTime): StartTemporalArchiveSearchMutationPayload
+  submitModerationFix(moderationId: ID!, description: String): SubmitModerationFixMutationPayload
+  trackAppMetric(eventType: AppMetricEventType!, entityType: AppMetricEntityType!, entityId: String!, clientString: String, metadata: JSON): TrackAppMetricMutationPayload
+  trackMod(modUid: ID!): TrackModMutationPayload
+  trackUser(trackedUserId: ID): TrackUserMutationPayload
+  unblockAuthor(userName: String, userId: ID, authorName: String, authorId: ID): UnblockUserMutationPayload
+  unblockModsFromEarningDp(userId: ID): UnblockModsFromEarningDpMutationPayload
+  unblockTag(tagId: ID!): UnblockTagMutationPayload
+  unignoreUser(userName: String, userId: ID): UnignoreUserMutationPayload
+  unlistCollection(collectionId: ID!): UnlistCollectionMutationPayload
+  unpinComment(commentId: ID!): UnpinCommentMutationPayload
+  unpublishRevision(revisionId: ID!, reason: String!): RetractRevisionMutationPayload @deprecated(reason: "Legacy Field - this will be removed in a future update.")
+  untrackMod(modUid: ID!): UntrackModMutationPayload
+  untrackUser(trackedUserId: ID): UntrackUserMutationPayload
+  updateAboutMe(userId: ID, about: String!): UpdateAboutMeMutationPayload
+  updateChangelog(changelogId: ID!, description: String!): UpdateChangelogMutationPayload
+  updateCollectionBugReport(bugReportId: ID!, collectionRevisionNumber: Int, title: String!, description: String, attachmentIds: [ID!]): UpdateCollectionBugReportMutationPayload @deprecated(reason: "This mutation will be replaced using Interfaces and Global IDs")
+  updateComment(commentId: ID!, body: String!, attachmentIds: [ID!]): UpdateCommentMutationPayload
+  updateCountry(userId: ID, country: String): UpdateCountryMutationPayload
+  updateCsamDeletionRequest(id: Int!, detailedStatus: CsamDeletionRequestCDNResult!, cdnSecret: String): UpdateCsamDeletionRequestPayload
+  updateGame(gameId: Int!, artworkSchema: GameArtworkSchema, copyrightedName: Boolean): UpdateGameMutationPayload
+  updateModDirectDownloadEnabled(modUid: ID!, directDownloadEnabled: Boolean!): UpdateModDirectDownloadEnabledMutationPayload
+  updateModerationWarning(moderationWarningId: ID!, isRead: Boolean!): LegacyUpdateModerationWarningMutationPayload
+  updatePreferences(defaultModsTab: PreferencesDefaultModsTabEnum, defaultModsTabTimeRange: PreferencesTimeRangeEnum, defaultMediaTab: PreferencesDefaultMediaTabEnum, defaultMediaTabTimeRange: PreferencesTimeRangeEnum, subfeedsCommentsYour: Boolean, subfeedsActivityYour: Boolean, subfeedsCommentsTracked: Boolean, subfeedsActivityTracked: Boolean, subfeedsAuthorTracked: Boolean, defaultOrder: PreferencesDefaultSortEnum, defaultSearchView: PreferencesDefaultSearchViewEnum, results: PreferencesResultsEnum, comments: PreferencesCommentsEnum, dlLocation: PreferencesDlLocationEnum, reminder: PreferencesReminderEnum, imageShowcase: PreferencesImageShowcaseEnum, bubbleReply: Boolean, disableProfileActivity: Boolean, displayLastActivity: Boolean, adult: Boolean, adultBlurImages: Boolean, download: PreferencesDownloadMethodEnum, notificationsActive: Boolean, notificationsGameSpecific: Boolean, defaultSearchType: PreferencesSearchTypeEnum, marketingEmails: Boolean): LegacyUpdatePreferencesMutationPayload
+  updateRevision(revisionId: Int!, installationInfo: String, adultContent: Boolean): UpdateRevisionMutationPayload
+  updateTag(id: ID!, name: String, categoryId: ID, gameIds: [ID!], global: Boolean, adult: Boolean): UpdateTagMutationPayload
+  updateUserDonationPreferences(donateStraight: Boolean, donateAuthorpremium: Boolean, donateOwnpremium: Boolean, donateProfile: Boolean, donatePremiumMax: Int, dpOptedIn: Boolean, paypal: String): UpdateUserDonationPreferencesPayload
+  uploadAttachment(file: Upload!): UploadAttachmentMutationPayload
+  uploadGameArtworkV2(gameId: Int!, tileFile: Upload, heroFile: Upload, thumbnailFile: Upload): UploadGameArtworkV2MutationPayload
+  writeFullPageNotificationToUser(userId: ID!, title: String!, message: String!, referenceLinks: [String!]): WriteFullPageNotificationToUserMutationPayload
+}
+
+type News {
+  author: User!
+  commentsCount: Int!
+  content: String!
+  date: ISO8601DateTime!
+  games: [Game!]!
+  header: String
+  html: Boolean!
+  id: ID!
+  image: String
+  newsCategory: NewsCategory!
+  sourceName: String
+  sourceUrl: String
+  summary: String!
+  title: String!
+  uncroppedHeader: String
+  uncroppedImage: String
+}
+
+type NewsCategory {
+  id: ID!
+  name: String!
+}
+
+enum NewsCategoryEnum {
+  SITE_NEWS
+  GAME_NEWS
+  MOD_NEWS
+  INTERVIEWS
+  COMPETITIONS
+  FEATURES
+}
+
+type NewsPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [News!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+interface Node {
+  id: ID!
+}
+
+type NodesFacet {
+  count: Int!
+  facet: String!
+  value: String!
+}
+
+type OffsetBasedPageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  page: Int!
+  pageSize: Int!
+  totalCount: Int!
+}
+
+type OpenCollectionBugReportMutationPayload {
+  collectionBugReport: CollectionBugReport!
+}
+
+type OptedInMod {
+  createdAt: DateTime!
+  game: Game
+  gameId: Int!
+  id: Int!
+  mod: Mod
+  modId: Int!
+  ratio: Float!
+  uploader: User
+  uploaderId: Int!
+}
+
+type OptedInMods {
+  count: Int!
+  entries: [OptedInMod!]!
+  user: User!
+  userId: Int!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type PaymentEntity {
+  id: Int!
+  label: String!
+  type: String!
+}
+
+type Permission {
+  global: Boolean!
+  key: String!
+}
+
+type PinCommentMutationPayload {
+  comment: Comment!
+}
+
+type Preference implements Node {
+  adult: Boolean!
+  adultBlurImages: Boolean!
+  bubbleReply: Boolean!
+  comments: PreferencesCommentsEnum!
+  defaultMediaTab: PreferencesDefaultMediaTabEnum!
+  defaultMediaTabTimeRange: PreferencesTimeRangeEnum!
+  defaultModsTab: PreferencesDefaultModsTabEnum!
+  defaultModsTabTimeRange: PreferencesTimeRangeEnum!
+  defaultOrder: PreferencesDefaultSortEnum!
+  defaultSearchType: PreferencesSearchTypeEnum!
+  defaultSearchView: PreferencesDefaultSearchViewEnum!
+  disableProfileActivity: Boolean!
+  displayLastActivity: Boolean!
+  dlLocation: PreferencesDlLocationEnum!
+  download: PreferencesDownloadMethodEnum!
+  id: ID!
+  imageShowcase: PreferencesImageShowcaseEnum!
+  isBlockingContent: Boolean!
+  marketingEmails: Boolean!
+  notificationsActive: Boolean!
+  notificationsGameSpecific: Boolean!
+  reminder: PreferencesReminderEnum!
+  results: PreferencesResultsEnum!
+  subfeedsActivityTracked: Boolean!
+  subfeedsActivityYour: Boolean!
+  subfeedsAuthorTracked: Boolean!
+  subfeedsCommentsTracked: Boolean!
+  subfeedsCommentsYour: Boolean!
+}
+
+enum PreferencesCommentsEnum {
+  COMMENTS_10
+  COMMENTS_20
+  COMMENTS_30
+  COMMENTS_40
+  COMMENTS_50
+}
+
+enum PreferencesDefaultMediaTabEnum {
+  NEW
+  TRENDING
+  POPULAR
+  RANDOM
+}
+
+enum PreferencesDefaultModsTabEnum {
+  NEW
+  TRENDING
+  POPULAR
+  RANDOM
+  UPDATED
+}
+
+enum PreferencesDefaultSearchViewEnum {
+  STANDARD
+  LIST
+  COMPACT
+}
+
+enum PreferencesDefaultSortEnum {
+  BY_RECENT_FILES
+  BY_ENDORSEMENTS
+  BY_DOWNLOADS
+  BY_UNIQUE_DOWNLOADS
+  BY_LAST_UPDATED_FILE
+  BY_AUTHOR_NAME
+  BY_FILE_NAME
+  BY_FILE_SIZE
+  RANDOM_SORTING
+  LAST_COMMENT
+}
+
+enum PreferencesDlLocationEnum {
+  NEXUS_CDN
+  AMSTERDAM
+  PRAGUE
+  CHICAGO
+  LOS_ANGELES
+  MIAMI
+}
+
+enum PreferencesDownloadMethodEnum {
+  POP_UP_BOX
+  SEPARATE_PAGE
+}
+
+enum PreferencesImageShowcaseEnum {
+  NOT_SET
+  CHOOSE_ON_PER_IMAGE_BASIS
+  TURN_OFF_IMAGES
+  TURN_ON_IMAGES
+}
+
+enum PreferencesReminderEnum {
+  NEVER
+  DAYS_1
+  DAYS_3
+  DAYS_7
+  DAYS_14
+  DAYS_28
+}
+
+enum PreferencesResultsEnum {
+  RESULTS_20
+  RESULTS_40
+  RESULTS_60
+  RESULTS_80
+}
+
+enum PreferencesSearchTypeEnum {
+  ALL_CONTENT
+  GAMES
+  MODS
+  COLLECTIONS
+  IMAGES
+  VIDEOS
+  USERS
+}
+
+enum PreferencesTimeRangeEnum {
+  ALL_TIME
+  ONE_DAY
+  ONE_WEEK
+  TWO_WEEKS
+  FOUR_WEEKS
+  ONE_YEAR
+}
+
+type PresignedUrl {
+  url: String!
+  uuid: String!
+}
+
+type PublicCollectionChangelog {
+  collectionRevisionId: Int!
+  createdAt: DateTime!
+  description: String!
+  id: Int!
+  revisionNumber: Int!
+  updatedAt: DateTime!
+}
+
+type PublicCollectionRevision {
+  collectionChangelog: PublicCollectionChangelog
+  createdAt: DateTime!
+  discardedAt: DateTime
+  id: Int!
+  overallRating: String
+  overallRatingCount: Int
+  rating: AverageRating! @deprecated(reason: "Deprecated in favour of 'overallRating' and 'overallRatingCount'")
+  revision: Int! @deprecated(reason: "Use `revision_number` instead.")
+  revisionNumber: Int!
+  revisionStatus: String!
+  updatedAt: DateTime!
+}
+
+type PublishRevisionMutationPayload {
+  success: Boolean!
+}
+
+type Query {
+  ageVerificationInfo(userId: ID): AgeVerificationInfo!
+  applications: [ApiApplication!]
+  badges: [Badge!]!
+  blockedAuthors: [User!] @deprecated(reason: "This endpoint will be replaced with ignored_users")
+  blockedTags(excludeAdult: Boolean): [LegacyTag!]
+  categories(gameId: Int, global: Boolean): [Category!]
+  category(id: ID!): Category
+  collection(slug: String, viewAdultContent: Boolean, domainName: String): Collection!
+  collectionGames: [Game!]
+  collectionRevision(slug: String, revision: Int, viewAdultContent: Boolean, domainName: String): CollectionRevision!
+  collectionRevisionUploadUrl: PresignedUrl!
+  collectionsV2(facets: CollectionsFacet, viewUserBlockedContent: Boolean, filter: CollectionsSearchFilter, postFilter: CollectionsSearchFilter, sort: [CollectionsSearchSort!], offset: Int, count: Int): CollectionPage!
+  comment(commentId: ID!): Comment!
+  commentThread(commentThreadId: ID!): CommentThread!
+  csamDeletionRequests(status: CsamDeletionRequestStatus, cdnSecret: String): [CsamDeletionRequest!]!
+  csamHashCheck(md5Hashes: [String!]!): [HashCheckResult!]!
+  currentWarnings: UserWarnings!
+  externalVideo(url: String!): ExternalVideo!
+  favouriteGames: [Game!]
+  fileHash(md5: String!): [FileHash!]!
+  fileHashes(md5s: [String!]!): [FileHash!]
+  game(id: ID, domainName: String): Game
+  gameArtwork: GameArtwork
+  games(facets: GamesFacet, filter: GamesSearchFilter, postFilter: GamesSearchFilter, sort: [GamesSearchSort!], offset: Int, count: Int): GamePage!
+  ignoredUsers: [User!]
+  legacyBlockedAuthors: [User!] @deprecated(reason: "This is a legacy endpoint and should not be used.")
+  legacyMods(ids: [CompositeIdInput!]!, offset: Int, count: Int): ModPage!
+  legacyModsByDomain(ids: [CompositeDomainWithIdInput!]!, offset: Int, count: Int): ModPage!
+  legacyTags(gameId: ID, onlyAdult: Boolean, excludeAdult: Boolean): [LegacyTag!]
+  media(facets: MediaFacet, viewUserBlockedContent: Boolean, filter: MediaSearchFilter, postFilter: MediaSearchFilter, sort: [MediaSearchSort!], offset: Int, count: Int): MediaUnionPage!
+  mod(modId: ID!, gameId: ID!): Mod!
+  modEndorsers(modUid: ID!, after: String, before: String, first: Int, last: Int): ModEndorserConnection!
+  modFileContents(filter: ModFileContentSearchFilter, sort: [ModFileContentSearchSort!], offset: Int, count: Int): ModFileContentPage!
+  modFiles(modId: ID!, gameId: ID!): [ModFile!]!
+  modFilesByUid(uids: [ID!]!, offset: Int, count: Int): ModFilePage!
+  moderationReason(id: ID!): ModerationReason
+  moderationReasons: [ModerationReason!]
+  moderationWarnings(category: [ModerationWarningCategoryEnum!], after: String, before: String, first: Int, last: Int): ModerationWarningConnection
+  mods(viewUploaderHidden: Boolean, viewUserBlockedContent: Boolean, facets: ModsFacet, filter: ModsFilter, postFilter: ModsFilter, sort: [ModsSort!], offset: Int, count: Int): ModPage!
+  modsByUid(uids: [ID!]!, offset: Int, count: Int): ModPage!
+  myCollections(facets: CollectionsFacet, sortBy: String, sortDirection: String, viewAdultContent: Boolean, viewUnlisted: Boolean, viewUnderModeration: Boolean, filter: CollectionsFilter, postFilter: CollectionsFilter, offset: Int, count: Int): CollectionPage! @deprecated(reason: "Deprecated- Use collectionsV2.")
+  news(newsCategory: NewsCategoryEnum, gameId: Int, offset: Int, count: Int): NewsPage!
+  optedInMods(accountId: Int!): OptedInMods!
+  personalApiKey: ApiKey
+  preferences: Preference
+  privateMessageUrl(id: ID!): String
+  requestMediaUploadUrl(filename: String, mimeType: String): PresignedUrl!
+  searchComments(filter: CommentsSearchFilter, sort: [CommentsSearchSort!], after: String, before: String, first: Int, last: Int): CommentSearchResultConnection!
+  speedtestUrls: [SpeedtestUrl!]!
+  startAgeVerificationAppealFlow: StartAgeVerificationFlowResponse!
+  startAgeVerificationFlow: StartAgeVerificationFlowResponse!
+  tag(id: ID!): Tag
+  tagCategories: [TagCategory!]
+  tagCategory(id: ID!): TagCategory
+  tags(gameId: Int, categoryId: Int, includeGlobal: Boolean, includeDiscarded: Boolean): [Tag!]
+  temporalArchiveSearch(id: ID!): TemporalArchiveSearch!
+  temporalWorkflowInspection(uploadId: ID!): TemporalWorkflowInspection!
+  temporalWorkflowStatus(uploadId: ID!): TemporalWorkflowStatus!
+  transactions(start: Int, perPage: Int, orderDir: String, orderColumn: String, accountId: Int, bankId: Int, search: String): TransactionList!
+  uploads(start: Int!, perPage: Int!, orderDir: String!, orderColumn: String!, id: String, search: String, filter: String, uploadType: String, gameId: Int, userId: Int, fileId: Int, modId: Int): UploadList!
+  user(id: Int!): User
+  userByName(name: String!): User
+  userDonationPreferences: LegacyUserDonationPreferences
+  userMonthlyReport(accountId: Int!, year: Int!, month: Int!): UserMonthlyReport!
+  userMonthlyReportById(accountId: Int!, reportId: Int!): UserMonthlyReport!
+  userMonthlySummary(accountId: Int!): UserMonthlySummary!
+  users(filter: UsersSearchFilter, sort: [UsersSearchSort!], offset: Int, count: Int): UserPage!
+  wallets(start: Int, perPage: Int, orderDir: String, orderColumn: String, search: String): WalletList! @deprecated(reason: "Legacy Query. This endpoint may change or become unstable in future updates.")
+}
+
+input RandomSortValue {
+  seed: Int
+}
+
+enum Ratable {
+  CollectionRevision
+  Mod
+}
+
+type Rating implements Node {
+  id: ID!
+  modelId: Int!
+  modelType: String!
+  rating: String!
+  userId: Int!
+}
+
+enum RatingOptions {
+  positive
+  negative
+  abstained
+}
+
+type RejectModerationFixMutationPayload {
+  moderationFix: ModerationFix!
+  success: Boolean!
+}
+
+type RemoveBadgeFromCollectionMutationPayload {
+  success: Boolean!
+}
+
+type RemoveCommentLikeMutationPayload {
+  comment: Comment!
+}
+
+type RemoveFavouriteGameMutationPayload {
+  success: Boolean!
+}
+
+type RemoveHeaderImageFromCollectionMutationPayload {
+  success: Boolean!
+}
+
+type RemoveImageFromCollectionMutationPayload {
+  success: Boolean!
+}
+
+type RemoveKudosMutationPayload {
+  success: Boolean!
+}
+
+type RemoveTagFromCollectionMutationPayload {
+  success: Boolean!
+}
+
+type RemoveTileImageFromCollectionMutationPayload {
+  success: Boolean!
+}
+
+type RemoveVideoFromCollectionMutationPayload {
+  success: Boolean!
+}
+
+type ReorderItemPayload {
+  item: Reorderable
+}
+
+enum ReorderLocation {
+  BEFORE
+  AFTER
+}
+
+type ReorderPinnedCommentsMutationPayload {
+  comments: [Comment!]!
+}
+
+interface Reorderable {
+  order: String!
+}
+
+type ReplayTemporalArchiveHistoryMutationPayload {
+  history: TemporalArchiveSearchHistory!
+}
+
+type ReplayTemporalWorkflowMutationPayload {
+  result: TemporalReplayResult!
+}
+
+type RescanVirusTotalMutationPayload {
+  message: String!
+  success: Boolean!
+}
+
+type RestartUploadProcessingMutationPayload {
+  message: String!
+  success: Boolean!
+}
+
+type RestoreCommentMutationPayload {
+  comment: Comment!
+}
+
+type RetractRevisionMutationPayload {
+  success: Boolean!
+}
+
+type RetractionReason {
+  collectionRevisionId: Int!
+  createdAt: DateTime!
+  id: Int!
+  reason: String!
+  updatedAt: DateTime!
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+type SpeedtestUrl {
+  description: String
+  location: String
+  tag: String
+  title: String
+}
+
+type StartAgeVerificationFlowResponse {
+  message: String
+  success: Boolean!
+  verificationResult: VerificationResult!
+}
+
+type StartTemporalArchiveSearchMutationPayload {
+  search: TemporalArchiveSearch!
+}
+
+type SubmitModerationFixMutationPayload {
+  moderationFix: ModerationFix!
+  success: Boolean!
+}
+
+type SupporterImage implements Node {
+  allowComments: Boolean
+  allowRating: Boolean
+  caption: String!
+  category: ImageCategory!
+  createdAt: DateTime!
+  description: String!
+  game: Game!
+  id: ID!
+  mediaStatus: MediaStatus!
+  name: String!
+  owner: User!
+  rating: Int!
+  siteUrl: String!
+  thumbnailUrl: String!
+  title: String
+  url: String!
+  viewerBlocked: Boolean!
+  views: Int!
+}
+
+type Tag {
+  adult: Boolean!
+  category: TagCategory
+  createdAt: DateTime!
+  discardedAt: DateTime
+  games: [Game!]
+  global: Boolean!
+  id: ID!
+  name: String!
+  taggablesCount: Int!
+  updatedAt: DateTime!
+}
+
+type TagCategory {
+  createdAt: DateTime!
+  discardedAt: DateTime
+  id: ID!
+  name: String!
+  tags: [Tag!]
+  updatedAt: DateTime!
+}
+
+type TemporalArchiveSearch {
+  blobsScanned: Int!
+  diagnosticMessage: String
+  errorMessage: String
+  executionsSeen: Int!
+  finished: Boolean!
+  histories: [TemporalArchiveSearchHistory!]!
+  historiesFound: Int!
+  id: ID!
+  scannedThrough: String
+  status: String!
+  uploadId: ID!
+  windowFrom: String!
+  windowTo: String!
+  workflowIds: [String!]!
+}
+
+type TemporalArchiveSearchHistory {
+  buildIds: [String!]!
+  closedAt: String
+  closedStatus: String
+  eventCount: Int
+  exportBlobKey: String!
+  id: ID!
+  latestForRole: Boolean!
+  parentInitiatedEventId: Int
+  parentRunId: String
+  rawHistoryJson: String
+  replayFailureMessage: String
+  replayVerdict: String!
+  replayWorkflowClass: String
+  replayedAgainstBuildId: String
+  replayedAt: String
+  role: TemporalWorkflowRole!
+  runId: String!
+  startedAt: String
+  timeline: [TemporalHistoryEvent!]
+  workflowId: String!
+  workflowType: String
+}
+
+type TemporalHistoryEvent {
+  attributesJson: String
+  category: String!
+  childRunId: String
+  childWorkflowId: String
+  eventId: Int!
+  eventType: String!
+  role: TemporalWorkflowRole
+  summary: String!
+  timestamp: String
+  workflowId: String
+}
+
+type TemporalReplayResult {
+  availableWorkflowTypes: [String!]!
+  failureClass: String
+  failureMessage: String
+  recordedWorkflowType: String
+  replayedAgainstBuildId: String
+  replayedAs: String
+  verdict: String!
+}
+
+type TemporalWorkflowExecution {
+  attempt: Int
+  buildIds: [String!]
+  closedAt: String
+  currentActivityState: String
+  currentActivityType: String
+  expirationAt: String
+  found: Boolean!
+  heartbeatDetail: String
+  historyError: String
+  historyLength: Int
+  lastFailureMessage: String
+  lastHeartbeatAt: String
+  rawHistoryJson: String
+  role: TemporalWorkflowRole!
+  runId: String
+  startedAt: String
+  status: String
+  taskQueue: String
+  timeline: [TemporalHistoryEvent!]
+  uiUrl: String
+  workflowId: String!
+  workflowType: String
+}
+
+type TemporalWorkflowInspection {
+  discoveredChildren: [TemporalWorkflowExecution!]!
+  entityType: String!
+  executions: [TemporalWorkflowExecution!]!
+  found: Boolean!
+  mergedTimeline: [TemporalHistoryEvent!]
+  parent: TemporalWorkflowExecution
+  uploadId: ID!
+}
+
+enum TemporalWorkflowRole {
+  parent
+  scan_child
+  discovered_child
+  unknown
+}
+
+type TemporalWorkflowStatus {
+  attempt: Int
+  closedAt: String
+  currentActivityState: String
+  currentActivityType: String
+  expirationAt: String
+  found: Boolean!
+  heartbeatDetail: String
+  historyLength: Int
+  lastFailureMessage: String
+  lastHeartbeatAt: String
+  runId: String
+  startedAt: String
+  status: String
+  taskQueue: String
+  workflowId: String!
+  workflowType: String
+}
+
+enum ThumbnailSize {
+  small
+  med
+  large
+}
+
+type TrackAppMetricMutationPayload {
+  appMetric: AppMetric
+  errors: [String!]
+  success: Boolean!
+}
+
+type TrackModMutationPayload {
+  success: Boolean!
+  trackedMod: TrackedMod!
+}
+
+type TrackUserMutationPayload {
+  success: Boolean!
+}
+
+type TrackedMod {
+  gameId: ID!
+  modId: ID!
+  userId: ID!
+}
+
+type Transaction {
+  amount: Int!
+  createdAt: String!
+  creditor: String @deprecated(reason: "Use 'creditorEntity' instead")
+  creditorEntity: PaymentEntity
+  debitor: String @deprecated(reason: "Use 'debitorEntity' instead")
+  debitorEntity: PaymentEntity
+  id: Int!
+  label: String!
+  type: String!
+}
+
+type TransactionList {
+  filteredCount: Int!
+  totalCount: Int!
+  transactions: [Transaction!]
+}
+
+type UnblockModsFromEarningDpMutationPayload {
+  success: Boolean!
+}
+
+type UnblockTagMutationPayload {
+  success: Boolean!
+}
+
+type UnblockUserMutationPayload {
+  success: Boolean!
+}
+
+type UnignoreUserMutationPayload {
+  success: Boolean!
+}
+
+type UnlistCollectionMutationPayload {
+  success: Boolean!
+}
+
+type UnpinCommentMutationPayload {
+  comment: Comment!
+}
+
+type UntrackModMutationPayload {
+  success: Boolean!
+}
+
+type UntrackUserMutationPayload {
+  success: Boolean!
+}
+
+type UpdateAboutMeMutationPayload {
+  success: Boolean!
+}
+
+type UpdateChangelogMutationPayload {
+  changelogId: Int!
+  success: Boolean!
+}
+
+type UpdateCollectionBugReportMutationPayload {
+  collectionBugReport: CollectionBugReport!
+}
+
+type UpdateCommentMutationPayload {
+  comment: Comment!
+}
+
+type UpdateCountryMutationPayload {
+  success: Boolean!
+}
+
+type UpdateCsamDeletionRequestPayload {
+  csamDeletionRequest: CsamDeletionRequest
+}
+
+type UpdateGameMutationPayload {
+  success: Boolean!
+}
+
+input UpdateImageInput {
+  id: ID!
+  title: String
+  altText: String
+}
+
+type UpdateModDirectDownloadEnabledMutationPayload {
+  mod: Mod
+  success: Boolean!
+}
+
+enum UpdatePolicy {
+  exact
+  latest
+  prefer
+}
+
+type UpdateRevisionMutationPayload {
+  revisionId: Int!
+  success: Boolean!
+}
+
+type UpdateTagMutationPayload {
+  success: Boolean!
+  tag: Tag!
+}
+
+type UpdateUserDonationPreferencesPayload {
+  success: Boolean!
+  userDonationPreferences: LegacyUserDonationPreferences
+}
+
+scalar Upload
+
+type UploadAttachmentMutationPayload {
+  attachment: Attachment!
+}
+
+type UploadGameArtworkV2MutationPayload {
+  successHero: Boolean!
+  successThumbnail: Boolean!
+  successTile: Boolean!
+}
+
+input UploadImageInput {
+  id: ID!
+  contentType: String!
+  title: String
+  altText: String
+}
+
+type UploadList {
+  filteredCount: Int!
+  totalCount: Int!
+  uploads: [ModUpload!]
+}
+
+input UploadVideoInput {
+  url: String!
+}
+
+type User {
+  about: String
+  avatar: String!
+  banned: Boolean!
+  blockedFromOptingInModsAt: DateTime
+  collectionCount: Int!
+  contributedModCount: Int!
+  country: String
+  deleted: Boolean!
+  donationsEnabled: Boolean!
+  dpOptedIn: Boolean!
+  email: String!
+  endorsementsGiven: Int!
+  fullPageNotificationCount: Int
+  hasGivenKudos: Boolean!
+  imageCount: Int!
+  ipAddress: String
+  isBlocked: Boolean!
+  isTracked: Boolean!
+  joined: DateTime!
+  kudos: Int!
+  lastActive: DateTime
+  legacyRoles: [String!]!
+  memberId: Int!
+  membershipRoles: [String!]!
+  modAnalyticsByMonth(affiliation: ModAffiliation, page: Int, pageSize: Int, sortBy: ModAnalyticsByMonthSortBy, sortDirection: SortDirection): ModAnalyticsByMonthPage!
+  modAnalyticsForMonth(year: Int!, month: Int!, query: String, affiliation: ModAffiliation, page: Int, pageSize: Int, sortBy: ModAnalyticsForMonthSortBy, sortDirection: SortDirection): ModAnalyticsForMonthPage!
+  modCount: Int!
+  moderationHistoryCount: Int
+  moderationJwt: String
+  modsBlockedFromEarningDp(count: Int, offset: Int): BlockedModsPage!
+  name: String!
+  ownedModCount: Int!
+  paypal: String
+  posts: Int!
+  recognizedAuthor: Boolean!
+  roles: [String!]!
+  showActivityFeed: Boolean!
+  showLastActive: Boolean!
+  uniqueCollectionDownloads: Int!
+  uniqueModDownloads: Int!
+  usernameLastChangedAt: DateTime
+  verifiedCurator: Boolean!
+  videoCount: Int!
+  viewerHasBlocked: Boolean
+  viewerHasIgnored: Boolean!
+  views: Int!
+}
+
+type UserConnection {
+  edges: [UserEdge]
+  nodes: [User]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserEdge {
+  cursor: String!
+  node: User
+}
+
+type UserMonthlyReport {
+  entries: [UserMonthlyReportEntry!]!
+  reportType: DonationReport!
+  user: User
+  userId: Int!
+}
+
+type UserMonthlyReportEntry {
+  author: User
+  authorCount: Int
+  authorId: Int
+  authorValue: Int
+  game: Game
+  gameId: Int
+  mod: Mod
+  modCount: Int
+  modId: Int
+  modValue: Int
+  month: Int!
+  ratio: Float!
+  reportId: Int!
+  status: Int!
+  value: Int!
+  year: Int!
+}
+
+type UserMonthlySummary {
+  entries: [UserMonthlySummaryEntry!]!
+  user: User!
+  userId: Int!
+}
+
+type UserMonthlySummaryEntry {
+  modCount: Int!
+  modValue: Int!
+  month: Int!
+  reportType: DonationReport!
+  value: Int!
+  year: Int!
+}
+
+type UserPage {
+  facets: [NodesFacet!]
+  facetsData: JSON
+  nodes: [User!]!
+  nodesCount: Int!
+  nodesFacets: [NodesFacet!]
+  nodesFilter: String
+  totalCount: Int!
+}
+
+type UserWarnings {
+  unreadGlobalNotices: [GlobalNotice!]!
+  unreadWarnings: [ModerationWarning!]!
+}
+
+input UsersSearchFilter {
+  filter: [UsersSearchFilter!]
+  op: FilterLogicalOperator
+  nameExact: [BaseFilterValueEqualsMatches!]
+  nameWildcard: [BaseFilterValue!]
+}
+
+input UsersSearchSort {
+  relevance: BaseSortValue
+  name: BaseSortValue
+}
+
+type VerificationResult {
+  id: ID!
+  url: String!
+}
+
+type Video implements Node {
+  allowComments: Boolean
+  allowRating: Boolean
+  category: VideoCategory!
+  createdAt: DateTime!
+  description: String
+  game: Game!
+  id: ID!
+  link: String!
+  mediaStatus: MediaStatus!
+  owner: User!
+  rating: Int!
+  siteUrl: String!
+  thumbnailUrl: String!
+  title: String
+  viewerBlocked: Boolean!
+  views: Int!
+}
+
+type VideoCategory {
+  date: Int
+  id: ID!
+  name: String!
+}
+
+enum VirusScanStatus {
+  NOT_SCANNED
+  QUEUED
+  WAITING_REPORT
+  VERIFIED
+  INTERNALLY_VERIFIED
+  QUARANTINED
+  MANUALLY_VERIFIED
+  MOD_DOES_NOT_EXIST
+  FILE_NOT_FOUND
+  REPORT_ERROR
+  TOO_LARGE
+  PARTIAL
+}
+
+type VirusTotalChunkScan {
+  chunkIndex: Int!
+  virusTotalPositives: Int
+  virusTotalUrl: String
+}
+
+type WalletList {
+  filteredCount: Int!
+  totalCount: Int!
+}
+
+type WriteFullPageNotificationToUserMutationPayload {
+  success: Boolean
+}

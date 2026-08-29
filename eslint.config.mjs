@@ -18,6 +18,10 @@ export default [
     {
         ignores: [
             "dist/**",
+            // Generated from schema.graphql by `npm run codegen`. Lint rules are for
+            // code someone writes; editing this to satisfy them would be undone by the
+            // next generation.
+            "src/api/generated/**",
             "node_modules/**",
             "*.cjs",
             "eslint.config.mjs",
