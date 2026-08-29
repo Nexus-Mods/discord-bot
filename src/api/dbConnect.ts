@@ -91,10 +91,9 @@ function buildPoolConfig(): PoolConfig {
         // ephemeral one and the connection failed somewhere far from the cause.
         port: envInt(process.env.DBPORT ?? process.env.PORT, 5432, 'DBPORT'),
         ssl: sslConfig(),
-        // A query that runs longer than this is cancelled by the server. Without it a
-        // single stuck query holds a pool connection until the process restarts, and ten
-        // of them deadlock the bot. This was written and then commented out.
-        statement_timeout: envInt(process.env.DB_STATEMENT_TIMEOUT_MS, 15000, 'DB_STATEMENT_TIMEOUT_MS'),
+        // query_timeout, not statement_timeout: see queryTimeoutMs below. The latter is a
+        // startup parameter and PgBouncer refuses it.
+        query_timeout: queryTimeoutMs(),
         connectionTimeoutMillis: 5000,
         // Was 2000, which closed connections after two seconds idle and made the bot
         // reconnect constantly between feed polls - TLS handshake and all.
@@ -117,6 +116,34 @@ let cachedConfig: PoolConfig | undefined;
 export function poolConfig(): PoolConfig {
     cachedConfig ??= buildPoolConfig();
     return cachedConfig;
+}
+
+/**
+ * How long a query may run before the client gives up. 0 disables.
+ *
+ * Without a limit, one stuck query holds a pool connection until the process restarts,
+ * and ten of them deadlock the bot. That is the problem being solved, and it is a
+ * *client-side* problem - so it wants a client-side fix.
+ *
+ * 4.0.0 set pg's `statement_timeout` pool option instead. pg sends that in the **startup
+ * packet**, and PgBouncer - which production connects through - rejects any startup
+ * parameter outside its allow-list: `unsupported startup parameter`, SQLSTATE 08P01,
+ * FATAL. Every connection was refused and the bot could not migrate.
+ *
+ * `query_timeout` is implemented by pg itself with a timer, sends nothing at connection
+ * time, and passes through a pooler unremarked. Verified against PgBouncer 1.22 in
+ * transaction mode: the query aborts and the pool stays usable.
+ *
+ * What it does **not** do is cancel the query on the server - that keeps running until it
+ * finishes. To bound server-side work as well, set it on the role, which no pooler can
+ * undo and no deploy can forget:
+ *
+ *     ALTER ROLE <user> SET statement_timeout = '15s';
+ */
+function queryTimeoutMs(): number {
+    const raw = process.env.DB_STATEMENT_TIMEOUT_MS;
+    if (raw !== undefined && raw.trim() === '0') return 0;
+    return envInt(raw, 15000, 'DB_STATEMENT_TIMEOUT_MS');
 }
 
 /** The pools this module can query. `main` is the bot's database; `automod` is the rules database. */
@@ -280,6 +307,22 @@ function handleDatabaseError(error: unknown): DatabaseError {
             userMessage,
             context: { code, detail },
         });
+    }
+
+    // 08P01 with this text is PgBouncer refusing a startup parameter it does not
+    // allow-list. It is a configuration problem, not a transient one, and the message
+    // should say which parameter and where to fix it.
+    if (err.message.includes('unsupported startup parameter')) {
+        return new DatabaseError(
+            `The database connection pooler rejected a startup parameter (${err.message}). `
+            + 'Connection options that pg sends in the startup packet do not survive PgBouncer; '
+            + 'set the value with SET after connecting, or on the role with ALTER ROLE.',
+            {
+                cause: err,
+                isOperational: false,
+                userMessage: 'The bot could not connect to the database. Please report this.',
+            },
+        );
     }
 
     if (err.message === 'The server does not support SSL connections') {

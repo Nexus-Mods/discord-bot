@@ -61,7 +61,9 @@ export async function runMigrations(): Promise<void> {
     const folder = migrationsFolder();
     // A dedicated pool, separate from the app's. max: 2 because one connection
     // holds the advisory lock for the whole run while the migrator uses another.
-    const pool = new Pool({ ...poolConfig(), max: 2, idleTimeoutMillis: 0 });
+    // query_timeout is deliberately cleared: the app wants stuck queries killed, but a
+    // migration can legitimately take minutes and must not be aborted half way.
+    const pool = new Pool({ ...poolConfig(), max: 2, idleTimeoutMillis: 0, query_timeout: undefined });
     let lockClient: pg.PoolClient | undefined;
 
     try {
