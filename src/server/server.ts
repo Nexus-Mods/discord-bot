@@ -7,8 +7,9 @@ import { calcUptime, type Logger } from '../api/util.js';
 import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users.js';
 import type { NexusUser } from '../types/users.js';
 import path from 'path';
+import type { Server } from 'http';
 import type { DiscordBotUser } from '../api/DiscordBotUser.js';
-import type { ClientExt } from '../types/DiscordTypes.js';
+import type { DiscordDirectory } from './discordDirectory.js';
 import { getSubscribedChannelsForGuild } from '../api/subscriptions.js';
 import { fileURLToPath } from 'url';
 import type { SubscribedItem, SubscribedItemType } from '../types/subscriptions.js';
@@ -22,27 +23,47 @@ import { checkSharedSecret, cookieOptions, safeCompare, verifyValue } from './au
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * The OAuth portal, the tracking pages and the two webhook endpoints.
+ *
+ * This used to be constructed inside the bot process and skipped on every shard but 0,
+ * so one of three gateway connections also happened to be a web server. It now runs as
+ * its own process (`dist/web.js`) and holds no Discord state: what it needed from the
+ * client is a DiscordDirectory, which is two REST calls.
+ *
+ * TempStore is still an in-memory Map, which makes this single-replica by construction.
+ * A second replica would answer the Nexus callback for a link the other replica started
+ * and reject it as unknown state. Moving it to the database or Redis is what a second
+ * replica needs; nothing else here does.
+ */
 export class AuthSite {
     private static instance: AuthSite;
     private app = express();
-    private client: ClientExt;
+    private directory: DiscordDirectory;
     private logger: Logger;
     private port = process.env.AUTH_PORT || 3000;
+    private server?: Server;
     public TempStore: Map<string, { name: string, id: string, tokens: any }> = new Map();
 
-    private constructor(client: ClientExt, logger: Logger) {
-        this.client = client;
+    private constructor(directory: DiscordDirectory, logger: Logger) {
+        this.directory = directory;
         this.logger = logger;
-        if (client.shard && client.shard.ids[0] !== 0) logger.debug('Skipping AuthSite initialization, not on shard 0');
-        else this.initialize();
+        this.initialize();
     }
 
-    static getInstance(client: ClientExt, logger: Logger): AuthSite {
+    static getInstance(directory: DiscordDirectory, logger: Logger): AuthSite {
         if (!AuthSite.instance) {
-            AuthSite.instance = new AuthSite(client, logger);
+            AuthSite.instance = new AuthSite(directory, logger);
         }
 
         return AuthSite.instance;
+    }
+
+    /** Stops accepting connections and resolves once in-flight requests have finished. */
+    async close(): Promise<void> {
+        const server = this.server;
+        if (!server) return;
+        await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
     }
 
     private initialize(): void {
@@ -140,7 +161,7 @@ export class AuthSite {
             }
         });
 
-        this.app.listen(this.port, () => this.logger.info(`Auth website listening on port ${this.port}`));
+        this.server = this.app.listen(this.port, () => this.logger.info(`Auth website listening on port ${this.port}`));
 
         // this.app.on('error', (err) => {this.logger.error('Auth site error', err)});
     }
@@ -434,13 +455,13 @@ export class AuthSite {
     async tracking(req: express.Request, res: express.Response) {
         const guild = req.query['guild'] as string;
         if (!guild) return res.redirect('/')
-        const knownGuild = await this.client.guilds.fetch(guild);
+        const knownGuild = await this.directory.guild(guild);
         if (!knownGuild) return res.redirect('/');
-        const guildImage = knownGuild.iconURL();
+        const guildImage = knownGuild.iconUrl;
         const subbedChannels = await getSubscribedChannelsForGuild(guild);
-        const channels = await Promise.all(subbedChannels.map(async c => await knownGuild.channels.fetch(c.channel_id)));
+        const channels = await this.directory.channels(guild);
         const subs: (SubscribedItem<SubscribedItemType> & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
-            const channelName = channels.find(ch => ch?.id === c.channel_id)?.name || 'Unknown Channel';
+            const channelName = channels.find(ch => ch.id === c.channel_id)?.name || 'Unknown Channel';
             return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem<SubscribedItemType> & { channelName?: string }));
         }))).flat().sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
         
