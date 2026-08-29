@@ -388,7 +388,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
             .addFields(
                 {
                     name: 'Author',
-                    value: mod.author,
+                    value: mod.author ?? 'Unknown Author',
                     inline: true
                 },
                 {

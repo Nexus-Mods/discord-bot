@@ -19,6 +19,7 @@ import {
 import { v2 as API } from '../api/queries/all.js';
 import { baseheader } from "../api/util.js";
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
+import type { ModStatus } from "../types/GQLTypes.js";
 
 
 export class SubscriptionManger {
@@ -520,7 +521,7 @@ export class SubscriptionManger {
         if (['hidden', 'under_moderation'].includes(mod.status)) {
             this.logger.info('Mod is temporarily unavailable:', mod.status);
             if (item.config.last_status === 'published') {
-                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status))
+                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status as ModStatus))
                 await saveLastUpdatedForSub(item.id, results[0].date, mod.status);
             }
             return results;
@@ -528,7 +529,7 @@ export class SubscriptionManger {
         else if (['deleted', 'wastebinned'].includes(mod.status)){
             this.logger.info('Mod is permanently unavailable:', mod.status);
             if (item.config.last_status === 'published') {
-                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status))
+                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status as ModStatus))
                 await deleteSubscription(item.id);
             }
             return results;
