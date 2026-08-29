@@ -4,6 +4,7 @@ import {
     SlashCommandBuilder, PermissionFlagsBits, type APIEmbedField,
     MessageFlags, InteractionContextType} from "discord.js";
 import { customEmojis } from "../types/util.js";
+import { assertPresent } from '../lib/assert.js';
 import type { DiscordInteraction } from '../types/DiscordTypes.js';
 import { getServer } from '../api/servers.js';
 import { getUserByDiscordId } from '../api/users.js';
@@ -12,7 +13,7 @@ import type { ICollectionsFilter } from "../types/GQLTypes.js";
 import type { BotServer } from "../types/servers.js";
 import { sendUnexpectedError } from '../events/interactionCreate.js';
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
-import type { ICollection, IMod, IModsFilter } from "../api/queries/v2.js";
+import type { ICollection, ICollectionSearchResult, IMod, IModsFilter } from "../api/queries/v2.js";
 import type { IUser } from "../api/queries/v2-finduser.js";
 import type { IModResults } from "../api/queries/v2-mods.js";
 import type { IGameStatic } from "../api/queries/other.js";
@@ -153,7 +154,12 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
 async function searchCollections(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
     logger.debug('Collection search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
-    const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
+    // The games list is only needed to resolve a game filter. If none was asked for, a
+    // failure to fetch it is harmless. If one was, searching without it would quietly
+    // return results for the wrong game - worse than saying the API is unreachable.
+    const allGames: IGameStatic[] = user
+        ? await user.NexusMods.API.Other.Games().catch((err) => { if (gameQuery) throw err; return []; })
+        : [];
     const { filterGame } = resolveGameFilter(gameQuery, server, allGames);
     const nsfw: boolean = (interaction.channel as TextChannel).nsfw;
 
@@ -188,7 +194,9 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
             // Multiple results
             const choices = results.nodes?.slice(0,5) || [];
 
-            const createCollectionField = (c: ICollection, idx: number): APIEmbedField => {
+            // A search result node, not a full collection: the search query selects
+            // fewer fields, so ICollection here would claim more than the API returned.
+            const createCollectionField = (c: ICollectionSearchResult['nodes'][number], idx: number): APIEmbedField => {
                 return {
                     name: `${numberEmoji[idx]} - ${c.name}`,
                     value: `Game: ${c.game?.name} - Author: [${c.user?.name}](https://nexusmods.com/users/${c.user?.memberId}) - [View](https://next.nexusmods.com/${c.game?.domainName}/collections/${c.slug})`,
@@ -233,7 +241,12 @@ async function searchCollections(query: string, gameQuery: string, ephemeral:boo
 async function searchMods(query: string, gameQuery: string, ephemeral:boolean, client: Client, interaction: ChatInputCommandInteraction, user: DiscordBotUser, server: BotServer|null, logger: Logger) {
     logger.debug('Mod search', {query, gameQuery, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
 
-    const allGames: IGameStatic[] = user ? await user.NexusMods.API.Other.Games().catch(() => []) : [];
+    // The games list is only needed to resolve a game filter. If none was asked for, a
+    // failure to fetch it is harmless. If one was, searching without it would quietly
+    // return results for the wrong game - worse than saying the API is unreachable.
+    const allGames: IGameStatic[] = user
+        ? await user.NexusMods.API.Other.Games().catch((err) => { if (gameQuery) throw err; return []; })
+        : [];
     const { gameIdFilter, filterGame } = resolveGameFilter(gameQuery, server, allGames);
 
     // Need to escape brackets as this breaks Markdown on mobile
@@ -241,9 +254,9 @@ async function searchMods(query: string, gameQuery: string, ephemeral:boolean, c
 
     // Search for mods
     try {
-        const modsFilter: IModsFilter = { name: { value: query , op: 'WILDCARD' }};
-        if (gameIdFilter !== 0) modsFilter.gameId = { value: gameIdFilter.toString(), op: 'EQUALS' };
-        if (!(interaction.channel as TextChannel)?.nsfw) modsFilter.adultContent = { value: false, op: 'EQUALS' };
+        const modsFilter: IModsFilter = { name: [{ value: query, op: 'WILDCARD' }] };
+        if (gameIdFilter !== 0) modsFilter.gameId = [{ value: gameIdFilter.toString(), op: 'EQUALS' }];
+        if (!(interaction.channel as TextChannel)?.nsfw) modsFilter.adultContent = [{ value: false, op: 'EQUALS' }];
         
         const search: IModResults = await user.NexusMods.API.v2.Mods(modsFilter);
         if (!search.nodes.length) {
@@ -304,7 +317,9 @@ async function searchGames(query: string, ephemeral:boolean, client: Client, int
     logger.debug('Game search', {query, user: interaction.user.tag, guild: interaction.guild?.name, channel: (interaction.channel as any)?.name});
     if (!user) return interaction.followUp({ content: 'Please link your account to use this feature. See /link.', flags: MessageFlags.Ephemeral });
 
-    const allGames = await user.NexusMods.API.Other.Games().catch(() => []);
+    // No catch: here the games list is the thing being searched, so returning [] on
+    // failure told the user "no games matched" when Nexus Mods was simply unreachable.
+    const allGames = await user.NexusMods.API.Other.Games();
     const results: IGameStatic[] = searchGamesByName(query, allGames);
     if (!results.length) return postResult(interaction, noGameResults(client, allGames, query), ephemeral, logger);
     else if (results.length === 1) return postResult(interaction, oneGameResult(client, results[0]), ephemeral, logger);
@@ -370,7 +385,7 @@ const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGameStatic)
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
         .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'search'))
-        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${mod.modCategory.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/<br \/>/g, '\n')}`)
+        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${mod.modCategory?.name ?? '???'}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/<br \/>/g, '\n')}`)
         .setTimestamp(new Date(mod.updatedAt))
         .setImage(mod.pictureUrl || '')
         .setAuthor({name: mod.uploader?.name || '', url: `https://nexusmods.com/users/${mod.uploader.memberId}` })
@@ -397,8 +412,9 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
     }
 
     const url = `https://next.nexusmods.com/${res.game?.domainName}/collections/${res.slug}`;
+    const revision = assertPresent(res.latestPublishedRevision, 'a published collection always has a published revision');
 
-    if (!nsfw && res.latestPublishedRevision.adultContent) {
+    if (!nsfw && revision.adultContent === true) {
         const nsfwEmbed = new EmbedBuilder()
         .setColor('DarkRed')
         .setFooter(apiLinkFooter(client))
@@ -410,11 +426,11 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
     const embed = new EmbedBuilder()
     .setColor(NEXUS_ORANGE)
     .setFooter(apiLinkFooter(client))
-    .setThumbnail(res.tileImage.thumbnailUrl || client.user?.avatarURL() || null)
+    .setThumbnail(res.tileImage?.thumbnailUrl || client.user?.avatarURL() || null)
     .setURL(url)
     .setTitle(res.name || 'Unknown Collection')
     .setDescription(res.summary || 'No summary')
-    .setTimestamp(new Date(parseInt(res.updatedAt as any) || 0))
+    .setTimestamp(new Date(revision.updatedAt))
     .setAuthor({ name: res.user?.name || '???', url: `https://nexusmods.com/users/${res.user?.memberId || 0}`, iconURL: res.user?.avatar })
     .addFields(
         {
@@ -424,12 +440,12 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
         },
         {
             name: `<:mod:${customEmojis.mod}> Mods`,
-            value: `${(res.latestPublishedRevision.modCount || 0).toLocaleString()}`,
+            value: `${(revision.modCount || 0).toLocaleString()}`,
             inline: true
         },
         {
             name: `<:collection:${customEmojis.collection}> Revisions`,
-            value: `${res.latestPublishedRevision.revisionNumber || 1}`,
+            value: `${revision.revisionNumber || 1}`,
             inline: true
         },
         {
@@ -443,7 +459,7 @@ const collectionEmbed = (client: Client, res: ICollection, nsfw: boolean): Embed
             inline: true
         },
         {
-            name: `${successRatingIcon(parseFloat(res.overallRating.toString() || '0'), res.overallRatingCount || 0)} Success Rating`,
+            name: `${successRatingIcon(parseFloat(res.overallRating?.toString() || '0'), res.overallRatingCount || 0)} Success Rating`,
             value: `${res.overallRatingCount! >= 3 ? `${res.overallRating}%` : '_TBC_'}`,
             inline: true
         },

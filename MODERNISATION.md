@@ -25,7 +25,8 @@ immediately on a TLS default that had looked correct in review and had passing t
 behind it. The untested delta has been growing for weeks and now covers the build system,
 logging, the error taxonomy, the command contract, migrations, the query layer and the
 gateway intents. Deploying bounds it. Waiting means debugging all of it at once, on a box
-that is already at 94.4% CPU.
+that is under load. (The 94.4% CPU this document previously blamed on the bot turned out
+to be a stale pre-container deployment - see *The 94.4% was not the bot*.)
 
 Two other things depend on it. **Migrations have never run against the production
 database**, and everything in Phase 3 sits on top of them. And the droplet sizing question
@@ -44,14 +45,14 @@ carry them.
 | | Work | Why it is here | Blocked by |
 |---|---|---|---|
 | 1 | Deploy 4.0.0 | See above | — |
-| 2 | **5.4** Move the bait channel out of the main bot | The actual CPU fix. Everything else about the droplet is guesswork until this lands. | Deploy, and a day of graphs |
-| 3 | Droplet sizing | Phase 4 has a hardware prerequisite | 5.4 |
+| 2 | Measure free memory with the container as the only bot | CPU resolved to 1-2% once the stale instance was stopped. Memory is the one number Phase 4 still turns on. | Stopping PM2 (done) |
+| 3 | ~~Droplet sizing~~ | Withdrawn. CPU is 1-2%; only memory is open, and it may well already fit. | — |
 | 4 | **3.5** Query error contract | Highest user-visible correctness win left: feeds currently record a failed poll as a successful empty one | Nothing |
 | 5 | **3.3** GraphQL codegen | Self-contained, low risk, kills the untyped-boundary bug family | Nothing |
 | 6 | **3.4** OAuth token encryption | Highest risk item. ~147,000 values rewritten. | The key-storage decision |
 | 7 | **5.1** Replace `broadcastEval` string injection | Sharding is staying, so this is permanent debt | Nothing |
 | 8 | **5.2** Dead code sweep | Makes everything after it smaller | Nothing |
-| 9 | **Phase 4** Next.js front-end | The largest piece, and the one with the most unknowns | Droplet sizing, repo decision |
+| 9 | **Phase 4** Next.js front-end | The largest piece, and the one with the most unknowns | The repo decision, and one memory reading |
 
 3.5 is placed ahead of 3.3 deliberately: it fixes a real defect users can hit, where 3.3
 improves how the code is written. 3.4 sits behind both because it is the only item that
@@ -118,17 +119,78 @@ the remaining work involves, so they are recorded rather than left in a chat log
 | Linked accounts | 36,879 | 3.4 rewrites four token columns on every one of these rows. That is a batched migration with a rollback plan, not an `UPDATE`. |
 | Subscribed items | 2,757 | The per-cycle feed workload 3.5 changes the failure behaviour of. |
 
-**The host it runs on**, as of 29 August 2026: DigitalOcean Basic, **1 vCPU, 2 GB RAM,
-25 GB disk**, sitting at **94.4% CPU and 80% memory** with none of the 4.0.0 work
-deployed. That reframes several things in this document:
+**The host it runs on**: DigitalOcean Basic, **1 vCPU, 2 GB RAM, 25 GB disk**.
 
-- **Phase 4 cannot happen on this droplet.** A Next.js process wants 200-400 MB and CPU
-  that is not there. Phase 4 now has a hardware prerequisite, not just a repo decision.
-- **The CPU figure had a cause**, and it is fixed in 4.0.0 - see 5.3. The bot was
-  requesting six gateway intents and consuming one.
-- **Three shards on one core is 3x the process overhead for the same event volume.**
-  Sharding still has to stay (2,418 guilds, 2,500 is the hard limit), but the shard count
-  and the box size need considering together rather than left at `'auto'`.
+### The 94.4% was not the bot
+
+Worth recording in full, because three separate diagnoses in this document were built on
+a false premise and two of them were wrong.
+
+The droplet sat at **94.4% CPU and 80% memory** before any 4.0.0 work was deployed, and
+this document concluded the bot was responsible - specifically the `GuildMessages` intent
+delivering every message in 2,418 guilds. That produced 5.3 (trim the intents) and 5.4
+(move the anti-spam bait channel into its own process).
+
+Then the measurements came in:
+
+| Step | CPU | What it showed |
+|---|---|---|
+| Before 4.0.0 | 94.4% | The starting point |
+| After 4.0.0 (intents trimmed, message cache capped) | ~93% | Memory fell 80% → 50%; CPU did not move |
+| `WATCHED_CHANNEL_ID` unset, so `GuildMessages` dropped entirely | ~93% | **The firehose was not the cost** |
+| `docker stats` | **2-3%** | The containerised bot was never the consumer |
+| `top` on the host | 70% + 25% in two Node processes | Outside Docker |
+| PM2 app `discord` stopped | **~40%** | A pre-container deployment, still running |
+
+A PM2-managed instance of the bot had been running on the host since before
+containerisation, restarting itself on crash and surviving reboots. `docker stats` cannot
+see it, which is why every measurement taken from inside Docker looked fine.
+
+Three consequences:
+
+- **The intent analysis was right about the cost and wrong about the process.** The PM2
+  instance was running pre-4.0.0 code with all six intents and no cache caps. Trimming
+  intents in the container changed nothing because the container was never the problem.
+- **5.4 is probably not worth building.** Re-measure with the container as the only bot
+  before deciding; the case for a separate anti-spam service has largely evaporated.
+- **Two bots were live at once**, sharing a database. Both polling subscriptions and both
+  writing `last_update` to the same rows means each advanced past the other's window -
+  duplicate posts and missed ones. Worth checking the feed channels for either.
+
+**The lesson, which is the reason this section exists:** every one of those wrong
+conclusions came from reasoning about code that could be read, in an environment that
+could not be seen. The measurement that settled it took ten minutes.
+
+### What this means for Phase 4
+
+**The hardware blocker is withdrawn.** With the stale instance stopped the droplet settled
+at **1-2% CPU**. This document previously said Phase 4 could not happen on this box; that
+was based on a figure belonging to a process that is no longer running.
+
+CPU is no longer a constraint in any meaningful sense. The web layer here serves OAuth
+callbacks, tracking pages and a status page - it is not a CPU-bound workload, and 1 vCPU
+running at 1-2% has room for it.
+
+**Memory is the only remaining question**, and it is unanswered: the 80% and 50% readings
+were both taken while two bots were running. What matters on a 2 GB box:
+
+| | Rough cost | Note |
+|---|---|---|
+| Bot (manager + 3 shards) | measure it | The message cache cap in 5.3 already took a large bite out of this |
+| Next.js, running | 200-400 MB | A small production app |
+| Next.js, **building** | 1 GB+ | **Do not build on the droplet.** CI already builds and pushes images; keep it that way or a build will OOM the box |
+| Postgres | 200-400 MB | Only if it is on the droplet. PgBouncer suggests DigitalOcean's managed pool, in which case it is not - worth confirming |
+
+If the bot's real figure leaves roughly a gigabyte free, Phase 4 fits on the current
+droplet without an upgrade. If Postgres turns out to be local as well, it will be tight
+and an upgrade to 2 vCPU / 4 GB is the cheap answer.
+
+**The repo decision is the blocker again**, having been demoted behind hardware that
+turned out not to be in the way.
+
+Sharding still has to stay regardless (2,418 guilds against a 2,500-per-shard limit), but
+whether three shards is the right shape is now an open question rather than a complaint -
+at 1-2% there is no pressure either way.
 
 **Nothing here has been run against a live Discord gateway or database.** The HTTP
 middleware chain and the unlink signing were verified in isolation; the OAuth round
@@ -147,9 +209,10 @@ trip, the subscription feed and the news feed have not been exercised end to end
    of the 2,500 at which Discord makes sharding mandatory, so sharding stays and the
    shard-aware branches stay with it. Phase 5 shrinks to the `broadcastEval` protocol
    work, which was worth doing either way. See 5.1.
-3. **Monorepo or two repos?** Still open, but no longer the nearest blocker for Phase 4 —
-   **the droplet is**. 1 vCPU and 2 GB at 94.4%/80% will not host a Next.js process
-   whatever the repo shape. Answer the hardware question first. On the repo itself, which
+3. **Monorepo or two repos?** Open, and **the nearest blocker for Phase 4 again**. It was
+   demoted behind a droplet upgrade on the basis of a 94.4% CPU figure that belonged to a
+   stale PM2 deployment; with that stopped the droplet sits at 1-2% and the hardware
+   objection is gone. On the repo itself, which
    assumes a workspace so the bot and web app can share the schema and the Nexus API
    client. Two repos means publishing those as packages, or duplicating them. 3.6 is a
    prerequisite either way.
@@ -172,6 +235,14 @@ trip, the subscription feed and the news feed have not been exercised end to end
 ---
 
 ## 5.4 Move the anti-spam bait channel into its own process
+
+> **Not worth building.** The droplet settled at **1-2% CPU** once the stale instance was
+> stopped, so there is no cost here to remove. This section was
+> written on the belief that the bot's `GuildMessages` intent was consuming the droplet's
+> CPU. It was not: the consumer was a stale PM2 deployment running outside Docker. The
+> containerised bot measured 2-3%. Unless a re-measurement says otherwise, the cost this
+> section exists to remove is not there. The reasoning below is kept because it is still
+> correct about what an intent costs — just not about what was spending it.
 
 **New, and the highest-value item after the deploy.**
 
@@ -862,7 +933,8 @@ confirming the test fails and names the offending edge.
 
 Found while answering "can the droplet host Phase 4". It is a Phase 5 item by subject
 matter - what the bot asks Discord for - but it was fixed immediately because the box is
-at 94.4% CPU today.
+at 94.4% CPU at the time - a figure later traced to a stale PM2 deployment rather than
+the containerised bot, though trimming the intents remains correct on its own merits.
 
 An intent is a subscription to a firehose. Every event it admits is decompressed, parsed,
 turned into a discord.js object and cached, on every shard, across all 2,418 guilds,

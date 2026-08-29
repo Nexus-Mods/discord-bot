@@ -1,4 +1,5 @@
 import { request, gql, type ClientError } from "graphql-request";
+import { NexusApiError } from '../errors.js';
 import type { Logger } from "../util.js";
 import { v2API, type IMod, NexusGQLError } from './v2.js';
 
@@ -69,7 +70,16 @@ export async function mods(headers: Record<string,string>, logger: Logger, mods:
         }
         catch(err) {
             const error = new NexusGQLError(err as any, 'mods');
-            logger.error('Error fetching mod data', { error, auth: 'OAUTH' }, true);
+            logger.error('Error fetching mod data', { error, auth: 'OAUTH', page: page.length }, true);
+            // Previously this logged and carried on, so a failure on page 3 of 5 returned
+            // four pages of mods as though that were the whole answer. For a feed that
+            // reads as "those mods have no updates" and the window then moves past them.
+            // A partial answer is worse than no answer here.
+            throw new NexusApiError('Nexus Mods API request failed (mods)', {
+                cause: error,
+                context: { requested: ids.length, retrieved: results.length },
+                userMessage: 'Nexus Mods could not be reached. Please try again shortly.',
+            });
         }
     }
 

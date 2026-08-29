@@ -6,10 +6,7 @@ import { mods } from './v2-mods.js';
 import { myCollections } from './v2-mycollections.js';
 import { collections } from './v2-collections.js';
 import { collection } from './v2-collection.js';
-import { collectionsDownloadTotals } from './v2-collectionsdownloadtotals.js';
 import { findUser } from './v2-finduser.js';
-import { updatedMods as updatedModsV2 } from './v2-updatedMods.js';
-import { latestMods } from './v2-latestmods.js';
 import { news } from './v2-news.js';
 import { modFiles } from './v2-modsFiles.js';
 import { Games as gamesJSON, ModDownloads, SiteStats, WebsiteStatus } from './other.js';
@@ -34,13 +31,10 @@ export const v2 = {
     mods,
     modsById,
     modsByUid,
-    updatedMods: updatedModsV2,
     myCollections,
     collections,
     collection,
-    collectionsDownloadTotals,
     findUser,
-    latestMods,
     news,
     modFiles,
     users,

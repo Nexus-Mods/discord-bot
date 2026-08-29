@@ -1,4 +1,5 @@
 import { NEXUS_ORANGE } from '../lib/embeds.js';
+import { assertPresent } from '../lib/assert.js';
 
 import { type APIEmbed, EmbedBuilder, type Guild, type GuildMember, type Snowflake, type TextChannel, WebhookClient, ShardClientUtil, type Client } from 'discord.js';
 import { createSubscription, getSubscriptionsByChannel, updateSubscription } from '../api/subscriptions.js';
@@ -388,7 +389,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
             .addFields(
                 {
                     name: 'Author',
-                    value: mod.author,
+                    value: mod.author ?? 'Unknown Author',
                     inline: true
                 },
                 {
@@ -452,7 +453,7 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                 (revision.collectionChangelog?.description?.length ? trimCollectionChangelog(revision.collectionChangelog.description, compact ? 500 : undefined) : '__Not provided__')
             )
             // .setURL(nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedCollection'))
-            .setThumbnail(collection.tileImage.url)
+            .setThumbnail(collection.tileImage?.url ?? null)
             .setTimestamp(new Date(revision.updatedAt))
             .setFooter({ text: `${collection.game.name}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png' })
             .addFields(
@@ -528,10 +529,10 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                     )
                     .setTitle(`<:collection:${customEmojis.collection}>  ${collection.name}`)
                     .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedUser')})`)
-                    .setImage(compact ? null : collection.tileImage.url)
-                    .setThumbnail(compact ? collection.tileImage.url : null)
-                    .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
-                    .setTimestamp(new Date(collection.latestPublishedRevision.updatedAt))
+                    .setImage(compact ? null : (collection.tileImage?.url ?? null))
+                    .setThumbnail(compact ? (collection.tileImage?.url ?? null) : null)
+                    .setFooter({ text: `${collection.game.name} • Revision ${assertPresent(collection.latestPublishedRevision, 'a published collection always has a published revision').revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
+                    .setTimestamp(new Date(assertPresent(collection.latestPublishedRevision, 'a published collection always has a published revision').updatedAt))
                 }
                 break;
                 case UserEmbedType.UpdatedCollection: {
@@ -547,10 +548,10 @@ export async function subscribedItemEmbed<T extends SubscribedItemType>(logger: 
                     )
                     .setTitle(`<:collection:${customEmojis.collection}>  ${collection.name}`)
                     .setDescription(`${collection.summary ?? '_No Summary_'}\n[View Collection ↗](${nexusModsTrackingUrl(`https://nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}`, 'subscribedUser')})`)
-                    .setImage(compact ? null : collection.tileImage.url)
-                    .setThumbnail(compact ? collection.tileImage.url : null)
-                    .setFooter({ text: `${collection.game.name} • Revision ${collection.latestPublishedRevision.revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
-                    .setTimestamp(new Date(collection.latestPublishedRevision.updatedAt))
+                    .setImage(compact ? null : (collection.tileImage?.url ?? null))
+                    .setThumbnail(compact ? (collection.tileImage?.url ?? null) : null)
+                    .setFooter({ text: `${collection.game.name} • Revision ${assertPresent(collection.latestPublishedRevision, 'a published collection always has a published revision').revisionNumber}`, iconURL: 'https://staticdelivery.nexusmods.com/mods/2295/images/26/26-1742212559-1470988141.png'})
+                    .setTimestamp(new Date(assertPresent(collection.latestPublishedRevision, 'a published collection always has a published revision').updatedAt))
                     .addFields({ name: 'Changelog ↗', value: `[View](${nexusModsTrackingUrl(`https://www.nexusmods.com/games/${collection.game.domainName}/collections/${collection.slug}/changelog`, 'subscribedUser')})` })
                 }
                 break;
@@ -621,7 +622,8 @@ export function unavailableUpdate<T extends SubscribedItemType>(entity: EntityTy
     else if (type === SubscribedItemType.Collection) {
         newStatus = newStatus as CollectionStatus;
         const collection = entity as EntityType<SubscribedItemType.Collection>;
-        date = typeof collection.latestPublishedRevision.updatedAt === 'string' ? new Date(collection.latestPublishedRevision.updatedAt) : collection.latestPublishedRevision.updatedAt;
+        const publishedRevision = assertPresent(collection.latestPublishedRevision, 'a published collection always has a published revision');
+        date = typeof publishedRevision.updatedAt === 'string' ? new Date(publishedRevision.updatedAt) : publishedRevision.updatedAt;
         switch (newStatus) {
             case 'under_moderation': {
                 embed.setTitle(`${collection.name} has been placed under moderator review`)

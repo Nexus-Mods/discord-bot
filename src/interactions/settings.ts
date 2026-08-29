@@ -177,7 +177,7 @@ async function viewServerInfo(client: ClientExt, interaction: CommandInteraction
 
 async function updateSearchFilter(interaction: ChatInputCommandInteraction, gameList: IGameStatic[], server: BotServer, _logger: Logger): Promise<Partial<IBotServerChange>> {
     const gameQuery: string | null = interaction.options.getString('game' as OptionNames);
-    let foundGame : IGameStatic | undefined;
+    let foundGame : IGameStatic | null = null;
     if (gameQuery) {
         foundGame = resolveFilter(gameList, gameQuery);
         if (!foundGame) throw new Error(`Invalid Game: Could not locate a game with a title, domain or ID matching "${gameQuery}"`);
@@ -186,7 +186,7 @@ async function updateSearchFilter(interaction: ChatInputCommandInteraction, game
         name: 'Mod Search Filter',
         cur: resolveFilter(gameList, server.game_filter?.toString()),
         new: foundGame,
-        data: { game_filter: foundGame?.id.toString() }
+        data: { game_filter: foundGame?.id.toString() ?? null }
     }
 }
 
@@ -330,10 +330,10 @@ const updateEmbed = (data: IBotServerChange): EmbedBuilder => {
     .setDescription(`${data.name} updated from ${curVal || data.cur} to ${newVal || data.new}`);
 }
 
-function resolveFilter(games: IGameStatic[], term: string|null|undefined): IGameStatic|undefined {
-    if (!term || !games.length) return;
+function resolveFilter(games: IGameStatic[], term: string|null|undefined): IGameStatic|null {
+    if (!term || !games.length) return null;
     const game = games.find(g => g.name.toLowerCase() === term.toLowerCase() || g.domain_name.toLowerCase() === term.toLowerCase() || g.id === parseInt(term));
-    return game;
+    return game ?? null;
 }
 
 const serverEmbed = async (client: Client, guild: Guild, server: BotServer, gameList: IGameStatic[], gameName?: string,): Promise<EmbedBuilder> => {

@@ -1,4 +1,5 @@
 import type { ClientExt } from "../types/DiscordTypes.js";
+import { assertPresent } from '../lib/assert.js';
 import { 
     type DiscordAPIError, EmbedBuilder, type Guild, type Snowflake, type TextChannel, 
     type WebhookMessageCreateOptions, ShardClientUtil, type DiscordjsError 
@@ -19,7 +20,14 @@ import {
 import { v2 as API } from '../api/queries/all.js';
 import { baseheader } from "../api/util.js";
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
+import type { ModStatus } from "../types/GQLTypes.js";
 
+
+/** File categories that mean the file is no longer downloadable, so not worth posting. */
+const UNAVAILABLE_FILE_CATEGORIES: ModFileCategory[] = [ModFileCategory.Archived, ModFileCategory.Removed];
+
+/** The statuses a subscription was still being posted under, before it became unavailable. */
+const WAS_AVAILABLE: CollectionStatus[] = [CollectionStatus.Listed, CollectionStatus.Unlisted];
 
 export class SubscriptionManger {
     private static instance: SubscriptionManger;
@@ -140,8 +148,19 @@ export class SubscriptionManger {
         // Always refresh the channel list. This used to be behind a flag whose sense was
         // inverted, so the recurring timers never picked up newly subscribed channels.
         await this.updateChannels();
-        // Prepare the cache
-        await this.prepareCache();
+        // Prepare the cache. Failures here are not fatal - a domain that did not
+        // pre-cache falls through to a per-item fetch, which now throws rather than
+        // returning [] - but they were previously invisible, because mapWithConcurrency
+        // settles rather than rejects and the results were discarded.
+        const prefetch = await this.prepareCache();
+        const prefetchFailures = prefetch.filter((r) => r.status === 'rejected');
+        if (prefetchFailures.length) {
+            this.logger.warn('Some subscription pre-fetches failed; those games will be fetched per item', {
+                failed: prefetchFailures.length,
+                of: prefetch.length,
+                firstReason: (prefetchFailures[0] as PromiseRejectedResult).reason,
+            });
+        }
 
         this.logger.info(`Running subscription updates for ${this.channels.length} channels in batches of ${this.batchSize}`);
         this.logger.debug('Guilds available to this shard', this.client.guilds.cache.size);
@@ -268,6 +287,10 @@ export class SubscriptionManger {
         }
         // Get the postable info for each subscribed item
         const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
+        // Counted so an empty result set can be told apart from a failed one. Advancing
+        // the channel's window after a failure is how updates published during an
+        // outage get skipped permanently.
+        let failedItems = 0;
         for (const item of items) {
             let updates: IPostableSubscriptionUpdate<typeof item.type>[] = [];
 
@@ -288,6 +311,11 @@ export class SubscriptionManger {
                 this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type}) since ${item.last_update.toISOString()}`);
             }
             catch(err) {
+                // `continue` without touching item.last_update is already right: the item
+                // is skipped and the next poll retries the same window. What was missing
+                // is that the error never got here, because the query layer returned []
+                // instead of throwing.
+                failedItems += 1;
                 this.logger.warn('Error updating subscription', { id: item.id, type: item.type, entity: item.entityid, config: item.config, error: err });
                 continue;
             }           
@@ -299,6 +327,16 @@ export class SubscriptionManger {
 
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
+            if (failedItems) {
+                // Nothing to post *because things broke*, which is not the same as nothing
+                // to post. Leaving the timestamp where it is means the next poll covers
+                // this window again; moving it would step over whatever was published
+                // while the API was unreachable, and nothing would ever report that.
+                this.logger.warn('Skipping channel timestamp update, some subscriptions failed', {
+                    guild: guild.name, channel: discordChannel.name, failedItems, totalItems: items.length,
+                });
+                return;
+            }
             this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
             channel = await updateSubscribedChannel(channel, new Date());
             channel.last_update = new Date();
@@ -381,13 +419,13 @@ export class SubscriptionManger {
         if (!newMods.length && item.config.show_new) {
             this.logger.debug('Re-fetching new mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
-                gameDomainName: { value: domain, op: 'EQUALS' },
-                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+                gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                createdAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
             }
             // Hide SFW content
-            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
+            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = [{ value: true, op: 'EQUALS' }];
             // Hide NSFW content
-            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
+            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = [{ value: false, op: 'EQUALS' }];
             const res = await this.NexusModsAPI.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
@@ -424,14 +462,14 @@ export class SubscriptionManger {
         if (!updatedMods.length && item.config.show_updates) {
             this.logger.debug('Re-fetching updated mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
-                gameDomainName: { value: domain, op: 'EQUALS' },
-                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
-                hasUpdated: { value: true, op: 'EQUALS' }
+                gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                updatedAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
+                hasUpdated: [{ value: true, op: 'EQUALS' }]
             }
             // Hide SFW content
-            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = { value: true, op: 'EQUALS' };
+            if (item.config.sfw === false && item.config.nsfw === true) filters.adultContent = [{ value: true, op: 'EQUALS' }];
             // Hide NSFW content
-            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = { value: false, op: 'EQUALS' };
+            if (item.config.nsfw === false && item.config.sfw === true) filters.adultContent = [{ value: false, op: 'EQUALS' }];
             const res = await this.NexusModsAPI.v2.Mods(
                 filters, 
                 { createdAt: { direction: 'ASC' } }
@@ -490,7 +528,7 @@ export class SubscriptionManger {
         if (['hidden', 'under_moderation'].includes(mod.status)) {
             this.logger.info('Mod is temporarily unavailable:', mod.status);
             if (item.config.last_status === 'published') {
-                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status))
+                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status as ModStatus))
                 await saveLastUpdatedForSub(item.id, results[0].date, mod.status);
             }
             return results;
@@ -498,7 +536,7 @@ export class SubscriptionManger {
         else if (['deleted', 'wastebinned'].includes(mod.status)){
             this.logger.info('Mod is permanently unavailable:', mod.status);
             if (item.config.last_status === 'published') {
-                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status))
+                results.push(unavailableUpdate<SubscribedItemType.Mod>(mod, SubscribedItemType.Mod, item, mod.status as ModStatus))
                 await deleteSubscription(item.id);
             }
             return results;
@@ -510,7 +548,7 @@ export class SubscriptionManger {
             // File date is greater than last_update on this item.
             if (fileDate.getTime() <= last_update.getTime()) return false;
             // Not archived or deleted
-            return ![ModFileCategory.Archived, ModFileCategory.Removed].includes(f.category)
+            return !UNAVAILABLE_FILE_CATEGORIES.includes(f.category)
         })
         .slice(0,5); // Max of 5 due to embed limits
         // logMessage('New files found', newFiles.length);
@@ -547,21 +585,25 @@ export class SubscriptionManger {
         if (!collection) throw new Error(`Collection not found for ${item.entityid}`);
         if (collection.collectionStatus === CollectionStatus.Moderated) {
             this.logger.info('Collection under moderation', item.title);
-            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.config.last_status as CollectionStatus)) {
+            if (WAS_AVAILABLE.includes(item.config.last_status as CollectionStatus)) {
                 results.push(unavailableUpdate<SubscribedItemType.Collection>(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
-                await saveLastUpdatedForSub(item.id, results[0].date, collection.collectionStatus);
+                await saveLastUpdatedForSub(item.id, results[0].date, collection.collectionStatus ?? undefined);
             }
             return results;
         }
         else if (collection.collectionStatus === CollectionStatus.Discarded) {
             this.logger.info('Collection has been discarded', item.title);
-            if ([CollectionStatus.Listed, CollectionStatus.Unlisted].includes(item.config.last_status as CollectionStatus)) {
+            if (WAS_AVAILABLE.includes(item.config.last_status as CollectionStatus)) {
                 results.push(unavailableUpdate<SubscribedItemType.Collection>(collection, SubscribedItemType.Collection, item, collection.collectionStatus))
                 await deleteSubscription(item.id);
             }
             return results;
         }
-        const collectionUpdatedAt = new Date(collection.latestPublishedRevision.updatedAt);
+        const latestRevision = assertPresent(
+            collection.latestPublishedRevision,
+            'a published collection always has a published revision',
+        );
+        const collectionUpdatedAt = new Date(latestRevision.updatedAt);
         if (collectionUpdatedAt.getTime() < last_update.getTime()) {
             // Collection hasn't been updated since we last checked.
             // logMessage('No updates found', item.title);
@@ -592,7 +634,7 @@ export class SubscriptionManger {
         results.sort((a,b) => a.date.getTime() - b.date.getTime());
         // Save the last date so we know where to start next time!
         const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate, collection.collectionStatus);
+        await saveLastUpdatedForSub(item.id, lastDate, collection.collectionStatus ?? undefined);
         item.last_update = lastDate;
                 
         return results;
@@ -629,8 +671,8 @@ export class SubscriptionManger {
         // See if they have any new content since the last check
         const newMods = await this.NexusModsAPI.v2.Mods(
             {
-                uploaderId: { value: userId.toString(), op: 'EQUALS' },
-                createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
+                uploaderId: [{ value: userId.toString(), op: 'EQUALS' }],
+                createdAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
             },
             { createdAt: { direction: 'ASC' } }
         );
@@ -647,9 +689,9 @@ export class SubscriptionManger {
         }
         const updatedMods = await this.NexusModsAPI.v2.Mods(
             {
-                uploaderId: { value: userId.toString(), op: 'EQUALS' },
-                updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' },
-                hasUpdated: { value: true, op: 'EQUALS' }
+                uploaderId: [{ value: userId.toString(), op: 'EQUALS' }],
+                updatedAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }],
+                hasUpdated: [{ value: true, op: 'EQUALS' }]
             },
             { updatedAt: { direction: 'ASC' } }
         );
@@ -670,7 +712,7 @@ export class SubscriptionManger {
         // const newCollections = await this.NexusModsAPI.v2.Collections(
         //     {
         //         userId: { value: userId.toString(), op: 'EQUALS' },
-        //         createdAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+        //         createdAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }]
         //     },
         //     { createdAt: { direction: 'ASC' } }
         // );
@@ -687,7 +729,7 @@ export class SubscriptionManger {
         // const updatedCollections = await this.NexusModsAPI.v2.Collections(
         //     {
         //         userId: { value: userId.toString(), op: 'EQUALS' },
-        //         updatedAt: { value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }
+        //         updatedAt: [{ value: Math.floor(last_update.getTime() / 1000).toString(), op: 'GT' }]
         //     },
         //     { updatedAt: { direction: 'ASC' } }
         // );
@@ -744,8 +786,8 @@ const PREPARE_CACHE_CONCURRENCY = 5;
         const newGamePromises = Object.entries(oldestPerNewGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
-                    gameDomainName: { value: domain, op: 'EQUALS' },
-                    createdAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }
+                    gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                    createdAt: [{ value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }]
                 },
                 { createdAt: { direction: 'ASC' } }
             );
@@ -761,9 +803,9 @@ const PREPARE_CACHE_CONCURRENCY = 5;
         const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
-                    gameDomainName: { value: domain, op: 'EQUALS' },
-                    updatedAt: { value: Math.floor(date.getTime()/1000).toString(), op: 'GT' },
-                    hasUpdated: { value: true, op:'EQUALS' }
+                    gameDomainName: [{ value: domain, op: 'EQUALS' }],
+                    updatedAt: [{ value: Math.floor(date.getTime()/1000).toString(), op: 'GT' }],
+                    hasUpdated: [{ value: true, op:'EQUALS' }]
                 },
                 { updatedAt: { direction: 'ASC' } }
             );

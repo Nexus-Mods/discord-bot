@@ -33,17 +33,14 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         const v2test = {
             IsModAuthor: (await botuser.NexusMods.API.v2.IsModAuthor(1)) === true,
             Mod: (await botuser.NexusMods.API.v2.Mod('skyrim', 3863))[0].name === 'SkyUI',
-            Mods: (await botuser.NexusMods.API.v2.Mods({ name: { value: 'skyui', op: 'WILDCARD' } })).totalCount > 0,
-            UpdatedMods: (await botuser.NexusMods.API.v2.UpdatedMods(new Date(0), true)).totalCount > 0,
+            Mods: (await botuser.NexusMods.API.v2.Mods({ name: [{ value: 'skyui', op: 'WILDCARD' }] })).totalCount > 0,
             ModsByModId: (await botuser.NexusMods.API.v2.ModsByModId([{ gameDomain: 'skyrim', modId: 3863 }])).length > 0,
             MyCollections: (await botuser.NexusMods.API.v2.MyCollections()).length > 0,
             Collections: (await botuser.NexusMods.API.v2.Collections({}, { endorsements: { direction: 'DESC' }})).nodesCount > 0,
             Collection: (await botuser.NexusMods.API.v2.Collection('pkcov7', 'skyrimspecialedition', true))?.slug === 'pkcov7',
             CollectionsByUser: (await botuser.NexusMods.API.v2.CollectionsByUser(31179975)).nodesCount > 0,
             FindUserName: (await botuser.NexusMods.API.v2.FindUser('Janquel'))?.memberId === 51448566,
-            CollectionDownloadTotals: (await botuser.NexusMods.API.v2.CollectionDownloadTotals(31179975))?.totalDownloads > 0,
-            FindUserID: (await botuser.NexusMods.API.v2.FindUser(51448566))?.name === 'Janquel',
-            LatestMods: (await botuser.NexusMods.API.v2.LatestMods(new Date(1))).totalCount > 0
+            FindUserID: (await botuser.NexusMods.API.v2.FindUser(51448566))?.name === 'Janquel'
         }
 
         const otherTest = {

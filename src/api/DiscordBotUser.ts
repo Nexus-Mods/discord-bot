@@ -122,9 +122,6 @@ export class DiscordBotUser {
                 Game: async (id: number) => v2.game(this.headers(), this.logger, id),
                 Mod: async (gameDomain: string, modId: number ) => v2.modsById(this.headers(), this.logger, [{ gameDomain, modId }]),
                 Mods: async (filter: IModsFilter, sort?: IModsSort, count?: number ) => v2.mods(this.headers(), this.logger, filter, sort, count),
-                UpdatedMods: 
-                    async (since: Date | number | string, includeAdult: boolean, gameId?: number | number[], sort?: IModsSort ) => 
-                        v2.updatedMods(this.headers(), this.logger, since, includeAdult, gameId, sort),
                 ModsByModId: 
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
                         v2.modsById(this.headers(), this.logger, mods),
@@ -135,9 +132,7 @@ export class DiscordBotUser {
                         v2.collections(this.headers(), this.logger, filters, sort, adultContent),
                 Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), this.logger, slug, domain, adult),
                 CollectionsByUser: async (userId: number) => v2.collections(this.headers(), this.logger, { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),
-                CollectionDownloadTotals: async (userId: number) => v2.collectionsDownloadTotals(this.headers(), this.logger, userId),
                 FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
-                LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), this.logger, since, gameIds, sort),
                 News: async (gameId?: number) => v2.news(this.headers(), this.logger, gameId),
                 ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), this.logger, gameId, modId),
                 Users: async (name: string) => v2.users(this.headers(), this.logger, name),
@@ -170,8 +165,8 @@ export class DiscordBotUser {
         let collectiondownloads = 0;
         try {
             const savedMeta = await this.Discord.GetRemoteMetaData();
-            const newTotals = await this.NexusMods.API.v2.CollectionDownloadTotals(this.NexusModsId);
-            collectiondownloads = newTotals.uniqueDownloads ?? savedMeta?.metadata.collectiondownloads;
+            const user = await this.NexusMods.API.v2.FindUser(this.NexusModsId);
+            collectiondownloads = user?.uniqueCollectionDownloads ?? savedMeta?.metadata.collectiondownloads ?? 0;
         }
         catch(err) {
             this.logger.warn('Error getting Collection download totals', { name: this.NexusModsUsername, err });
