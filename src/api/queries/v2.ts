@@ -1,4 +1,5 @@
 import { ClientError } from "graphql-request";
+import type { DiscordBotModsQuery } from '../generated/operations.js';
 import type * as GQLTypes from '../../types/GQLTypes.js';
 
 
@@ -74,37 +75,7 @@ export interface ICollectionSearchResult {
     searchURL?: string;
 }
 
-export interface IMod {
-    uid: string;
-    modId: number;
-    name: string;
-    createdAt: string;
-    updatedAt: Date;
-    summary: string;
-    description: string;
-    status: GQLTypes.ModStatus;
-    downloads: number;
-    author: string;
-    uploader: {
-        name: string;
-        avatar: string;
-        memberId: number;
-        joined: string;
-        membershipRoles: string[];
-        modCount: number;
-    }
-    pictureUrl: string;
-    modCategory: {
-        name: string
-    };
-    adult: boolean;
-    version: string;
-    game: {
-        id: number;
-        domainName: string;
-        name: string;
-    }
-}
+export type IMod = DiscordBotModsQuery['mods']['nodes'][number];
 
 export interface IModsSort {
     relevance?: GQLTypes.BaseSortValue

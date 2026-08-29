@@ -382,7 +382,7 @@ const singleModEmbed = (client: Client, mod: IMod|undefined, game?: IGameStatic)
     if (mod) {
         embed.setTitle(mod.name || 'Mod name unavailable')
         .setURL(nexusModsTrackingUrl(`https://nexusmods.com/${mod.game.domainName}/mods/${mod.modId}`, 'search'))
-        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${mod.modCategory.name}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/<br \/>/g, '\n')}`)
+        .setDescription(`${game ? `**Game:** [${game?.name}](https://nexusmods.com/${game.domain_name})\n**Category:** ${mod.modCategory?.name ?? '???'}\n` : ''}**Version:** ${mod.version}\n\n${mod.summary?.replace(/<br \/>/g, '\n')}`)
         .setTimestamp(new Date(mod.updatedAt))
         .setImage(mod.pictureUrl || '')
         .setAuthor({name: mod.uploader?.name || '', url: `https://nexusmods.com/users/${mod.uploader.memberId}` })
