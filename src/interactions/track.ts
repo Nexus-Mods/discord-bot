@@ -9,6 +9,7 @@ import { type SubscribedChannel, SubscribedItemType } from "../types/subscriptio
 import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions.js";
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
 import { AppError, NotFoundError, ValidationError } from '../api/errors.js';
+import { getSubscribedItems, subscribeChannelTo, updateChannelSubscription, type NewSubscriptionData } from '../api/subscriptions.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -288,20 +289,20 @@ async function track(
         compact: interaction.options.getBoolean('compact') ?? false,
         message: interaction.options.getString('message'),
         config: resolved.config,
-    } as Parameters<typeof channel.subscribe>[0];
+    } as NewSubscriptionData;
 
-    const existing = (await channel.getSubscribedItems())
+    const existing = (await getSubscribedItems(channel))
         .find(s => s.entityid === resolved.entityid && s.type === type);
 
     let subscription;
     if (existing) {
-        subscription = await channel.updateSub(existing.id, newData);
+        subscription = await updateChannelSubscription(channel, existing.id, newData);
         logger.info(`Updated existing ${target.label} subscription`, { entityid: subscription.entityid, id: subscription.id });
     }
     else {
         const limit = client.subscriptions?.maxSubsPerGuild || 5;
         if (guildTotal > limit) throw new SubscriptionLimitError(limit);
-        subscription = await channel.subscribe(newData);
+        subscription = await subscribeChannelTo(channel, newData);
         logger.info(`Created new ${target.label} subscription`, { entityid: subscription.entityid, id: subscription.id });
     }
 

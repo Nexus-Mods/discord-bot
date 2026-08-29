@@ -3,10 +3,9 @@ import * as DiscordOAuth from '../server/DiscordOAuth.js';
 import type { NexusUser } from '../types/users.js';
 import { baseheader, type Logger } from './util.js';
 import { updateUserRecord } from './userRecord.js';
-import type { Client, EmbedBuilder, User } from 'discord.js';
+import type { Client, User } from 'discord.js';
 import { other, v2 } from './queries/all.js';
 import type * as GQLTypes from '../types/GQLTypes.js';
-import { userProfileEmbed } from '../lib/profile.js';
 import type { IModsFilter, IModsSort } from './queries/v2.js';
 
 interface OAuthTokens {
@@ -87,7 +86,6 @@ export class DiscordBotUser {
         else throw new Error(`Nexus Mods user ${user.name ?? user.id} does not have any auth options set.`);
     }
 
-    public ProfileEmbed = async (client: Client): Promise<EmbedBuilder> => userProfileEmbed(this, client);
 
     private headers = (noAuth?: boolean): IRequestHeadersOAuth => {
 

@@ -9,6 +9,7 @@ import { type SubscribedItem, SubscribedItemType } from "../types/subscriptions.
 import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "../api/subscriptions.js";
 import type { Logger } from "../api/util.js";
 import { voidAsync } from '../lib/async.js';
+import { getSubscribedItems } from '../api/subscriptions.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -34,7 +35,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
     const subbedChannel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
     if (!subbedChannel) return interaction.editReply(`No tracked items for this channel.`);
     // Get items
-    const items = await subbedChannel.getSubscribedItems();
+    const items = await getSubscribedItems(subbedChannel);
     if (!items.length) return interaction.editReply('No tracked items')
 
 
@@ -80,7 +81,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         });
         await Promise.all(promises);
         // Refresh the subs for the channel
-        const newSubs = await subbedChannel.getSubscribedItems(true);
+        const newSubs = await getSubscribedItems(subbedChannel, true);
         // if there are no more subs, delete the channel
         if (!newSubs.length) {
             await deleteSubscribedChannel(subbedChannel);

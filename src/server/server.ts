@@ -10,7 +10,7 @@ import path from 'path';
 import type { Server } from 'http';
 import type { DiscordBotUser } from '../api/DiscordBotUser.js';
 import type { DiscordDirectory } from './discordDirectory.js';
-import { getSubscribedChannelsForGuild } from '../api/subscriptions.js';
+import { getSubscribedChannelsForGuild, getSubscribedItems } from '../api/subscriptions.js';
 import { fileURLToPath } from 'url';
 import type { SubscribedItem, SubscribedItemType } from '../types/subscriptions.js';
 import forumWebhook from './forumWebhook.js';
@@ -462,7 +462,7 @@ export class AuthSite {
         const channels = await this.directory.channels(guild);
         const subs: (SubscribedItem<SubscribedItemType> & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
             const channelName = channels.find(ch => ch.id === c.channel_id)?.name || 'Unknown Channel';
-            return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem<SubscribedItemType> & { channelName?: string }));
+            return (await getSubscribedItems(c)).map(s => ({ ...s, channelName} as SubscribedItem<SubscribedItemType> & { channelName?: string }));
         }))).flat().sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
         
 

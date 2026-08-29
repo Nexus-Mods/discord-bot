@@ -73,29 +73,31 @@ function findCycles(graph: Map<string, string[]>): string[] {
 }
 
 /**
- * The one cycle that is still here: SubscribedChannel and SubscribedItem are
- * active-record classes whose methods call the persistence layer, while the persistence
- * layer constructs them. Breaking it means separating the model from its storage across
- * a 730-line file and ten construction sites, which is its own change - see
- * MODERNISATION.md 3.6. It is benign today because neither module touches the other at
- * module scope, only inside methods.
+ * There are none left.
+ *
+ * The last one was SubscribedChannel: an active-record class whose methods called the
+ * persistence layer, while the persistence layer constructed it. It was benign - neither
+ * module touched the other at module scope - but it was also the reason the model could
+ * not be separated from its storage, which is what a shared package needs. Breaking it
+ * moved create/getSubscribedItems/subscribe/updateSub into api/subscriptions as
+ * functions; the dependency now points one way.
+ *
+ * Keep this list empty. A new entry means something has reintroduced a cycle, and the
+ * right response is to fix the edge rather than record it here.
  */
-const KNOWN = [
-    'api/subscriptions -> types/subscriptions -> api/subscriptions',
-    'types/subscriptions -> api/subscriptions -> types/subscriptions',
-];
+const KNOWN: string[] = [];
 
 describe('runtime import cycles', () => {
     const cycles = findCycles(runtimeGraph(sourceFiles()))
         .map((c) => c.replace(/src[\\/]/g, '').replace(/\.ts/g, '').replace(/\\/g, '/'));
 
-    it('has no cycles beyond the one known exception', () => {
+    it('has none', () => {
         expect(cycles).toEqual(KNOWN);
     });
 
-    // If someone fixes the subscriptions split, this fails and the list above should be
-    // emptied - a deliberate nudge rather than a silently passing stale allow-list.
-    it('still has the known exception, so the allow-list is not stale', () => {
-        expect(cycles.length).toBe(KNOWN.length);
+    // Guard on the guard: an assertion that a list is empty passes just as happily when
+    // the scan is broken and finds nothing at all.
+    it('scanned a realistic number of modules', () => {
+        expect(sourceFiles().length).toBeGreaterThan(90);
     });
 });

@@ -3,6 +3,7 @@ import { getUserByDiscordId } from '../api/users.js';
 import { type CommandInteraction, type Snowflake, type EmbedBuilder, type Client, CommandInteractionOption, SlashCommandBuilder, type ChatInputCommandInteraction, InteractionContextType } from "discord.js";
 import { KnownDiscordServers, type Logger } from '../api/util.js';
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import { userProfileEmbed } from '../lib/profile.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -35,7 +36,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
         userData = discordId ? await getUserByDiscordId(discordId) : undefined;
         if (!userData) await interaction.followUp('You haven\'t linked your account yet. Use the /link command to get started.');
         else {
-            const card: EmbedBuilder = await userData.ProfileEmbed(client);
+            const card: EmbedBuilder = await userProfileEmbed(userData, client);
             await interaction.followUp({ embeds: [card] });
         }
     }

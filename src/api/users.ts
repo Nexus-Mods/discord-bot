@@ -119,5 +119,6 @@ async function updateUser(discordId: string, newUser: Partial<NexusUser>): Promi
 
 
 export { getAllUsers, getCountOfUsers, getUserByDiscordId, getUserByNexusModsName, createUser, deleteUser, updateUser, getUserByNexusModsId };
-// Presentation moved to lib/profile.ts. Re-exported so existing importers keep working.
-export { userEmbed, userProfileEmbed } from '../lib/profile.js';
+// Presentation lives in lib/profile.ts and is imported from there. This module used to
+// re-export it, which is a runtime edge: every reader of a user - the auth site included
+// - pulled EmbedBuilder in behind the data layer.
