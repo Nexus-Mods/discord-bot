@@ -134,7 +134,8 @@ export class DiscordBotUser {
                     async (filters: GQLTypes.ICollectionsFilter, sort?: GQLTypes.CollectionsSort, adultContent?: boolean) => 
                         v2.collections(this.headers(), this.logger, filters, sort, adultContent),
                 Collection: async (slug: string, domain: string, adult: boolean) => v2.collection(this.headers(), this.logger, slug, domain, adult),
-                CollectionsByUser: async (userId: number) => v2.collections(this.headers(), this.logger, { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),                FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
+                CollectionsByUser: async (userId: number) => v2.collections(this.headers(), this.logger, { userId: { value: userId.toString(), op: 'EQUALS' }, adultContent: { value: true, op: 'EQUALS' } }),
+                FindUser: async (query: string | number) => v2.findUser(this.headers(), this.logger, query),
                 LatestMods: async (since: Date, gameIds?: number | number[], sort?: IModsSort) => v2.latestMods(this.headers(true), this.logger, since, gameIds, sort),
                 News: async (gameId?: number) => v2.news(this.headers(), this.logger, gameId),
                 ModFiles: async (gameId: number, modId: number) => v2.modFiles(this.headers(), this.logger, gameId, modId),

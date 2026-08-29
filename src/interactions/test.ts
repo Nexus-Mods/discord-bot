@@ -41,7 +41,6 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
             Collection: (await botuser.NexusMods.API.v2.Collection('pkcov7', 'skyrimspecialedition', true))?.slug === 'pkcov7',
             CollectionsByUser: (await botuser.NexusMods.API.v2.CollectionsByUser(31179975)).nodesCount > 0,
             FindUserName: (await botuser.NexusMods.API.v2.FindUser('Janquel'))?.memberId === 51448566,
-            CollectionDownloadTotals: (await botuser.NexusMods.API.v2.CollectionDownloadTotals(31179975))?.totalDownloads > 0,
             FindUserID: (await botuser.NexusMods.API.v2.FindUser(51448566))?.name === 'Janquel',
             LatestMods: (await botuser.NexusMods.API.v2.LatestMods(new Date(1))).totalCount > 0
         }
