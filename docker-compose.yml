@@ -1,41 +1,49 @@
-version: '3'
-
+# Local development. Production runs its own compose file on the droplet; this one
+# exists so the two-container shape can be exercised before it gets there.
 services:
-  # This is the Bot!
+  # The Discord bot: gateway connections, commands and feeds. No HTTP.
   bot:
     container_name: "nexus-mods-bot"
-    # build from the Dockerfile
     build: .
     image: nexus-mods-bot
-    # ports to expose to your machine (and others) -
-    # again, overwrites the Dockerfile so you can run it on other ports locally if you choose.
-    # e.g: "port to access on your machine:port the container is exposing"
-    ports:
-      - "80:80"
-    volumes:
-      - ./:/bot/
-    # links your bot to the database (networking wise)
-    links:
-      - postgres
-    # Make sure your database starts up before the bot
-    # Word of caution: this only makes the container start first, it doesn't wait until the container has finished starting up.
+    # The image default. Stated explicitly so the pair reads as two commands over one
+    # image rather than one service with an override bolted on.
+    command: ["node", "dist/shards.js"]
+    env_file:
+      - .env
     depends_on:
       - postgres
-  
-  # This builds you a database
-  postgres:
-    image: postgres:12
+    restart: unless-stopped
+
+  # The OAuth portal, tracking pages and the forum/automod endpoints. Same image, same
+  # tag, different entry point - so the two can never be running different code against
+  # the same database.
+  web:
+    container_name: "nexus-mods-bot-web"
+    build: .
+    image: nexus-mods-bot
+    command: ["node", "dist/web.js"]
+    env_file:
+      - .env
     environment:
-      # This is the user your bot will login to the database with
+      AUTH_PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    # TempStore holds in-flight OAuth state in memory, so this service is
+    # single-replica by construction. Scaling it needs that moved out first.
+    scale: 1
+
+  postgres:
+    image: postgres:17
+    environment:
       POSTGRES_USER: postgres
-      # This is the database name which will get created automagically for you.
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: discord_bot
-      # This is the port the database will use to communicate on.
-      POSTGRES_PORT: '5432'
-    # ports to expose to your machine (and others)
     ports:
       - "5432:5432"
-    # This allows the database to keep its data between being destroyed and re-created
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

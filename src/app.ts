@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { DiscordBot } from './DiscordBot.js';
-import { AuthSite } from './server/server.js';
 import { runMigrations } from './db/migrate.js';
 
 const bot = DiscordBot.getInstance();
@@ -49,12 +48,8 @@ async function start() {
         bot.logger.error('Failed to set up Discord bot interactions', err);
         process.exit();
     }
-
-    // Set up the OAuth portal
-    try {
-        AuthSite.getInstance(bot.client, bot.logger);
-    }
-    catch(err) {
-        bot.logger.error('Failed to set up Auth website', err);
-    }
 }
+
+// The OAuth portal used to be started here and skipped on every shard but 0, so one
+// of three gateway connections was also a web server. It is its own process now -
+// dist/web.js - and shares nothing with this one but the database and the image.

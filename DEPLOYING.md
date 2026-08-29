@@ -1,5 +1,74 @@
 # Deploying
 
+## 4.2.0 - The auth site is its own container
+
+**This is a topology change, not a code change.** The OAuth portal, the tracking pages,
+the forum webhook and the `/automod` endpoints no longer run inside the bot process.
+They are a second container, from the same image, started with a different command.
+
+| | Command | Serves |
+|---|---|---|
+| Bot | `node dist/shards.js` (image default) | Discord gateway, commands, feeds. **No HTTP at all now.** |
+| Web | `node dist/web.js` | Everything that was on `AUTH_PORT` |
+
+### What has to change on the droplet
+
+1. **Add the second service.** `docker-compose.yml` in this repository shows the shape;
+   the production file needs the same two services from the same image tag.
+2. **Move the port mapping.** Whatever publishes the site today is attached to the bot
+   container. It has to point at `web` instead - the bot container no longer listens on
+   anything, so leaving the mapping where it is means the site returns nothing.
+3. **Give the web container the environment.** Simplest and least error-prone is the same
+   env file both containers already share. It needs, at minimum:
+
+   `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`,
+   `NEXUS_OAUTH_ID`, `NEXUS_OAUTH_SECRET`, `NEXUS_REDIRECT_URI`, `COOKIE_SECRET`,
+   `UNLINK_SECRET`, `SITE_BASE_URL`, `AUTH_PORT`, `TRUST_PROXY`, the `HOST`/`DATABASE`/
+   `DBUSER`/`DBPASS`/`DBPORT` group, `AUTOMOD_DATABASE`, `AUTOMOD_AUTHCODE`,
+   `ADMIN_AUTHCODE`, `FORUM_API_KEY` and `DISCORD_SUGGESTION_WEBHOOKS`.
+
+   `DISCORD_TOKEN` is needed even though this process never connects to the gateway: the
+   tracking page resolves guild and channel names over REST with it. The site refuses to
+   start without it rather than rendering a broken page.
+
+4. **Keep it to one replica.** In-flight OAuth state lives in an in-memory `Map`, so a
+   second replica would answer the Nexus Mods callback for a link the other replica
+   started and reject it as unknown state. Moving that to the database is what a second
+   replica needs; nothing else does.
+
+### What does not change
+
+- **No migration runs.** No schema change in this release.
+- **Both containers migrate on start.** `runMigrations` takes a Postgres advisory lock,
+  so whichever starts first does the work and the other waits and finds nothing to do.
+  This is deliberate: it removes any ordering requirement between the two services.
+- **One image, one tag.** Both containers run the same build, so they cannot drift to
+  different code against the same database. Rollback is still the previous tag - applied
+  to both services.
+- **Routes, cookies and URLs are unchanged.** `SITE_BASE_URL` and both OAuth redirect
+  URIs stay exactly as they are; nothing needs updating in the Discord or Nexus Mods
+  developer consoles.
+
+### What to watch
+
+- **The site answers at all.** `GET /` on the public URL. If it does not, the port
+  mapping is still on the bot container.
+- **A full link flow.** `/linked-role` through to `/success`. This is the path that used
+  the in-process client's session, and the one that would notice if `TRUST_PROXY` or the
+  cookie settings arrived differently in the new container.
+- **`/tracking?guild=<id>`.** Guild name, icon and channel names now come from REST
+  rather than discord.js's cache. An unknown guild id redirects to `/` - previously it
+  produced a 500, because `guilds.fetch()` threw rather than returning nothing.
+- **Bot memory.** Should fall slightly: shard 0 was carrying express, ejs and the view
+  cache for no reason on the other two.
+
+### Rollback
+
+Previous image tag on the bot service, port mapping back where it was, web service
+removed. The database is untouched by this release, so nothing has to be undone there.
+
+---
+
 ## 4.1.0 - Phase 3.5, the query error contract
 
 **One behaviour change, and it is in the feeds.** Query modules that used to return `[]`
