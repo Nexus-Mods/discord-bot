@@ -741,13 +741,30 @@ whether or not a handler exists. **Six were requested. One is consumed.**
 | `GuildWebhooks` | Nothing — webhooks are created over REST, which needs no intent | Dropped |
 | `DirectMessages` | Nothing — `createDM`/`send` are REST; the intent only receives | Dropped |
 
-Intent bitfield **5681 → 1**, or 513 with the bait channel configured.
+Intent bitfield **5681 → 513 in production**, where `WATCHED_CHANNEL_ID` is set, and
+**5681 → 1** locally and anywhere else the bait channel is not configured.
+
+**The production win is smaller than that first looks, and it is mostly memory.** The
+message firehose stays, because the anti-spam feature is live and the intent cannot be
+scoped to one guild. What production actually gains:
+
+| | Effect |
+|---|---|
+| `GuildMessageReactions` dropped | Every reaction add/remove across 2,418 guilds stops arriving. In large servers this is a real share of gateway traffic, but it is not the dominant one. |
+| `GuildIntegrations`, `GuildWebhooks`, `DirectMessages` dropped | Low-volume events. Small. |
+| `MessageManager: 0` | **Probably the largest single item.** discord.js was holding 200 messages per channel across every channel in every guild, swept only hourly, while nothing read the cache. |
+| `GuildMessages` retained | The dominant event stream is unchanged. |
+
+So: expect memory to move, and CPU to move less. **The CPU fix is to move the bait channel
+into its own process** - a small bot in the Nexus Mods guild only, requesting
+`Guilds + GuildMessages` for one server instead of 2,418. The main bot then drops to
+`Guilds` alone. That is the change that takes production to a bitfield of 1.
 
 Intents are per-connection and cannot be scoped to a guild, which is the whole problem:
 one channel's worth of anti-spam cost every message in 2,418 servers. If that feature is
 wanted permanently it belongs in a small separate process that is only in the Nexus Mods
-guild. **Worth confirming whether it is live at all** — `WATCHED_CHANNEL_ID` is not in the
-working `.env` and was not in `.env.example`.
+guild. **Confirmed live in production.** It is absent from the working `.env` only because the
+local test bot is not in the main Discord server.
 
 Message and reaction caches are capped at zero; nothing reads `messages.cache` and
 discord.js otherwise keeps 200 per channel. `GuildMemberManager` is left uncapped on

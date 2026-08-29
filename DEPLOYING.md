@@ -53,6 +53,44 @@ Three orphaned tables are in the same category and *are* modelled in
 `src/db/schema.ts` so that drizzle does not propose dropping them: `game_feeds`,
 `user_mods` and `user_servers`. No code reads any of them.
 
+### Before the first 4.0.0 start
+
+This release is large, and none of it has run against a live gateway or database. Work
+through this list rather than reading it.
+
+| Check | Why | If it's wrong |
+|---|---|---|
+| Take a schema dump | First release that runs DDL at startup | &mdash; |
+| `AUTOMOD_DATABASE` is set in the container's environment | The automod pool now refuses to be built without it, instead of silently connecting to a database named after the user | `/automod` endpoints return errors on first use |
+| `WATCHED_CHANNEL_ID` is set in the container's environment | It now gates the `GuildMessages` intent, not just the handler | The anti-spam bait channel silently stops working |
+| `DB_SSL` is unset, or set to `on` | Unset reproduces the old behaviour exactly (TLS on when `NODE_ENV` is `production` or absent) | Set it to `on` explicitly if `NODE_ENV` is something else in production |
+| Note the current image tag | CI tags by version and commit sha, so rollback is running the previous tag | &mdash; |
+
+Note that `.dockerignore` excludes `*.env`, so configuration is injected at run time rather
+than baked into the image. Whatever mechanism does that needs to carry the two variables
+above; the compose file in this repository is a local development setup and is not what
+production uses.
+
+### After the first start
+
+```sql
+SELECT * FROM drizzle.__drizzle_migrations;   -- expect exactly one row
+```
+
+Then watch two graphs for the first hour:
+
+- **Memory should fall.** discord.js was holding 200 messages per channel across every
+  channel in every guild, swept hourly, while nothing read that cache. It is capped at
+  zero now. On a box running at 80% this is the change most likely to be visible.
+- **CPU should fall somewhat, not dramatically.** Four unused intents are gone, but
+  `GuildMessages` stays while the bait channel is live, and that is the dominant event
+  stream. Getting the rest of it means moving that feature into its own process &mdash;
+  see MODERNISATION.md 5.3.
+
+If either graph moves the wrong way, the previous image tag is the rollback. Migrations
+are forward-only, but 0000 is the baseline and creates nothing that 3.17.0 did not have,
+so rolling the image back does not require rolling the database back.
+
 Nothing else in this document changes for 4.0.0; the 3.17.0 notes below still
 describe the configuration this release runs on.
 
