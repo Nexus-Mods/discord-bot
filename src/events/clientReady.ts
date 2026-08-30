@@ -1,4 +1,4 @@
-import { EmbedBuilder, type Guild, type TextChannel, type GuildBasedChannel, ShardClientUtil } from 'discord.js';
+import { EmbedBuilder, type Guild, type TextChannel, type GuildBasedChannel} from 'discord.js';
 import { BOT_VERSION } from '../version.js';
 import { deleteServer, getAllServers } from '../api/servers.js';
 import type { BotServer } from '../types/servers.js';
@@ -6,6 +6,7 @@ import type { Logger } from '../api/util.js';
 import type { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
 import { GameListCache } from '../types/util.js';
+import { ownsGuild } from '../lib/sharding.js';
 
 const main: DiscordEventInterface = {
     name: 'clientReady',
@@ -42,7 +43,7 @@ const main: DiscordEventInterface = {
             // Get all known servers
             const servers: BotServer[] = await getAllServers().catch(() => []);
             for (const server of servers) {
-                if (client.shard && ShardClientUtil.shardIdForGuildId(server.id, client.shard.count) !== client.shard.ids[0]) continue;
+                if (!ownsGuild(client, server.id)) continue;
                 // Check the server still exists (i.e. we are a member)
                 const guild: Guild | undefined = await client.guilds.fetch(server.id).catch(() => undefined);
                 if (!guild) {

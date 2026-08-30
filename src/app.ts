@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 // quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
 dotenv.config({ quiet: true });
 import { DiscordBot } from './DiscordBot.js';
+import { requireShard } from './lib/sharding.js';
 
 const bot = DiscordBot.getInstance();
 start().catch((err) => {
@@ -23,7 +24,7 @@ async function start() {
         process.exit(1);
     }
 
-    const shardId = bot.client.shard?.ids[0];
+    const shardId = requireShard(bot.client).ids[0];
     bot.logger.info(`Starting shard ${shardId}`);
 
     // Login with the Discord bot. 

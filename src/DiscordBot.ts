@@ -7,6 +7,7 @@ import { voidAsync, fireAndForget } from './lib/async.js';
 import type { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes.js';
 import { GameListCache } from './types/util.js';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { requireShard } from './lib/sharding.js';
 
 // Re-exported for the modules that still import the logger from here.
 export { logger };
@@ -99,7 +100,7 @@ export class DiscordBot {
 
     private initializeClient(): void {
         if (!this.client) return logger.error('Could not initialise DiscordBot, client is not defined.');
-        if (this.client.shard) logger.setShardId(this.client.shard?.ids[0].toString() || 'Main');
+        logger.setShardId(requireShard(this.client).ids[0].toString());
         
         this.client.config = { 
             testing: isTesting, 
@@ -215,7 +216,7 @@ export class DiscordBot {
         // Now we have the commands organised, time to set them up. 
         logger.info('Setting up interactions', { count: allInteractions.length });
 
-        if (this.client.shard && this.client.shard.ids[0] !== 0 && !forceUpdate) return logger.debug('Only register with Discord on shard 0 during startup');
+        if (requireShard(this.client).ids[0] !== 0 && !forceUpdate) return logger.debug('Only register with Discord on shard 0 during startup');
 
 
         // Set global commands
