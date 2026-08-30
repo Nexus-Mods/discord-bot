@@ -561,7 +561,7 @@ export class AuthSite {
             timeZoneName: 'short'
         };
 
-        let ukTime = 'Invalid date';
+        let ukTime: string;
         try {
             ukTime = new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: 'Europe/London' }).format(date);
         } catch (_e) {

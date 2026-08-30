@@ -6,7 +6,8 @@ import { htmlToText } from 'html-to-text';
 import { getTopic } from '../api/forumAPI.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
-dotenv.config();
+// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
+dotenv.config({ quiet: true });
 
 const FORUM_SUGGESTION_FORUM_ID = 9063; // The ID of the forum for suggestions.
 const SUGGESTION_ICON = 'https://staticdelivery.nexusmods.com/images/2295/31179975-1744285207.png'; // The icon for the suggestion forum.

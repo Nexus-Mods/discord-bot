@@ -57,7 +57,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, _logg
     let guildCount = client.guilds.cache.size;
     if (client.shard) {
         const shardTotals = await client.shard.broadcastEval((client) => client.guilds.cache.size);
-        guildCount = shardTotals.reduce((prev, cur) => prev+=cur, 0);
+        guildCount = shardTotals.reduce((prev, cur) => prev + cur, 0);
     }
 
 

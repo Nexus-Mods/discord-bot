@@ -10,7 +10,8 @@ import { logger } from '../api/logger.js';
 import { ConfigError, DatabaseError, toError } from '../api/errors.js';
 
 // Entry point: `node dist/db/migrate.js` runs this without app.ts having loaded .env.
-dotenv.config();
+// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
+dotenv.config({ quiet: true });
 
 const { Pool } = pg;
 

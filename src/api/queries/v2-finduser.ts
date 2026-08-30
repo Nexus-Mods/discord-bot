@@ -50,7 +50,7 @@ query UserByName($username: String!) {
 
 export async function findUser(headers: Record<string,string>, logger: Logger, idOrName: number | string): Promise<IUser | undefined> {
     let vars: Record<string, string | number>;
-    let query: string = ``;
+    let query: string;
 
     if (typeof(idOrName) === 'number') {
         query = idQuery;

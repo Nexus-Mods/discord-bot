@@ -257,8 +257,8 @@ export class DiscordBotUser {
                 this.LastUpdated = new Date();
             };
         }
-        catch(_err) {
-            throw new Error('Failed to save user data to database.');
+        catch(err) {
+            throw new Error('Failed to save user data to database.', { cause: err });
         }
 
         return updatedFields;

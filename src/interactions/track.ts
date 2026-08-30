@@ -347,7 +347,7 @@ async function ensureChannelisSubscribed(client: ClientExt, interaction: ChatInp
         catch(err) {
             const perms = (interaction.guild?.members.me)?.permissionsIn(interaction.channel!.id)
             logger.warn('Error creating webhook', {user: interaction.user.tag, guild: interaction.guild?.name, channel: interaction.channel?.toString(), err, perms });
-            throw new Error(`Failed to create Webhook for tracking feed. Please make sure the bot has the correct permissions.\n Error: ${(err as Error).message || err}, Perms ${perms?.toArray()}`);
+            throw new Error(`Failed to create Webhook for tracking feed. Please make sure the bot has the correct permissions.\n Error: ${(err as Error).message || err}, Perms ${perms?.toArray()}`, { cause: err });
         }
     }
 

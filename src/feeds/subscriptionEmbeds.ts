@@ -412,7 +412,7 @@ export function trimModChangelog(raw: string[], limit: number = 1000, logger: Lo
     for (const line of raw) {
         const temp = changelog.length ? `${changelog}\n${line}` : line;
         if (temp.length >= limit) {
-            changelog = changelog += '...'
+            changelog += '...';
             break;
         }
         else changelog = temp;

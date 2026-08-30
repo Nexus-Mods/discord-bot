@@ -255,7 +255,7 @@ export class SubscriptionManger {
         }
         catch(err) {
             this.logger.warn('Failed to force updates', err);
-            throw new Error('Unable to force-update all subs in channel.')
+            throw new Error('Unable to force-update all subs in channel.', { cause: err })
         }
     }
 
@@ -301,7 +301,7 @@ export class SubscriptionManger {
         // outage get skipped permanently.
         let failedItems = 0;
         for (const item of items) {
-            let updates: IPostableSubscriptionUpdate<typeof item.type>[] = [];
+            let updates: IPostableSubscriptionUpdate<typeof item.type>[];
 
             try {
                 // Logic based on subscription type here.
@@ -400,7 +400,7 @@ export class SubscriptionManger {
                     // Delete the channel and all associated tracked items.
                     await deleteSubscribedChannel(channel);
                     this.channels = this.channels.filter(c => c.id !== channel.id);
-                    throw Error('Webhook no longer exists');
+                    throw new Error('Webhook no longer exists', { cause: err });
                 }
                 this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
             }
@@ -459,7 +459,7 @@ export class SubscriptionManger {
             }
             catch(err) {
                 this.logger.warn('Error processing mod', {mod, err});
-                throw new Error(`Error processing mod ${mod.game.domainName}/${mod.modId} (UID: ${mod.uid})`);
+                throw new Error(`Error processing mod ${mod.game.domainName}/${mod.modId} (UID: ${mod.uid})`, { cause: err });
             }
         }
         results.push(...formattedNew);

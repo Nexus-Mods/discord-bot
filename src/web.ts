@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
-dotenv.config();
+// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
+dotenv.config({ quiet: true });
 import { logger } from './api/logger.js';
 import { runMigrations } from './db/migrate.js';
 import { AuthSite } from './server/server.js';
