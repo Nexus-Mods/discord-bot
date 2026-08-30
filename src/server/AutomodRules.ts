@@ -9,7 +9,6 @@ function checkPermission(req: express.Request): boolean {
 }
 
 async function automodRules(req: express.Request, res: express.Response, logger: Logger) {
-// const automodRules: express.RequestHandler = async (req, res, logger) => {
     // Check permission
     if (!checkPermission(req)) {
         res.sendStatus(401);
