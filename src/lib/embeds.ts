@@ -1,4 +1,4 @@
-import { type Client, EmbedBuilder } from 'discord.js';
+import type { Client } from 'discord.js';
 
 /**
  * Shared embed furniture.
@@ -24,9 +24,4 @@ export function apiLinkFooter(client: Client): { text: string; iconURL: string }
 /** Footer for the bot's own output, as opposed to API data. */
 export function botFooter(client: Client): { text: string; iconURL: string } {
     return { text: 'Discord Bot - Nexus Mods', iconURL: botIconUrl(client) };
-}
-
-/** A pre-branded embed. Equivalent to new EmbedBuilder().setColor(NEXUS_ORANGE). */
-export function nexusEmbed(): EmbedBuilder {
-    return new EmbedBuilder().setColor(NEXUS_ORANGE);
 }

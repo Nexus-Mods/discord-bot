@@ -124,22 +124,6 @@ export class TipCache {
     }
 }
 
-export interface IAutomodRule {
-    id: number;
-    type: 'low' | 'high';
-    filter: string;
-    added: Date;
-    reason: string;
-}
-
-export interface IBadFileRule {
-    id: number;
-    type: 'low' | 'high';
-    funcName: 'includes' | 'startsWith' | 'endsWith' | 'match';
-    test: string;
-    flagMessage: string;
-}
-
 export type StatusPageResponse<T extends boolean> = T extends true ? IStatusPageFullResponse : IStatusPageQuickResponse;
 
 type StatusPageComponentStatus = 'operational' | 'partial_outage' | string;

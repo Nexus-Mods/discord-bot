@@ -98,8 +98,37 @@ function buildPoolConfig(): PoolConfig {
         // Was 2000, which closed connections after two seconds idle and made the bot
         // reconnect constantly between feed polls - TLS handshake and all.
         idleTimeoutMillis: 30000,
-        max: 10,
+        max: poolMax(),
     };
+}
+
+/**
+ * Connections this process may hold open to Postgres, per pool.
+ *
+ * This was a flat 10, chosen when there was one process. The arithmetic stopped working
+ * some time ago and nobody was counting:
+ *
+ *   3 shards x 1 pool   the bot's database
+ * + 1 web  x 2 pools    the same, plus the automod rules database
+ * = 5 pools
+ *
+ * At 10 that is a ceiling of 50 against a managed 1 GB Postgres that allows **22**
+ * backend connections. It has not caused an outage because production connects through
+ * PgBouncer, so those are connections to the pooler rather than to Postgres - but that
+ * means the safety came from a component the configuration does not mention and nothing
+ * in the code asserts is there. Connect directly once, for a migration or a one-off
+ * script, and the numbers are what they always were.
+ *
+ * 4 x 5 pools = 20, which fits under 22 with the pooler out of the picture. The bot's
+ * database work is near-sequential - feed cycles walk their subscriptions in order, and
+ * the one concurrent step is rate-limited API calls, not queries - so the old ceiling
+ * was never being approached anyway.
+ *
+ * DB_POOL_MAX overrides it. Raise it if pool acquisition starts to queue, but count the
+ * pools first: the limit is per pool, per process.
+ */
+function poolMax(): number {
+    return envInt(process.env.DB_POOL_MAX, 4, 'DB_POOL_MAX');
 }
 
 /**
@@ -114,7 +143,13 @@ function buildPoolConfig(): PoolConfig {
 let cachedConfig: PoolConfig | undefined;
 
 export function poolConfig(): PoolConfig {
-    cachedConfig ??= buildPoolConfig();
+    if (cachedConfig === undefined) {
+        cachedConfig = buildPoolConfig();
+        // Logged once, because a connection ceiling nobody can see is how this one came
+        // to be wrong: it is per pool and per process, so the interesting number is
+        // never the one in the config file.
+        logger.debug('Database pool configured', { max: cachedConfig.max, queryTimeoutMs: cachedConfig.query_timeout });
+    }
     return cachedConfig;
 }
 

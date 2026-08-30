@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-const KEYS = ['DATABASE', 'DBPORT', 'PORT', 'DB_SSL', 'DB_SSL_CA', 'NODE_ENV', 'DB_STATEMENT_TIMEOUT_MS', 'AUTOMOD_DATABASE'];
+const KEYS = ['DATABASE', 'DBPORT', 'PORT', 'DB_SSL', 'DB_SSL_CA', 'NODE_ENV', 'DB_STATEMENT_TIMEOUT_MS', 'AUTOMOD_DATABASE', 'DB_POOL_MAX'];
 let saved: Record<string, string | undefined>;
 
 /** dbConnect memoises its config, so each case needs a fresh module instance. */
@@ -169,5 +169,27 @@ describe('other settings', () => {
         delete process.env.AUTOMOD_DATABASE;
         vi.resetModules();
         await expect(import('../../src/api/dbConnect.js')).resolves.toBeDefined();
+    });
+});
+
+describe('pool ceiling', () => {
+    // The limit is per pool and per process. Three shards hold one pool each and the web
+    // process holds two, so the default is a ceiling of 20 against a managed Postgres
+    // that allows 22 backends. It used to be 10, which is 50 - survivable only because
+    // production connects through PgBouncer, which nothing in the code requires.
+    it('defaults to 4, which keeps five pools inside a 22-connection budget', async () => {
+        const max = (await loadConfig()).max!;
+        expect(max).toBe(4);
+        expect(max * 5).toBeLessThan(22);
+    });
+
+    it('can be raised for a deployment that needs it', async () => {
+        process.env.DB_POOL_MAX = '8';
+        expect((await loadConfig()).max).toBe(8);
+    });
+
+    it('rejects a value that is not a positive integer', async () => {
+        process.env.DB_POOL_MAX = '0';
+        await expect(loadConfig()).rejects.toMatchObject({ code: 'CONFIG' });
     });
 });

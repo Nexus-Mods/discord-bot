@@ -17,7 +17,7 @@ import forumWebhook from './forumWebhook.js';
 import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { checkSharedSecret, cookieOptions, safeCompare, verifyValue } from './auth.js';
+import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from './auth.js';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -68,13 +68,10 @@ export class AuthSite {
 
     private initialize(): void {
         // Fail at boot rather than at request time if a required secret is missing.
-        if (!process.env.COOKIE_SECRET) {
-            throw new Error('COOKIE_SECRET is not set. The OAuth flow signs its state cookie with it, so the site cannot start.');
+        for (const { name, reason } of REQUIRED_SECRETS) {
+            if (!process.env[name]) throw new Error(`${name} is not set. ${reason}, so the site cannot start.`);
         }
-        if (!process.env.UNLINK_SECRET) {
-            throw new Error('UNLINK_SECRET is not set. Unlink links are signed with it, so the site cannot start.');
-        }
-        for (const name of ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE']) {
+        for (const name of OPTIONAL_SECRETS) {
             if (!process.env[name]) this.logger.warn(`${name} is not set - the endpoints it guards will reject every request.`);
         }
 
