@@ -1,6 +1,6 @@
 import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
-import { type CommandInteraction, type Snowflake, type EmbedBuilder, type Client, CommandInteractionOption, SlashCommandBuilder, type ChatInputCommandInteraction, InteractionContextType } from "discord.js";
+import { type CommandInteraction, type Snowflake, type EmbedBuilder, type Client, SlashCommandBuilder, type ChatInputCommandInteraction, InteractionContextType } from "discord.js";
 import { KnownDiscordServers, type Logger } from '../api/util.js';
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { userProfileEmbed } from '../lib/profile.js';

@@ -9,39 +9,6 @@ export enum ModStatus {
     Hidden = 'hidden'
 }
 
-
-interface Mod {
-    adult: boolean;
-    author: string;
-    // Possibly redundant? 
-    category: string;
-    createdAt: string;
-    description: string;
-    game: Partial<Game>;
-    gameId: number;
-    id: number;
-    ipAddress?: string;
-    modCategory: Partial<ModCategory>;
-    modId: number;
-    name: string;
-    pictureUrl: string;
-    status: ModStatus;
-    summary: string;
-    trackingData?: TrackingState;
-    uid: ID;  
-    updatedAt: string;
-    uploader: Partial<User>;
-    version: string;
-}
-
-interface ModCategory {
-    date: number;
-    gameId: number;
-    id: ID;
-    name: string;
-    tags: string;
-}
-
 interface Game {
     availableTags: Partial<Tag>[];
     collectionCount: number;
@@ -49,20 +16,6 @@ interface Game {
     id: number;
     name: string;
     specificTags: Partial<Tag>[];
-}
-
-interface User {
-    avatar: string;
-    deleted: boolean;
-    dpOptedIn: boolean;
-    email: string;
-    ipAddress: string;
-    kudos: number;
-    memberId: number;
-    name: string;
-    paypal: string;
-    posts: number;
-    recognizedAuthor: boolean;
 }
 
 interface Tag {
@@ -85,65 +38,6 @@ interface TagCategory {
     name: string;
     tags: Partial<Tag>[];
     updatedAt: string;
-}
-
-interface TrackingState {
-    test: number;
-}
-
-/** COLLECTIONS */
-type CollectionStatus = 'listed' | 'unlisted' | 'under_moderation';
-
-interface Collection {
-    adultContent: boolean;
-    allowUserMedia: boolean;
-    bugReport: any;
-    bugReports: any;
-    category: any;
-    collectionChangelogs: any[];
-    collectionStatus: CollectionStatus;
-    commentLink: string;
-    comments: any[];
-    contentPreviewLink: string;
-    createdAt: Date;
-    currentRevision: any;
-    description: string;
-    discardReason: any;
-    discardedAt: boolean; //???
-    downloadLink: string;
-    draftRevisionNumber: number;
-    enableDonations: boolean;
-    endorsements: number;
-    forumTopic: any;
-    game: Game;
-    gameId: number;
-    headerImage: any;
-    id: number;
-    latestPublishedRevision: any;
-    latestPublishedRevisionRating: any;
-    listedAt: Date;
-    manuallyVerifyMedia: boolean;
-    media: any[];
-    metadata: any;
-    moderations: any[];
-    name: string;
-    overallRating: string;
-    overallRatingCount: number;
-    permissions: any[];
-    publicRevisions: any[];
-    publishedAt: Date;
-    recentRating: string;
-    recentRatingCount: number;
-    revisions: any[];
-    slug: string;
-    summary: string;
-    tags: any[];
-    tileImage: any;
-    totalDownloads: number;
-    uniqueDownloads: number;
-    updatedAt: Date;
-    user: User;
-    userId: number;
 }
 
 /** COLLECTIONS SEARCH AND FILTERING */
@@ -201,15 +95,6 @@ interface ICollectionsFilter {
     hasDraftRevision?: BooleanFilterValue;
     hasPublishedRevision?: BooleanFilterValue;
     generalSearch?: BaseFilterValue;
-}
-
-interface CollectionPage {
-    nodes?: Collection[];
-    nodesAggregations?: any[];
-    nodesCount?: number;
-    nodesFacets?: any[];
-    nodesFilter?: string;
-    nextURL?: string; //URL to browser the results on the website.
 }
 
 export { ICollectionsFilter, CollectionsSort };

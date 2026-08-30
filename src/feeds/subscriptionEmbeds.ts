@@ -1,4 +1,4 @@
-import { type APIEmbed, EmbedBuilder, type Guild, type GuildMember } from 'discord.js';
+import { EmbedBuilder, type Guild, type GuildMember } from 'discord.js';
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 import { assertPresent } from '../lib/assert.js';
 import { gameArt, type Logger, nexusModsTrackingUrl } from '../api/util.js';

@@ -27,7 +27,10 @@ async function getSubscribedItems(
     skipCache: boolean = false,
 ): Promise<SubscribedItem<SubscribedItemType>[]> {
     if (!channel.items.length || skipCache) {
-        channel.items = await getSubscriptionsByChannel(channel.guild_id, channel.channel_id);
+        const guildId = channel.guild_id;
+        const channelId = channel.channel_id;
+        const items = await getSubscriptionsByChannel(channel.guild_id, channel.channel_id);
+        if (channel.guild_id === guildId && channel.channel_id === channelId) channel.items = items;
     }
     return channel.items;
 }
