@@ -19,6 +19,7 @@
     "db:migrate": "npm run build && node dist/db/migrate.js",
     "tokens:backfill": "npm run build && node dist/db/backfillTokens.js",
     "tokens:verify": "npm run build && node dist/db/backfillTokens.js --verify",
+    "tokens:report": "npm run build && node dist/db/backfillTokens.js --report",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:check": "graphql-codegen --config codegen.ts && git diff --exit-code src/api/generated",
     "test": "vitest run",

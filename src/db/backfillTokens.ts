@@ -68,6 +68,7 @@ interface Options {
     from: string;
     dryRun: boolean;
     verifyOnly: boolean;
+    report: boolean;
 }
 
 function options(): Options {
@@ -77,13 +78,66 @@ function options(): Options {
             from: { type: 'string' },
             'dry-run': { type: 'boolean', default: false },
             verify: { type: 'boolean', default: false },
+            report: { type: 'boolean', default: false },
         },
     });
     const batch = values.batch ? Number(values.batch) : DEFAULT_BATCH;
     if (!Number.isInteger(batch) || batch <= 0 || batch > 5000) {
         throw new Error(`--batch must be an integer between 1 and 5000, got "${values.batch}"`);
     }
-    return { batch, from: values.from ?? '', dryRun: values['dry-run'] ?? false, verifyOnly: values.verify ?? false };
+    return {
+        batch,
+        from: values.from ?? '',
+        dryRun: values['dry-run'] ?? false,
+        verifyOnly: values.verify ?? false,
+        report: values.report ?? false,
+    };
+}
+
+/**
+ * Read-only census of what state the stored credentials are actually in.
+ *
+ * This exists because "expired" and "missing" look alike in a spreadsheet and are
+ * nothing alike in consequence. An expired access token with a refresh token beside it
+ * is the *normal* state for anyone who has not used the bot this week - it is repaired
+ * silently on their next command. A missing refresh token cannot be repaired by
+ * anything except the user linking again. Any decision about deleting rows has to be
+ * made on the second number, and the second number is much smaller.
+ *
+ * The thresholds mirror DiscordBotUser's constructor rather than inventing their own,
+ * because that constructor is what decides whether a row is usable: it requires
+ * nexus_access, nexus_refresh **and** nexus_expires to all be truthy, and a row failing
+ * that is already being treated as unlinked today - the throw is caught in users.ts and
+ * turned into `undefined`. Note that `nexus_expires = 0` fails it too, which is why
+ * this counts 0 as missing rather than as a very old timestamp.
+ *
+ * Discord is deliberately counted separately. A row with good Nexus tokens and no
+ * Discord ones still works for everything except role claiming, so it is not a dead
+ * row, and lumping the two together would overstate the damage several times over.
+ */
+async function report(client: pg.PoolClient): Promise<Record<string, number>> {
+    const { rows } = await client.query<Record<string, string>>(`
+        SELECT
+            count(*)                                                              AS rows,
+            count(*) FILTER (WHERE nexus_ok)                                      AS nexus_usable,
+            count(*) FILTER (WHERE NOT nexus_ok)                                  AS nexus_unusable,
+            count(*) FILTER (WHERE NOT nexus_ok AND nexus_blank AND discord_blank) AS entirely_blank,
+            count(*) FILTER (WHERE NOT discord_ok)                                AS discord_unusable,
+            count(*) FILTER (WHERE nexus_ok AND NOT discord_ok)                   AS nexus_only,
+            count(*) FILTER (WHERE nexus_ok AND nexus_expires < $1)               AS expired_but_recoverable
+        FROM (
+            SELECT
+                coalesce(nexus_access, '')   <> '' AND coalesce(nexus_refresh, '')   <> ''
+                    AND coalesce(nexus_expires, 0) <> 0                       AS nexus_ok,
+                coalesce(discord_access, '') <> '' AND coalesce(discord_refresh, '') <> '' AS discord_ok,
+                coalesce(nexus_access, '')   =  '' AND coalesce(nexus_refresh, '')   =  '' AS nexus_blank,
+                coalesce(discord_access, '') =  '' AND coalesce(discord_refresh, '') =  '' AS discord_blank,
+                nexus_expires
+            FROM users
+        ) t`, [Date.now()]);
+
+    // count() returns bigint, which pg hands back as a string to avoid losing precision.
+    return Object.fromEntries(Object.entries(rows[0]).map(([k, v]) => [k, Number(v)]));
 }
 
 interface Totals {
@@ -302,6 +356,13 @@ export async function backfillTokens(): Promise<number> {
         if (!lock.rows[0]?.locked) {
             logger.error('Another token backfill is already running. Not starting a second one.');
             return 1;
+        }
+
+        if (opts.report) {
+            const state = await report(client);
+            logger.info('Credential state', state);
+            logger.info('expired_but_recoverable rows are healthy: they hold a refresh token and repair themselves on next use. Only nexus_unusable rows cannot be recovered without the user linking again.');
+            return 0;
         }
 
         if (opts.verifyOnly) {
