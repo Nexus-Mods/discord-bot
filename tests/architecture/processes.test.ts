@@ -126,6 +126,19 @@ describe('the bot stays out of the web process', () => {
         expect([...web].filter((f) => f.startsWith('src/events/'))).toEqual([]);
     });
 
+    // Two routes used to carry EmbedBuilder into the web process: api/users re-exported
+    // lib/profile, and types/subscriptions carried 380 lines of embed rendering. A data
+    // layer that renders Discord embeds is one a web app cannot share.
+    it('does not load Discord presentation code', () => {
+        expect([...web].filter((f) => f === 'src/lib/embeds.ts' || f === 'src/lib/profile.ts')).toEqual([]);
+        expect(web.has('src/feeds/subscriptionEmbeds.ts')).toBe(false);
+    });
+
+    it('reads subscriptions without constructing Discord I/O', () => {
+        expect(web.has('src/api/subscriptions.ts')).toBe(true);
+        expect(web.has('src/feeds/webhooks.ts')).toBe(false);
+    });
+
     it('reaches Discord only through the REST directory', () => {
         expect(web.has('src/server/discordDirectory.ts')).toBe(true);
     });

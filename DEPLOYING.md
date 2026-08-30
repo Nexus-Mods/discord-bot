@@ -36,6 +36,37 @@ They are a second container, from the same image, started with a different comma
    started and reject it as unknown state. Moving that to the database is what a second
    replica needs; nothing else does.
 
+### One migration: an orphaned sequence
+
+`0002_drop_orphan_sequence` removes `mod_feeds__id_seq`. The `mod_feeds` table was
+dropped at some point before this work began and its sequence was left behind; the
+production schema dump confirms it — a `CREATE SEQUENCE` with no `OWNED BY` and no table
+of that name anywhere in the file.
+
+**It cannot break an insert.** The migration does not `DROP ... CASCADE`, which would
+silently strip a column default if the assumption were wrong. It attempts a bare `DROP
+SEQUENCE`, which Postgres refuses with `dependent_objects_still_exist` if anything still
+needs the sequence, and catches that — so the sequence is dropped only if the database
+agrees it is unused, and is left in place with a notice otherwise. Verified against a
+real PostgreSQL 16 in three states: orphaned (dropped), still backing a `serial` column
+(left alone, inserts still work), and absent (no-op).
+
+Two notes. Production is PostgreSQL **17** and this was verified on 16; the dependency
+behaviour of `DROP SEQUENCE` is not version-specific, but the check has not run on 17.
+And there is nothing to roll back — a sequence that no table references holds no data.
+Rolling the image back leaves the database in a state the previous version is happy with.
+
+### The connection ceiling dropped from 10 to 4
+
+Per pool, per process. Three shards hold one pool each and the web process holds two, so
+the default is now a ceiling of 20 rather than 50 against a database that allows 22
+backend connections. Production has been safe only because it connects through PgBouncer,
+which nothing in the code requires.
+
+`DB_POOL_MAX` overrides it. Nothing needs to be set for this deploy; raise it only if
+pool acquisition starts to queue, and count the pools first. The resolved value is logged
+at debug on first use.
+
 ### The bot only runs sharded now
 
 `dist/app.js` is the shard child and refuses to start on its own; `npm start` and the
@@ -50,7 +81,7 @@ Left unset, the count is still `auto`.
 
 ### What does not change
 
-- **No migration runs.** No schema change in this release.
+- **Tables and columns are untouched.** The one migration in this release drops a stray sequence and nothing else — see below.
 - **Both containers migrate on start.** `runMigrations` takes a Postgres advisory lock,
   so whichever starts first does the work and the other waits and finds nothing to do.
   This is deliberate: it removes any ordering requirement between the two services.

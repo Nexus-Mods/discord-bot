@@ -10,14 +10,14 @@ import path from 'path';
 import type { Server } from 'http';
 import type { DiscordBotUser } from '../api/DiscordBotUser.js';
 import type { DiscordDirectory } from './discordDirectory.js';
-import { getSubscribedChannelsForGuild } from '../api/subscriptions.js';
+import { getSubscribedChannelsForGuild, getSubscribedItems } from '../api/subscriptions.js';
 import { fileURLToPath } from 'url';
 import type { SubscribedItem, SubscribedItemType } from '../types/subscriptions.js';
 import forumWebhook from './forumWebhook.js';
 import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { checkSharedSecret, cookieOptions, safeCompare, verifyValue } from './auth.js';
+import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from './auth.js';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -68,13 +68,10 @@ export class AuthSite {
 
     private initialize(): void {
         // Fail at boot rather than at request time if a required secret is missing.
-        if (!process.env.COOKIE_SECRET) {
-            throw new Error('COOKIE_SECRET is not set. The OAuth flow signs its state cookie with it, so the site cannot start.');
+        for (const { name, reason } of REQUIRED_SECRETS) {
+            if (!process.env[name]) throw new Error(`${name} is not set. ${reason}, so the site cannot start.`);
         }
-        if (!process.env.UNLINK_SECRET) {
-            throw new Error('UNLINK_SECRET is not set. Unlink links are signed with it, so the site cannot start.');
-        }
-        for (const name of ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE']) {
+        for (const name of OPTIONAL_SECRETS) {
             if (!process.env[name]) this.logger.warn(`${name} is not set - the endpoints it guards will reject every request.`);
         }
 
@@ -462,7 +459,7 @@ export class AuthSite {
         const channels = await this.directory.channels(guild);
         const subs: (SubscribedItem<SubscribedItemType> & { channelName?: string })[] = (await Promise.all(subbedChannels.map(async c => {
             const channelName = channels.find(ch => ch.id === c.channel_id)?.name || 'Unknown Channel';
-            return (await c.getSubscribedItems()).map(s => ({ ...s, channelName} as SubscribedItem<SubscribedItemType> & { channelName?: string }));
+            return (await getSubscribedItems(c)).map(s => ({ ...s, channelName} as SubscribedItem<SubscribedItemType> & { channelName?: string }));
         }))).flat().sort((a,b) => b.last_update.getTime() - a.last_update.getTime());
         
 
@@ -564,7 +561,7 @@ export class AuthSite {
             timeZoneName: 'short'
         };
 
-        let ukTime = 'Invalid date';
+        let ukTime: string;
         try {
             ukTime = new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: 'Europe/London' }).format(date);
         } catch (_e) {

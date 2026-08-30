@@ -2,6 +2,8 @@ import { type CommandInteraction, SlashCommandBuilder, type ChatInputCommandInte
 import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import type { Logger } from "../api/util.js";
 import { getSubscribedChannel } from "../api/subscriptions.js";
+import { webhookFor } from '../feeds/webhooks.js';
+import { getSubscribedItems } from '../api/subscriptions.js';
 
 const timezones = [
     { name: 'UTC, GMT, Europe/London', value: '+00:00' },
@@ -82,7 +84,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         const channel = await getSubscribedChannel(interaction.guildId!, interaction.channelId);
         if (!channel) return interaction.editReply('No subscribed items in this channel.');
         logger.info('Subscription update triggered', { guild: interaction.guild?.name, channel: (interaction.channel as GuildChannel)?.name, timeToUse});
-        await channel.webHookClient.send(`-# Update triggered by ${interaction.user.toString()} for updates since <t:${epoch}:f> for ${(await channel.getSubscribedItems()).length} tracked item(s).`);
+        await webhookFor(channel).send(`-# Update triggered by ${interaction.user.toString()} for updates since <t:${epoch}:f> for ${(await getSubscribedItems(channel)).length} tracked item(s).`);
         await client.subscriptions?.forceChannnelUpdate(channel,timeToUse);
         await interaction.editReply(`Updates for all tracked items since <t:${epoch}:f> will be posted shortly.`);
     }

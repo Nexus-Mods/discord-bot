@@ -66,6 +66,11 @@ export function modUidToGameAndModId(uid: bigint | string): { gameId: number, mo
     return { gameId, modId };
 }
 
+/**
+ * The inverse of modUidToGameAndModId. Kept deliberately: it has no caller today, but a
+ * decoder without its encoder is half a pair, and the v2 API takes mod UIDs wherever it
+ * returns them.
+ */
 export function modIdAndGameIdToModUid(gameId: number, modId: number): string {
     // Convert the gameId and modId to BigInt
     const bigGameId = BigInt(gameId);

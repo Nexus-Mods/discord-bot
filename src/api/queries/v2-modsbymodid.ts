@@ -102,12 +102,12 @@ async function modsQuery(headers: Record<string,string>, logger: Logger, mods: I
                     const gameMods = mods.filter(m => m.gameDomain === game).map(mod => mod.modId);
                     return `${game}: ${gameMods.join(', ')}`;
                 });
-                throw new Error('One or more mods are missing the category attribute.'+consolidatedIds.join('\n'));
+                throw new Error('One or more mods are missing the category attribute.'+consolidatedIds.join('\n'), { cause: err });
             }
-            else throw new Error('GraphQLError '+error);
+            else throw new Error('GraphQLError '+error, { cause: err });
         }
         logger.error('Unkown Mod Lookup Error!', err);
-        throw new Error('Could not find some or all of the mods.');
+        throw new Error('Could not find some or all of the mods.', { cause: err });
     }
 
 }

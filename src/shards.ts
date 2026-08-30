@@ -2,7 +2,8 @@ import { ShardingManager } from 'discord.js';
 import dotenv from 'dotenv';
 import { runMigrations } from './db/migrate.js';
 import { logger } from './api/logger.js';
-dotenv.config();
+// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
+dotenv.config({ quiet: true });
 
 /**
  * The bot's only entry point. dist/app.js is the shard child and refuses to run on

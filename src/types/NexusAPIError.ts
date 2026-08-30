@@ -1,13 +1,17 @@
-import type { AxiosError } from 'axios';
-
 /**
  * The error thrown by the v1 (REST) Nexus Mods API client.
  *
  * This lived in types/util.ts, a grab-bag that also holds GameListCache - which calls
  * `other.Games()` from api/queries/all.ts, which imports api/queries/v1.ts, which needed
  * this class. Importing one error therefore dragged the whole query layer in behind it
- * and closed a runtime import cycle. The class has no dependencies of its own beyond the
- * Axios error type, so it belongs on its own.
+ * and closed a runtime import cycle. The class has no dependencies of its own, so it
+ * belongs on its own.
+ *
+ * It takes a status code rather than a client's error object. It used to take an
+ * AxiosError and read `error.response?.status` off it, which tied a message-mapping
+ * table to whichever HTTP library the caller happened to use - and the commented-out
+ * `raw: Response` field below is the fingerprint of the last time that binding changed.
+ * A number is what it actually needs.
  */
 export class NexusAPIServerError implements Error {
     public code: number = -1;
@@ -15,14 +19,12 @@ export class NexusAPIServerError implements Error {
     public message: string = 'An unknown network error occurred when communicating with the API.';
     public path?: string = undefined;
     public authType?: string = undefined;
-    // public raw: Response;
 
-    constructor(error: AxiosError, authType: 'OAUTH', path?: string) {
-        this.code = error.response?.status || -1;
+    constructor(status: number | undefined, authType: 'OAUTH', path?: string) {
+        this.code = status ?? -1;
         this.path = path;
         this.authType = authType;
-        // this.raw = errorResponse;
-        const errorType: string|undefined = error.response?.status.toString()[0];
+        const errorType: string | undefined = this.code > 0 ? this.code.toString()[0] : undefined;
 
         // Non-HTTP errors (possibly CloudFlare?)
         if (this.code > 599 || !errorType) return;
@@ -45,8 +47,11 @@ export class NexusAPIServerError implements Error {
                 this.name = 'Bad Request';
                 this.message = 'The request is invalid. This could be an issue with your account link, try unlinking and relinking.';
             }
-            // Unauthorised
-            if (this.code === 401) {
+            // Unauthorised. `else if`, not `if`: the 400 branch above used to fall
+            // through into this chain, miss 401 and 404, and land in the generic else -
+            // so a 400 was relabelled 'Client Error' the moment after it was labelled
+            // 'Bad Request'.
+            else if (this.code === 401) {
                 this.name = 'Unauthorised';
                 this.message = 'The API key or OAuth token for your account is not authorised to make this request. Please use the /link command to update it.';
             }

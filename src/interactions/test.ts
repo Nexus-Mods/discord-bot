@@ -4,6 +4,7 @@ import { KnownDiscordServers, type Logger } from "../api/util.js";
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { customEmojis } from "../types/util.js";
 import type { InteractionContext } from '../lib/middleware.js';
+import { userProfileEmbed } from '../lib/profile.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -57,7 +58,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
 
         const formatted = `## V2 API Tests\n${format(v2test)}\n## Other\n${format(otherTest)}`;
 
-        const embed = await botuser.ProfileEmbed(client);
+        const embed = await userProfileEmbed(botuser, client);
 
         const button = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()

@@ -28,11 +28,20 @@ export function checkSharedSecret(req: express.Request, envVar: string): boolean
 }
 
 /**
- * Names of the shared secrets the site expects to find in the environment.
- * Checked at boot so a missing value is loud rather than silent.
+ * The shared secrets the site expects in the environment, checked at boot so a missing
+ * value is loud rather than silent.
+ *
+ * These lists existed but nothing read them - server.ts wrote the same two names out
+ * again inline, which is a duplicate that only ever drifts in one direction: a secret
+ * added here and not there is unchecked. The reasons live with the names so the boot
+ * message can be specific without the caller having to know what each one is for.
  */
-export const REQUIRED_SECRETS = ['COOKIE_SECRET', 'UNLINK_SECRET'];
-export const OPTIONAL_SECRETS = ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE'];
+export const REQUIRED_SECRETS: ReadonlyArray<{ name: string; reason: string }> = [
+    { name: 'COOKIE_SECRET', reason: 'The OAuth flow signs its state cookie with it' },
+    { name: 'UNLINK_SECRET', reason: 'Unlink links are signed with it' },
+];
+
+export const OPTIONAL_SECRETS: ReadonlyArray<string> = ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE'];
 
 /**
  * Standard options for any cookie this site sets.

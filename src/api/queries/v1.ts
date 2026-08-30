@@ -1,49 +1,25 @@
 import type { IChangelogs, IGameInfo, IGameListEntry, IModFiles, IModInfo, IUpdateEntry, IValidateKeyResponse } from '../../types/NexusModsAPIv1.js';
 import { NexusApiError } from '../errors.js';
-import axios, { type AxiosError } from 'axios';
 import { NexusAPIServerError } from '../../types/NexusAPIError.js';
-import type { NexusSearchResult } from '../../types/util.js';
 import type { Logger } from "../util.js";
 
 const nexusAPI: string = 'https://api.nexusmods.com/';
 
-async function v1APIQuery <T>(logger: Logger, path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<T> {
+async function v1APIQuery <T>(logger: Logger, path: string, headers: Record<string, string>, params?: Record<string, string | number | boolean>): Promise<T> {
     const authType = 'OAUTH';
     try {
-        const query = await axios({
-            baseURL: nexusAPI,
-            url: path,
-            transformResponse: (data) => JSON.parse(data),
-            headers,
-            params,
-        });
-        return query.data;
+        const url = new URL(path, nexusAPI);
+        if (params) url.search = new URLSearchParams(Object.entries(params).map(([k, v]): [string, string] => [k, String(v)])).toString();
+        const res = await fetch(url, { headers });
+        if (!res.ok) throw new NexusAPIServerError(res.status, authType, path);
+        const data = await res.json();
+        return data as T;
     }
     catch(err) {
-        if (err as AxiosError) throw new NexusAPIServerError(err as AxiosError, authType, path);
-        logger.error('Unexpected API error', err, true);
+        logger.error('Unexpected v1 API error', err, true);
+        if (err instanceof NexusAPIServerError) throw err;
         throw new NexusApiError('Unexpected Nexus Mods API error.', { cause: err });
     }
-}
-
-export async function quicksearch(query: string, bIncludeAdult: boolean, game_id: number = 0): Promise<NexusSearchResult> {
-    query = query.split(' ').toString();//query.replace(/[^A-Za-z0-9\s]/gi, '').split(' ').join(',');
-    const searchQuery = await axios({
-        baseURL: nexusAPI,
-        url: '/mods',
-        params: {
-            terms: encodeURI(query),
-            game_id,
-            include_adult: bIncludeAdult,
-        },
-        transformResponse: (data) => JSON.parse(data),
-        timeout: 15000
-    });
-    const results = {
-        fullSearchURL: `https://www.nexusmods.com/search/?RH_ModList=nav:true,home:false,type:0,user_id:0,game_id:${game_id},advfilt:true,search%5Bfilename%5D:${query.split(',').join('+')},include_adult:${bIncludeAdult},page_size:20,show_game_filter:true`,
-        ...searchQuery.data
-    };
-    return results;
 }
 
 export async function updatedMods(headers: Record<string,string>, logger: Logger, gameDomain: string, period: string = '1w', ) {

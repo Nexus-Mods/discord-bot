@@ -1,4 +1,3 @@
-import axios, { type AxiosError } from 'axios';
 import type { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
 import type { Logger } from '../util.js';
 import { logger } from '../logger.js';
@@ -39,22 +38,18 @@ const nexusModsFullStatus: string = 'https://nexusmods.statuspage.io/api/v2/summ
 
 export async function Games(headers: Record<string, string>): Promise<IGameStatic[]> {
     try {
-        const gameList = await axios({
-            url: staticGamesList,
-            transformResponse: (res) => JSON.parse(res),
-            headers: { 
-                'Application-Name': headers['Application-Name'] , 
-                'Application-Version': headers['Application-Version'] 
-            },
+        const res = await fetch(staticGamesList, { 
+            headers: {
+            'Application-Name': headers['Application-Name'] , 
+            'Application-Version': headers['Application-Version'] 
+            } 
         });
-        return gameList.data as IGameStatic[];
+        if (!res.ok) throw new Error(`${res.status} - ${res.statusText}`);
+        const gameList = await res.json();
+        return gameList as IGameStatic[];
     }
     catch(err) {
         logger.error('Error getting games list from static file', err, true);
-        // Returning [] here was worse than it looks. GameListCache.getGames() assigns
-        // the result straight into its cache and stamps it valid for five minutes, so a
-        // single transient failure blanked the game list for every lookup until it
-        // expired. Throwing leaves the previously good list in place to be retried.
         throw new NexusApiError('Could not fetch the static games list', {
             cause: err instanceof Error ? err : new Error(String(err)),
             userMessage: 'Nexus Mods could not be reached. Please try again shortly.',
@@ -64,24 +59,23 @@ export async function Games(headers: Record<string, string>): Promise<IGameStati
 
 export async function SiteStats(headers: Record<string, string>): Promise<ISiteStats> {
     try {
-        const stats: ISiteStats = await axios({
-            url: staticStatsList,
-            transformResponse: (res) => {
-                const parsed = JSON.parse(res);
-                if (typeof(parsed.updated_at) === 'string') parsed.updated_at = new Date(parsed.updated_at);
-                return (parsed as ISiteStats)
-            },
-            headers: { 
-                'Application-Name': headers['Application-Name'] , 
-                'Application-Version': headers['Application-Version'] 
-            },
+        const res = await fetch(staticStatsList, { 
+            headers: {
+            'Application-Name': headers['Application-Name'] , 
+            'Application-Version': headers['Application-Version'] 
+            } 
         });
-        return stats;
+        if (!res.ok) throw new Error(`${res.status} - ${res.statusText}`);
+        const siteStats = await res.json() as ISiteStats;
+        if (typeof(siteStats.updated_at) === 'string') siteStats.updated_at = new Date(siteStats.updated_at);
+        return siteStats as ISiteStats;
     }
     catch(err) {
         logger.error('Error getting games list from static file', err, true);
-        (err as AxiosError).message = `Error getting site stats from static file: ${(err as AxiosError).message}`;
-        throw err;
+        throw new NexusApiError('Could not fetch the static site stats', {
+            cause: err instanceof Error ? err : new Error(String(err)),
+            userMessage: 'Nexus Mods could not be reached. Please try again shortly.',
+        });
     }
 }
 
@@ -146,10 +140,12 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
             return cachedValue;
         }
         // Get stats CSV
-        const statsCsv = await axios({ baseURL: nexusStatsAPI, url: `${gameId}.csv`, responseEncoding: 'utf8' }); //({ url: `${nexusStatsAPI}${gameId}.csv`, encoding: 'utf8' });
-        // const statsCsv = await requestPromise({ url: `${nexusStatsAPI}${gameId}.csv`, encoding: 'utf8' });
+        const url = new URL(`${gameId}.csv`, nexusStatsAPI);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} - ${res.statusText}`);
+        const statsCsv = await res.text();
         // Map into an object
-        const gameStats: ModDownloadInfo[] = statsCsv.data.split(/\n/).map(
+        const gameStats: ModDownloadInfo[] = statsCsv.split(/\n/).map(
             (row: string) => {
                 if (row === '') return;
                 const values = row.split(',');
@@ -181,15 +177,20 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
 
 export async function WebsiteStatus<B extends boolean>(headers: Record<string, string>, logger: Logger, full: B): Promise <StatusPageResponse<B>> {
     try {
-        const response = await axios({
-            url: full ? nexusModsFullStatus : nexusModsStatus,
-            transformResponse: (res) => JSON.parse(res),
-            headers,
-        });
-        return response.data;
+        const url = full ? nexusModsFullStatus : nexusModsStatus;
+        const res = await fetch(url, { headers: {
+            'Application-Name': headers['Application-Name'] , 
+            'Application-Version': headers['Application-Version'] 
+        } });
+        if (!res.ok) throw new Error(`${res.status} - ${res.statusText}`);
+        const statusPageResponse = await res.json()
+        return statusPageResponse as StatusPageResponse<B>
     }
     catch(err) {
-        logger.error('Error fetching Nexus Mods status page data', err, true);
-        throw err;
+        logger.error('Error getting website status from statuspage.io', err, true);
+        throw new NexusApiError('Could not fetch the website status', {
+            cause: err instanceof Error ? err : new Error(String(err)),
+            userMessage: 'statuspage.io could not be reached. Please try again shortly.',
+        });
     }
 }

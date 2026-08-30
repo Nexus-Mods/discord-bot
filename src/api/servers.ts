@@ -60,4 +60,5 @@ async function deleteServer(guildId: string): Promise<void> {
     await query('DELETE FROM servers WHERE id = $1', [guildId], 'DeleteServer');
 }
 
-export { getAllServers, getServer, addServer, updateServer, deleteServer };
+// addServer is not exported: getServer is the only caller, and it inserts on miss.
+export { getAllServers, getServer, updateServer, deleteServer };

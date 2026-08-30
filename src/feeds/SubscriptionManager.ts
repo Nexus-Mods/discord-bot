@@ -8,12 +8,13 @@ import { isTesting, type Logger } from '../api/util.js';
 import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
 import { 
     type IModWithFiles, type IPostableSubscriptionUpdate, type ISubscribedItem, 
-    type SubscribedChannel, type SubscribedItem, subscribedItemEmbed, SubscribedItemType, 
-    SubscriptionCache, unavailableUpdate, unavailableUserUpdate, UserEmbedType 
+    type SubscribedChannel, type SubscribedItem, SubscribedItemType, 
+    SubscriptionCache 
 } from '../types/subscriptions.js';
+import { subscribedItemEmbed, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from './subscriptionEmbeds.js';
 import { 
     deleteSubscribedChannel, deleteSubscription, 
-    getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, 
+    getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, getSubscribedItems,
     saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
     updateSubscription 
 } from '../api/subscriptions.js';
@@ -21,6 +22,14 @@ import { v2 as API } from '../api/queries/all.js';
 import { baseheader } from "../api/util.js";
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 import type { ModStatus } from "../types/GQLTypes.js";
+import { webhookFor } from './webhooks.js';
+
+/**
+ * Which shard owns a guild. Was SubscribedChannel.shardId(client) - a method on the data
+ * model that took a gateway client, which is why reading a subscription needed one.
+ */
+const shardIdForChannel = (channel: { guild_id: Snowflake }, client: ClientExt): number =>
+    ShardClientUtil.shardIdForGuildId(channel.guild_id, client.shard?.count ?? 1);
 
 
 /** File categories that mean the file is no longer downloadable, so not worth posting. */
@@ -90,7 +99,7 @@ export class SubscriptionManger {
             if (client.shard) {
                 // If we're sharded, we'll filter out the channels we can't manage.
                 const shardId = client.shard.ids[0];
-                channels = channels.filter(c => c.shardId(client) === shardId);
+                channels = channels.filter(c => shardIdForChannel(c, client) === shardId);
             }            
             SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels, logger);
         }
@@ -122,7 +131,7 @@ export class SubscriptionManger {
         if (this.client.shard) {
             // Only add channels for my current shard!
             const shardId = this.client.shard.ids[0];
-            const shardChannels = allChannels.filter(c => c.shardId(this.client) === shardId);
+            const shardChannels = allChannels.filter(c => shardIdForChannel(c, this.client) === shardId);
             this.logger.debug('Shard channels', { shardId, channels: shardChannels.length });
             // This assignment was missing, so under sharding the channel list was never refreshed.
             this.channels = shardChannels;
@@ -246,7 +255,7 @@ export class SubscriptionManger {
         }
         catch(err) {
             this.logger.warn('Failed to force updates', err);
-            throw new Error('Unable to force-update all subs in channel.')
+            throw new Error('Unable to force-update all subs in channel.', { cause: err })
         }
     }
 
@@ -277,9 +286,9 @@ export class SubscriptionManger {
             // throw new Error('Discord channel no longer exists');
         }
         // Grab the WH Client
-        const webHookClient = channel.webHookClient;
+        const webHookClient = webhookFor(channel);
         // Grab the subscribed items
-        const items = await channel.getSubscribedItems(skipCache);
+        const items = await getSubscribedItems(channel, skipCache);
         if (!items.length) {
             await deleteSubscribedChannel(channel);
             this.channels.splice(this.channels.findIndex(c => c.id === channel.id), 1);
@@ -292,7 +301,7 @@ export class SubscriptionManger {
         // outage get skipped permanently.
         let failedItems = 0;
         for (const item of items) {
-            let updates: IPostableSubscriptionUpdate<typeof item.type>[] = [];
+            let updates: IPostableSubscriptionUpdate<typeof item.type>[];
 
             try {
                 // Logic based on subscription type here.
@@ -391,7 +400,7 @@ export class SubscriptionManger {
                     // Delete the channel and all associated tracked items.
                     await deleteSubscribedChannel(channel);
                     this.channels = this.channels.filter(c => c.id !== channel.id);
-                    throw Error('Webhook no longer exists');
+                    throw new Error('Webhook no longer exists', { cause: err });
                 }
                 this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
             }
@@ -450,7 +459,7 @@ export class SubscriptionManger {
             }
             catch(err) {
                 this.logger.warn('Error processing mod', {mod, err});
-                throw new Error(`Error processing mod ${mod.game.domainName}/${mod.modId} (UID: ${mod.uid})`);
+                throw new Error(`Error processing mod ${mod.game.domainName}/${mod.modId} (UID: ${mod.uid})`, { cause: err });
             }
         }
         results.push(...formattedNew);

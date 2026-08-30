@@ -1,6 +1,7 @@
 // Functionality to interact with the forum API
 import dotenv from 'dotenv';
-dotenv.config();
+// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
+dotenv.config({ quiet: true });
 
 import type { ForumTopic } from "../types/ForumWebhookTypes.js";
 import { readJson } from './http.js';

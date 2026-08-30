@@ -140,7 +140,7 @@ async function evaluateCondition(condition: IConditionForRole, user: DiscordBotU
                     gameDomainName: [{ value: condition.game, op: 'EQUALS' }]
                 }, 
                 { downloads: { direction: 'DESC' } });
-            const total = mods.nodes.reduce((prev, cur) => { return prev = prev + cur.downloads }, 0);
+            const total = mods.nodes.reduce((prev, cur) => prev + cur.downloads, 0);
             return (total >= condition.min);
         }
         case 'modsPublished' : {

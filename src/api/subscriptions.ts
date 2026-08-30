@@ -1,10 +1,58 @@
 import type { Snowflake } from 'discord.js';
 import { type ISubscribedChannel, type ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, type SubscribedItemType } from '../types/subscriptions.js';
 import { queryPromise } from './dbConnect.js';
-import { logger } from './logger.js';
+
 import { DatabaseError } from './errors.js';
 
 // CHANNEL HANDLERS
+
+/**
+ * Operations that used to be methods on SubscribedChannel.
+ *
+ * They lived there because it reads well - channel.subscribe(...) - but it made the
+ * model import this module while this module constructs the model, which is the import
+ * cycle 3.6 left behind. Storage depends on the model; the model depends on nothing.
+ */
+async function loadSubscribedChannel(
+    c: ISubscribedChannel,
+    items: SubscribedItem<SubscribedItemType>[] = [],
+): Promise<SubscribedChannel> {
+    if (items.length === 0) items = await getSubscriptionsByChannel(c.guild_id, c.channel_id);
+    return new SubscribedChannel(c, items);
+}
+
+/** Cached on the channel after the first call, as it was when this was a method. */
+async function getSubscribedItems(
+    channel: SubscribedChannel,
+    skipCache: boolean = false,
+): Promise<SubscribedItem<SubscribedItemType>[]> {
+    if (!channel.items.length || skipCache) {
+        channel.items = await getSubscriptionsByChannel(channel.guild_id, channel.channel_id);
+    }
+    return channel.items;
+}
+
+async function subscribeChannelTo(
+    channel: SubscribedChannel,
+    data: NewSubscriptionData,
+): Promise<SubscribedItem<SubscribedItemType>> {
+    const newSub = await createSubscription(channel.id, data);
+    channel.items.push(newSub);
+    return newSub;
+}
+
+async function updateChannelSubscription(
+    channel: SubscribedChannel,
+    id: number,
+    data: NewSubscriptionData,
+): Promise<SubscribedItem<SubscribedItemType>> {
+    const updatedSub = await updateSubscription(id, channel.id, data);
+    const index = channel.items.findIndex((i) => i.id === id);
+    if (index !== -1) channel.items[index] = updatedSub;
+    else channel.items.push(updatedSub);
+    return updatedSub;
+}
+
 
 async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
     try {
@@ -13,7 +61,7 @@ async function getSubscribedChannels(): Promise<SubscribedChannel[]> {
             []
         );
         const subs = await getAllSubscriptions()
-        const promises = data.rows.map(async r => { return await SubscribedChannel.create(r, logger, subs.filter(s => s.parent === r.id)) });
+        const promises = data.rows.map(async r => loadSubscribedChannel(r, subs.filter(s => s.parent === r.id)));
         const channels = await Promise.all(promises);
         
         return channels;
@@ -32,7 +80,7 @@ async function getSubscribedChannelsForGuild(guild: Snowflake): Promise<Subscrib
         if (data.rows.length === 0) return [];
         else {
             const channels = Promise.all(
-                data.rows.map(async r => await SubscribedChannel.create(r, logger))
+                data.rows.map(async (r) => loadSubscribedChannel(r))
             )
             return (await channels).filter(c => c);
         }
@@ -51,7 +99,7 @@ async function getSubscribedChannel(guild: Snowflake, channel: Snowflake): Promi
             [guild, channel]
         );
         if (data.rows.length === 0) return undefined;
-        else return await SubscribedChannel.create(data.rows[0], logger);
+        else return await loadSubscribedChannel(data.rows[0]);
 
     }
     catch(err) {
@@ -66,7 +114,7 @@ async function createSubscribedChannel(c: Omit<ISubscribedChannel, 'id' | 'creat
                 VALUES ($1, $2, $3, $4) RETURNING *`,
             [c.guild_id, c.channel_id, c.webhook_id, c.webhook_token]
         );
-        return new SubscribedChannel(data.rows[0], [], logger);
+        return new SubscribedChannel(data.rows[0]);
     }
     catch(err) {
         throw new DatabaseError('Failed to create subscribed channel.', { cause: err });
@@ -80,7 +128,7 @@ async function updateSubscribedChannel(c: ISubscribedChannel, date: Date): Promi
                 WHERE id=$2 RETURNING *`,
             [date, c.id]
         );
-        return new SubscribedChannel(data.rows[0], [], logger);
+        return new SubscribedChannel(data.rows[0]);
     }
     catch(err) {
         throw new DatabaseError('Failed to update subscribed channel.', { cause: err });
@@ -267,7 +315,13 @@ async function setDateForAllSubsInChannel(date: Date, guild: Snowflake, channel:
     }
 }
 
+export type NewSubscriptionData = Omit<
+    SubscribedItem<SubscribedItemType>,
+    'id' | 'parent' | 'created' | 'last_update' | 'error_count' | 'showAdult'
+>;
+
 export { 
+    loadSubscribedChannel, getSubscribedItems, subscribeChannelTo, updateChannelSubscription,
     totalItemsInGuild, getSubscribedChannelsForGuild,
     getSubscribedChannels, getCountOfSubscriptions, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, getSubscriptionsByChannel, createSubscription,

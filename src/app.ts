@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
-dotenv.config();
+// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
+dotenv.config({ quiet: true });
 import { DiscordBot } from './DiscordBot.js';
 
 const bot = DiscordBot.getInstance();
