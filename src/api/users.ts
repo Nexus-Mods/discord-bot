@@ -4,11 +4,12 @@ import type { Snowflake } from 'discord.js';
 import { DiscordBotUser } from './DiscordBotUser.js';
 import { updateUserRecord } from './userRecord.js';
 import { logger } from './logger.js';
+import { openUserTokens, sealUserTokens } from '../db/tokenCrypto.js';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users', []);
-        return result.rows;
+        return result.rows.map(openUserTokens);
     }
     catch (err) {
         logger.error('Error getting all users', err);
@@ -36,7 +37,7 @@ async function getCountOfUsers(): Promise<number> {
 async function getUserByDiscordId(discordId: Snowflake | string): Promise<DiscordBotUser | undefined> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users WHERE d_id = $1', [discordId]);
-        const user: NexusUser = result?.rows[0];
+        const user: NexusUser = openUserTokens(result?.rows[0]);
         if (user) {
             return new DiscordBotUser(user, logger);
         }
@@ -51,7 +52,7 @@ async function getUserByDiscordId(discordId: Snowflake | string): Promise<Discor
 async function getUserByNexusModsName(username: string): Promise<DiscordBotUser | undefined> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username]);
-        const user: NexusUser = result?.rows[0];
+        const user: NexusUser = openUserTokens(result?.rows[0]);
         if (user) {
             return new DiscordBotUser(user, logger);
         }
@@ -66,7 +67,7 @@ async function getUserByNexusModsName(username: string): Promise<DiscordBotUser 
 async function getUserByNexusModsId(id: number): Promise<DiscordBotUser | undefined> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users WHERE id = $1', [id]);
-        const user: NexusUser = result?.rows[0];
+        const user: NexusUser = openUserTokens(result?.rows[0]);
         if (user) {
             return new DiscordBotUser(user, logger);
         }
@@ -83,18 +84,22 @@ async function createUser(user: NexusUser): Promise<DiscordBotUser> {
         throw new Error('No auth information provided.');
     }
 
+    // Sealed before the values reach the statement, and the returned row is opened
+    // again, so a caller cannot tell that anything happened.
+    const sealed = sealUserTokens(user);
+
     try {
         const result = await query<NexusUser>(
             'INSERT INTO users (d_id, id, name, avatar_url, supporter, premium, modauthor, nexus_access, nexus_expires, nexus_refresh, discord_access, discord_expires, discord_refresh, lastUpdate) ' +
             'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
             [
-                user.d_id, user.id, user.name, user.avatar_url, user.supporter, user.premium, user.modauthor || false,
-                user.nexus_access, user.nexus_expires, user.nexus_refresh,
-                user.discord_access, user.discord_expires, user.discord_refresh,
+                sealed.d_id, sealed.id, sealed.name, sealed.avatar_url, sealed.supporter, sealed.premium, sealed.modauthor || false,
+                sealed.nexus_access, sealed.nexus_expires, sealed.nexus_refresh,
+                sealed.discord_access, sealed.discord_expires, sealed.discord_refresh,
                 new Date()
             ]
         );
-        return new DiscordBotUser(result?.rows[0], logger);
+        return new DiscordBotUser(openUserTokens(result?.rows[0]), logger);
     }
     catch (err) {
         logger.error('Error inserting new user', err);
