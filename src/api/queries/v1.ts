@@ -5,18 +5,19 @@ import type { Logger } from "../util.js";
 
 const nexusAPI: string = 'https://api.nexusmods.com/';
 
-async function v1APIQuery <T>(logger: Logger, path: string, headers: Record<string, string>, params?: { [key: string]: any }): Promise<T> {
+async function v1APIQuery <T>(logger: Logger, path: string, headers: Record<string, string>, params?: Record<string, string | number | boolean>): Promise<T> {
     const authType = 'OAUTH';
     try {
         const url = new URL(path, nexusAPI);
-        const sParams = new URLSearchParams(params);
-        const res = await fetch(`${url}?${sParams.toString()}`, { headers });
+        if (params) url.search = new URLSearchParams(Object.entries(params).map(([k, v]): [string, string] => [k, String(v)])).toString();
+        const res = await fetch(url, { headers });
         if (!res.ok) throw new NexusAPIServerError(res.status, authType, path);
         const data = await res.json();
         return data as T;
     }
     catch(err) {
         logger.error('Unexpected v1 API error', err, true);
+        if (err instanceof NexusAPIServerError) throw err;
         throw new NexusApiError('Unexpected Nexus Mods API error.', { cause: err });
     }
 }
