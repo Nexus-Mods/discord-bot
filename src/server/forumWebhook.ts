@@ -4,7 +4,6 @@ import type { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
 import type express from 'express';
 import { htmlToText } from 'html-to-text';
 import { getTopic } from '../api/forumAPI.js';
-import axios from 'axios';
 import dotenv from 'dotenv';
 // quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
 dotenv.config({ quiet: true });
@@ -104,16 +103,15 @@ async function postToDiscord(webhookMessage: RESTPostAPIWebhookWithTokenJSONBody
             };
             const posts = discordWebhooks.map(async (webhook) => {
                 try {
-                    const discordResponse = await axios({
+                    // fetch does not throw on a non-2xx response the way axios did, so
+                    // the status has to be checked rather than assumed.
+                    const discordResponse = await fetch(webhook, {
                         method: 'POST',
-                        url: webhook,
-                        data: JSON.stringify(webhookMessage, null, 2),
-                        headers: { 
-                            'Content-Type': 'application/json'
-                        },
+                        body: JSON.stringify(webhookMessage, null, 2),
+                        headers: { 'Content-Type': 'application/json' },
                     });
-                    if (discordResponse.status >= 200 && discordResponse.status < 300) return;
-                    else throw new Error('Discord webhook returned an error: ' + discordResponse.statusText);
+                    if (discordResponse.ok) return;
+                    throw new Error(`Discord webhook returned an error: ${discordResponse.status} ${discordResponse.statusText}`);
                 }
                 catch(err) {
                     logger.warn('Error posting Discord Webhook', err, true);
