@@ -15,6 +15,13 @@
       "when": 1788029964796,
       "tag": "0001_drop_unused_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788074576082,
+      "tag": "0002_drop_orphan_sequence",
+      "breakpoints": true
     }
   ]
 }
