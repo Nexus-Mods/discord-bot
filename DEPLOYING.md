@@ -36,6 +36,17 @@ They are a second container, from the same image, started with a different comma
    started and reject it as unknown state. Moving that to the database is what a second
    replica needs; nothing else does.
 
+### The connection ceiling dropped from 10 to 4
+
+Per pool, per process. Three shards hold one pool each and the web process holds two, so
+the default is now a ceiling of 20 rather than 50 against a database that allows 22
+backend connections. Production has been safe only because it connects through PgBouncer,
+which nothing in the code requires.
+
+`DB_POOL_MAX` overrides it. Nothing needs to be set for this deploy; raise it only if
+pool acquisition starts to queue, and count the pools first. The resolved value is logged
+at debug on first use.
+
 ### The bot only runs sharded now
 
 `dist/app.js` is the shard child and refuses to start on its own; `npm start` and the
