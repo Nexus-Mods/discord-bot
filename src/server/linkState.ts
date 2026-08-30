@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { deriveKey, open as openSealed, seal } from '../lib/sealedValue.js';
 
 /**
  * The in-flight state of an account link, sealed into a cookie.
@@ -50,23 +51,13 @@ interface SealedPayload extends LinkState {
 export const LINK_STATE_COOKIE = 'linkState';
 export const LINK_STATE_TTL_MS = 5 * 60 * 1000;
 
-const VERSION = 'v1';
 
-/**
- * A secret is not a key. HKDF turns the cookie secret into 32 bytes suitable for
- * AES-256, and the info string scopes it - the same secret used elsewhere derives a
- * different key, so this cookie cannot be swapped for another use of the same value.
- */
-function keyFor(secret: string): Buffer {
-    return Buffer.from(crypto.hkdfSync('sha256', Buffer.from(secret, 'utf8'), Buffer.alloc(0), Buffer.from('link-state.v1'), 32));
-}
+/** Scoped so the cookie secret's other uses derive unrelated keys. */
+const keyFor = (secret: string): Buffer => deriveKey(secret, 'link-state.v1');
 
 export function sealLinkState(payload: LinkState, secret: string, ttlMs: number = LINK_STATE_TTL_MS): string {
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', keyFor(secret), iv);
     const body: SealedPayload = { ...payload, exp: Date.now() + ttlMs };
-    const ciphertext = Buffer.concat([cipher.update(Buffer.from(JSON.stringify(body), 'utf8')), cipher.final()]);
-    return [VERSION, iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), ciphertext.toString('base64url')].join('.');
+    return seal(JSON.stringify(body), keyFor(secret));
 }
 
 /**
@@ -79,20 +70,15 @@ export function sealLinkState(payload: LinkState, secret: string, ttlMs: number 
  * cookie captured from one link attempt would complete a different one.
  */
 export function openLinkState(sealed: unknown, secret: string, expectedState: string): LinkState | null {
-    if (typeof sealed !== 'string') return null;
-    const [version, iv, tag, ciphertext] = sealed.split('.');
-    if (version !== VERSION || !iv || !tag || !ciphertext) return null;
+    const plain = openSealed(sealed, [keyFor(secret)]);
+    if (plain === null) return null;
 
     let parsed: SealedPayload;
     try {
-        const decipher = crypto.createDecipheriv('aes-256-gcm', keyFor(secret), Buffer.from(iv, 'base64url'));
-        decipher.setAuthTag(Buffer.from(tag, 'base64url'));
-        const plain = Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]);
-        parsed = JSON.parse(plain.toString('utf8')) as SealedPayload;
+        parsed = JSON.parse(plain) as SealedPayload;
     }
     catch {
-        // A bad auth tag, a wrong key and malformed base64 all land here. GCM verifies
-        // the tag in final(), so tampering cannot get past this point.
+        // Opened but not the JSON we put in - treat exactly like a failure to open.
         return null;
     }
 
