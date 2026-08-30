@@ -2,7 +2,7 @@ import type { ClientExt } from "../types/DiscordTypes.js";
 import { assertPresent } from '../lib/assert.js';
 import { 
     type DiscordAPIError, EmbedBuilder, type Guild, type Snowflake, type TextChannel, 
-    type WebhookMessageCreateOptions, ShardClientUtil, type DiscordjsError 
+    type WebhookMessageCreateOptions, type DiscordjsError 
 } from 'discord.js';
 import { isTesting, type Logger } from '../api/util.js';
 import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
@@ -23,13 +23,15 @@ import { baseheader } from "../api/util.js";
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 import type { ModStatus } from "../types/GQLTypes.js";
 import { webhookFor } from './webhooks.js';
+import { forceChannelUpdateOnOwningShard, type ForceUpdateMessage, requestSubscriptionRefreshOnOtherShards, requireShard, shardIdForGuild } from '../lib/sharding.js';
 
 /**
- * Which shard owns a guild. Was SubscribedChannel.shardId(client) - a method on the data
- * model that took a gateway client, which is why reading a subscription needed one.
+ * Which shard owns a channel's guild. Was SubscribedChannel.shardId(client) - a method
+ * on the data model that took a gateway client, which is why reading a subscription
+ * needed one. The `?? 1` fallback it carried is gone: there is no unsharded mode.
  */
 const shardIdForChannel = (channel: { guild_id: Snowflake }, client: ClientExt): number =>
-    ShardClientUtil.shardIdForGuildId(channel.guild_id, client.shard?.count ?? 1);
+    shardIdForGuild(client, channel.guild_id);
 
 
 /** File categories that mean the file is no longer downloadable, so not worth posting. */
@@ -66,7 +68,7 @@ export class SubscriptionManger {
         this.channels = channels;
         // Save the client for later
         this.client = client;
-        if (client.shard && client.shard.ids[0] !== 0) {
+        if (requireShard(client).ids[0] !== 0) {
             // Return here if we're not on the main shard. 
             logger.info('Subscription Manager initialised', { channels: this.channels.length, pollTime: this.pollTime});
             return this;
@@ -88,7 +90,7 @@ export class SubscriptionManger {
         if (!SubscriptionManger.instance) {
             await SubscriptionManger.initialiseInstance(client, pollTime, logger);
             const guilds = client.guilds.cache;
-            if (client.shard) logger.info('Subscription Manager has guilds', { count: guilds.size });
+            logger.info('Subscription Manager has guilds', { count: guilds.size });
         }
         return SubscriptionManger.instance;
     }
@@ -96,11 +98,10 @@ export class SubscriptionManger {
     private static async initialiseInstance(client: ClientExt, pollTime: number, logger: Logger): Promise<void> {
         try {
             let channels: SubscribedChannel[] = await getSubscribedChannels();
-            if (client.shard) {
-                // If we're sharded, we'll filter out the channels we can't manage.
-                const shardId = client.shard.ids[0];
-                channels = channels.filter(c => shardIdForChannel(c, client) === shardId);
-            }            
+            // Only the channels this shard can manage.
+            const shardId = requireShard(client).ids[0];
+            channels = channels.filter(c => shardIdForChannel(c, client) === shardId);
+
             SubscriptionManger.instance = new SubscriptionManger(client, pollTime, channels, logger);
         }
         catch(err) {
@@ -128,16 +129,12 @@ export class SubscriptionManger {
 
     private async updateChannels() {
         const allChannels = await getSubscribedChannels();
-        if (this.client.shard) {
-            // Only add channels for my current shard!
-            const shardId = this.client.shard.ids[0];
-            const shardChannels = allChannels.filter(c => shardIdForChannel(c, this.client) === shardId);
-            this.logger.debug('Shard channels', { shardId, channels: shardChannels.length });
-            // This assignment was missing, so under sharding the channel list was never refreshed.
-            this.channels = shardChannels;
-            return;
-        }
-        else this.channels = allChannels;
+        // Only the channels for this shard. This assignment was missing once, so under
+        // sharding the channel list was never refreshed.
+        const shardId = requireShard(this.client).ids[0];
+        const shardChannels = allChannels.filter(c => shardIdForChannel(c, this.client) === shardId);
+        this.logger.debug('Shard channels', { shardId, channels: shardChannels.length });
+        this.channels = shardChannels;
     }
 
     public removeChannel(id: number) {
@@ -151,6 +148,17 @@ export class SubscriptionManger {
         const saved = this.channels.findIndex(c => c.id === channel.id);
         if (saved !== -1) this.channels[saved] = channel;
         else this.channels.push(channel);
+    }
+
+    /**
+     * Entry point for the refresh another shard asks for. Public because it is called
+     * across a process boundary; updateSubscriptions itself stays private.
+     *
+     * Deliberately not awaited by the caller: a full refresh takes far longer than
+     * broadcastEval will wait, and there is nothing useful to return.
+     */
+    public handleRefreshRequest(): void {
+        void this.updateSubscriptions();
     }
 
     private async updateSubscriptions() {
@@ -206,12 +214,9 @@ export class SubscriptionManger {
         // Reset the cache
         this.cache = new SubscriptionCache();
         // Trigger the update on other shards
-        if (this.client.shard && this.client.shard.ids[0] === 0) {
+        if (requireShard(this.client).ids[0] === 0) {
             try {
-                await this.client.shard.broadcastEval((client: ClientExt, context) => {
-                    // Runs inside another shard's process, so nothing here can await it.
-                    if (client.shard?.ids[0] !== context.mainId) void client.subscriptions?.updateSubscriptions();
-                }, { context: { mainId: this.client.shard.ids[0] } })
+                await requestSubscriptionRefreshOnOtherShards(this.client);
             }
             catch(err) {
                 if ((err as DiscordjsError).message === 'Shards are still being spawned.') {
@@ -226,32 +231,19 @@ export class SubscriptionManger {
     public async forceChannnelUpdate(channel: SubscribedChannel, date: Date) {
         try {
             await setDateForAllSubsInChannel(date, channel.guild_id, channel.channel_id);
-            if (!this.client.shard) return this.getUpdatesForChannel(channel, true);
-            else {
-                const shardForGuild = ShardClientUtil.shardIdForGuildId(channel.guild_id, this.client.shard.count);
-                this.logger.info('Force update sending for Shard', shardForGuild);
-                if (shardForGuild === this.client.shard.ids[0]) return this.getUpdatesForChannel(channel, true);
-                this.logger.info('Sending forceChannelUpdate', { target: shardForGuild });
-                const res = await this.client.shard.broadcastEval(async (client: ClientExt, context) => {
-                    if (client.shard?.ids[0] === context.shardId) {
-                        await client.subscriptions?.handleForceUpdate(context);
-                        return 'Success';
-                    }
-                    else return null;
-                }, { 
-                    context: { 
-                        type: 'forceChannelUpdate',
-                        id: channel.id,
-                        guild_id: channel.guild_id,
-                        channel_id: channel.channel_id,
-                        date: date.toISOString(),
-                        shardId: shardForGuild 
+            const shardForGuild = shardIdForGuild(this.client, channel.guild_id);
+            if (shardForGuild === requireShard(this.client).ids[0]) return this.getUpdatesForChannel(channel, true);
 
-                    } 
-                });
-                if (res.filter(r => r).length) return;
-                else throw new Error('Unable to handle update');
-            }
+            this.logger.info('Sending forceChannelUpdate', { target: shardForGuild });
+            const handled = await forceChannelUpdateOnOwningShard(this.client, {
+                type: 'forceChannelUpdate',
+                id: channel.id,
+                guild_id: channel.guild_id,
+                channel_id: channel.channel_id,
+                date: date.toISOString(),
+                shardId: shardForGuild,
+            });
+            if (!handled) throw new Error('Unable to handle update');
         }
         catch(err) {
             this.logger.warn('Failed to force updates', err);
@@ -259,10 +251,11 @@ export class SubscriptionManger {
         }
     }
 
-    public async handleForceUpdate(message: { type: string, date: string, id: number, guild_id: Snowflake, channel_id: Snowflake, shardId: number }) {
-        this.logger.info('Recieved message', message);
-        if (message.shardId !== this.client.shard!.ids[0]) return;
-        if (message.type !== 'forceChannelUpdate') return;
+    public async handleForceUpdate(message: ForceUpdateMessage) {
+        this.logger.info('Received cross-shard force update', message);
+        // Defensive: the wrapper already routes by shard id, but this method is the
+        // remote entry point and should not act on a message meant for someone else.
+        if (message.shardId !== requireShard(this.client).ids[0]) return;
         try {
             await setDateForAllSubsInChannel(new Date(message.date), message.guild_id, message.channel_id);
             const channel = this.channels.find(c => c.guild_id === message.guild_id && c.channel_id === message.channel_id) || await getSubscribedChannel(message.guild_id, message.channel_id);
@@ -770,11 +763,9 @@ export class SubscriptionManger {
 
     private async prepareCache() {
         let subs = await getAllSubscriptions();
-        if (this.client.shard) {
-            // We're only managing some of the subs, so we don't need to cache everything;
-            const shardChannelIds = this.channels.map(c => (typeof(c.id) === 'number') ? c.id: parseInt(c.id));
-            subs = subs.filter(s => shardChannelIds.includes(s.parent));
-        }
+        // Only some of the subs are ours, so there is no point caching the rest.
+        const shardChannelIds = this.channels.map(c => (typeof(c.id) === 'number') ? c.id : parseInt(c.id));
+        subs = subs.filter(s => shardChannelIds.includes(s.parent));
         this.logger.debug('Preparing cache for subscriptions', { subs: subs.length, channels: this.channels.length });
 
         // Tasks, not started promises - see mapWithConcurrency below.

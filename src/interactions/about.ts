@@ -9,6 +9,7 @@ import { getCountOfUsers } from '../api/users.js';
 import { calcUptime, type Logger } from "../api/util.js";
 import { getCountOfSubscriptions } from "../api/subscriptions.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
+import { totalGuildCount } from '../lib/sharding.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()
@@ -54,11 +55,7 @@ async function action(client: Client, baseInteraction: CommandInteraction, _logg
     const allUsers: number = await getCountOfUsers().catch(() => 0);
     const allFeeds = await getCountOfSubscriptions().catch(() => 0);
 
-    let guildCount = client.guilds.cache.size;
-    if (client.shard) {
-        const shardTotals = await client.shard.broadcastEval((client) => client.guilds.cache.size);
-        guildCount = shardTotals.reduce((prev, cur) => prev + cur, 0);
-    }
+    const guildCount = await totalGuildCount(client);
 
 
     // const botPermissons: string[] = interaction.guild?.members.me?.permissions.toArray() || [];

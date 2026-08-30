@@ -1,12 +1,13 @@
 import type { News, SavedNewsData } from '../types/feeds.js';
 import { getSavedNews, updateSavedNews } from '../api/news.js';
 import type { ClientExt } from "../types/DiscordTypes.js";
-import { EmbedBuilder, ShardClientUtil, type TextChannel, WebhookClient } from 'discord.js';
+import { EmbedBuilder, type TextChannel, WebhookClient } from 'discord.js';
 import { type Logger, nexusModsTrackingUrl, baseheader } from '../api/util.js';
 import type { IGameStatic } from '../api/queries/other.js';
 import { v2 } from '../api/queries/all.js';
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 import { voidAsync } from '../lib/async.js';
+import { ownsGuild, postNewsOnOwningShard, requireShard, shardIdForGuild } from '../lib/sharding.js';
 
 const pollTime = (1000*60*30)*1; //30 mins
 
@@ -32,7 +33,7 @@ export class NewsFeedManager {
     static async getInstance(client: ClientExt, logger: Logger): Promise<NewsFeedManager> {
         if (!NewsFeedManager.instance) {
             let saved = undefined;
-            if (!client.shard || NewsFeedManager.isInstanceForShard(client)) {
+            if (NewsFeedManager.isInstanceForShard(client)) {
                 try {
                     saved = await getSavedNews(logger);
                 }
@@ -46,8 +47,8 @@ export class NewsFeedManager {
         return NewsFeedManager.instance;
     }
 
-    private static isInstanceForShard = (client: ClientExt): boolean => 
-        ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, client.shard!.count) === client.shard!.ids[0];
+    private static isInstanceForShard = (client: ClientExt): boolean =>
+        ownsGuild(client, process.env['NEWS_WEBHOOK_GUILD']!);
 
     private constructor(client: ClientExt, pollTime: number, logger: Logger, savedNews?: SavedNewsData) {
         // Save the client for later
@@ -55,13 +56,11 @@ export class NewsFeedManager {
         this.logger = logger;
         this.LatestNews = savedNews;
 
-        if (client.shard) {
-            // The guard was inverted: the timer was installed everywhere EXCEPT the shard
-            // holding the news guild, so every post round-tripped through broadcastEval.
-            if (!NewsFeedManager.isInstanceForShard(client)) {
-                this.logger.debug('News webhook guild not found in this shard. Will not send news from here.');
-                return;
-            }
+        // The guard was inverted: the timer was installed everywhere EXCEPT the shard
+        // holding the news guild, so every post round-tripped through broadcastEval.
+        if (!NewsFeedManager.isInstanceForShard(client)) {
+            this.logger.debug('News webhook guild not found in this shard. Will not send news from here.');
+            return;
         }
         
         // Set the update interval.
@@ -72,27 +71,29 @@ export class NewsFeedManager {
         logger.info('Initialised news feed, checking every 30mins.')
     }
 
+    /**
+     * Entry point for a news post another shard could not make itself, because this
+     * process is the one holding the news guild. Public for the same reason as
+     * SubscriptionManger.handleRefreshRequest - it is invoked across a process
+     * boundary - while postLatestNews stays private.
+     */
+    public async handleNewsRequest(domain?: string): Promise<EmbedBuilder> {
+        return this.postLatestNews(domain);
+    }
+
     private async postLatestNews(domain?: string): Promise<EmbedBuilder> {
-        if (this.client.shard) {
-            if (!NewsFeedManager.isInstanceForShard(this.client)) {
-                const correctShard = ShardClientUtil.shardIdForGuildId(process.env['NEWS_WEBHOOK_GUILD']!, this.client.shard!.count);
-                this.logger.warn('News webhook guild not handled by this shard. Attempting to pass request to the correct shard.', correctShard);
-                if (this.client.shard!.ids[0] === correctShard) throw new Error('This shard is the correct one to handle the request, but isn\'t returned from the isInstanceForShard check.');
-                const otherShards = await this.client.shard.broadcastEval(async (client: ClientExt, context: { shardId: number, domain: string | undefined }) => {
-                    if (client.shard!.ids[0] === context.shardId) {
-                        return client.newsFeed?.postLatestNews(context.domain);
-                    }
-                }, { context: { shardId: correctShard, domain } });
-                const results = otherShards.filter((r: any) => r !== null);
-                if (results.length) {
-                    if (results.length > 1) this.logger.warn('Multiple shards returned results for news updates. This is unexpected.', results);
-                    return new EmbedBuilder(results[0]);
-                }
-                else {
-                    this.logger.warn('No other shards able to post news updates.')
-                    throw new Error('No shards able to post news updates.');
-                }
+        if (!NewsFeedManager.isInstanceForShard(this.client)) {
+            const correctShard = shardIdForGuild(this.client, process.env['NEWS_WEBHOOK_GUILD']!);
+            this.logger.warn('News webhook guild not handled by this shard. Passing the request to the correct shard.', correctShard);
+            if (requireShard(this.client).ids[0] === correctShard) {
+                throw new Error('This shard owns the news guild but isInstanceForShard disagrees.');
             }
+            const embed = await postNewsOnOwningShard(this.client, correctShard, domain);
+            if (!embed) {
+                this.logger.warn('No other shards able to post news updates.');
+                throw new Error('No shards able to post news updates.');
+            }
+            return new EmbedBuilder(embed);
         }
 
         const stored: SavedNewsData | undefined = NewsFeedManager.instance.LatestNews;
