@@ -124,7 +124,6 @@ export class DiscordBotUser {
                     async (mods: { gameDomain: string, modId: number } | { gameDomain: string, modId: number }[]) => 
                         v2.modsById(this.headers(), this.logger, mods),
                 ModsByUid: async (uids: string[]) => v2.modsByUid(this.headers(), this.logger, uids),
-                MyCollections: async () => v2.myCollections(this.headers(), this.logger),
                 Collections: 
                     async (filters: GQLTypes.ICollectionsFilter, sort?: GQLTypes.CollectionsSort, adultContent?: boolean) => 
                         v2.collections(this.headers(), this.logger, filters, sort, adultContent),

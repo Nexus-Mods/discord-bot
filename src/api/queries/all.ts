@@ -3,7 +3,6 @@ import { isModAuthor } from './v2-ismodauthor.js';
 import { game } from './v2-game.js';
 import { mods as modsById } from './v2-modsbymodid.js';
 import { mods } from './v2-mods.js';
-import { myCollections } from './v2-mycollections.js';
 import { collections } from './v2-collections.js';
 import { collection } from './v2-collection.js';
 import { findUser } from './v2-finduser.js';
@@ -30,7 +29,6 @@ export const v2 = {
     mods,
     modsById,
     modsByUid,
-    myCollections,
     collections,
     collection,
     findUser,
