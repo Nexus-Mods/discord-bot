@@ -18,6 +18,7 @@ import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from './auth.js';
+import { LINK_STATE_COOKIE, LINK_STATE_TTL_MS, openLinkState, sealLinkState } from './linkState.js';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -31,10 +32,10 @@ const __dirname = path.dirname(__filename);
  * its own process (`dist/web.js`) and holds no Discord state: what it needed from the
  * client is a DiscordDirectory, which is two REST calls.
  *
- * TempStore is still an in-memory Map, which makes this single-replica by construction.
- * A second replica would answer the Nexus callback for a link the other replica started
- * and reject it as unknown state. Moving it to the database or Redis is what a second
- * replica needs; nothing else here does.
+ * It holds no state between requests. The in-flight half of an account link - the
+ * Discord tokens, waiting for the user to come back from Nexus Mods - used to live in a
+ * Map on this instance, which made the service single-replica and meant a deploy dropped
+ * anyone mid-link into a 403. It is sealed into a cookie now; see linkState.ts.
  */
 export class AuthSite {
     private static instance: AuthSite;
@@ -43,7 +44,6 @@ export class AuthSite {
     private logger: Logger;
     private port = process.env.AUTH_PORT || 3000;
     private server?: Server;
-    public TempStore: Map<string, { name: string, id: string, tokens: any }> = new Map();
 
     private constructor(directory: DiscordDirectory, logger: Logger) {
         this.directory = directory;
@@ -222,10 +222,14 @@ export class AuthSite {
 
             const meData = await DiscordOAuth.getUserData(tokens);
             const userId = meData.user.id;
-            // Store the Discord token temporarily
-            this.TempStore.set(clientState, { id: userId, name: `${meData.user.username}#${meData.user.discriminator}`, tokens });
-            // If they don't come back to finish linking, drop the stored tokens after 5 mins so the store doesn't grow forever.
-            setTimeout(() => this.TempStore.delete(clientState), 1000 * 60 * 5);
+            // Hand the half-finished link back to the browser, sealed. The five-minute
+            // expiry is inside the sealed payload as well as on the cookie, so an
+            // abandoned link cannot be resumed by replaying the cookie later.
+            const sealed = sealLinkState(
+                { state: clientState, id: userId, name: `${meData.user.username}#${meData.user.discriminator}`, tokens },
+                process.env.COOKIE_SECRET!,
+            );
+            res.cookie(LINK_STATE_COOKIE, sealed, cookieOptions(LINK_STATE_TTL_MS));
 
             // Forward to Nexus Mods auth.
             const { url } = NexusModsOAuth.getOAuthUrl(clientState, this.logger);
@@ -251,15 +255,22 @@ export class AuthSite {
             return;
         }
 
-        // Get the Discord data from the store
-        const discordData = this.TempStore.get(clientState);
+        // Unseal the Discord half of the link. openLinkState returns null for every
+        // failure - forged, expired, wrong secret, or belonging to a different flow -
+        // because none of them is recoverable and telling them apart here would only
+        // invite treating a forged cookie as a transient error.
+        // signedCookies, not cookies: cookieOptions sets signed: true, so cookie-parser
+        // puts it there (and puts `false` there if the signature fails, which
+        // openLinkState rejects along with everything else non-string).
+        const discordData = openLinkState(req.signedCookies?.[LINK_STATE_COOKIE], process.env.COOKIE_SECRET!, clientState);
+        // Read once: clear it whether or not it opened, so a failed attempt does not
+        // leave tokens sitting in the browser for the rest of the window.
+        res.clearCookie(LINK_STATE_COOKIE);
         if (!discordData) {
             this.logger.warn('Could not find matching Discord Auth to pair accounts', req.url);
             res.sendStatus(403);
             return;
         }
-        // Read the data out, so drop the store entry.
-        this.TempStore.delete(clientState);
 
         try {
             const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);
