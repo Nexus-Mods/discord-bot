@@ -19,30 +19,6 @@ export interface ModDownloadInfo {
     unique_downloads: number
 }
 
-export interface NexusSearchResult {
-    terms: string[];
-    exclude_authors: string[];
-    include_adult: boolean;
-    took: number;
-    total: number;
-    results: NexusSearchModResult[]
-    fullSearchURL?: string;
-}
-
-interface NexusSearchModResult {
-    name: string;
-    downloads: number;
-    endorsements: number;
-    url: string;
-    image: string;
-    username: string;
-    user_id: number;
-    game_name: string;
-    game_id: number;
-    mod_id: number;
-}
-
-
 export class GameListCache {
     public dateStamp: number;
     public games: IGameStatic[];
