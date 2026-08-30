@@ -45,3 +45,4 @@ config.json
 /schema.sql
 /dump*.sql
 /*.dump
+/*.tgz
