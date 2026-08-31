@@ -312,9 +312,6 @@ export async function withTransaction<R>(
     }
 }
 
-/** @deprecated Prefer `query`. Kept because much of the data layer imports this name. */
-export const queryPromise = query;
-
 /**
  * Turn a pg failure into a DatabaseError.
  *

@@ -1,4 +1,4 @@
-import { queryPromise } from './dbConnect.js';
+import { query } from './dbConnect.js';
 import { DatabaseError } from './errors.js';
 
 export interface ITip {
@@ -15,7 +15,7 @@ export interface ITip {
 
 async function getAllTips(): Promise<ITip[]> {
     try {
-        const data = await queryPromise<ITip>('SELECT * FROM tips ORDER BY title', []);
+        const data = await query<ITip>('SELECT * FROM tips ORDER BY title', []);
         return data.rows;
     }
     catch(error) {
@@ -26,7 +26,7 @@ async function getAllTips(): Promise<ITip[]> {
 
 async function addTip(prompt: string, author: string, title: string, embed?: string, message?: string): Promise<ITip> {
     try {
-        const data = await queryPromise<ITip>(
+        const data = await query<ITip>(
             'INSERT INTO tips (prompt, title, embed, message, author) VALUES ($1 , $2, $3, $4, $5) RETURNING *',
             [prompt, title, embed, message, author]
         );
@@ -39,7 +39,7 @@ async function addTip(prompt: string, author: string, title: string, embed?: str
 
 async function editTip(prompt: string, author: string, title: string, embed?: string, message?: string): Promise<void> {
     try {
-        await queryPromise(
+        await query(
             'UPDATE tips SET title=$1, embed=$2, message=$3, author=$4, updated=DEFAULT WHERE prompt=$5',
             [title, embed, message, author, prompt]
         );
@@ -52,7 +52,7 @@ async function editTip(prompt: string, author: string, title: string, embed?: st
 
 async function setApprovedTip(prompt: string, approved: boolean): Promise<void> {
     try {
-        await queryPromise(
+        await query(
             'UPDATE tips SET approved=$1 WHERE prompt=$2',
             [approved, prompt]
         );
@@ -65,7 +65,7 @@ async function setApprovedTip(prompt: string, approved: boolean): Promise<void> 
 
 async function deleteTip(prompt: string): Promise<void> {
     try {
-        await queryPromise(
+        await query(
             'DELETE FROM tips WHERE prompt=$1',
             [prompt]
         );
