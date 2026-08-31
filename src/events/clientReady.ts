@@ -19,6 +19,7 @@ const main: DiscordEventInterface = {
 
         // DiscordBot.connect() already primes this; only retry if that failed.
         try {
+            // eslint-disable-next-line require-atomic-updates
             if (!client.gamesList) client.gamesList = await new GameListCache().init(logger);
         }
         catch(err) {
