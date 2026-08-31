@@ -1,7 +1,7 @@
 {
   "name": "nexus-bot-typescript",
   "type": "module",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
@@ -17,6 +17,9 @@
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
     "db:migrate": "npm run build && node dist/db/migrate.js",
+    "tokens:backfill": "npm run build && node dist/db/backfillTokens.js",
+    "tokens:verify": "npm run build && node dist/db/backfillTokens.js --verify",
+    "tokens:report": "npm run build && node dist/db/backfillTokens.js --report",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:check": "graphql-codegen --config codegen.ts && git diff --exit-code src/api/generated",
     "test": "vitest run",

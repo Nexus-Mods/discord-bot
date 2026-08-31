@@ -1,5 +1,5 @@
 import {
-    bigint, boolean, foreignKey, integer, jsonb, pgTable, serial, text, timestamp,
+    bigint, boolean, foreignKey, integer, jsonb, pgTable, text, timestamp,
     unique, varchar,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';

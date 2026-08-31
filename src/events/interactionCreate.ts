@@ -9,7 +9,8 @@ import { randomUUID } from 'node:crypto';
 import type { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';
 import {
     deferOptions, describePermissions, isBotOwner, missingPermissions, resolveDeferVisibility,
-    resolveLinkedUser, LINK_REQUIRED_MESSAGE, type InteractionContext,
+    resolveLinkedUser, refusedForOwnerOnly, LINK_REQUIRED_MESSAGE, OWNER_ONLY_MESSAGE,
+    type InteractionContext,
 } from '../lib/middleware.js';
 
 const ignoreErrors: string[] = [ 
@@ -60,6 +61,18 @@ async function runCommand(
 
     if (interact.defer) {
         await interaction.deferReply(deferOptions(resolveDeferVisibility(interact.defer, interaction)));
+    }
+
+    // Before the permission check, not after: an owner-only command should refuse a
+    // server administrator who is not an owner, and the owner bypass inside
+    // missingPermissions would otherwise never come into it either way.
+    if (refusedForOwnerOnly(interaction, client.config?.ownerIDs, interact.ownerOnly)) {
+        logger.info('Command refused, not a bot owner', {
+            command: interaction.commandName,
+            requestedBy: interaction.user.tag,
+        });
+        await respond(interaction, OWNER_ONLY_MESSAGE);
+        return;
     }
 
     if (interact.requiredPermissions?.length) {

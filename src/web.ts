@@ -6,6 +6,7 @@ import { runMigrations } from './db/migrate.js';
 import { AuthSite } from './server/server.js';
 import { createDiscordDirectory } from './server/discordDirectory.js';
 import { closePools } from './api/dbConnect.js';
+import { assertTokenKeyConfigured } from './db/tokenCrypto.js';
 
 /**
  * Entry point for the auth site, which runs as its own container from the same image
@@ -18,6 +19,14 @@ import { closePools } from './api/dbConnect.js';
  * other waits on the lock and finds nothing to do.
  */
 async function start(): Promise<void> {
+    try {
+        assertTokenKeyConfigured();
+    }
+    catch (err) {
+        logger.error('Token encryption is not configured, refusing to start', err);
+        process.exit(1);
+    }
+
     try {
         await runMigrations();
     }

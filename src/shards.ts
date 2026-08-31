@@ -2,6 +2,7 @@ import { ShardingManager } from 'discord.js';
 import dotenv from 'dotenv';
 import { runMigrations } from './db/migrate.js';
 import { logger } from './api/logger.js';
+import { assertTokenKeyConfigured } from './db/tokenCrypto.js';
 // quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
 dotenv.config({ quiet: true });
 
@@ -44,6 +45,17 @@ manager.on('shardCreate', (shard) => {
 });
 
 async function start() {
+    // Before anything else, and before spawning children that would each repeat the
+    // failure. A missing key must stop the process rather than let a write path run
+    // with nothing to encrypt with.
+    try {
+        assertTokenKeyConfigured();
+    }
+    catch (err) {
+        logger.error('Token encryption is not configured, refusing to start', err);
+        process.exit(1);
+    }
+
     // Migrate before any shard exists. This used to be a pair of hand-written
     // migrations gated on npm_package_version, so they ran only if the version
     // string happened to match on that particular deploy and were skipped forever

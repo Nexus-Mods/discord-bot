@@ -68,6 +68,29 @@ export function isBotOwner(interaction: CommandInteraction, ownerIDs: string[] |
     return !!ownerIDs?.includes(interaction.user.id);
 }
 
+export const OWNER_ONLY_MESSAGE = 'This command is restricted to the bot owners.';
+
+/**
+ * The counterpart to the owner bypass above: `requiredPermissions` lets an owner
+ * through a check, this one lets *only* an owner through.
+ *
+ * Guild scoping is not a substitute. `guilds: [BotDemo]` decides where a command is
+ * registered, which keeps it out of sight but is not an authorisation check - any
+ * administrator of that server can still run it. For a command that rewrites every
+ * credential in the database, "who can see it" and "who can run it" need to be
+ * different questions.
+ *
+ * An empty OWNER_IDS therefore denies everyone rather than allowing everyone, which is
+ * the safe direction for a misconfiguration.
+ */
+export function refusedForOwnerOnly(
+    interaction: CommandInteraction,
+    ownerIDs: string[] | undefined,
+    ownerOnly: boolean | undefined,
+): boolean {
+    return !!ownerOnly && !isBotOwner(interaction, ownerIDs);
+}
+
 export const LINK_REQUIRED_MESSAGE =
     'You need to link your Nexus Mods account to use this command. Run **/link** to get started.';
 

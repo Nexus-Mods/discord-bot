@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { MessageFlags, PermissionFlagsBits, PermissionsBitField } from 'discord.js';
 import type { CommandInteraction } from 'discord.js';
 import {
-    deferOptions, describePermissions, missingPermissions, resolveDeferVisibility,
+    deferOptions, describePermissions, missingPermissions, refusedForOwnerOnly, resolveDeferVisibility,
 } from '../../src/lib/middleware.js';
 
 describe('deferOptions', () => {
@@ -83,5 +83,38 @@ describe('describePermissions', () => {
         expect(describePermissions([PermissionFlagsBits.ManageGuild])).toBe('ManageGuild');
         expect(describePermissions([PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageChannels]))
             .toContain('ManageChannels');
+    });
+});
+
+describe('refusedForOwnerOnly', () => {
+    const from = (userId: string) => ({ user: { id: userId } }) as unknown as CommandInteraction;
+
+    it('lets a configured owner through', () => {
+        expect(refusedForOwnerOnly(from('111'), ['111', '222'], true)).toBe(false);
+    });
+
+    it('refuses everyone else, including server administrators', () => {
+        // The point of the flag. `guilds: [BotDemo]` decides where a command is
+        // registered, not who may run it - any admin of that server can see and invoke
+        // it, and for /tokens that would mean rewriting every credential in the
+        // database.
+        expect(refusedForOwnerOnly(from('999'), ['111', '222'], true)).toBe(true);
+    });
+
+    it('refuses everyone when OWNER_IDS is unset or empty', () => {
+        // Fails closed. An owner-only command whose owner list went missing must not
+        // silently become an everyone-command.
+        expect(refusedForOwnerOnly(from('111'), undefined, true)).toBe(true);
+        expect(refusedForOwnerOnly(from('111'), [], true)).toBe(true);
+    });
+
+    it('does not gate a command that did not ask to be gated', () => {
+        expect(refusedForOwnerOnly(from('999'), ['111'], false)).toBe(false);
+        expect(refusedForOwnerOnly(from('999'), ['111'], undefined)).toBe(false);
+    });
+
+    it('matches on the invoking user, not a substring of the id', () => {
+        // includes() on the array, not on a joined string: '11' must not match '111'.
+        expect(refusedForOwnerOnly(from('11'), ['111'], true)).toBe(true);
     });
 });

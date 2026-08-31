@@ -1,4 +1,4 @@
-import type { Snowflake, CommandInteraction, Collection, Client, ContextMenuCommandBuilder, SlashCommandBuilder, AutocompleteInteraction } from "discord.js";
+import type { Snowflake, CommandInteraction, Collection, Client, ContextMenuCommandBuilder, SlashCommandBuilder, SlashCommandSubcommandsOnlyBuilder, SlashCommandOptionsOnlyBuilder, AutocompleteInteraction } from "discord.js";
 import type { NewsFeedManager } from "../feeds/NewsFeedManager.js";
 import type { GameListCache, TipCache } from "./util.js";
 import type { SubscriptionManger } from "../feeds/SubscriptionManager.js";
@@ -33,7 +33,13 @@ interface DiscordEventInterface {
 }
 
 interface DiscordInteraction {
-    command: SlashCommandBuilder | ContextMenuCommandBuilder;
+    /**
+     * `.addSubcommand()` and `.addStringOption()` each narrow SlashCommandBuilder to a
+     * builder that no longer satisfies it, which is why search.ts ends its chain with
+     * `as SlashCommandBuilder`. Naming the narrowed types here means a command with
+     * subcommands or options type-checks without a cast that claims something untrue.
+     */
+    command: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder | SlashCommandOptionsOnlyBuilder | ContextMenuCommandBuilder;
     /**
      * The fourth argument carries whatever the middleware resolved. It is optional,
      * so a command that has not opted in keeps its existing three-parameter shape.
@@ -54,6 +60,12 @@ interface DiscordInteraction {
     requiresLink?: boolean;
     /** Guild permissions the caller must hold, e.g. PermissionFlagsBits.ManageGuild. */
     requiredPermissions?: bigint[];
+    /**
+     * Refuse the command unless the caller's ID is in OWNER_IDS. Stricter than
+     * `requiredPermissions`, which owners bypass - this one lets only owners through,
+     * and denies everyone when OWNER_IDS is unset.
+     */
+    ownerOnly?: boolean;
 
     // Optional to add aliases
     aliases?: string[];
