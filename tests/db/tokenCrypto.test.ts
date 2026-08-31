@@ -41,16 +41,39 @@ describe('sealing tokens', () => {
     });
 });
 
-describe('reading a half-migrated column', () => {
-    // The tolerance that makes this a backfill instead of a big bang - and the reason
-    // it has to be removed once the backfill is done.
-    it('returns a plaintext value untouched', () => {
-        expect(openToken('a-token-the-backfill-has-not-reached')).toBe('a-token-the-backfill-has-not-reached');
+describe('reading a column after the backfill', () => {
+    // The tolerance that made this a backfill instead of a big bang is gone. These
+    // tests are the inverse of the ones they replace: what used to be passed through
+    // is now refused, because the census is zero and a plaintext value can only mean
+    // something is writing tokens without sealing them.
+    it('refuses a plaintext value rather than using it', () => {
+        expect(() => openToken('a-token-that-was-never-sealed')).toThrow(/unencrypted/i);
     });
 
-    it('passes through a JWT rather than treating it as sealed', () => {
+    it('refuses a JWT rather than treating it as sealed', () => {
         const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl';
-        expect(openToken(jwt)).toBe(jwt);
+        expect(() => openToken(jwt)).toThrow(/unencrypted/i);
+    });
+
+    it('names the column, and never the value, in what it throws', () => {
+        // The message and context travel into logs and error reporting. A live
+        // credential must not travel with them.
+        const secret = 'super-secret-access-token';
+        try {
+            openToken(secret, 'nexus_access');
+            throw new Error('should have thrown');
+        }
+        catch (err) {
+            const dump = JSON.stringify({ message: (err as Error).message, err });
+            expect(dump).toContain('nexus_access');
+            expect(dump).not.toContain(secret);
+        }
+    });
+
+    it('treats an empty string as no token, not as a fault', () => {
+        // A nullable column legitimately holds nothing. Only a non-empty unsealed
+        // value means something wrote a token without sealing it.
+        expect(openToken('')).toBeNull();
     });
 
     it.each([null, undefined])('returns null for %s', (value) => {
@@ -143,11 +166,9 @@ describe('row helpers', () => {
         expect(original.nexus_access).toBe('na');
     });
 
-    it('passes a half-migrated row through, sealed and plaintext side by side', () => {
+    it('refuses a row with any unsealed token, naming the offending column', () => {
         const mixed = { nexus_access: sealToken('sealed-one'), discord_access: 'plaintext-one' };
-        const opened = openUserTokens(mixed);
-        expect(opened.nexus_access).toBe('sealed-one');
-        expect(opened.discord_access).toBe('plaintext-one');
+        expect(() => openUserTokens(mixed)).toThrow(/discord_access/);
     });
 
     it.each([null, undefined])('leaves %s columns as they are', (value) => {

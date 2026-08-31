@@ -273,12 +273,28 @@ export class DiscordBotUser {
         else throw new Error('No OAuth tokens');
     }
 
+    /**
+     * Persist a refreshed token pair.
+     *
+     * The guard exists because this writes whatever the provider returned, unchecked.
+     * An `undefined` is harmless - buildUpdate drops it and the previous value survives
+     * - but an **empty string** would be written, and an empty token column is the one
+     * state that makes a row unusable: DiscordBotUser's constructor refuses to build it,
+     * so the user silently becomes unlinked with no way back but re-linking.
+     *
+     * The production census is currently zero on all four token columns, so this
+     * invariant holds today by luck of the providers behaving. This makes it hold by
+     * construction.
+     */
     private async saveTokens(newTokens: OAuthTokens): Promise<any> {
         const { access_token, refresh_token, expires_at } = newTokens;
-        const newData: Partial<NexusUser> = { 
-            nexus_access: access_token, 
-            nexus_expires: expires_at, 
-            nexus_refresh: refresh_token 
+        if (!access_token || !refresh_token) {
+            throw new Error('Refusing to save empty Nexus Mods OAuth tokens');
+        }
+        const newData: Partial<NexusUser> = {
+            nexus_access: access_token,
+            nexus_expires: expires_at,
+            nexus_refresh: refresh_token
         };
 
         return updateUserRecord(this.DiscordId, newData);

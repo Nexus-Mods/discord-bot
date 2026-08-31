@@ -1,12 +1,12 @@
-import { ConfigError } from '../api/errors.js';
+import { ConfigError, DatabaseError } from '../api/errors.js';
 import { deriveKey, isSealed, open, seal } from '../lib/sealedValue.js';
 
 /**
  * Encryption for the OAuth tokens in the users table.
  *
- * Four columns across ~37,000 rows hold live Discord and Nexus Mods credentials in
- * plaintext. What this protects against is narrow and likely: **a copy of the database
- * leaving without the droplet** - a backup downloaded to a laptop, a snapshot restored
+ * Four columns across ~37,000 rows held live Discord and Nexus Mods credentials in
+ * plaintext until 4.3.0; they are all sealed now. What this protects against is narrow
+ * and likely: **a copy of the database leaving without the droplet** - a backup downloaded to a laptop, a snapshot restored
  * to a less careful staging environment, a dump pasted into a ticket. The key lives in
  * the process environment and the tokens live in a managed database whose backups are
  * a separate artefact, so those two things do not travel together.
@@ -27,9 +27,23 @@ const PURPOSE = 'user-tokens.v1';
 /**
  * Keys in the order they are tried, newest first.
  *
- * TOKEN_ENCRYPTION_KEY_OLD is how rotation happens without downtime: set it to the
- * current key, set a new current key, let the backfill re-seal everything, then remove
- * it. Without a second slot, rotating means taking the bot down and hoping.
+ * TOKEN_ENCRYPTION_KEY_OLD lets both keys be accepted at once, which is half of what a
+ * no-downtime rotation needs.
+ *
+ * **The other half does not exist yet, and the obvious procedure silently destroys every
+ * link.** Set OLD to the current key, set a new current key, redeploy, and reads keep
+ * working - because both keys are tried. But running the backfill at that point converts
+ * nothing: it seals values where `needsSealing` is true, and a value already sealed under
+ * the old key is not one of those, so it is skipped and reported as success. Remove
+ * TOKEN_ENCRYPTION_KEY_OLD after that and every row becomes unreadable at once - each one
+ * returning null, which reads downstream as "this user is not linked".
+ *
+ * Verified against a real database: a rotation run reports `converted: 0, skipped: 2`,
+ * leaves the ciphertext byte-identical, and the new key alone then reads null.
+ *
+ * Rotating safely needs a re-seal pass - open under whichever key works, seal under the
+ * current one - keyed on "does this open under the current key alone?" rather than on
+ * `needsSealing`. Until that exists, do not remove TOKEN_ENCRYPTION_KEY_OLD once set.
  */
 function keys(): Buffer[] {
     const current = process.env.TOKEN_ENCRYPTION_KEY;
@@ -66,25 +80,49 @@ export function sealToken(plaintext: string): string {
 }
 
 /**
- * Read a token column, whatever state it is in.
+ * Read a token column.
  *
- * A value that carries the envelope is decrypted; anything else is a row the backfill
- * has not reached yet and is returned as-is. That tolerance is the whole reason this
- * can be a backfill rather than a big-bang migration - and it is also why it must be
- * removed once the backfill is done, because until then a plaintext token is still
- * accepted silently.
+ * Until the 4.3.0 backfill ran, an unsealed value was passed through untouched - that
+ * tolerance is what let the conversion be gradual rather than a big-bang migration.
+ * **It is gone.** The census is zero on all four columns, so a plaintext value now means
+ * something is writing tokens that does not go through `sealUserTokens`, and passing it
+ * through would be silently accepting the exact state this work removed.
  *
- * A sealed value that will not open returns null rather than throwing. That means one
- * user whose token was encrypted under a lost key is treated as unlinked and prompted
- * to link again, instead of every read of that row failing.
+ * Throwing is safe here because every caller already degrades sensibly: `getUserBy*` in
+ * api/users.ts wrap construction in a try and return `undefined`, so the user is treated
+ * as unlinked and prompted to link again, and `getAllUsers` has one caller which already
+ * falls back to an empty list. The recovery path if it ever fires is
+ * `npm run tokens:backfill`, which seals whatever it finds.
+ *
+ * Null and empty are not tolerance - they are the absence of a token, which is a real
+ * state for a nullable column. Only a non-empty value that is not sealed is a fault.
+ *
+ * A sealed value that will not open still returns null rather than throwing. That is
+ * deliberate and different: one user whose token was sealed under a lost key is treated
+ * as unlinked, instead of every read of that row failing.
  */
-export function openToken(value: string | null | undefined): string | null {
-    if (value === null || value === undefined) return null;
-    if (!isSealed(value)) return value;
+export function openToken(value: string | null | undefined, column: string = 'token'): string | null {
+    if (value === null || value === undefined || value === '') return null;
+    if (!isSealed(value)) {
+        // The value itself is never logged or attached as context - it is a live
+        // credential, and the four column names are redaction keys in the logger for
+        // exactly this reason.
+        throw new DatabaseError(`Refusing to use an unencrypted value from ${column}`, {
+            context: { column, hint: 'Run `npm run tokens:verify` to count, then `npm run tokens:backfill` to seal.' },
+            isOperational: false,
+            userMessage: 'Your linked account could not be read. Please link it again.',
+        });
+    }
     return open(value, keys());
 }
 
-/** Whether a stored value still needs converting. Used by the backfill and its checks. */
+/**
+ * Whether a stored value still needs converting.
+ *
+ * Retained after the backfill because `sealUserTokens` uses it on every write - it is
+ * what seals a freshly issued token on its way in - and because the CLI backfill is the
+ * recovery path if `openToken` ever throws.
+ */
 export function needsSealing(value: string | null | undefined): boolean {
     return typeof value === 'string' && value.length > 0 && !isSealed(value);
 }
@@ -113,7 +151,7 @@ export function openUserTokens<T extends object>(row: T): T {
     if (!row) return row;
     const out = { ...row } as Row;
     for (const column of TOKEN_COLUMNS satisfies readonly TokenColumn[]) {
-        if (column in out) out[column] = openToken(out[column] as string | null | undefined);
+        if (column in out) out[column] = openToken(out[column] as string | null | undefined, column);
     }
     return out as T;
 }

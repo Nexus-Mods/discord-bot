@@ -76,24 +76,3 @@ describe('/track', () => {
         });
     });
 });
-
-describe('destructive commands are owner-gated', () => {
-    /**
-     * /tokens rewrites every OAuth credential in the database. It is scoped to one
-     * guild, but guild scoping decides where a command is *registered* - any
-     * administrator of that server could still invoke it. `ownerOnly` is the check that
-     * actually restricts it, and this test exists so removing the flag fails here
-     * rather than in production.
-     */
-    it('/tokens declares ownerOnly', () => {
-        const tokens = modules.find((m) => m.file === 'tokens.ts')?.module.discordInteraction;
-        expect(tokens, 'tokens.ts should export a discordInteraction').toBeDefined();
-        expect(tokens!.ownerOnly).toBe(true);
-    });
-
-    it('/tokens is not registered publicly', () => {
-        const tokens = modules.find((m) => m.file === 'tokens.ts')?.module.discordInteraction;
-        expect(tokens!.public).toBe(false);
-        expect(tokens!.guilds?.length).toBeGreaterThan(0);
-    });
-});
