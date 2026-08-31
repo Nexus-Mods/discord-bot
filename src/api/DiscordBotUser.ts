@@ -1,5 +1,5 @@
-import * as NexusModsOAuth from '../server/NexusModsOAuth.js';
-import * as DiscordOAuth from '../server/DiscordOAuth.js';
+import * as NexusModsOAuth from '../auth/NexusModsOAuth.js';
+import * as DiscordOAuth from '../auth/DiscordOAuth.js';
 import type { NexusUser } from '../types/users.js';
 import { baseheader, type Logger } from './util.js';
 import { updateUserRecord } from './userRecord.js';

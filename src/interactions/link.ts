@@ -5,7 +5,7 @@ import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
 import { KnownDiscordServers, type Logger } from '../api/util.js';
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { linkUrl, unlinkUrl } from '../server/auth.js';
+import { linkUrl, unlinkUrl } from '../auth/signing.js';
 import { NEXUS_ORANGE, apiLinkFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {

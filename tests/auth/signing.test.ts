@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type express from 'express';
-import { safeCompare, signValue, verifyValue, checkSharedSecret, cookieOptions, unlinkUrl, linkUrl } from '../../src/server/auth.js';
+import { safeCompare, signValue, verifyValue, checkSharedSecret, cookieOptions, unlinkUrl, linkUrl } from '../../src/auth/signing.js';
 
 const SECRET = 'test-unlink-secret';
 

@@ -1,8 +1,8 @@
 import express from 'express';
 import { BOT_VERSION } from '../version.js';
 import cookieparser from 'cookie-parser';
-import * as DiscordOAuth from './DiscordOAuth.js';
-import * as NexusModsOAuth from './NexusModsOAuth.js';
+import * as DiscordOAuth from '../auth/DiscordOAuth.js';
+import * as NexusModsOAuth from '../auth/NexusModsOAuth.js';
 import { calcUptime, type Logger } from '../api/util.js';
 import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users.js';
 import type { NexusUser } from '../types/users.js';
@@ -17,7 +17,7 @@ import forumWebhook from './forumWebhook.js';
 import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from './auth.js';
+import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from '../auth/signing.js';
 import { LINK_STATE_COOKIE, LINK_STATE_TTL_MS, openLinkState, sealLinkState } from './linkState.js';
 
 // Get the equivalent of __dirname
