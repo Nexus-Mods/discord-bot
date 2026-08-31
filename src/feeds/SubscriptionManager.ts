@@ -522,14 +522,7 @@ export class SubscriptionManger {
             item.last_update = newUpdate;
             return results
         };
-        // Order the array so the newest is first and the oldest is last
-        results.sort((a,b) => a.date.getTime() - b.date.getTime())
-        // Save the last date so we know where to start next time!
-        const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate);
-        item.last_update = lastDate;
-        // Return the results
-        return results;
+        return this.recordLastUpdate(item, results);
     }
 
     private async getModUpdates<T extends SubscribedItemType.Mod>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
@@ -582,14 +575,7 @@ export class SubscriptionManger {
                 crosspost: item.crosspost ?? false,
             });
         }
-        // Order the array so the newest is first and the oldest is last
-        results.sort((a,b) => a.date.getTime() - b.date.getTime());
-        // Save the last date so we know where to start next time!
-        const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate, mod.status);    
-        item.last_update = lastDate;
-        
-        return results;
+        return this.recordLastUpdate(item, results, mod.status)
     } 
 
     private async getCollectionUpdates<T extends SubscribedItemType.Collection>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
@@ -646,14 +632,7 @@ export class SubscriptionManger {
             })
         }
 
-        // Order the array so the newest is first and the oldest is last
-        results.sort((a,b) => a.date.getTime() - b.date.getTime());
-        // Save the last date so we know where to start next time!
-        const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate, collection.collectionStatus ?? undefined);
-        item.last_update = lastDate;
-                
-        return results;
+        return this.recordLastUpdate(item, results, collection.collectionStatus ?? undefined);
     } 
 
     private async getUserUpdates<T extends SubscribedItemType.User>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
@@ -765,16 +744,20 @@ export class SubscriptionManger {
 
         if (!results.length) return results;
 
-        // Order the array so the newest is first and the oldest is last
-        results.sort((a,b) => a.date.getTime() - b.date.getTime());
-        // Save the last date so we know where to start next time!
-        const lastDate = results[results.length -1].date;
-        // logMessage('Last date', { title: item.title, lastDate, last_update, result: results[results.length -1].embed.author?.name })
-        await saveLastUpdatedForSub(item.id, lastDate);
-        item.last_update = lastDate;
-
-        return results;
+        return this.recordLastUpdate(item, results);
     } 
+
+    private setLastUpdate(item: SubscribedItem<SubscribedItemType>, date: Date): void {
+        item.last_update = date;
+    }
+
+    private async recordLastUpdate<T extends SubscribedItemType>(item: SubscribedItem<T>, results: IPostableSubscriptionUpdate<T>[], status?: string): Promise<IPostableSubscriptionUpdate<T>[]> {
+        results.sort((a, b) => a.date.getTime() - b.date.getTime());
+        const lastDate = results[results.length -1].date;
+        await saveLastUpdatedForSub(item.id, lastDate, status);
+        this.setLastUpdate(item, lastDate);
+        return results;
+    }
 
     private async prepareCache() {
         let subs = await getAllSubscriptions();
