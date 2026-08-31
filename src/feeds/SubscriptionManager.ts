@@ -2,7 +2,8 @@ import type { ClientExt } from "../types/DiscordTypes.js";
 import { assertPresent } from '../lib/assert.js';
 import { 
     type DiscordAPIError, EmbedBuilder, type Guild, type Snowflake, type TextChannel, 
-    type WebhookMessageCreateOptions, type DiscordjsError 
+    type WebhookMessageCreateOptions, type DiscordjsError, 
+    type WebhookClient
 } from 'discord.js';
 import { isTesting, type Logger } from '../api/util.js';
 import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
@@ -36,6 +37,8 @@ const shardIdForChannel = (channel: { guild_id: Snowflake }, client: ClientExt):
 
 /** File categories that mean the file is no longer downloadable, so not worth posting. */
 const UNAVAILABLE_FILE_CATEGORIES: ModFileCategory[] = [ModFileCategory.Archived, ModFileCategory.Removed];
+
+const PREPARE_CACHE_CONCURRENCY = 5;
 
 /** The statuses a subscription was still being posted under, before it became unavailable. */
 const WAS_AVAILABLE: CollectionStatus[] = [CollectionStatus.Listed, CollectionStatus.Unlisted];
@@ -284,11 +287,12 @@ export class SubscriptionManger {
         const items = await getSubscribedItems(channel, skipCache);
         if (!items.length) {
             await deleteSubscribedChannel(channel);
-            this.channels.splice(this.channels.findIndex(c => c.id === channel.id), 1);
+            const channelIdx = this.channels.findIndex(c => c.id === channel.id);
+            if (channelIdx !== -1) this.channels.splice(channelIdx, 1);
             return;
         }
         // Get the postable info for each subscribed item
-        const postableUpdates: IPostableSubscriptionUpdate<any>[] = [];
+        const postableUpdates: IPostableSubscriptionUpdate<SubscribedItemType>[] = [];
         // Counted so an empty result set can be told apart from a failed one. Advancing
         // the channel's window after a failure is how updates published during an
         // outage get skipped permanently.
@@ -346,12 +350,29 @@ export class SubscriptionManger {
         }
 
         // Got all the updates - break them into groups by type and limit to 10 (API limit).
+        const blocks = this.buildBlocks(postableUpdates);
+        // Send the updates to the webhook!
+        this.logger.info(`Posting ${postableUpdates.length} updates (Blocks:${blocks.length}) to ${discordChannel.name} in ${guild.name} (ID: ${channel.id})`);
+        await this.postBlocks(blocks, webHookClient, discordChannel, guild, channel);
+
+        // Update the last updated time for the channel.
+        const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
+        try {
+            channel = await updateSubscribedChannel(channel, lastUpdate);
+            channel.last_update = lastUpdate;
+        }
+        catch(err) {
+            this.logger.warn('Failed to update channel date', err);
+        }
+    }
+
+    private buildBlocks(updates: IPostableSubscriptionUpdate<SubscribedItemType>[]): {message: WebhookMessageCreateOptions, crosspost: boolean}[] {
         const blocks: {message: WebhookMessageCreateOptions, crosspost: boolean}[] = [{ message: { embeds: [] }, crosspost: false }];   
         const maxBlockSize = 10;
-        let currentType: SubscribedItemType = postableUpdates[0].type;
-        let currentSub: number = postableUpdates[0].subId;
-        for (const update of postableUpdates) {
-            // If we've swapped type, sub or we've got more than 5 embeds already
+        let currentType: SubscribedItemType = updates[0].type;
+        let currentSub: number = updates[0].subId;
+        for (const update of updates) {
+            // If we've swapped type, sub or the current block is full
             if (update.type !== currentType || update.subId !== currentSub || blocks[blocks.length - 1].message.embeds!.length === maxBlockSize) blocks.push({ message: { embeds: [] }, crosspost: false});
             const myBlock = blocks[blocks.length - 1];
             myBlock.message.embeds = myBlock.message.embeds ? [...myBlock.message.embeds, update.embed] : [update.embed];
@@ -360,9 +381,11 @@ export class SubscriptionManger {
             currentType = update.type;
             currentSub = update.subId;
         }
+        return blocks;
+    }
 
+    private async postBlocks(blocks: {message: WebhookMessageCreateOptions, crosspost: boolean}[], webHookClient: WebhookClient, discordChannel: TextChannel, guild: Guild, channel: SubscribedChannel) {
         // Send the updates to the webhook!
-        this.logger.info(`Posting ${postableUpdates.length} updates (Blocks:${blocks.length}) to ${discordChannel.name} in ${guild.name} (ID: ${channel.id})`);
         for (const block of blocks) {
             // logMessage('Sending Block\n', {titles: block.embeds?.map(e => (e as APIEmbed).title)}) // raw: JSON.stringify(block)
             try {
@@ -395,18 +418,8 @@ export class SubscriptionManger {
                     this.channels = this.channels.filter(c => c.id !== channel.id);
                     throw new Error('Webhook no longer exists', { cause: err });
                 }
-                this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as any).requestBody.json) });
+                this.logger.warn('Failed to send webhook message', { embeds: block.message.embeds?.length, err, body: JSON.stringify((err as DiscordAPIError)?.requestBody?.json) });
             }
-        }
-
-        // Update the last updated time for the channel.
-        const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
-        try {
-            channel = await updateSubscribedChannel(channel, lastUpdate);
-            channel.last_update = lastUpdate;
-        }
-        catch(err) {
-            this.logger.warn('Failed to update channel date', err);
         }
     }
 
@@ -504,8 +517,9 @@ export class SubscriptionManger {
 
         // Exit if there's nothing to post
         if (!results.length) {
-            await saveLastUpdatedForSub(item.id, new Date());
-            item.last_update = new Date();
+            const newUpdate = new Date()
+            await saveLastUpdatedForSub(item.id, newUpdate);
+            item.last_update = newUpdate;
             return results
         };
         // Order the array so the newest is first and the oldest is last
@@ -653,6 +667,7 @@ export class SubscriptionManger {
             this.logger.info(`${user.name} has been banned or deleted from Nexus Mods`);
             results.push(unavailableUserUpdate(user, item));
             await deleteSubscription(item.id);
+            return results;
         }
         if (user.name !== item.title) {
             this.logger.info(`${item.title} changed their username to ${user.name}`);
@@ -699,11 +714,11 @@ export class SubscriptionManger {
         );
         for (const mod of updatedMods.nodes) {
             const modFiles: IModFile[] = await this.NexusModsAPI.v2.ModFiles(mod.game.id, mod.modId);
-            const modWithFile = { ...mod, file: modFiles.filter(f => Math.floor(f.date *1000) > last_update.getTime()) }
+            const modWithFile: IModWithFiles = { ...mod, files: modFiles.filter(f => Math.floor(f.date *1000) > last_update.getTime()) }
             const embed = await subscribedItemEmbed<SubscribedItemType.User>(this.logger, {...user, mod: modWithFile}, item, guild, undefined, UserEmbedType.UpdatedMod);
             results.push({
                 type: SubscribedItemType.User,
-                entity:{ ...user, mod: mod },
+                entity:{ ...user, mod: modWithFile },
                 date: new Date(mod.updatedAt),
                 subId: item.id,
                 embed: embed.data,
@@ -771,7 +786,6 @@ export class SubscriptionManger {
         // Tasks, not started promises - see mapWithConcurrency below.
 
 /** Simultaneous pre-cache API requests. One per tracked game, so this is a rate-limit guard. */
-const PREPARE_CACHE_CONCURRENCY = 5;
         const tasks: (() => Promise<unknown>)[] = [];
 
         const allGameSubs: SubscribedItem<SubscribedItemType.Game>[] = subs.filter(
@@ -782,7 +796,7 @@ const PREPARE_CACHE_CONCURRENCY = 5;
         const newGameSubs = allGameSubs.filter(s => s.config?.show_new ?? false);
         const newGames = new Set<string>(newGameSubs.map(s => s.entityid as string));
         // For each game, get the date of the oldest possible mod to show.
-        const oldestPerNewGame = getMaxiumDatesForGame(newGameSubs, newGames);
+        const oldestPerNewGame = oldestLastUpdatePerGame(newGameSubs, newGames);
         const newGamePromises = Object.entries(oldestPerNewGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
@@ -799,7 +813,7 @@ const PREPARE_CACHE_CONCURRENCY = 5;
         // UPDATED MODS FOR GAMES
         const updatedGameSubs = allGameSubs.filter(s => s.config?.show_updates ?? false);
         const updatedGames = new Set<string>(updatedGameSubs.map(s => s.entityid as string));
-        const oldestPerUpdatedGame = getMaxiumDatesForGame(updatedGameSubs, updatedGames);
+        const oldestPerUpdatedGame = oldestLastUpdatePerGame(updatedGameSubs, updatedGames);
         const updatedGamePromises = Object.entries(oldestPerUpdatedGame).map(([ domain, date ]) => async () => {
             const mods = await this.NexusModsAPI.v2.Mods(
                 {
@@ -823,7 +837,7 @@ const PREPARE_CACHE_CONCURRENCY = 5;
     }
 }
 
-function getMaxiumDatesForGame(subs: ISubscribedItem<SubscribedItemType.Game>[], games: Set<string>) {
+function oldestLastUpdatePerGame(subs: ISubscribedItem<SubscribedItemType.Game>[], games: Set<string>) {
     return [...games].reduce<{ [domain: string]: Date }>(
         (prev, cur) => {
         const subsForDomain = subs.filter(g => g.entityid === cur);
