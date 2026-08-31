@@ -5,7 +5,7 @@ import { poolConfig } from '../api/dbConnect.js';
 import { logger } from '../api/logger.js';
 import { toError } from '../api/errors.js';
 import { isSealed } from '../lib/sealedValue.js';
-import { assertTokenKeyConfigured, needsSealing, openToken, sealToken } from './tokenCrypto.js';
+import { assertTokenKeyConfigured, needsResealing, needsSealing, openToken, resealToken, sealToken } from './tokenCrypto.js';
 
 // Entry point: `node dist/db/backfillTokens.js` runs without app.ts having loaded .env.
 // Harmless when this module is imported by the bot, which has loaded it already.
@@ -14,31 +14,32 @@ dotenv.config({ quiet: true });
 const { Pool } = pg;
 
 /**
- * One-shot conversion of the plaintext OAuth tokens in `users` to sealed values.
+ * Maintenance for the sealed OAuth token columns in `users`.
  *
- * This is a migration, not a feature: it runs once against a deployed 4.3.0 and then
- * has no reason to exist. It is deliberately reachable two ways - as `node
- * dist/db/backfillTokens.js` on the droplet, and through the owner-only `/tokens`
- * command - because whoever is running it should be able to do so from wherever they
- * are, and the command is far easier to reach than an SSH session. Everything below is
- * shared by both; the CLI wrapper at the bottom only parses arguments.
+ * It began as a one-shot migration - convert ~147,000 plaintext values to ciphertext -
+ * and that job is done. It is kept because it does two things that still matter:
+ *
+ *   - **Rotation.** Moving every value from an old key onto the current one is the
+ *     second half of a key rotation, and there is no other way to do it. See
+ *     `needsResealing`: the original version tested `needsSealing`, which is false for
+ *     an already-sealed value, so a rotation run skipped every row and reported success.
+ *     Removing TOKEN_ENCRYPTION_KEY_OLD after that made every row unreadable at once.
+ *   - **Recovery.** `openToken` now refuses an unsealed value rather than passing it
+ *     through, so if anything ever writes a token without sealing it, those users are
+ *     locked out until this runs.
  *
  * **It is safe to run while the bot is live**, which is the point of doing it this way
- * rather than in a maintenance window. Two things make that true:
+ * rather than in a maintenance window. Writes are guarded: see `sealRow` - the UPDATE is
+ * conditional on the columns still holding what was read, so a token the bot refreshed
+ * mid-run is never overwritten with the older value.
  *
- *   - Reads tolerate both states. `openToken` passes plaintext through untouched, so a
- *     row this has not reached yet works exactly as before.
- *   - Writes are guarded. See `sealRow` - the UPDATE is conditional on the columns
- *     still holding what was read, so a token the bot refreshed mid-run is never
- *     overwritten with the older value.
+ * Safe to re-run: a value already sealed under the current key matches neither
+ * `needsSealing` nor `needsResealing` and is skipped, and the walk is keyset-paginated,
+ * so a run that dies half way is resumed by running it again.
  *
- * Safe to re-run: a sealed value fails `needsSealing` and is skipped, and the walk is
- * keyset-paginated, so a run that dies half way is resumed by running it again.
- *
- * Whichever way it is started, the key comes from the same environment the bot is
- * using. That matters more than it looks: sealing succeeds with *any* valid key, so a
- * run against the wrong one would not fail, it would quietly make every row it touched
- * unreadable by the bot.
+ * The key comes from the same environment the bot is using. That matters more than it
+ * looks: sealing succeeds with *any* valid key, so a run against the wrong one would not
+ * fail, it would quietly make every row it touched unreadable by the bot.
  */
 
 /** The columns to convert. Never interpolated from input. */
@@ -79,8 +80,14 @@ export interface BackfillProgress {
     columns: number;
     raced: number;
     skipped: number;
+    /** Columns moved from an old key onto the current one. Non-zero only during a rotation. */
+    resealedColumns: number;
+    /** Columns sealed under a key no longer configured. These cannot be repaired. */
+    unopenable: number;
     plaintextBefore?: number;
     plaintextRemaining?: number;
+    /** Values still sealed under an old key once the run finished. Must be 0 before removing the old key. */
+    staleKeyRemaining?: number;
     startedAt: number;
     finishedAt?: number;
     error?: string;
@@ -88,7 +95,18 @@ export interface BackfillProgress {
 
 export type ProgressListener = (progress: Readonly<BackfillProgress>) => void;
 
-export interface Census { rows: number; plaintext: number; sealed: number; empty: number }
+export interface Census {
+    rows: number;
+    plaintext: number;
+    sealed: number;
+    empty: number;
+    /**
+     * Sealed, but not under the current key. Zero except mid-rotation - and the number
+     * that must reach zero before TOKEN_ENCRYPTION_KEY_OLD is removed, because every one
+     * of these becomes unreadable the moment it is.
+     */
+    staleKey: number;
+}
 
 /**
  * A short-lived pool of its own rather than the application's.
@@ -139,24 +157,48 @@ async function sealRow(client: pg.PoolClient, row: Row, p: BackfillProgress, dry
     const values: unknown[] = [];
 
     for (const column of TOKEN_COLUMNS) {
-        const plaintext = row[column];
-        if (!needsSealing(plaintext)) continue;
+        const stored = row[column];
 
-        const sealed = sealToken(plaintext as string);
+        // Two jobs, one walk. Sealing turns plaintext into ciphertext, which is what the
+        // original migration did; re-sealing moves ciphertext from an old key onto the
+        // current one, which is what a key rotation needs. They differ only in where the
+        // plaintext comes from, and both must survive the same round-trip check.
+        let expected: string;
+        let replacement: string;
+
+        if (needsSealing(stored)) {
+            expected = stored as string;
+            replacement = sealToken(expected);
+        }
+        else if (needsResealing(stored)) {
+            const opened = resealToken(stored as string);
+            // Opens under no configured key: the plaintext is gone and nothing here can
+            // bring it back. Leave the row exactly as it is - writing something derived
+            // from a failed decrypt would turn one unreadable user into a corrupted one.
+            if (opened === null) {
+                p.unopenable += 1;
+                continue;
+            }
+            expected = openToken(stored as string, column) as string;
+            replacement = opened;
+            p.resealedColumns += 1;
+        }
+        else continue;
 
         // Verified per row, before anything is written. A seal that does not open is a
         // broken key or a broken envelope, and writing it would destroy the token
         // irrecoverably - there is no plaintext left to try again from. Aborting the
         // whole run on the first one is the only safe response.
-        if (openToken(sealed) !== plaintext) {
+        if (openToken(replacement, column) !== expected) {
             throw new Error(`Round-trip check failed for ${column} - refusing to write. The encryption key may be wrong.`);
         }
 
-        values.push(sealed);
+        values.push(replacement);
         sets.push(`${column} = $${values.length}`);
         // Pushed after the set value so the parameter numbers stay in step with the
-        // order they are appended.
-        values.push(plaintext);
+        // order they are appended. The guard is the value as it was read, whether that
+        // was plaintext or ciphertext under the old key.
+        values.push(stored);
         guards.push(`${column} IS NOT DISTINCT FROM $${values.length}`);
     }
 
@@ -287,7 +329,7 @@ async function retryRaced(
  * letting a run report success because it reached the end of the table.
  */
 async function censusWith(client: pg.PoolClient, batch: number): Promise<Census> {
-    const out: Census = { rows: 0, plaintext: 0, sealed: 0, empty: 0 };
+    const out: Census = { rows: 0, plaintext: 0, sealed: 0, empty: 0, staleKey: 0 };
     let cursor = '';
 
     for (;;) {
@@ -302,7 +344,10 @@ async function censusWith(client: pg.PoolClient, batch: number): Promise<Census>
             for (const column of TOKEN_COLUMNS) {
                 const value = row[column];
                 if (value === null || value === '') out.empty += 1;
-                else if (isSealed(value)) out.sealed += 1;
+                else if (isSealed(value)) {
+                    out.sealed += 1;
+                    if (needsResealing(value)) out.staleKey += 1;
+                }
                 else out.plaintext += 1;
             }
         }
@@ -394,7 +439,7 @@ export async function runBackfill(options: BackfillOptions = {}, onProgress?: Pr
 
     const p: BackfillProgress = {
         phase: 'starting', dryRun, scanned: 0, converted: 0, columns: 0,
-        raced: 0, skipped: 0, startedAt: Date.now(),
+        raced: 0, skipped: 0, resealedColumns: 0, unopenable: 0, startedAt: Date.now(),
     };
     const emit = () => { try { onProgress?.(p); } catch { /* a broken listener must not fail the run */ } };
 
@@ -404,8 +449,9 @@ export async function runBackfill(options: BackfillOptions = {}, onProgress?: Pr
     // being read. Going through a synchronous helper also means a phase change and the
     // notification that goes with it cannot drift apart.
     const setPhase = (next: BackfillProgress['phase']) => { p.phase = next; emit(); };
-    const finish = (plaintextRemaining: number) => {
+    const finish = (plaintextRemaining: number, staleKeyRemaining: number) => {
         p.plaintextRemaining = plaintextRemaining;
+        p.staleKeyRemaining = staleKeyRemaining;
         p.finishedAt = Date.now();
         setPhase('done');
     };
@@ -441,15 +487,28 @@ export async function runBackfill(options: BackfillOptions = {}, onProgress?: Pr
 
                 setPhase('verifying');
                 const after = await censusWith(client, batch);
-                finish(after.plaintext);
+                finish(after.plaintext, after.staleKey);
 
                 logger.info('Token backfill complete', {
                     scanned: p.scanned, converted: p.converted, columns: p.columns,
-                    raced: p.raced, skipped: p.skipped, ms: (p.finishedAt ?? Date.now()) - p.startedAt,
-                    plaintextRemaining: after.plaintext, sealedValues: after.sealed,
+                    raced: p.raced, skipped: p.skipped, resealed: p.resealedColumns,
+                    unopenable: p.unopenable, ms: (p.finishedAt ?? Date.now()) - p.startedAt,
+                    plaintextRemaining: after.plaintext, staleKeyRemaining: after.staleKey,
+                    sealedValues: after.sealed,
                 });
 
-                if (!dryRun && after.plaintext === 0) {
+                if (p.unopenable > 0) {
+                    logger.warn('Some values open under no configured key and were left untouched. They are unreadable and those users must link again.', {
+                        values: p.unopenable,
+                    });
+                }
+
+                if (!dryRun && after.staleKey > 0) {
+                    logger.warn('Values are still sealed under the old key. Do NOT remove TOKEN_ENCRYPTION_KEY_OLD yet - every one of these becomes unreadable the moment you do.', {
+                        staleKeyRemaining: after.staleKey,
+                    });
+                }
+                else if (!dryRun && after.plaintext === 0) {
                     // The step that actually removes the plaintext, and the one most
                     // likely to be forgotten. UPDATE writes a new row version and leaves
                     // the old one, plaintext and all, in the heap until it is rewritten -
@@ -507,7 +566,7 @@ export async function main(): Promise<number> {
         if (opts.verifyOnly) {
             const state = await tokenCensus(opts.batch);
             logger.info('Token census', state);
-            return state.plaintext === 0 ? 0 : 1;
+            return state.plaintext === 0 && state.staleKey === 0 ? 0 : 1;
         }
 
         const result = await runBackfill({ batch: opts.batch, from: opts.from, dryRun: opts.dryRun });
@@ -515,6 +574,12 @@ export async function main(): Promise<number> {
         if (opts.dryRun) {
             logger.info('Dry run - nothing was written. Re-run without --dry-run to apply.');
             return 0;
+        }
+        if ((result.staleKeyRemaining ?? 0) > 0) {
+            logger.warn('Rotation incomplete - re-run before removing TOKEN_ENCRYPTION_KEY_OLD.', {
+                staleKeyRemaining: result.staleKeyRemaining,
+            });
+            return 1;
         }
         if ((result.plaintextRemaining ?? 0) > 0) {
             logger.warn('Some values are still plaintext. Re-run to pick them up; if the count does not fall, investigate before continuing.', {
