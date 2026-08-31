@@ -344,7 +344,9 @@ export class SubscriptionManger {
                 return;
             }
             this.logger.debug(`No updates for ${discordChannel.name} in ${guild.name}`);
+            // eslint-disable-next-line require-atomic-updates
             channel = await updateSubscribedChannel(channel, new Date());
+            // eslint-disable-next-line require-atomic-updates
             channel.last_update = new Date();
             return;
         }
@@ -358,7 +360,9 @@ export class SubscriptionManger {
         // Update the last updated time for the channel.
         const lastUpdate = postableUpdates[postableUpdates.length - 1].date;
         try {
+            // eslint-disable-next-line require-atomic-updates
             channel = await updateSubscribedChannel(channel, lastUpdate);
+            // eslint-disable-next-line require-atomic-updates
             channel.last_update = lastUpdate;
         }
         catch(err) {
@@ -519,6 +523,7 @@ export class SubscriptionManger {
         if (!results.length) {
             const newUpdate = new Date()
             await saveLastUpdatedForSub(item.id, newUpdate);
+            // eslint-disable-next-line require-atomic-updates
             item.last_update = newUpdate;
             return results
         };
@@ -662,6 +667,7 @@ export class SubscriptionManger {
                 crosspost: item.crosspost ?? false,
             })
             await updateSubscription(item.id, item.parent, {...item, title: user.name});
+            // eslint-disable-next-line require-atomic-updates
             item.title = user.name;
         }
         // See if they have any new content since the last check
