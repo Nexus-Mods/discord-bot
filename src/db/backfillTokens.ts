@@ -64,13 +64,13 @@ const DEFAULT_BATCH = 250;
 /** Rounds of re-reading raced rows before giving up and asking for a re-run. */
 const MAX_RETRY_ROUNDS = 3;
 
-export interface BackfillOptions {
+interface BackfillOptions {
     batch?: number;
     from?: string;
     dryRun?: boolean;
 }
 
-export interface BackfillProgress {
+interface BackfillProgress {
     phase: 'starting' | 'counting' | 'walking' | 'retrying' | 'verifying' | 'done' | 'failed';
     dryRun: boolean;
     /** Total rows in the table, known once the initial count is done. */
@@ -93,9 +93,9 @@ export interface BackfillProgress {
     error?: string;
 }
 
-export type ProgressListener = (progress: Readonly<BackfillProgress>) => void;
+type ProgressListener = (progress: Readonly<BackfillProgress>) => void;
 
-export interface Census {
+interface Census {
     rows: number;
     plaintext: number;
     sealed: number;
@@ -357,7 +357,7 @@ async function censusWith(client: pg.PoolClient, batch: number): Promise<Census>
 }
 
 /** How many token values are sealed, plaintext, or absent. */
-export async function tokenCensus(batch = DEFAULT_BATCH): Promise<Census> {
+async function tokenCensus(batch = DEFAULT_BATCH): Promise<Census> {
     assertTokenKeyConfigured();
     return withClient((client) => censusWith(client, batch));
 }
@@ -383,7 +383,7 @@ export async function tokenCensus(batch = DEFAULT_BATCH): Promise<Census> {
  * works for everything except role claiming, so it is not a dead row, and lumping the
  * two together would overstate the damage several times over.
  */
-export async function credentialReport(): Promise<Record<string, number>> {
+async function credentialReport(): Promise<Record<string, number>> {
     return withClient(async (client) => {
         const { rows } = await client.query<Record<string, string>>(`
             SELECT
@@ -411,7 +411,7 @@ export async function credentialReport(): Promise<Record<string, number>> {
 }
 
 /** Raised when another process already holds the backfill lock. */
-export class BackfillAlreadyRunningError extends Error {
+class BackfillAlreadyRunningError extends Error {
     constructor() {
         super('Another token backfill is already running.');
         this.name = 'BackfillAlreadyRunningError';
@@ -425,7 +425,7 @@ export class BackfillAlreadyRunningError extends Error {
  * command edits a Discord reply from it. It is called often; the listener should be
  * cheap and must not throw.
  */
-export async function runBackfill(options: BackfillOptions = {}, onProgress?: ProgressListener): Promise<BackfillProgress> {
+async function runBackfill(options: BackfillOptions = {}, onProgress?: ProgressListener): Promise<BackfillProgress> {
     const batch = options.batch ?? DEFAULT_BATCH;
     if (!Number.isInteger(batch) || batch <= 0 || batch > 5000) {
         throw new Error(`batch must be an integer between 1 and 5000, got "${batch}"`);
@@ -554,7 +554,7 @@ function cliOptions() {
     };
 }
 
-export async function main(): Promise<number> {
+async function main(): Promise<number> {
     const opts = cliOptions();
     try {
         if (opts.report) {

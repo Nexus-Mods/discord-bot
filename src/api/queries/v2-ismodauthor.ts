@@ -2,7 +2,7 @@ import { request, gql } from "graphql-request";
 import type { Logger } from "../util.js";
 import { NexusGQLError, v2API } from './v2.js';
 
-export interface IResult {
+interface IResult {
     user: {
         name: string;
         recognizedAuthor: boolean;
