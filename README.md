@@ -7,6 +7,24 @@ This Discord bot features interactions with the Nexus Mods API. Including linkin
 
 While you are welcome to take parts of this code for your own projects, please do not run your own instance of this Discord bot. 
 
+## Layout
+
+This is an npm workspace. 5.0.0 moved the bot into `apps/bot` so the Next.js front-end
+could sit beside it rather than inside it:
+
+```
+apps/bot/     the Discord bot and the current Express auth site
+apps/web/     the Next.js front-end (Phase 4, in progress)
+```
+
+The root scripts delegate, so `npm test`, `npm run build`, `npm run lint` and the
+`db:` and `tokens:` scripts all still work from the repository root and do what they
+always did. `npm run lint` covers every workspace from one config.
+
+The runtime Docker image deliberately did **not** move: it still holds `dist/` and
+`package.json` directly under `/app`, so `node dist/shards.js` remains correct and
+`redeploy.sh` needed no change.
+
 ## Running locally
 
 The bot and the auth site are two processes from one build. Start both with:
@@ -26,7 +44,7 @@ gives one, which is the supported way to run a single gateway connection. There 
 unsharded mode: at 2,418 guilds the bot is never in that state in production, and having
 it locally meant local runs took `if (!client.shard)` branches that production does not.
 
-Everything comes from `.env` in the repository root. `HOST`, `PORT`, `DATABASE`,
+Everything comes from `.env` in the repository root - one file for every workspace. `HOST`, `PORT`, `DATABASE`,
 `DBUSER` and `DBPASS` need to point at a Postgres you can reach; the schema is created
 by migrations on first start, so an empty database is fine.
 

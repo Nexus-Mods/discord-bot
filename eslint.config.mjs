@@ -17,11 +17,12 @@ import tsParser from "@typescript-eslint/parser";
 export default [
     {
         ignores: [
-            "dist/**",
+            "**/dist/**",
+            "**/.next/**",
             // Generated from schema.graphql by `npm run codegen`. Lint rules are for
             // code someone writes; editing this to satisfy them would be undone by the
             // next generation.
-            "src/api/generated/**",
+            "**/src/api/generated/**",
             "node_modules/**",
             "*.cjs",
             "eslint.config.mjs",
@@ -30,14 +31,14 @@ export default [
     js.configs.recommended,
     {
         // Build tooling. Not covered by tsconfig.json, so no type-aware rules here.
-        files: ["scripts/**/*.mjs", "*.config.mjs", "*.config.ts"],
+        files: ["**/scripts/**/*.mjs", "**/*.config.mjs", "**/*.config.ts"],
         languageOptions: {
             parser: tsParser,
             globals: { ...globals.node },
         },
     },
     {
-        files: ["src/**/*.ts", "tests/**/*.ts"],
+        files: ["apps/*/src/**/*.ts", "apps/*/tests/**/*.ts"],
         languageOptions: {
             parser: tsParser,
             parserOptions: {
@@ -45,7 +46,13 @@ export default [
                 sourceType: "module",
                 // Type-aware linting. Required by no-floating-promises and
                 // no-misused-promises, which are the rules that earn their keep here.
-                project: "./tsconfig.json",
+                //
+                // projectService rather than a `project` path: one config at the root now
+                // lints several workspaces, and it resolves the nearest tsconfig for each
+                // file itself. A hard-coded "./tsconfig.json" pointed at the repository
+                // root, which after the 5.0.0 move holds no tsconfig at all - and a
+                // second workspace would have needed a second entry here.
+                projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
             globals: {

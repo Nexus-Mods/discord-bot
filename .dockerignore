@@ -28,11 +28,11 @@ obj/
 _ReSharper*/
 [Tt]est[Rr]esult*
 .vs/
-#Nuget packages folder
-packages/
 *.env
 data/
 dist/
+**/dist/
+**/.next/
 .git/
 .github/
 coverage/

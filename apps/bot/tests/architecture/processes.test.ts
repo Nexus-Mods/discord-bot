@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Pins the process split.
@@ -216,7 +217,28 @@ describe('entry points', () => {
         expect(startsTheChild).toEqual([]);
     });
 
+    /**
+     * Resolved from this file rather than the working directory. The 5.0.0 move put the
+     * bot in apps/bot while the Dockerfile stayed at the repository root, so `readFileSync
+     * ('Dockerfile')` - which had been correct for as long as the two were siblings -
+     * started reading a path two levels below the file it wanted.
+     */
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+
     it('the Dockerfile default is the sharding manager', () => {
-        expect(readFileSync('Dockerfile', 'utf8')).toContain('CMD ["node", "dist/shards.js"]');
+        // The exec form is what makes the bot PID 1 and lets it receive SIGTERM; the
+        // shell form put /bin/sh there and `docker stop` had to SIGKILL it mid-poll.
+        const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
+        expect(dockerfile).toContain('CMD ["node", "dist/shards.js"]');
+    });
+
+    it('the image still puts the bot where the deploy path expects it', () => {
+        // The repository moved to apps/bot and the image deliberately did not: it keeps
+        // dist/ and package.json directly under /app so `node dist/shards.js` stays
+        // correct and redeploy.sh needs no change. If that stops being true, the deploy
+        // breaks somewhere far from the cause.
+        const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
+        expect(dockerfile).toContain('/repo/apps/bot/dist ./dist');
+        expect(dockerfile).toContain('/repo/apps/bot/package.json ./package.json');
     });
 });
