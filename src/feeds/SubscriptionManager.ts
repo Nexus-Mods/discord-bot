@@ -5,7 +5,8 @@ import {
     type WebhookMessageCreateOptions, type DiscordjsError, 
     type WebhookClient
 } from 'discord.js';
-import { isTesting, type Logger } from '../api/util.js';
+import { isTesting } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
 import { 
     type IModWithFiles, type IPostableSubscriptionUpdate, type ISubscribedItem, 

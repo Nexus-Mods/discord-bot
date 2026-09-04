@@ -2,7 +2,8 @@ import { type Client, type ContextMenuCommandInteraction, ContextMenuCommandBuil
 import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
 import { userEmbed, userProfileEmbed } from '../lib/profile.js';
-import { KnownDiscordServers, type Logger } from "../api/util.js";
+import { KnownDiscordServers} from "../api/util.js";
+import type { Logger } from "../api/logger.js";
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { botUser, notAllowed } from '../lib/profile.js';
 

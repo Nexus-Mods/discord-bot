@@ -1,7 +1,8 @@
 import { EmbedBuilder, type Guild, type GuildMember } from 'discord.js';
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 import { assertPresent } from '../lib/assert.js';
-import { gameArt, type Logger, nexusModsTrackingUrl } from '../api/util.js';
+import { gameArt, nexusModsTrackingUrl } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import { getUserByNexusModsId } from '../api/users.js';
 import { customEmojis } from '../types/util.js';
 import type { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2.js';

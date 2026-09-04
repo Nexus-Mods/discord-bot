@@ -1,6 +1,6 @@
 import { CDN, REST, Routes } from 'discord.js';
 import type { APIGuild, APIGuildChannel, GuildChannelType } from 'discord.js';
-import type { Logger } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 
 /**
  * The only thing the auth site needs from Discord.

@@ -1,5 +1,5 @@
 import { other } from "../api/queries/all.js";
-import type { Logger } from "../api/util.js";
+import type { Logger } from "../api/logger.js";
 import { logger } from "../api/logger.js";
 import type { IGameStatic } from "../api/queries/other.js";
 import type { ITip } from "../api/tips.js";

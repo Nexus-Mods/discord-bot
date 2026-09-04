@@ -3,7 +3,8 @@ import {
     type TextChannel, Collection, type Snowflake, type Webhook, PermissionFlagsBits, InteractionContextType
 } from "discord.js";
 import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { gameArt, type Logger } from '../api/util.js';
+import { gameArt } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch } from '../lib/autocomplete.js';
 import { type SubscribedChannel, SubscribedItemType } from "../types/subscriptions.js";
 import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions.js";

@@ -1,5 +1,5 @@
 import { EmbedBuilder, type RESTPostAPIWebhookWithTokenJSONBody } from 'discord.js';
-import type { Logger } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import type { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
 import type express from 'express';
 import { htmlToText } from 'html-to-text';

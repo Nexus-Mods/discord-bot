@@ -3,7 +3,8 @@ import {
     type ChatInputCommandInteraction, MessageFlags, InteractionContextType 
 } from "discord.js";
 import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
-import { KnownDiscordServers, type Logger } from "../api/util.js";
+import { KnownDiscordServers } from "../api/util.js";
+import type { Logger } from "../api/logger.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

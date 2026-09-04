@@ -1,4 +1,4 @@
-import type { Logger } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import type { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
 import { NewsFeedManager } from '../feeds/NewsFeedManager.js';

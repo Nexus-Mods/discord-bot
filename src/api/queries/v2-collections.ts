@@ -1,5 +1,5 @@
 import { request, gql, type Variables } from "graphql-request";
-import type { Logger } from "../util.js";
+import type { Logger } from "../logger.js";
 import { v2API, type ICollectionSearchResult, NexusGQLError } from './v2.js';
 import type * as GQLTypes from '../../types/GQLTypes.js';
 
