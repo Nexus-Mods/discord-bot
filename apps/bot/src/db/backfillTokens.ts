@@ -1,5 +1,6 @@
+// Loads .env by walking up from the code, not from the working directory.
+import '../lib/env.js';
 import { parseArgs } from 'node:util';
-import dotenv from 'dotenv';
 import pg from 'pg';
 import { poolConfig } from '../api/dbConnect.js';
 import { logger } from '../api/logger.js';
@@ -9,7 +10,6 @@ import { assertTokenKeyConfigured, needsResealing, needsSealing, openToken, rese
 
 // Entry point: `node dist/db/backfillTokens.js` runs without app.ts having loaded .env.
 // Harmless when this module is imported by the bot, which has loaded it already.
-dotenv.config({ quiet: true });
 
 const { Pool } = pg;
 

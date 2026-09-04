@@ -44,7 +44,10 @@ gives one, which is the supported way to run a single gateway connection. There 
 unsharded mode: at 2,418 guilds the bot is never in that state in production, and having
 it locally meant local runs took `if (!client.shard)` branches that production does not.
 
-Everything comes from `.env` in the repository root - one file for every workspace. `HOST`, `PORT`, `DATABASE`,
+Everything comes from `.env` in the repository root - one file for every workspace. It
+is found by walking up from the running code rather than from the working directory, so
+it does not matter whether you run `npm start` from the root or from inside `apps/bot`.
+(That was not true briefly after the 5.0.0 move, and the bot refused to start.) `HOST`, `PORT`, `DATABASE`,
 `DBUSER` and `DBPASS` need to point at a Postgres you can reach; the schema is created
 by migrations on first start, so an empty database is fine.
 

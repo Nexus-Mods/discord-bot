@@ -1,6 +1,5 @@
-import dotenv from 'dotenv';
-// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
-dotenv.config({ quiet: true });
+// Loads .env by walking up from the code, not from the working directory.
+import './lib/env.js';
 import { DiscordBot } from './DiscordBot.js';
 import { requireShard } from './lib/sharding.js';
 

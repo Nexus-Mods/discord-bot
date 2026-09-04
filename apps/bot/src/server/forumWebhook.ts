@@ -4,9 +4,8 @@ import type { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
 import type express from 'express';
 import { htmlToText } from 'html-to-text';
 import { getTopic } from './forumAPI.js';
-import dotenv from 'dotenv';
-// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
-dotenv.config({ quiet: true });
+// Loads .env by walking up from the code, not from the working directory.
+import '../lib/env.js';
 
 const FORUM_SUGGESTION_FORUM_ID = 9063; // The ID of the forum for suggestions.
 const SUGGESTION_ICON = 'https://staticdelivery.nexusmods.com/images/2295/31179975-1744285207.png'; // The icon for the suggestion forum.

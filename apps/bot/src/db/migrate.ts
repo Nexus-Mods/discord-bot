@@ -1,7 +1,8 @@
+// Loads .env by walking up from the code, not from the working directory.
+import '../lib/env.js';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import dotenv from 'dotenv';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -10,8 +11,6 @@ import { logger } from '../api/logger.js';
 import { ConfigError, DatabaseError, toError } from '../api/errors.js';
 
 // Entry point: `node dist/db/migrate.js` runs this without app.ts having loaded .env.
-// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
-dotenv.config({ quiet: true });
 
 const { Pool } = pg;
 

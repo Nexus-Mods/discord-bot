@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -190,6 +191,55 @@ describe('src/auth/', () => {
                 expect(slash(dep), `${slash(f)} reaches the web app`).not.toMatch(/^src\/server\//);
             }
         }
+    });
+});
+
+describe('the environment', () => {
+    /**
+     * The 5.0.0 move broke local startup and it took a fail-closed check to notice.
+     *
+     * Seven modules called `dotenv.config()`, which resolves .env from the working
+     * directory. That was correct while the repository root and the bot were the same
+     * directory. Once the bot moved to apps/bot, `npm start` ran with a working
+     * directory holding no .env, every variable was missing, and the bot refused to
+     * start with "Token encryption is not configured" - the 4.3.0 boot check reporting
+     * an environment that had never been loaded.
+     *
+     * These pin the fix rather than the symptom: one resolver, and it goes first.
+     */
+    const ENTRY_POINTS = ['src/shards.ts', 'src/app.ts', 'src/web.ts', 'src/db/migrate.ts', 'src/db/backfillTokens.ts'];
+
+    it('loads the environment in exactly one place', () => {
+        const direct = ALL
+            .filter((f) => slash(f) !== 'src/lib/env.ts')
+            .filter((f) => /from '.?dotenv|import 'dotenv/.test(readFileSync(f, 'utf8')))
+            .map(slash);
+        expect(direct).toEqual([]);
+    });
+
+    it('has every entry point load it as its first import', () => {
+        // Order is load-bearing: logger.ts reads process.env.SHARD_ID at module scope,
+        // and ES imports run before any statement in the importing module - so an env
+        // import placed after it would run too late to matter.
+        for (const entry of ENTRY_POINTS) {
+            const first = readFileSync(entry, 'utf8')
+                .split('\n')
+                .find((l) => l.startsWith('import '));
+            expect(first, `${entry} should import the env loader first`).toMatch(/lib\/env\.js/);
+        }
+    });
+
+    it('resolves .env from the code, not the working directory', async () => {
+        // The property that actually matters, exercised rather than asserted about: a
+        // file several levels above the module is found, whatever the cwd happens to be.
+        const { findEnvFile } = await import('../../src/lib/env.js');
+        const root = mkdtempSync(path.join(tmpdir(), 'envwalk-'));
+        const deep = path.join(root, 'apps', 'bot', 'dist', 'lib');
+        mkdirSync(deep, { recursive: true });
+        writeFileSync(path.join(root, '.env'), 'EXAMPLE=1\n');
+        expect(findEnvFile(deep)).toBe(path.join(root, '.env'));
+        // And nothing invented when there is nothing to find.
+        expect(findEnvFile(mkdtempSync(path.join(tmpdir(), 'envnone-')))).toBeUndefined();
     });
 });
 

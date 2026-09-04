@@ -1,5 +1,26 @@
-import 'dotenv/config';
+// Not `dotenv/config`, which resolves .env from the working directory. drizzle-kit runs
+// with the working directory set to this workspace, which holds no .env - so HOST came
+// back undefined and the isLocal check below concluded "localhost" and waved a push
+// through. The guard was silently disabled by the 5.0.0 move; this resolves .env from
+// this file's own location instead. Same walk as src/lib/env.ts, inlined because
+// drizzle-kit compiles this config with its own toolchain and importing across the
+// src/ boundary from here is a resolution problem not worth having.
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import dotenv from 'dotenv';
 import { defineConfig } from 'drizzle-kit';
+
+(function loadEnv() {
+    let dir = import.meta.dirname;
+    for (let depth = 0; depth < 6; depth += 1) {
+        const candidate = path.join(dir, '.env');
+        if (existsSync(candidate)) { dotenv.config({ path: candidate, quiet: true }); return; }
+        const parent = path.dirname(dir);
+        if (parent === dir) break;
+        dir = parent;
+    }
+    dotenv.config({ quiet: true });
+})();
 
 /**
  * drizzle-kit takes its connection from .env, and .env in this repo holds the
