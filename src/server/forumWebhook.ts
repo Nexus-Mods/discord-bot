@@ -1,9 +1,9 @@
 import { EmbedBuilder, type RESTPostAPIWebhookWithTokenJSONBody } from 'discord.js';
-import type { Logger } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import type { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
 import type express from 'express';
 import { htmlToText } from 'html-to-text';
-import { getTopic } from '../api/forumAPI.js';
+import { getTopic } from './forumAPI.js';
 import dotenv from 'dotenv';
 // quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
 dotenv.config({ quiet: true });

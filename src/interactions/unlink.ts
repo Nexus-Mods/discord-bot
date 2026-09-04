@@ -1,8 +1,9 @@
 import { type CommandInteraction, type Snowflake, type Client, SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType } from "discord.js";
 import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
-import { KnownDiscordServers, type Logger } from "../api/util.js";
-import { unlinkUrl } from '../server/auth.js';
+import { KnownDiscordServers } from "../api/util.js";
+import type { Logger } from "../api/logger.js";
+import { unlinkUrl } from '../auth/signing.js';
 import { NEXUS_ORANGE, botFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {

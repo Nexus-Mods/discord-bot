@@ -150,6 +150,46 @@ describe('the bot stays out of the web process', () => {
             .map(slash);
         expect(offenders).toEqual([]);
     });
+
+    /**
+     * The other direction, and the reason src/auth/ exists.
+     *
+     * Before the 4.4.0 split, the bot reached into src/server/ for three things:
+     * DiscordBotUser imported both OAuth clients, and the link and unlink commands
+     * imported the URL signing helpers. Those are not web-server code - they are shared
+     * primitives that happened to live next to express - and while they stayed there,
+     * "the web app" and "things both processes need" were the same directory, so the
+     * eventual package cut had no line to follow.
+     *
+     * src/server/ is now web-only: reachable from src/web.ts and from its own modules,
+     * and from nowhere else. This test is what stops that eroding one convenient import
+     * at a time.
+     */
+    it('is reachable only from the web entry point and its own modules', () => {
+        const offenders = ALL
+            .filter((f) => localDeps(f).some((d) => slash(d).startsWith('src/server/')))
+            .map(slash)
+            .filter((f) => f !== 'src/web.ts' && !f.startsWith('src/server/'));
+        expect(offenders).toEqual([]);
+    });
+});
+
+describe('src/auth/', () => {
+    /**
+     * Shared by both processes, so it must stay free of anything that belongs to only
+     * one of them: no express, and no gateway client.
+     */
+    it('does not pull express or the gateway into whichever process imports it', () => {
+        const authFiles = ALL.filter((f) => slash(f).startsWith('src/auth/'));
+        expect(authFiles.length).toBeGreaterThan(0);
+        expect(importersOfPackage('express').filter((f) => f.startsWith('src/auth/'))).toEqual([]);
+        for (const f of authFiles) {
+            for (const dep of localDeps(f)) {
+                expect(slash(dep), `${slash(f)} reaches the bot`).not.toMatch(/DiscordBot\.ts$/);
+                expect(slash(dep), `${slash(f)} reaches the web app`).not.toMatch(/^src\/server\//);
+            }
+        }
+    });
 });
 
 describe('entry points', () => {

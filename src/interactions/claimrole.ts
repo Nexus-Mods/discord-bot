@@ -5,7 +5,7 @@ import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { getConditionsForRole } from '../api/server_role_conditions.js';
 import { getServer } from '../api/servers.js';
 import type { BotServer } from "../types/servers.js";
-import type { Logger } from "../api/util.js";
+import type { Logger } from "../api/logger.js";
 import type { IConditionForRole } from "../api/server_role_conditions.js";
 import type { InteractionContext } from '../lib/middleware.js';
 

@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import type { Logger } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import { readJson, expiresAt } from '../api/http.js';
 
 interface OAuthURL {

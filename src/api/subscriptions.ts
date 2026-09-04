@@ -322,10 +322,9 @@ export type NewSubscriptionData = Omit<
 >;
 
 export { 
-    loadSubscribedChannel, getSubscribedItems, subscribeChannelTo, updateChannelSubscription,
+    getSubscribedItems, subscribeChannelTo, updateChannelSubscription,
     totalItemsInGuild, getSubscribedChannelsForGuild,
     getSubscribedChannels, getCountOfSubscriptions, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
-    getAllSubscriptions, getSubscriptionsByChannel, createSubscription,
-    updateSubscription, saveLastUpdatedForSub, deleteSubscription,
+    getAllSubscriptions, updateSubscription, saveLastUpdatedForSub, deleteSubscription,
     setDateForAllSubsInChannel, deleteSubscribedChannel
 };

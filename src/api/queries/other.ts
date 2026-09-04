@@ -1,5 +1,5 @@
 import type { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
-import type { Logger } from '../util.js';
+import type { Logger } from '../logger.js';
 import { logger } from '../logger.js';
 import { NexusApiError } from '../errors.js';
 

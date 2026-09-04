@@ -224,9 +224,7 @@ export async function closePools(): Promise<void> {
  *
  * This replaces `queryPromise` and `queryAutoMod`, which were the same twenty lines
  * twice over, differing only in which pool they took a client from and in the
- * wording of their log messages. `queryPromise` is kept as an alias below because
- * roughly half the data layer imports it under that name and the other half imports
- * the default export as `query`.
+ * wording of their log messages.
  */
 export async function query<T extends QueryResultRow>(
     text: string,
@@ -311,9 +309,6 @@ export async function withTransaction<R>(
         client.release();
     }
 }
-
-/** @deprecated Prefer `query`. Kept because much of the data layer imports this name. */
-export const queryPromise = query;
 
 /**
  * Turn a pg failure into a DatabaseError.

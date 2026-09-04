@@ -3,7 +3,7 @@ import {
     SlashCommandBuilder, type ChatInputCommandInteraction, type AutocompleteInteraction,
     type EmbedData, type InteractionEditReplyOptions, InteractionContextType} from "discord.js";
 import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import type { Logger } from "../api/util.js";
+import type { Logger } from "../api/logger.js";
 import type { ITip } from "../api/tips.js";
 import { NEXUS_ORANGE } from '../lib/embeds.js';
 import { getTipCache } from '../lib/caches.js';

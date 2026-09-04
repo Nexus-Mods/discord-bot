@@ -3,7 +3,8 @@ import {
     MessageFlags,
     type ChatInputCommandInteraction
 } from 'discord.js';
-import { isTesting, type Logger, unexpectedErrorEmbed } from '../api/util.js';
+import { isTesting, unexpectedErrorEmbed } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import { BOT_VERSION } from '../version.js';
 import { randomUUID } from 'node:crypto';
 import type { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';

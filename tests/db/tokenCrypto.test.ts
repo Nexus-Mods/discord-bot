@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { assertTokenKeyConfigured, needsSealing, openToken, openUserTokens, sealToken, sealUserTokens } from '../../src/db/tokenCrypto.js';
+import { assertTokenKeyConfigured, needsResealing, needsSealing, openToken, openUserTokens, resealToken, sealToken, sealUserTokens } from '../../src/db/tokenCrypto.js';
 
 const KEY = 'DPB3vBrTKpBz0OYbBIdd0EJZAcMHGCJVCEr5Bd2fbwc=';
 const OLD_KEY = 'k0Ky5oCr2hLhJZ1mnGXZlLKrz7XFBhKrhpNU0V1Ffyg=';
@@ -173,5 +173,65 @@ describe('row helpers', () => {
 
     it.each([null, undefined])('leaves %s columns as they are', (value) => {
         expect(sealUserTokens({ nexus_access: value }).nexus_access).toBe(value);
+    });
+});
+
+describe('key rotation', () => {
+    /**
+     * These exist because the original rotation procedure destroyed every link and
+     * reported success while doing it. The backfill tested `needsSealing`, which is
+     * false for an already-sealed value, so a rotation run skipped every row - and
+     * removing the old key afterwards made all of them unreadable at once.
+     */
+    const sealedUnderOld = () => {
+        process.env.TOKEN_ENCRYPTION_KEY = OLD_KEY;
+        const value = sealToken('a-token');
+        process.env.TOKEN_ENCRYPTION_KEY = KEY;
+        process.env.TOKEN_ENCRYPTION_KEY_OLD = OLD_KEY;
+        return value;
+    };
+
+    it('spots a value sealed under the old key', () => {
+        expect(needsResealing(sealedUnderOld())).toBe(true);
+    });
+
+    it('does not flag a value already sealed under the current key', () => {
+        process.env.TOKEN_ENCRYPTION_KEY_OLD = OLD_KEY;
+        expect(needsResealing(sealToken('a-token'))).toBe(false);
+    });
+
+    it('is the test needsSealing could never be', () => {
+        // The precise reason the rotation was silently a no-op.
+        const value = sealedUnderOld();
+        expect(needsSealing(value)).toBe(false);
+        expect(needsResealing(value)).toBe(true);
+    });
+
+    it('flags nothing when no old key is configured', () => {
+        // Nothing to rotate to, and a value that will not open under the only key there
+        // is cannot be repaired - claiming otherwise would loop the backfill forever.
+        const value = sealedUnderOld();
+        delete process.env.TOKEN_ENCRYPTION_KEY_OLD;
+        expect(needsResealing(value)).toBe(false);
+    });
+
+    it.each([null, undefined, '', 'plaintext'])('does not flag %s for re-sealing', (value) => {
+        process.env.TOKEN_ENCRYPTION_KEY_OLD = OLD_KEY;
+        expect(needsResealing(value)).toBe(false);
+    });
+
+    it('re-seals onto the current key, preserving the plaintext', () => {
+        const old = sealedUnderOld();
+        const fresh = resealToken(old)!;
+        expect(fresh).not.toBe(old);
+        // The point of the whole exercise: readable once the old key is gone.
+        delete process.env.TOKEN_ENCRYPTION_KEY_OLD;
+        expect(openToken(fresh)).toBe('a-token');
+    });
+
+    it('returns null rather than inventing a value it cannot decrypt', () => {
+        const orphan = sealedUnderOld();
+        process.env.TOKEN_ENCRYPTION_KEY_OLD = 'Zm9yZ290LXRoaXMta2V5LWVudGlyZWx5LTMyLWJ5dGVzIQ==';
+        expect(resealToken(orphan)).toBeNull();
     });
 });

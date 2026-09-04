@@ -1,6 +1,6 @@
 import { type CommandInteraction, SlashCommandBuilder, type ChatInputCommandInteraction, type GuildChannel, PermissionFlagsBits, InteractionContextType } from "discord.js";
 import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import type { Logger } from "../api/util.js";
+import type { Logger } from "../api/logger.js";
 import { getSubscribedChannel } from "../api/subscriptions.js";
 import { webhookFor } from '../feeds/webhooks.js';
 import { getSubscribedItems } from '../api/subscriptions.js';

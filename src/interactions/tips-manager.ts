@@ -12,7 +12,8 @@ import {
 } from "discord.js";
 import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { addTip, editTip, getAllTips } from '../api/tips.js';
-import { KnownDiscordServers, type Logger } from "../api/util.js";
+import { KnownDiscordServers } from "../api/util.js";
+import type { Logger } from "../api/logger.js";
 import { deleteTip, type ITip, setApprovedTip } from "../api/tips.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 import { voidAsync } from '../lib/async.js';

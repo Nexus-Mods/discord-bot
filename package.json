@@ -1,7 +1,7 @@
 {
   "name": "nexus-bot-typescript",
   "type": "module",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
@@ -29,7 +29,6 @@
   "author": "Pickysaurus",
   "license": "ISC",
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^10.0.1",
     "@graphql-codegen/cli": "^7.3.1",
     "@graphql-codegen/import-types-preset": "^3.0.1",
@@ -65,8 +64,7 @@
     "helmet": "^8.3.0",
     "html-to-text": "^10.0.1",
     "pg": "^8.14.1",
-    "pino": "^10.3.1",
-    "tall": "^8.0.0"
+    "pino": "^10.3.1"
   },
   "engines": {
     "node": ">=22"

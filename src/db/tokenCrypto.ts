@@ -127,6 +127,41 @@ export function needsSealing(value: string | null | undefined): boolean {
     return typeof value === 'string' && value.length > 0 && !isSealed(value);
 }
 
+/**
+ * Whether a value is sealed under an older key and must be re-sealed under the current
+ * one before TOKEN_ENCRYPTION_KEY_OLD can safely be removed.
+ *
+ * This is the test the backfill was missing. `needsSealing` asks "is this plaintext?",
+ * which is false for every row during a rotation - so a rotation run skipped everything
+ * and reported success, and removing the old key afterwards made every row unreadable at
+ * once. The question that actually matters is narrower: does this open under the current
+ * key **alone**?
+ *
+ * With no old key configured there is nothing to rotate to, so nothing needs re-sealing
+ * - a value that will not open under the only key there is cannot be repaired by this,
+ * and saying otherwise would put the backfill into a loop it could never finish.
+ */
+export function needsResealing(value: string | null | undefined): boolean {
+    if (typeof value !== 'string' || value.length === 0) return false;
+    if (!isSealed(value)) return false;
+    const configured = keys();
+    if (configured.length === 1) return false;
+    return open(value, [configured[0]]) === null;
+}
+
+/**
+ * Open under whichever configured key works, and seal under the current one.
+ *
+ * Returns null when the value opens under no configured key. That is not recoverable
+ * here - the plaintext is gone - so the caller should leave the row alone rather than
+ * write something derived from nothing.
+ */
+export function resealToken(value: string): string | null {
+    const plaintext = open(value, keys());
+    if (plaintext === null) return null;
+    return sealToken(plaintext);
+}
+
 /** The four columns that hold credentials. Nothing else in the row is encrypted. */
 const TOKEN_COLUMNS = ['nexus_access', 'nexus_refresh', 'discord_access', 'discord_refresh'] as const;
 

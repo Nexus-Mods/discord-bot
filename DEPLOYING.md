@@ -15,9 +15,11 @@ They are a second container, from the same image, started with a different comma
 
 1. **Add the second service.** `docker-compose.yml` in this repository shows the shape;
    the production file needs the same two services from the same image tag.
-2. **Move the port mapping.** Whatever publishes the site today is attached to the bot
-   container. It has to point at `web` instead - the bot container no longer listens on
-   anything, so leaving the mapping where it is means the site returns nothing.
+2. ~~**Move the port mapping.**~~ **Does not apply.** Written before anyone had looked at
+   the running deployment: it uses `docker run --network host`, so there are no published
+   ports to move - the web process binds `AUTH_PORT` directly on the host. There is also
+   no `docker-compose.yml` in production; `redeploy.sh` in this repository is what starts
+   both containers.
 3. **Give the web container the environment.** Simplest and least error-prone is the same
    env file both containers already share. It needs, at minimum:
 
@@ -107,8 +109,16 @@ Left unset, the count is still `auto`.
 
 ### Rollback
 
-Previous image tag on the bot service, port mapping back where it was, web service
-removed. The database is untouched by this release, so nothing has to be undone there.
+    ./redeploy.sh <previous version>
+
+CI publishes `:latest`, `:<version>` and `:<sha>` for every build, and `redeploy.sh`
+takes a tag. The database is untouched by this release, so nothing has to be undone
+there.
+
+Until 4.4.0 this was not actually possible: the script hard-coded `:latest`, so the
+version and sha tags were published and never usable. If the copy on the droplet still
+does that, replace it with the one in this repository - and read the header first, which
+explains what was reconstructed rather than copied.
 
 ---
 

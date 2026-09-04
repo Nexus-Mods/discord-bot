@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
 import type { ForumTopic } from "../types/ForumWebhookTypes.js";
-import { readJson } from './http.js';
+import { readJson } from '../api/http.js';
 
 export async function getTopic(id: number): Promise<ForumTopic> {
     const APIKEY: string | undefined = process.env.FORUM_API_KEY;

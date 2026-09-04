@@ -11,7 +11,6 @@ const { news } = await import('../../../src/api/queries/v2-news.js');
 const { users } = await import('../../../src/api/queries/v2-users.js');
 const { modsByUid } = await import('../../../src/api/queries/v2-modsbyuid.js');
 const { modFiles } = await import('../../../src/api/queries/v2-modsFiles.js');
-const { myCollections } = await import('../../../src/api/queries/v2-mycollections.js');
 const { mods } = await import('../../../src/api/queries/v2-modsbymodid.js');
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as unknown as Logger;
@@ -41,7 +40,6 @@ const CALLS: { name: string; call: () => Promise<unknown> }[] = [
     { name: 'users', call: () => users({}, logger, 'someone') },
     { name: 'modsByUid', call: () => modsByUid({}, logger, ['1']) },
     { name: 'modFiles', call: () => modFiles({}, logger, 100, 200) },
-    { name: 'myCollections', call: () => myCollections({}, logger) },
 ];
 
 /**

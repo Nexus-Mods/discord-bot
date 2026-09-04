@@ -30,21 +30,6 @@ export async function autocompleteGameName(client: ClientExt, acInteraction: Aut
     }
 }
 
-export async function autoCompleteGameID(client: ClientExt, acInteraction: AutocompleteInteraction, logger: Logger) {
-    const focused = acInteraction.options.getFocused().toLowerCase();
-    try {
-        let games = await client.gamesList!.getGames();
-        if (focused !== '') games = games.filter(g => (g.name.toLowerCase().startsWith(focused) || g.domain_name.includes(focused)));
-        await acInteraction.respond(
-            games.map(g => ({ name: g.name, value: g.id })).slice(0, 25)
-        );
-    }
-    catch(err) {
-        logger.warn('Error autocompleting games', {err});
-        throw err;
-    }
-}
-
 export async function autoCompleteModSearch(acInteraction: AutocompleteInteraction, logger: Logger, gameDomain?: string, gameId?: number) {
     const focused = acInteraction.options.getFocused();
     if (focused.length < 3) return await acInteraction.respond([]);
@@ -60,29 +45,6 @@ export async function autoCompleteModSearch(acInteraction: AutocompleteInteracti
         )
         await acInteraction.respond(
             modSearch.nodes.map(m => ({ name: `${m.name} (${m.game.name})`.substring(0, 99), value: m.uid }))
-        );
-    }
-    catch(err) {
-        logger.warn('Error autocompleting mods', {err});
-        throw err;
-    }
-}
-
-export async function autoCompleteModSearchIdOnly(acInteraction: AutocompleteInteraction, logger: Logger, gameDomain?: string, gameId?: number) {
-    const focused = acInteraction.options.getFocused();
-    if (focused.length < 3) return await acInteraction.respond([]);
-    try {
-        const user = new DiscordBotUser(DummyNexusModsUser, logger);
-        const modFilter: IModsFilter = {};
-        if (focused) modFilter.name = [{ value: focused, op: 'WILDCARD' }];
-        if (gameDomain) modFilter.gameDomainName = [{ value: gameDomain, op: 'EQUALS' }];
-        if (gameId) modFilter.gameId = [{ value: String(gameId), op: 'EQUALS' }];
-        const modSearch = await user.NexusMods.API.v2.Mods(
-            modFilter,
-            { endorsements: { direction: 'DESC' }}
-        )
-        await acInteraction.respond(
-            modSearch.nodes.map(m => ({ name: `${m.name}`.substring(0, 99), value: m.modId }))
         );
     }
     catch(err) {

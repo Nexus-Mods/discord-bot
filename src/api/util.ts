@@ -1,10 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import { BOT_VERSION } from '../version.js';
 import { AppError } from './errors.js';
-// Moved to ./formatting.ts, which has no discord.js dependency. Re-exported here
-// so the existing imports from api/util.js keep working.
 export { gameArt, nexusModsTrackingUrl, calcUptime } from './formatting.js';
-export { Logger, logger } from './logger.js';
 
 export const isTesting = process.env.NODE_ENV === 'testing';
 // const isProduction = process.env.NODE_ENV === 'production';
@@ -13,12 +10,6 @@ export const baseheader: Readonly<Record<string, string>> = {
     'Application-Name': 'Nexus Mods Discord Bot',
     'Application-Version': BOT_VERSION
 };
-
-
-
-
-
-
 
 export const unexpectedErrorEmbed = (err: any, context: any, errorId?: string): EmbedBuilder => {
     // Only an AppError carries text written for a user. Everything else gets a generic

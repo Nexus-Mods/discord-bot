@@ -1,5 +1,5 @@
 import type { Client } from 'discord.js';
-import type { Logger } from '../api/util.js';
+import type { Logger } from "../api/logger.js";
 import type { DiscordEventInterface } from '../types/DiscordTypes.js';
 
 const main: DiscordEventInterface = {
