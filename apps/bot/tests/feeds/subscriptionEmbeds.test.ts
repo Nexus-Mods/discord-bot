@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { Logger } from '../../src/api/logger.js';
+import type { Logger } from '@nexusmods/core/logger.js';
 import { trimCollectionChangelog, trimModChangelog } from '../../src/feeds/subscriptionEmbeds.js';
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as unknown as Logger;

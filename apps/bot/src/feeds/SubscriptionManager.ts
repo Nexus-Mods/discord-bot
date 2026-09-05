@@ -6,7 +6,7 @@ import {
     type WebhookClient
 } from 'discord.js';
 import { isTesting } from '../api/util.js';
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
 import { 
     type IModWithFiles, type IPostableSubscriptionUpdate, type ISubscribedItem, 

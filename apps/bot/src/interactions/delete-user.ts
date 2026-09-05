@@ -2,7 +2,7 @@ import { type ChatInputCommandInteraction, type CommandInteraction, InteractionC
 import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { deleteUser, getUserByDiscordId, getUserByNexusModsName } from '../api/users.js';
 import { KnownDiscordServers } from "../api/util.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 
 const discordInteraction: DiscordInteraction = {

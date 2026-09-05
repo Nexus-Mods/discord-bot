@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcUptime, nexusModsTrackingUrl, gameArt } from '../../src/api/formatting.js';
+import { calcUptime, nexusModsTrackingUrl, gameArt } from '@nexusmods/core/formatting.js';
 
 describe('calcUptime', () => {
     it.each([

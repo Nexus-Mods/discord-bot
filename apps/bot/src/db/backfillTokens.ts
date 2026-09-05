@@ -1,10 +1,10 @@
 // Loads .env by walking up from the code, not from the working directory.
-import '../lib/env.js';
+import '@nexusmods/core/env.js';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
 import { poolConfig } from '../api/dbConnect.js';
-import { logger } from '../api/logger.js';
-import { toError } from '../api/errors.js';
+import { logger } from '@nexusmods/core/logger.js';
+import { toError } from '@nexusmods/core/errors.js';
 import { isSealed } from '../lib/sealedValue.js';
 import { assertTokenKeyConfigured, needsResealing, needsSealing, openToken, resealToken, sealToken } from './tokenCrypto.js';
 

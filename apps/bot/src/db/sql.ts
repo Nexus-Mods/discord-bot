@@ -1,6 +1,6 @@
 import { getTableColumns } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
-import { ValidationError } from '../api/errors.js';
+import { ValidationError } from '@nexusmods/core/errors.js';
 
 /**
  * The column names a table actually has, taken from src/db/schema.ts.

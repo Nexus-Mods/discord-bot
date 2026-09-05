@@ -1,6 +1,6 @@
 import { request, gql, type Variables } from "graphql-request";
-import { NexusApiError } from '../errors.js';
-import type { Logger } from "../logger.js";
+import { NexusApiError } from '@nexusmods/core/errors.js';
+import type { Logger } from "@nexusmods/core/logger.js";
 import { v2API, NexusGQLError, type IModFile } from './v2.js';
 
 interface IResult {

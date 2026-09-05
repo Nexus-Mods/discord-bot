@@ -1,5 +1,5 @@
 import { query } from './dbConnect.js';
-import { DatabaseError } from './errors.js';
+import { DatabaseError } from '@nexusmods/core/errors.js';
 
 type ConditionType = 'modDownloads' | 'modsPublished';
 type Operator = 'AND' | 'OR';

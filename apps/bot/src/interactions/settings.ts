@@ -11,7 +11,7 @@ import { getServer, updateServer } from '../api/servers.js';
 import type { BotServer } from "../types/servers.js";
 import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { KnownDiscordServers } from '../api/util.js';
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import type { IGameStatic } from "../api/queries/other.js";
 import { autocompleteGameName } from '../lib/autocomplete.js';
 import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, type IConditionForRole } from "../api/server_role_conditions.js";

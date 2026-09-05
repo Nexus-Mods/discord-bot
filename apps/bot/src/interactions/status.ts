@@ -4,7 +4,7 @@ import { getUserByDiscordId } from '../api/users.js';
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
 import type { IStatusPageFullResponse } from "../types/util.js";
 import { KnownDiscordServers } from "../api/util.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

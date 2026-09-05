@@ -1,5 +1,5 @@
 import { type Client, EmbedBuilder } from 'discord.js';
-import { AppError } from '../api/errors.js';
+import { AppError } from '@nexusmods/core/errors.js';
 
 /**
  * Shared embed furniture.

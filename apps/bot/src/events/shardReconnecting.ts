@@ -1,5 +1,5 @@
 import type { Client } from "discord.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import type { DiscordEventInterface } from '../types/DiscordTypes.js';
 
 // Events are registered by filename. discord.js v14 emits 'shardReconnecting',

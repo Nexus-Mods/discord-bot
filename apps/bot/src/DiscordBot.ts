@@ -2,7 +2,7 @@ import { REST, Client, Collection, type GatewayIntentBits, Routes, type Snowflak
 import * as fs from 'fs';
 import path from 'path';
 import { isTesting } from './api/util.js';
-import { logger, type Logger } from './api/logger.js';
+import { logger, type Logger } from '@nexusmods/core/logger.js';
 import { voidAsync, fireAndForget } from './lib/async.js';
 import type { DiscordEventInterface, DiscordInteraction, ClientExt } from './types/DiscordTypes.js';
 import { GameListCache } from './types/util.js';

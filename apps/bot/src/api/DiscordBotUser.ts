@@ -2,7 +2,7 @@ import * as NexusModsOAuth from '../auth/NexusModsOAuth.js';
 import * as DiscordOAuth from '../auth/DiscordOAuth.js';
 import type { NexusUser } from '../types/users.js';
 import { baseheader } from './util.js';
-import type { Logger } from './logger.js'
+import type { Logger } from '@nexusmods/core/logger.js'
 import { updateUserRecord } from './userRecord.js';
 import type { Client, User } from 'discord.js';
 import { other, v2 } from './queries/all.js';

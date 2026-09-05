@@ -3,8 +3,8 @@ import { buildUpdate } from '../db/sql.js';
 import { servers as serversTable } from '../db/schema.js';
 import type { BotServer } from '../types/servers.js';
 import type { Guild } from 'discord.js';
-import { logger } from './logger.js';
-import { NotFoundError } from './errors.js';
+import { logger } from '@nexusmods/core/logger.js';
+import { NotFoundError } from '@nexusmods/core/errors.js';
 
 // query() already throws a DatabaseError carrying its cause and a user-facing
 // message, so the try/catch blocks that only did `return Promise.reject(error)`

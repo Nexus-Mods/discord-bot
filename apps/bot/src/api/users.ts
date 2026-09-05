@@ -3,7 +3,7 @@ import type { NexusUser } from '../types/users.js';
 import type { Snowflake } from 'discord.js';
 import { DiscordBotUser } from './DiscordBotUser.js';
 import { updateUserRecord } from './userRecord.js';
-import { logger } from './logger.js';
+import { logger } from '@nexusmods/core/logger.js';
 import { openUserTokens, sealUserTokens } from '../db/tokenCrypto.js';
 
 async function getAllUsers(): Promise<NexusUser[]> {

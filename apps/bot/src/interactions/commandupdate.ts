@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { KnownDiscordServers } from "../api/util.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

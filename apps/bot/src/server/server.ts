@@ -4,7 +4,7 @@ import cookieparser from 'cookie-parser';
 import * as DiscordOAuth from '../auth/DiscordOAuth.js';
 import * as NexusModsOAuth from '../auth/NexusModsOAuth.js';
 import { calcUptime } from '../api/util.js';
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users.js';
 import type { NexusUser } from '../types/users.js';
 import path from 'path';

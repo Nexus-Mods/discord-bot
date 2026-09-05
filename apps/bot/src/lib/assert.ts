@@ -1,4 +1,4 @@
-import { NexusApiError } from '../api/errors.js';
+import { NexusApiError } from '@nexusmods/core/errors.js';
 
 /**
  * Assert that a value the schema allows to be null is actually present.

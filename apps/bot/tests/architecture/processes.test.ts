@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,20 +23,38 @@ import { fileURLToPath } from 'node:url';
  * Runtime imports only. Type-only imports are erased by the compiler and cannot pull a
  * module into a process - the same rule the cycles test uses, for the same reason.
  */
+/**
+ * The universe is both workspaces, not just this one.
+ *
+ * Step 5 moves shared modules into packages/. If this kept walking only src/, every rule
+ * below would stop applying to them the moment they left - and it would stop silently,
+ * because "no module in the shared set imports discord.js" is trivially true of modules
+ * the walk can no longer see. The packages are the shared set now; they are the last
+ * place this should stop looking.
+ */
+const PACKAGES = path.join('..', '..', 'packages');
+
 function sourceFiles(): string[] {
     const out: string[] = [];
-    (function walk(d: string) {
+    const walk = (d: string) => {
         for (const e of readdirSync(d)) {
             const p = path.join(d, e);
             if (statSync(p).isDirectory()) walk(p);
             else if (p.endsWith('.ts')) out.push(path.normalize(p));
         }
-    })('src');
+    };
+    walk('src');
+    for (const pkg of existsSync(PACKAGES) ? readdirSync(PACKAGES) : []) {
+        const dir = path.join(PACKAGES, pkg, 'src');
+        if (existsSync(dir)) walk(dir);
+    }
     return out;
 }
 
 const ALL = sourceFiles();
-const slash = (f: string) => f.replace(/\\/g, '/');
+// Package files come back as ../../packages/<name>/src/... because the walk starts here.
+// Reported without the climb, so an assertion reads packages/core/src/logger.ts.
+const slash = (f: string) => f.replace(/\\/g, '/').replace(/^\.\.\/\.\.\//, '');
 
 const RELATIVE = /^\s*import\s+(type\s+)?(?:(\{[^}]*\})|([^'";]+?))?\s*(?:from\s*)?['"](\.[^'"]+)['"]/gm;
 const BARE = /^\s*import\s+(type\s+)?(?:(\{[^}]*\})|([^'";]+?))?\s*(?:from\s*)?['"]([^.'"][^'"]*)['"]/gm;
@@ -48,6 +66,21 @@ function isTypeOnly(typeKeyword: string | undefined, braces: string | undefined)
     return names.length === 0 || names.every((n) => /^type\s/.test(n));
 }
 
+/**
+ * A workspace subpath import, mapped back to the source file it will resolve to.
+ *
+ * `@nexusmods/core/logger.js` is packages/core/src/logger.ts. Without this the graph
+ * would break in half at the package boundary, and a boundary that is invisible to the
+ * test that guards it is worse than no test.
+ */
+const WORKSPACE = /^@nexusmods\/([^/]+)\/(.+)\.js$/;
+
+function workspaceSource(spec: string): string | undefined {
+    const m = WORKSPACE.exec(spec);
+    if (!m) return undefined;
+    return path.normalize(path.join(PACKAGES, m[1], 'src', `${m[2]}.ts`));
+}
+
 /** Runtime imports of local modules, resolved to source paths. */
 function localDeps(file: string): string[] {
     const deps: string[] = [];
@@ -55,6 +88,11 @@ function localDeps(file: string): string[] {
         if (isTypeOnly(m[1], m[2])) continue;
         const resolved = path.normalize(path.join(path.dirname(file), m[4].replace(/\.js$/, '.ts')));
         if (ALL.includes(resolved)) deps.push(resolved);
+    }
+    for (const m of readFileSync(file, 'utf8').matchAll(BARE)) {
+        if (isTypeOnly(m[1], m[2])) continue;
+        const resolved = workspaceSource(m[4]);
+        if (resolved && ALL.includes(resolved)) deps.push(resolved);
     }
     return deps;
 }
@@ -232,6 +270,29 @@ describe('the shared surface', () => {
         expect(offenders).toEqual([]);
     });
 
+    /**
+     * The cut packages are the shared surface made explicit, so they get the rule twice:
+     * once here as part of `shared`, and once below by their path - because a module in
+     * packages/ that no entry point happens to reach today would drop out of `shared`
+     * and out of the rule with it.
+     */
+    const packaged = ALL.map(slash).filter((f) => f.startsWith('packages/'));
+
+    it('is where the packages live, and the walk can see them', () => {
+        expect(packaged.length).toBeGreaterThan(0);
+        expect(shared.some((f) => f.startsWith('packages/'))).toBe(true);
+    });
+
+    it('keeps single-process libraries out of the packages entirely', () => {
+        // discord.js belongs to the bot, express and its middleware to the web app. A
+        // package reaching either is a dependency half its consumers pay for and none of
+        // them asked for.
+        for (const pkg of ['discord.js', 'express', 'helmet', 'express-rate-limit', 'cookie-parser', 'ejs']) {
+            const offenders = importersOfPackage(pkg).filter((f) => f.startsWith('packages/'));
+            expect(offenders, `${pkg} is reached from a package`).toEqual([]);
+        }
+    });
+
     it('leaves the gateway library to the bot and the REST helpers to the web app', () => {
         // Stated rather than implied, because "no discord.js in shared" is only half the
         // rule. The web app legitimately uses REST, Routes, CDN and EmbedBuilder to talk
@@ -264,7 +325,7 @@ describe('the environment', () => {
 
     it('loads the environment in exactly one place', () => {
         const direct = ALL
-            .filter((f) => slash(f) !== 'src/lib/env.ts')
+            .filter((f) => slash(f) !== 'packages/core/src/env.ts')
             .filter((f) => /from '.?dotenv|import 'dotenv/.test(readFileSync(f, 'utf8')))
             .map(slash);
         expect(direct).toEqual([]);
@@ -278,14 +339,14 @@ describe('the environment', () => {
             const first = readFileSync(entry, 'utf8')
                 .split('\n')
                 .find((l) => l.startsWith('import '));
-            expect(first, `${entry} should import the env loader first`).toMatch(/lib\/env\.js/);
+            expect(first, `${entry} should import the env loader first`).toMatch(/@nexusmods\/core\/env\.js/);
         }
     });
 
     it('resolves .env from the code, not the working directory', async () => {
         // The property that actually matters, exercised rather than asserted about: a
         // file several levels above the module is found, whatever the cwd happens to be.
-        const { findEnvFile } = await import('../../src/lib/env.js');
+        const { findEnvFile } = await import('@nexusmods/core/env.js');
         const root = mkdtempSync(path.join(tmpdir(), 'envwalk-'));
         const deep = path.join(root, 'apps', 'bot', 'dist', 'lib');
         mkdirSync(deep, { recursive: true });
@@ -333,6 +394,17 @@ describe('entry points', () => {
         // shell form put /bin/sh there and `docker stop` had to SIGKILL it mid-poll.
         const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
         expect(dockerfile).toContain('CMD ["node", "dist/shards.js"]');
+    });
+
+    it('flattens the workspace links so node_modules is self-contained', () => {
+        // The runtime stage copies node_modules and nothing else. npm does not install a
+        // workspace dependency, it links it - so without this step /app/node_modules/
+        // @nexusmods/core points at /app/packages/core, which the image does not have,
+        // and the bot dies on its first import. Nothing else in the build would fail.
+        const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
+        expect(dockerfile).toMatch(/RUN node scripts\/flatten-workspace-deps\.mjs/);
+        // And after the prune, which rewrites the tree it is rewriting.
+        expect(dockerfile.indexOf('npm prune')).toBeLessThan(dockerfile.indexOf('flatten-workspace-deps'));
     });
 
     it('the image still puts the bot where the deploy path expects it', () => {

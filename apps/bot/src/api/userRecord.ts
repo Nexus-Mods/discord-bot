@@ -1,7 +1,7 @@
 import query from './dbConnect.js';
 import { buildUpdate } from '../db/sql.js';
 import { users as usersTable } from '../db/schema.js';
-import { logger } from './logger.js';
+import { logger } from '@nexusmods/core/logger.js';
 import type { NexusUser } from '../types/users.js';
 import { openUserTokens, sealUserTokens } from '../db/tokenCrypto.js';
 

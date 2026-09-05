@@ -1,4 +1,4 @@
-import { ConfigError, DatabaseError } from '../api/errors.js';
+import { ConfigError, DatabaseError } from '@nexusmods/core/errors.js';
 import { deriveKey, isSealed, open, seal } from '../lib/sealedValue.js';
 
 /**

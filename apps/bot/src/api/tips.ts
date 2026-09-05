@@ -1,5 +1,5 @@
 import { query } from './dbConnect.js';
-import { DatabaseError } from './errors.js';
+import { DatabaseError } from '@nexusmods/core/errors.js';
 
 export interface ITip {
     id: number;

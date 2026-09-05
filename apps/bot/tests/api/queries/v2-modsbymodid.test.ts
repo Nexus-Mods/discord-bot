@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Logger } from '../../../src/api/logger.js';
+import type { Logger } from '@nexusmods/core/logger.js';
 
 const requestMock = vi.fn();
 vi.mock('graphql-request', async (importOriginal) => {

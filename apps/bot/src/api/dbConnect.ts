@@ -2,8 +2,8 @@ import pg, { type PoolConfig, type PoolClient, type QueryResult, type QueryResul
 import type { Pool as PgPool } from 'pg';
 // Aliased: pg exports a DatabaseError too, and ours is the one that gets thrown.
 const { Pool, DatabaseError: PgDatabaseError } = pg;
-import { logger } from './logger.js';
-import { AppError, ConfigError, DatabaseError, toError } from './errors.js';
+import { logger } from '@nexusmods/core/logger.js';
+import { AppError, ConfigError, DatabaseError, toError } from '@nexusmods/core/errors.js';
 
 /**
  * Read an integer from the environment, rejecting values that are not numbers.

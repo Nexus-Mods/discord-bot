@@ -1,8 +1,8 @@
 // Loads .env by walking up from the code, not from the working directory.
-import './lib/env.js';
+import '@nexusmods/core/env.js';
 import { ShardingManager } from 'discord.js';
 import { runMigrations } from './db/migrate.js';
-import { logger } from './api/logger.js';
+import { logger } from '@nexusmods/core/logger.js';
 import { assertTokenKeyConfigured } from './db/tokenCrypto.js';
 
 /**

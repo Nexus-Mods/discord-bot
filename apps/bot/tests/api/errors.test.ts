@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     AppError, DatabaseError, NexusApiError, NotFoundError, ConfigError,
     toError, userMessageFor,
-} from '../../src/api/errors.js';
+} from '@nexusmods/core/errors.js';
 
 describe('AppError', () => {
     it('is a real Error, so instanceof and stacks work', () => {

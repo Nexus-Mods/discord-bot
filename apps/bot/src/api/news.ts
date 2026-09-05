@@ -1,5 +1,5 @@
 import { query, withTransaction } from './dbConnect.js';
-import type { Logger } from './logger.js';
+import type { Logger } from '@nexusmods/core/logger.js';
 import type { SavedNewsData } from '../types/feeds.js';
 
 async function getSavedNews(logger: Logger): Promise<SavedNewsData> {

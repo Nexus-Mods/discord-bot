@@ -1,6 +1,6 @@
 // Loads .env by walking up from the code, not from the working directory.
-import './lib/env.js';
-import { logger } from './api/logger.js';
+import '@nexusmods/core/env.js';
+import { logger } from '@nexusmods/core/logger.js';
 import { runMigrations } from './db/migrate.js';
 import { AuthSite } from './server/server.js';
 import { createDiscordDirectory } from './server/discordDirectory.js';

@@ -9,7 +9,7 @@ import type { DiscordInteraction } from '../types/DiscordTypes.js';
 import { getServer } from '../api/servers.js';
 import { getUserByDiscordId } from '../api/users.js';
 import { gameArt, KnownDiscordServers, nexusModsTrackingUrl } from "../api/util.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import type { ICollectionsFilter } from "../types/GQLTypes.js";
 import type { BotServer } from "../types/servers.js";
 import { sendUnexpectedError } from '../events/interactionCreate.js';

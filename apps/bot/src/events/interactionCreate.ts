@@ -5,7 +5,7 @@ import {
 } from 'discord.js';
 import { isTesting } from '../api/util.js';
 import { unexpectedErrorEmbed } from '../lib/embeds.js'
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import { BOT_VERSION } from '../version.js';
 import { randomUUID } from 'node:crypto';
 import type { DiscordEventInterface, DiscordInteraction, ClientExt } from '../types/DiscordTypes.js';

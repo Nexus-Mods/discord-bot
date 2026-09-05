@@ -1,7 +1,7 @@
 import { type ChatInputCommandInteraction, type CommandInteraction, type EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { KnownDiscordServers } from '../api/util.js';
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import { autocompleteGameName } from '../lib/autocomplete.js';
 import { NewsFeedManager } from "../feeds/NewsFeedManager.js";
 

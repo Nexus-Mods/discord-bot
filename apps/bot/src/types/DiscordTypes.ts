@@ -2,7 +2,7 @@ import type { Snowflake, CommandInteraction, Collection, Client, ContextMenuComm
 import type { NewsFeedManager } from "../feeds/NewsFeedManager.js";
 import type { GameListCache, TipCache } from "./util.js";
 import type { SubscriptionManger } from "../feeds/SubscriptionManager.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import type { DeferOption, InteractionContext } from "../lib/middleware.js";
 
 /**

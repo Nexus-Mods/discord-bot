@@ -4,7 +4,7 @@ import { getAllUsers, getUserByDiscordId } from '../api/users.js';
 import { userEmbed, userProfileEmbed } from '../lib/profile.js';
 import { type Snowflake, type Client, type User, type ChatInputCommandInteraction, SlashCommandBuilder, type CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
 import { KnownDiscordServers} from "../api/util.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { botUser, notAllowed } from '../lib/profile.js';
 

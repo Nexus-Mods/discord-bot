@@ -1,5 +1,5 @@
 import { BOT_VERSION } from '../version.js';
-export { gameArt, nexusModsTrackingUrl, calcUptime } from './formatting.js';
+export { gameArt, nexusModsTrackingUrl, calcUptime } from '@nexusmods/core/formatting.js';
 
 export const isTesting = process.env.NODE_ENV === 'testing';
 // const isProduction = process.env.NODE_ENV === 'production';

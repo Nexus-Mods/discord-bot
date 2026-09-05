@@ -1,6 +1,6 @@
 import { other } from "../api/queries/all.js";
-import type { Logger } from "../api/logger.js";
-import { logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
+import { logger } from "@nexusmods/core/logger.js";
 import type { IGameStatic } from "../api/queries/other.js";
 import type { ITip } from "../api/tips.js";
 import { getAllTips } from "../api/tips.js";

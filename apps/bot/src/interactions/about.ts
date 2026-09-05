@@ -7,7 +7,7 @@ import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { BOT_VERSION } from '../version.js';
 import { getCountOfUsers } from '../api/users.js';
 import { calcUptime } from "../api/util.js";
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import { getCountOfSubscriptions } from "../api/subscriptions.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 import { totalGuildCount } from '../lib/sharding.js';

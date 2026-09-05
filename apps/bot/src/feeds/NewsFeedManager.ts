@@ -3,7 +3,7 @@ import { getSavedNews, updateSavedNews } from '../api/news.js';
 import type { ClientExt } from "../types/DiscordTypes.js";
 import { EmbedBuilder, type TextChannel, WebhookClient } from 'discord.js';
 import { nexusModsTrackingUrl, baseheader } from '../api/util.js';
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import type { IGameStatic } from '../api/queries/other.js';
 import { v2 } from '../api/queries/all.js';
 import { NEXUS_ORANGE } from '../lib/embeds.js';

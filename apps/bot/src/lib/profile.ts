@@ -3,8 +3,8 @@ import type { NexusUser } from '../types/users.js';
 // Type-only: the embeds take a DiscordBotUser but never construct one, so this edge
 // is erased at compile time and does not recreate the cycle it was moved to break.
 import type { DiscordBotUser } from '../api/DiscordBotUser.js';
-import { logger } from '../api/logger.js';
-import { nexusModsTrackingUrl } from '../api/formatting.js';
+import { logger } from '@nexusmods/core/logger.js';
+import { nexusModsTrackingUrl } from '@nexusmods/core/formatting.js';
 import { apiLinkFooter, botIconUrl, NEXUS_ORANGE } from './embeds.js';
 
 // These two were duplicated verbatim between whois.ts and user-profile.ts.

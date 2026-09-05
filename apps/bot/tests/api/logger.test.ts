@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scrub } from '../../src/api/logger.js';
+import { scrub } from '@nexusmods/core/logger.js';
 
 /**
  * The old logger printed whatever it was handed. dbConnect logged the pg bind array

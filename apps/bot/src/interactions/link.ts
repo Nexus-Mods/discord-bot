@@ -4,7 +4,7 @@ import {
 import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
 import { KnownDiscordServers } from '../api/util.js';
-import type { Logger } from "../api/logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import { linkUrl, unlinkUrl } from '../auth/signing.js';
 import { NEXUS_ORANGE, apiLinkFooter } from '../lib/embeds.js';

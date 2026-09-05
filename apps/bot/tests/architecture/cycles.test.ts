@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 /**
@@ -18,13 +18,23 @@ import path from 'node:path';
  */
 function sourceFiles(): string[] {
     const out: string[] = [];
-    (function walk(d: string) {
+    const walk = (d: string) => {
         for (const e of readdirSync(d)) {
             const p = path.join(d, e);
             if (statSync(p).isDirectory()) walk(p);
             else if (p.endsWith('.ts')) out.push(p);
         }
-    })('src');
+    };
+    walk('src');
+    // The packages too, so modules do not fall out of this check by being moved. Only
+    // relative specifiers are resolved below, which is all that is needed: a package
+    // cannot import the application it was cut from, so a cycle that crosses the
+    // boundary cannot be written in the first place.
+    const packages = path.join('..', '..', 'packages');
+    for (const pkg of existsSync(packages) ? readdirSync(packages) : []) {
+        const dir = path.join(packages, pkg, 'src');
+        if (existsSync(dir)) walk(dir);
+    }
     return out;
 }
 

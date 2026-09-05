@@ -1,5 +1,5 @@
 import { request, gql } from "graphql-request";
-import type { Logger } from "../logger.js";
+import type { Logger } from "@nexusmods/core/logger.js";
 import { v2API, type ICollection, NexusGQLError } from './v2.js';
 
 interface IResult {

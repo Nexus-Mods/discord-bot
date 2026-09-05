@@ -1,5 +1,5 @@
 // Loads .env by walking up from the code, not from the working directory.
-import './lib/env.js';
+import '@nexusmods/core/env.js';
 import { DiscordBot } from './DiscordBot.js';
 import { requireShard } from './lib/sharding.js';
 

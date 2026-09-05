@@ -7,6 +7,9 @@ WORKDIR /repo
 # npm reads each workspace's manifest to resolve the tree.
 COPY package.json package-lock.json ./
 COPY apps/bot/package.json ./apps/bot/
+# Every workspace the bot depends on needs its manifest here too, for the same
+# reason: npm resolves the tree from the manifests before any source is copied.
+COPY packages/core/package.json ./packages/core/
 # npm ci installs exactly what the lockfile pins, dev dependencies included so
 # tsup and typescript are available for the build.
 #
@@ -22,6 +25,12 @@ RUN npm run typecheck -w @nexusmods/discord-bot \
 
 # Drop dev dependencies so only what the bot needs at runtime is carried forward.
 RUN npm prune --omit=dev
+
+# npm links workspace dependencies rather than installing them, and the runtime stage
+# copies node_modules without packages/ - so the links would dangle. Replace them with
+# the built packages, which is what lets the runtime image keep the shape it has had
+# since 4.0.0 rather than growing a packages/ directory beside dist/.
+RUN node scripts/flatten-workspace-deps.mjs apps/bot
 
 # ---- runtime ----
 FROM node:22-slim AS runtime

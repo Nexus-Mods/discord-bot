@@ -1,4 +1,4 @@
-import type { Logger } from '../api/logger.js';
+import type { Logger } from '@nexusmods/core/logger.js';
 
 /**
  * Adapt an async function for an API that expects a void-returning callback -

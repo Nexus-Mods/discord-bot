@@ -1,7 +1,7 @@
 import type { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
-import type { Logger } from '../logger.js';
-import { logger } from '../logger.js';
-import { NexusApiError } from '../errors.js';
+import type { Logger } from '@nexusmods/core/logger.js';
+import { logger } from '@nexusmods/core/logger.js';
+import { NexusApiError } from '@nexusmods/core/errors.js';
 
 export interface IGameStatic {
     approved_date: number;

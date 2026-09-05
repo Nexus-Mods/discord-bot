@@ -1,5 +1,5 @@
 // Loads .env by walking up from the code, not from the working directory.
-import '../lib/env.js';
+import '@nexusmods/core/env.js';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -7,8 +7,8 @@ import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { poolConfig } from '../api/dbConnect.js';
-import { logger } from '../api/logger.js';
-import { ConfigError, DatabaseError, toError } from '../api/errors.js';
+import { logger } from '@nexusmods/core/logger.js';
+import { ConfigError, DatabaseError, toError } from '@nexusmods/core/errors.js';
 
 // Entry point: `node dist/db/migrate.js` runs this without app.ts having loaded .env.
 

@@ -1,6 +1,6 @@
 import { request, gql, type Variables } from "graphql-request";
-import { NexusApiError } from '../errors.js';
-import type { Logger } from "../logger.js";
+import { NexusApiError } from '@nexusmods/core/errors.js';
+import type { Logger } from "@nexusmods/core/logger.js";
 import { v2API, NexusGQLError } from './v2.js';
 import { type INews, News } from "../../types/feeds.js";
 

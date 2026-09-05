@@ -1,6 +1,6 @@
 // Functionality to interact with the forum API
 // Loads .env by walking up from the code, not from the working directory.
-import '../lib/env.js';
+import '@nexusmods/core/env.js';
 
 import type { ForumTopic } from "../types/ForumWebhookTypes.js";
 import { readJson } from '../api/http.js';
