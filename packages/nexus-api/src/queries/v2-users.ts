@@ -2,7 +2,7 @@ import { request, gql, type Variables } from "graphql-request";
 import { NexusApiError } from '@nexusmods/core/errors.js';
 import type { Logger } from "@nexusmods/core/logger.js";
 import { v2API, NexusGQLError } from './v2.js';
-import type { BaseFilterValue, BaseSortValue, FilterLogicalOperator } from "../../types/GQLTypes.js";
+import type { BaseFilterValue, BaseSortValue, FilterLogicalOperator } from "../types/GQLTypes.js";
 
 interface IResult {
     users: IUserResults;

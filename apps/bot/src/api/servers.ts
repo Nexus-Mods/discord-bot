@@ -1,4 +1,4 @@
-import query from '../api/dbConnect.js';
+import query from './dbConnect.js';
 import { buildUpdate } from '../db/sql.js';
 import { servers as serversTable } from '../db/schema.js';
 import type { BotServer } from '../types/servers.js';

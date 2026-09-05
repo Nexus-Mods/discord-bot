@@ -1,7 +1,7 @@
 import { request, gql, type Variables } from "graphql-request";
 import type { Logger } from "@nexusmods/core/logger.js";
 import { v2API, type ICollectionSearchResult, NexusGQLError } from './v2.js';
-import type * as GQLTypes from '../../types/GQLTypes.js';
+import type * as GQLTypes from '../types/GQLTypes.js';
 
 interface IResult {
   collectionsV2: ICollectionSearchResult;

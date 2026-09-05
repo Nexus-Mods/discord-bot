@@ -262,7 +262,7 @@ describe('the shared surface', () => {
         // nothing to complain about.
         expect(shared.length).toBeGreaterThan(20);
         expect(shared).toContain('src/db/schema.ts');
-        expect(shared).toContain('src/api/queries/v2.ts');
+        expect(shared).toContain('packages/nexus-api/src/queries/v2.ts');
     });
 
     it('does not reach discord.js at runtime', () => {

@@ -1,4 +1,4 @@
-import query from '../api/dbConnect.js';
+import query from './dbConnect.js';
 import type { NexusUser } from '../types/users.js';
 import type { Snowflake } from 'discord.js';
 import { DiscordBotUser } from './DiscordBotUser.js';

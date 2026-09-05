@@ -7,7 +7,7 @@ vi.mock('graphql-request', async (importOriginal) => {
     return { ...actual, request: (...args: unknown[]) => requestMock(...args) };
 });
 
-const { mods } = await import('../../../src/api/queries/v2-modsbymodid.js');
+const { mods } = await import('@nexusmods/nexus-api/queries/v2-modsbymodid.js');
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as unknown as Logger;
 const idsFor = (n: number) => Array.from({ length: n }, (_, i) => ({ gameDomain: 'skyrim', modId: i + 1 }));

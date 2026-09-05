@@ -1,8 +1,8 @@
 import type { AutocompleteInteraction } from 'discord.js';
 import { DiscordBotUser, DummyNexusModsUser } from '../api/DiscordBotUser.js';
 import type { ClientExt } from '../types/DiscordTypes.js';
-import type { IModsFilter } from '../api/queries/v2.js';
-import type { ICollectionsFilter } from '../types/GQLTypes.js';
+import type { IModsFilter } from '@nexusmods/nexus-api/queries/v2.js';
+import type { ICollectionsFilter } from '@nexusmods/nexus-api/types/GQLTypes.js';
 import type { Logger } from '@nexusmods/core/logger.js';
 
 /**

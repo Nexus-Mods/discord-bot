@@ -5,9 +5,9 @@ import { baseheader } from './util.js';
 import type { Logger } from '@nexusmods/core/logger.js'
 import { updateUserRecord } from './userRecord.js';
 import type { Client, User } from 'discord.js';
-import { other, v2 } from './queries/all.js';
-import type * as GQLTypes from '../types/GQLTypes.js';
-import type { IModsFilter, IModsSort } from './queries/v2.js';
+import { other, v2 } from '@nexusmods/nexus-api/queries/all.js';
+import type * as GQLTypes from '@nexusmods/nexus-api/types/GQLTypes.js';
+import type { IModsFilter, IModsSort } from '@nexusmods/nexus-api/queries/v2.js';
 
 interface OAuthTokens {
     access_token: string;

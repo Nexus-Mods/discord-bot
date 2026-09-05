@@ -1,6 +1,6 @@
 import type { APIEmbed, Snowflake, TextChannel } from 'discord.js';
-import type { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2.js';
-import type { ModStatus } from './GQLTypes.js';
+import type { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '@nexusmods/nexus-api/queries/v2.js';
+import type { ModStatus } from '@nexusmods/nexus-api/types/GQLTypes.js';
 
 export interface ISubscribedChannel {
     id: number;

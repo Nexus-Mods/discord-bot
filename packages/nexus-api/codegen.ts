@@ -5,7 +5,7 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
  *
  * Every result shape used to be hand-written, which made the types a guess the compiler
  * could not check - and several of them were wrong. These are generated from
- * `schema.graphql` and the operations in `src/api/queries`, so they cannot drift from
+ * `schema.graphql` and the operations in `src/queries`, so they cannot drift from
  * what the API actually returns.
  *
  * The schema is committed rather than introspected at build time. Introspection is
@@ -29,14 +29,14 @@ const shared = {
 
 const config: CodegenConfig = {
     schema: './schema.graphql',
-    documents: ['src/api/queries/**/*.ts'],
+    documents: ['src/queries/**/*.ts'],
     ignoreNoDocuments: false,
     generates: {
-        './src/api/generated/types.ts': {
+        './src/generated/types.ts': {
             plugins: ['typescript'],
             config: shared,
         },
-        './src/api/generated/operations.ts': {
+        './src/generated/operations.ts': {
             preset: 'import-types',
             presetConfig: { typesPath: './types.js' },
             plugins: ['typescript-operations'],

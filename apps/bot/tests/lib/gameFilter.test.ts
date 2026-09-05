@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolveGameFilter, searchGamesByName } from '../../src/lib/gameFilter.js';
-import type { IGameStatic } from '../../src/api/queries/other.js';
+import type { IGameStatic } from '@nexusmods/nexus-api/queries/other.js';
 import type { BotServer } from '../../src/types/servers.js';
 
 const games = [

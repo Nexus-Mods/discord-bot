@@ -5,9 +5,9 @@ import { gameArt, nexusModsTrackingUrl } from '../api/util.js';
 import type { Logger } from "@nexusmods/core/logger.js";
 import { getUserByNexusModsId } from '../api/users.js';
 import { customEmojis } from '../types/util.js';
-import type { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '../api/queries/v2.js';
-import type { IUser } from '../api/queries/v2-finduser.js';
-import type { ModStatus } from '../types/GQLTypes.js';
+import type { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '@nexusmods/nexus-api/queries/v2.js';
+import type { IUser } from '@nexusmods/nexus-api/queries/v2-finduser.js';
+import type { ModStatus } from '@nexusmods/nexus-api/types/GQLTypes.js';
 import {
     type EntityType,
     type IModWithFiles,

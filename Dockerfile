@@ -10,6 +10,7 @@ COPY apps/bot/package.json ./apps/bot/
 # Every workspace the bot depends on needs its manifest here too, for the same
 # reason: npm resolves the tree from the manifests before any source is copied.
 COPY packages/core/package.json ./packages/core/
+COPY packages/nexus-api/package.json ./packages/nexus-api/
 # npm ci installs exactly what the lockfile pins, dev dependencies included so
 # tsup and typescript are available for the build.
 #

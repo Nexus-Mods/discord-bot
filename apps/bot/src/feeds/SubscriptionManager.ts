@@ -7,7 +7,7 @@ import {
 } from 'discord.js';
 import { isTesting } from '../api/util.js';
 import type { Logger } from "@nexusmods/core/logger.js";
-import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '../api/queries/v2.js';
+import { CollectionStatus, type IMod, type IModFile, type IModsFilter, type IModsSort, ModFileCategory } from '@nexusmods/nexus-api/queries/v2.js';
 import { 
     type IModWithFiles, type IPostableSubscriptionUpdate, type ISubscribedItem, 
     type SubscribedChannel, type SubscribedItem, SubscribedItemType, 
@@ -20,10 +20,10 @@ import {
     saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
     updateSubscription 
 } from '../api/subscriptions.js';
-import { v2 as API } from '../api/queries/all.js';
+import { v2 as API } from '@nexusmods/nexus-api/queries/all.js';
 import { baseheader } from "../api/util.js";
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
-import type { ModStatus } from "../types/GQLTypes.js";
+import type { ModStatus } from "@nexusmods/nexus-api/types/GQLTypes.js";
 import { webhookFor } from './webhooks.js';
 import { forceChannelUpdateOnOwningShard, type ForceUpdateMessage, requestSubscriptionRefreshOnOtherShards, requireShard, shardIdForGuild } from '../lib/sharding.js';
 

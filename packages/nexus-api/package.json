@@ -1,0 +1,36 @@
+{
+  "name": "@nexusmods/nexus-api",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Nexus Mods API client: the v2 GraphQL operations, their generated types, and the two REST-ish endpoints that are not in the schema.",
+  "exports": {
+    "./*.js": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "codegen:check": "graphql-codegen --config codegen.ts && git diff --exit-code src/generated"
+  },
+  "dependencies": {
+    "@nexusmods/core": "*",
+    "graphql": "^16.10.0",
+    "graphql-request": "^7.1.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^7.3.1",
+    "@graphql-codegen/import-types-preset": "^3.0.1",
+    "@graphql-codegen/typescript": "^5.0.10",
+    "@graphql-codegen/typescript-operations": "^5.1.0",
+    "@types/node": "^22.13.14",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

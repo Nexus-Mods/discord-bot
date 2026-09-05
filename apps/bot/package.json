@@ -5,7 +5,7 @@
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
-    "build": "npm run build --prefix ../../packages/core && tsup",
+    "build": "npm run build --prefix ../../packages/core && npm run build --prefix ../../packages/nexus-api && tsup",
     "start": "node dist/shards.js",
     "startWeb": "node dist/web.js",
     "dev": "npm run build && npm run start",
@@ -20,8 +20,6 @@
     "tokens:backfill": "npm run build && node dist/db/backfillTokens.js",
     "tokens:verify": "npm run build && node dist/db/backfillTokens.js --verify",
     "tokens:report": "npm run build && node dist/db/backfillTokens.js --report",
-    "codegen": "graphql-codegen --config codegen.ts",
-    "codegen:check": "graphql-codegen --config codegen.ts && git diff --exit-code src/api/generated",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -30,10 +28,6 @@
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@graphql-codegen/cli": "^7.3.1",
-    "@graphql-codegen/import-types-preset": "^3.0.1",
-    "@graphql-codegen/typescript": "^5.0.10",
-    "@graphql-codegen/typescript-operations": "^5.1.0",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.1",
     "@types/html-to-text": "^9.0.4",
@@ -51,6 +45,7 @@
   },
   "dependencies": {
     "@nexusmods/core": "*",
+    "@nexusmods/nexus-api": "*",
     "cookie-parser": "^1.4.7",
     "discord.js": "^14.25.1",
     "dotenv": "^17.4.2",
@@ -59,8 +54,6 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.6.2",
     "fuse.js": "^7.5.0",
-    "graphql": "^16.10.0",
-    "graphql-request": "^7.1.2",
     "helmet": "^8.3.0",
     "html-to-text": "^10.0.1",
     "pg": "^8.14.1"

@@ -1,4 +1,4 @@
-import type { StatusPageResponse, ModDownloadInfo } from '../../types/util.js';
+import type { StatusPageResponse, ModDownloadInfo } from '../types/responses.js';
 import type { Logger } from '@nexusmods/core/logger.js';
 import { logger } from '@nexusmods/core/logger.js';
 import { NexusApiError } from '@nexusmods/core/errors.js';
