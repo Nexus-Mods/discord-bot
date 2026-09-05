@@ -194,6 +194,59 @@ describe('src/auth/', () => {
     });
 });
 
+describe('the shared surface', () => {
+    /**
+     * What both processes reach. Phase 4 turns this into packages, so what it depends on
+     * stops being an internal detail and becomes each package's public dependency list.
+     *
+     * The rule this pins: **nothing shared may import discord.js at runtime.** The bot is
+     * a gateway client and the web app is not, so a gateway library reached from shared
+     * code is a dependency one side pays for and cannot use.
+     *
+     * It was true by one module until 5.0.0. `api/util.ts` imported EmbedBuilder for a
+     * single helper, `unexpectedErrorEmbed`, and util.ts is reached from both sides - so
+     * the web process loaded discord.js to build an embed only the bot ever rendered. The
+     * helper moved to lib/embeds.ts, where the other eleven live and only the bot goes.
+     *
+     * Type-only imports are exempt, as everywhere else here: the compiler erases them, so
+     * they cannot pull a module into a process.
+     */
+    const bot = reachableFrom(
+        'src/shards.ts',
+        'src/DiscordBot.ts',
+        ...ALL.filter((f) => /^src[\\/](interactions|events)[\\/]/.test(f)),
+    );
+    const shared = [...web].filter((f) => bot.has(f)).sort();
+
+    it('is the surface the packages will be cut from', () => {
+        // Not an assertion about the number so much as a guard on the walk: a broken
+        // resolver returns an empty set, and every test below would then pass by finding
+        // nothing to complain about.
+        expect(shared.length).toBeGreaterThan(20);
+        expect(shared).toContain('src/db/schema.ts');
+        expect(shared).toContain('src/api/queries/v2.ts');
+    });
+
+    it('does not reach discord.js at runtime', () => {
+        const offenders = shared.filter((f) => importersOfPackage('discord.js').includes(f));
+        expect(offenders).toEqual([]);
+    });
+
+    it('leaves the gateway library to the bot and the REST helpers to the web app', () => {
+        // Stated rather than implied, because "no discord.js in shared" is only half the
+        // rule. The web app legitimately uses REST, Routes, CDN and EmbedBuilder to talk
+        // to Discord over HTTP - discordDirectory and forumWebhook - and that is a
+        // different thing from holding a gateway connection.
+        const gateway = importersOfPackage('discord.js').filter((f) => !shared.includes(f));
+        for (const f of gateway) {
+            expect(
+                f.startsWith('src/server/') || bot.has(f),
+                `${f} imports discord.js but is neither bot code nor the web app's REST layer`,
+            ).toBe(true);
+        }
+    });
+});
+
 describe('the environment', () => {
     /**
      * The 5.0.0 move broke local startup and it took a fail-closed check to notice.
