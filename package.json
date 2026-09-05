@@ -20,6 +20,7 @@
     "start": "npm run start -w @nexusmods/discord-bot",
     "startWeb": "npm run startWeb -w @nexusmods/discord-bot",
     "dev:all": "npm run dev:all -w @nexusmods/discord-bot",
+    "dev:web": "npm run dev -w @nexusmods/discord-web",
     "db:migrate": "npm run db:migrate -w @nexusmods/discord-bot",
     "db:generate": "npm run db:generate -w @nexusmods/discord-bot",
     "db:check": "npm run db:check -w @nexusmods/discord-bot",

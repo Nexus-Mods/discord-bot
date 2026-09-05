@@ -46,3 +46,7 @@ config.json
 /dump*.sql
 /*.dump
 /*.tgz
+
+# Next.js
+.next/
+next-env.d.ts

@@ -17,6 +17,12 @@ apps/bot/     the Discord bot and the current Express auth site
 apps/web/     the Next.js front-end (Phase 4, in progress)
 ```
 
+`apps/web` is a scaffold: one route, nothing ported. Express still serves the live site.
+Run it with `npm run dev:web`. Its theme is the Nexus Mods theme layer, declared in
+`apps/web/app/globals.css` - Tailwind 4 keeps the design system in CSS rather than a
+config file, and nexusmods.com is on Tailwind 4 too, so the tokens are the same shape as
+the site's rather than a translation of them.
+
 The root scripts delegate, so `npm test`, `npm run build`, `npm run lint` and the
 `db:` and `tokens:` scripts all still work from the repository root and do what they
 always did. `npm run lint` covers every workspace from one config.

@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+/*
+ * The Nexus Mods theme layer.
+ *
+ * Taken from nexusmods.com rather than invented, and it turns out the site is already on
+ * Tailwind 4 - so this is the same shape of thing, not a translation of one. Two
+ * consequences worth stating, because both would otherwise be discovered by someone
+ * wondering why this file looks the way it does:
+ *
+ *   1. The brand colours are ALIASES onto Tailwind's own palette, not fixed hexes. The
+ *      primary is Tailwind's orange, not the legacy #da8e35 that apps/bot still colours
+ *      its embeds with. Those two are different oranges. The bot's constant is not wrong
+ *      - it is older - but the two will visibly disagree in a Discord message that links
+ *      to a page, and that is a decision for whoever owns the brand rather than
+ *      something to quietly reconcile here.
+ *
+ *   2. There are no surface or background tokens, because the site does not define any.
+ *      Surfaces come from Tailwind's default neutral scale used directly (bg-neutral-900
+ *      and friends). An earlier draft of this file invented an `ink-*` ramp from the old
+ *      stylesheet's greys; that has been dropped, because a second private scale is how
+ *      two products drift apart.
+ *
+ * Deliberately not carried over: --font-stardew and --font-bagel, which are display
+ * faces for game-specific pages this app has none of, and the --animate-* entries, whose
+ * keyframes live elsewhere in the site's CSS - importing the names without them would
+ * generate utilities that silently do nothing.
+ */
+@theme {
+    /* Brand and semantics, aliased exactly as the site aliases them. */
+    --color-primary-400: var(--color-orange-400);
+    --color-primary-600: var(--color-orange-600);
+    --color-primary-moderate: var(--color-orange-400);
+    --color-primary-strong: var(--color-orange-300);
+
+    --color-creator-300: var(--color-teal-300);
+    --color-creator-strong: var(--color-teal-400);
+
+    --color-premium-moderate: var(--color-violet-600);
+    --color-premium-strong: var(--color-violet-300);
+
+    --color-danger-200: var(--color-red-200);
+    --color-danger-900: var(--color-red-900);
+    --color-danger-strong: var(--color-red-400);
+
+    --color-focus-subdued: var(--color-blue-500);
+
+    --color-info-900: var(--color-blue-900);
+    --color-info-moderate: var(--color-blue-400);
+    --color-info-strong: var(--color-blue-300);
+
+    --color-warning-900: var(--color-yellow-900);
+    --color-warning-strong: var(--color-yellow-200);
+
+    --color-success-900: var(--color-green-900);
+    --color-success-moderate: var(--color-green-500);
+    --color-success-strong: var(--color-green-300);
+
+    --font-sans: "Inter", "Inter Fallback", "ui-sans-serif", "system-ui", "sans-serif";
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    /* Two additions to Tailwind's own scale that the rest of the type system builds on. */
+    --text-2xs: 0.625rem;
+    --text-2xs--line-height: calc(1 / 0.625);
+    --leading-tighter: 1.2;
+
+    /* Body: the reading sizes. Letter-spacing opens up as the size comes down. */
+    --text-body-xs: var(--text-2xs);
+    --text-body-xs--line-height: var(--text-2xs--line-height);
+    --text-body-xs--letter-spacing: var(--tracking-wider);
+    --text-body-sm: var(--text-xs);
+    --text-body-sm--line-height: var(--text-xs--line-height);
+    --text-body-sm--letter-spacing: var(--tracking-wide);
+    --text-body-md: var(--text-sm);
+    --text-body-md--line-height: var(--text-sm--line-height);
+    --text-body-md--letter-spacing: var(--tracking-normal);
+    --text-body-lg: var(--text-base);
+    --text-body-lg--line-height: var(--text-base--line-height);
+    --text-body-lg--letter-spacing: var(--tracking-normal);
+    --text-body-xl: var(--text-lg);
+    --text-body-xl--line-height: var(--text-lg--line-height);
+    --text-body-xl--letter-spacing: var(--tracking-normal);
+    --text-body-2xl: 1.375rem;
+    --text-body-2xl--line-height: var(--text-2xl--line-height);
+    --text-body-2xl--letter-spacing: var(--tracking-normal);
+
+    /* Title: small, wide-tracked, semibold. The eyebrow and section-label register. */
+    --text-title-xs: var(--text-2xs);
+    --text-title-xs--line-height: var(--text-2xs--line-height);
+    --text-title-xs--letter-spacing: var(--tracking-widest);
+    --text-title-xs--font-weight: var(--font-weight-semibold);
+    --text-title-sm: var(--text-xs);
+    --text-title-sm--line-height: var(--text-xs--line-height);
+    --text-title-sm--letter-spacing: var(--tracking-widest);
+    --text-title-sm--font-weight: var(--font-weight-semibold);
+    --text-title-md: var(--text-sm);
+    --text-title-md--line-height: var(--text-sm--line-height);
+    --text-title-md--letter-spacing: var(--tracking-widest);
+    --text-title-md--font-weight: var(--font-weight-semibold);
+
+    /* Heading: tracking tightens as the size grows, which is the usual and correct way
+       round - large type needs less air between letters, not more. */
+    --text-heading-xs: var(--text-lg);
+    --text-heading-xs--line-height: var(--text-lg--line-height);
+    --text-heading-xs--letter-spacing: var(--tracking-normal);
+    --text-heading-xs--font-weight: var(--font-weight-semibold);
+    --text-heading-sm: var(--text-2xl);
+    --text-heading-sm--line-height: var(--text-2xl--line-height);
+    --text-heading-sm--letter-spacing: var(--tracking-normal);
+    --text-heading-sm--font-weight: var(--font-weight-semibold);
+    --text-heading-md: var(--text-3xl);
+    --text-heading-md--line-height: var(--text-3xl--line-height);
+    --text-heading-md--letter-spacing: var(--tracking-normal);
+    --text-heading-md--font-weight: var(--font-weight-semibold);
+    --text-heading-lg: var(--text-4xl);
+    --text-heading-lg--line-height: var(--text-4xl--line-height);
+    --text-heading-lg--letter-spacing: var(--tracking-tight);
+    --text-heading-lg--font-weight: var(--font-weight-semibold);
+    --text-heading-xl: var(--text-5xl);
+    --text-heading-xl--line-height: var(--text-5xl--line-height);
+    --text-heading-xl--letter-spacing: var(--tracking-tight);
+    --text-heading-xl--font-weight: var(--font-weight-semibold);
+    --text-heading-2xl: var(--text-6xl);
+    --text-heading-2xl--line-height: var(--text-6xl--line-height);
+    --text-heading-2xl--letter-spacing: var(--tracking-tight);
+    --text-heading-2xl--font-weight: var(--font-weight-semibold);
+}
+
+/*
+ * Dark by decision, not by following the visitor. The current auth site is dark and so is
+ * nexusmods.com, so there is no light palette to define and no media query to guard -
+ * stated because "dark on purpose" and "nobody handled light mode" look identical in a
+ * stylesheet.
+ */
+html {
+    color-scheme: dark;
+}
+
+body {
+    background-color: var(--color-neutral-950);
+    color: var(--color-neutral-200);
+}

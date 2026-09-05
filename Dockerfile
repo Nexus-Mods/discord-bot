@@ -9,7 +9,12 @@ COPY package.json package-lock.json ./
 COPY apps/bot/package.json ./apps/bot/
 # npm ci installs exactly what the lockfile pins, dev dependencies included so
 # tsup and typescript are available for the build.
-RUN npm ci
+#
+# Scoped to the bot's workspace. Without --workspace this installs every workspace,
+# which since 5.0.0 means the runtime image carries Next and React - 200MB the bot
+# cannot use, copied into it by the wholesale node_modules COPY below. The flag also
+# means apps/web/package.json need not be in the build context at all.
+RUN npm ci --workspace @nexusmods/discord-bot --include-workspace-root
 
 COPY . .
 RUN npm run typecheck -w @nexusmods/discord-bot \

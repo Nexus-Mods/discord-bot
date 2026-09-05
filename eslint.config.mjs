@@ -38,12 +38,18 @@ export default [
         },
     },
     {
-        files: ["apps/*/src/**/*.ts", "apps/*/tests/**/*.ts"],
+        // apps/web keeps its routes in app/ rather than src/, which is Next's layout and
+        // not worth fighting. Without the third pattern eslint reports "File ignored
+        // because no matching configuration was supplied" - as a warning, while still
+        // exiting 0, so `npm run lint` passes and lints nothing.
+        files: ["apps/*/src/**/*.ts", "apps/*/tests/**/*.ts", "apps/*/app/**/*.{ts,tsx}"],
         languageOptions: {
             parser: tsParser,
             parserOptions: {
                 ecmaVersion: 2022,
                 sourceType: "module",
+                // .tsx needs this; the parser does not infer JSX from the extension.
+                ecmaFeatures: { jsx: true },
                 // Type-aware linting. Required by no-floating-promises and
                 // no-misused-promises, which are the rules that earn their keep here.
                 //
@@ -57,6 +63,9 @@ export default [
             },
             globals: {
                 ...globals.node,
+                // The web app renders in a browser as well as on the server; without
+                // these, no-undef fires on document, window and friends.
+                ...globals.browser,
             },
         },
         plugins: {
