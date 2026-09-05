@@ -28,8 +28,11 @@ obj/
 _ReSharper*/
 [Tt]est[Rr]esult*
 .vs/
-#Nuget packages folder
-packages/
+# NuGet's packages folder, from the era before this was a TypeScript project.
+# Scoped to nothing now: `packages/` at the repository root is a workspace since
+# 5.0.0, and an unanchored `packages/` here matched it - so the entire shared
+# package cut would have been silently untracked. Left as a comment rather than
+# deleted, because "why is there no NuGet ignore" is a question someone will ask.
 *.env
 data/
 dist/
