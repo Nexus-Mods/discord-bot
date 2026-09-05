@@ -9,8 +9,28 @@ import { AppError } from '../api/errors.js';
  * four spellings that differed only in casing and quote style.
  */
 
-/** Nexus Mods orange. */
-export const NEXUS_ORANGE = 0xda8e35;
+/**
+ * Nexus Mods orange, as the website renders it.
+ *
+ * This is Tailwind's orange-400 - `oklch(75% 0.183 55.934)` - which is what
+ * `--color-primary-400` aliases to in the Nexus Mods theme layer, mirrored for the
+ * front-end in apps/web/app/globals.css. Discord embeds take a flat sRGB integer, so
+ * the oklch has to be resolved down to one, and that colour is very slightly outside
+ * the sRGB gamut (linear red comes out at 1.029), which means the answer depends on
+ * how it is brought back in:
+ *
+ *   #ff8904  channel clipping - what Chromium actually paints, so what a visitor to
+ *            nexusmods.com sees. Taken by painting the oklch to a canvas and reading
+ *            the pixel back, rather than by converting it by hand.
+ *   #ff8b1a  chroma-reduced gamut mapping - what Lightning CSS emits as the fallback
+ *            for browsers with no oklch support. A different, slightly duller orange.
+ *
+ * The first one is the one people see, so it is the one used here.
+ *
+ * Was 0xda8e35 up to 4.4.0: an older, browner orange that visibly disagreed with the
+ * site in any embed linking to a page.
+ */
+export const NEXUS_ORANGE = 0xff8904;
 
 /** The bot's avatar, or an empty string - setFooter rejects undefined. */
 export function botIconUrl(client: Client): string {

@@ -9,11 +9,12 @@
  * wondering why this file looks the way it does:
  *
  *   1. The brand colours are ALIASES onto Tailwind's own palette, not fixed hexes. The
- *      primary is Tailwind's orange, not the legacy #da8e35 that apps/bot still colours
- *      its embeds with. Those two are different oranges. The bot's constant is not wrong
- *      - it is older - but the two will visibly disagree in a Discord message that links
- *      to a page, and that is a decision for whoever owns the brand rather than
- *      something to quietly reconcile here.
+ *      primary is Tailwind's orange-400. apps/bot used to colour its embeds with a
+ *      legacy #da8e35, a browner orange that visibly disagreed with this one in any
+ *      embed linking to a page; NEXUS_ORANGE now carries #ff8904 instead, which is the
+ *      sRGB value a browser paints orange-400 as - a Discord embed takes a flat integer
+ *      and cannot hold an oklch. Nothing imports one from the other, so if the primary
+ *      ever moves off orange-400, that constant has to be moved by hand.
  *
  *   2. There are no surface or background tokens, because the site does not define any.
  *      Surfaces come from Tailwind's default neutral scale used directly (bg-neutral-900
