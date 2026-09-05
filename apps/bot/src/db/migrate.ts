@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { poolConfig } from '../api/dbConnect.js';
+import { poolConfig } from '@nexusmods/persistence/dbConnect.js';
 import { logger } from '@nexusmods/core/logger.js';
 import { ConfigError, DatabaseError, toError } from '@nexusmods/core/errors.js';
 

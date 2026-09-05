@@ -2,8 +2,8 @@ import { other } from "@nexusmods/nexus-api/queries/all.js";
 import type { Logger } from "@nexusmods/core/logger.js";
 import { logger } from "@nexusmods/core/logger.js";
 import type { IGameStatic } from "@nexusmods/nexus-api/queries/other.js";
-import type { ITip } from "../api/tips.js";
-import { getAllTips } from "../api/tips.js";
+import type { ITip } from "@nexusmods/persistence/tips.js";
+import { getAllTips } from "@nexusmods/persistence/tips.js";
 
 // Custom Emojis from discord.gg/nexusmods that may be used by the bot.
 export const customEmojis = {

@@ -1,7 +1,7 @@
 import { EmbedBuilder, type Guild, type TextChannel, type GuildBasedChannel} from 'discord.js';
 import { BOT_VERSION } from '../version.js';
-import { deleteServer, getAllServers } from '../api/servers.js';
-import type { BotServer } from '../types/servers.js';
+import { deleteServer, getAllServers } from '@nexusmods/persistence/servers.js';
+import type { BotServer } from '@nexusmods/persistence/types/servers.js';
 import type { Logger } from "@nexusmods/core/logger.js";
 import type { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 

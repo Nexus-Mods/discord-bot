@@ -1,9 +1,9 @@
 import * as NexusModsOAuth from '@nexusmods/auth/NexusModsOAuth.js';
 import * as DiscordOAuth from '@nexusmods/auth/DiscordOAuth.js';
-import type { NexusUser } from '../types/users.js';
+import type { NexusUser } from '@nexusmods/persistence/types/users.js';
 import { baseheader } from './util.js';
 import type { Logger } from '@nexusmods/core/logger.js'
-import { updateUserRecord } from './userRecord.js';
+import { updateUserRecord } from '@nexusmods/persistence/userRecord.js';
 import type { Client, User } from 'discord.js';
 import { other, v2 } from '@nexusmods/nexus-api/queries/all.js';
 import type * as GQLTypes from '@nexusmods/nexus-api/types/GQLTypes.js';

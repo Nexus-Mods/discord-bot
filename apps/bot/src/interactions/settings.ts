@@ -6,15 +6,15 @@ import {
     ButtonBuilder, ButtonStyle, ComponentType,
     type ButtonInteraction
 } from "discord.js";
-import { addConditionForRole, getConditionsForRole } from '../api/server_role_conditions.js';
-import { getServer, updateServer } from '../api/servers.js';
-import type { BotServer } from "../types/servers.js";
+import { addConditionForRole, getConditionsForRole } from '@nexusmods/persistence/server_role_conditions.js';
+import { getServer, updateServer } from '@nexusmods/persistence/servers.js';
+import type { BotServer } from "@nexusmods/persistence/types/servers.js";
 import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { KnownDiscordServers } from '../api/util.js';
 import type { Logger } from "@nexusmods/core/logger.js";
 import type { IGameStatic } from "@nexusmods/nexus-api/queries/other.js";
 import { autocompleteGameName } from '../lib/autocomplete.js';
-import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, type IConditionForRole } from "../api/server_role_conditions.js";
+import { changeRoleForConditions, deleteAllConditionsForRole, deleteConditionForRole, type IConditionForRole } from "@nexusmods/persistence/server_role_conditions.js";
 import { ConditionType } from "../types/util.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 import { voidAsync } from '../lib/async.js';

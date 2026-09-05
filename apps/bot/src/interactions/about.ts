@@ -8,7 +8,7 @@ import { BOT_VERSION } from '../version.js';
 import { getCountOfUsers } from '../api/users.js';
 import { calcUptime } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
-import { getCountOfSubscriptions } from "../api/subscriptions.js";
+import { getCountOfSubscriptions } from "@nexusmods/persistence/subscriptions.js";
 import { NEXUS_ORANGE, botIconUrl } from '../lib/embeds.js';
 import { totalGuildCount } from '../lib/sharding.js';
 

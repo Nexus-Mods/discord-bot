@@ -1,5 +1,5 @@
 import type { DiscordInteraction } from "../types/DiscordTypes.js";
-import type { NexusUser } from "../types/users.js";
+import type { NexusUser } from "@nexusmods/persistence/types/users.js";
 import { getUserByDiscordId } from '../api/users.js';
 import { type CommandInteraction, type Snowflake, EmbedBuilder, type Client, type User, SlashCommandBuilder, type ChatInputCommandInteraction, InteractionContextType } from "discord.js";
 import { KnownDiscordServers } from '../api/util.js';

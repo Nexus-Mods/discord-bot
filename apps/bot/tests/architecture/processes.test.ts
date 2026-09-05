@@ -175,7 +175,7 @@ describe('the bot stays out of the web process', () => {
     });
 
     it('reads subscriptions without constructing Discord I/O', () => {
-        expect(web.has('src/api/subscriptions.ts')).toBe(true);
+        expect(web.has('packages/persistence/src/subscriptions.ts')).toBe(true);
         expect(web.has('src/feeds/webhooks.ts')).toBe(false);
     });
 
@@ -264,7 +264,7 @@ describe('the shared surface', () => {
         // resolver returns an empty set, and every test below would then pass by finding
         // nothing to complain about.
         expect(shared.length).toBeGreaterThan(20);
-        expect(shared).toContain('src/db/schema.ts');
+        expect(shared).toContain('packages/persistence/src/schema.ts');
         expect(shared).toContain('packages/nexus-api/src/queries/v2.ts');
     });
 

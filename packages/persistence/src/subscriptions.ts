@@ -1,5 +1,5 @@
 import type { Snowflake } from 'discord.js';
-import { type ISubscribedChannel, type ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, type SubscribedItemType } from '../types/subscriptions.js';
+import { type ISubscribedChannel, type ISubscribedItemUnionType, SubscribedChannel, SubscribedItem, type SubscribedItemType } from './types/subscriptions.js';
 import { query } from './dbConnect.js';
 
 import { DatabaseError } from '@nexusmods/core/errors.js';

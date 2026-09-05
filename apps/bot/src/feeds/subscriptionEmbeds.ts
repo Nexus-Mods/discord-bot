@@ -14,7 +14,7 @@ import {
     type IPostableSubscriptionUpdate,
     type SubscribedItem,
     SubscribedItemType,
-} from '../types/subscriptions.js';
+} from '@nexusmods/persistence/types/subscriptions.js';
 
 /**
  * Rendering for the subscription feeds.

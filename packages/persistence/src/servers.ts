@@ -1,7 +1,7 @@
 import query from './dbConnect.js';
-import { buildUpdate } from '../db/sql.js';
-import { servers as serversTable } from '../db/schema.js';
-import type { BotServer } from '../types/servers.js';
+import { buildUpdate } from './sql.js';
+import { servers as serversTable } from './schema.js';
+import type { BotServer } from './types/servers.js';
 import type { Guild } from 'discord.js';
 import { logger } from '@nexusmods/core/logger.js';
 import { NotFoundError } from '@nexusmods/core/errors.js';

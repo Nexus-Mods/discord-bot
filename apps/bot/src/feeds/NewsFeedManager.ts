@@ -1,5 +1,5 @@
 import type { News, SavedNewsData } from '@nexusmods/nexus-api/types/feeds.js';
-import { getSavedNews, updateSavedNews } from '../api/news.js';
+import { getSavedNews, updateSavedNews } from '@nexusmods/persistence/news.js';
 import type { ClientExt } from "../types/DiscordTypes.js";
 import { EmbedBuilder, type TextChannel, WebhookClient } from 'discord.js';
 import { nexusModsTrackingUrl, baseheader } from '../api/util.js';

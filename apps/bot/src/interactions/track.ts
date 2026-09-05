@@ -6,11 +6,11 @@ import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import { gameArt } from '../api/util.js';
 import type { Logger } from "@nexusmods/core/logger.js";
 import { autoCompleteCollectionSearch, autocompleteGameName, autoCompleteModSearch, autoCompleteUserSearch } from '../lib/autocomplete.js';
-import { type SubscribedChannel, SubscribedItemType } from "../types/subscriptions.js";
-import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "../api/subscriptions.js";
+import { type SubscribedChannel, SubscribedItemType } from "@nexusmods/persistence/types/subscriptions.js";
+import { createSubscribedChannel, getSubscribedChannel, totalItemsInGuild } from "@nexusmods/persistence/subscriptions.js";
 import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
 import { AppError, NotFoundError, ValidationError } from '@nexusmods/core/errors.js';
-import { getSubscribedItems, subscribeChannelTo, updateChannelSubscription, type NewSubscriptionData } from '../api/subscriptions.js';
+import { getSubscribedItems, subscribeChannelTo, updateChannelSubscription, type NewSubscriptionData } from '@nexusmods/persistence/subscriptions.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

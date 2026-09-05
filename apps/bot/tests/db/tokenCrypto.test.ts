@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { assertTokenKeyConfigured, needsResealing, needsSealing, openToken, openUserTokens, resealToken, sealToken, sealUserTokens } from '../../src/db/tokenCrypto.js';
+import { assertTokenKeyConfigured, needsResealing, needsSealing, openToken, openUserTokens, resealToken, sealToken, sealUserTokens } from '@nexusmods/persistence/tokenCrypto.js';
 
 const KEY = 'DPB3vBrTKpBz0OYbBIdd0EJZAcMHGCJVCEr5Bd2fbwc=';
 const OLD_KEY = 'k0Ky5oCr2hLhJZ1mnGXZlLKrz7XFBhKrhpNU0V1Ffyg=';

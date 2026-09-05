@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveGameFilter, searchGamesByName } from '../../src/lib/gameFilter.js';
 import type { IGameStatic } from '@nexusmods/nexus-api/queries/other.js';
-import type { BotServer } from '../../src/types/servers.js';
+import type { BotServer } from '@nexusmods/persistence/types/servers.js';
 
 const games = [
     { id: 1704, name: 'Skyrim Special Edition', domain_name: 'skyrimspecialedition' },

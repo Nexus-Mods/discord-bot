@@ -1,6 +1,6 @@
 import Fuse, { type IFuseOptions } from 'fuse.js';
 import type { IGameStatic } from '@nexusmods/nexus-api/queries/other.js';
-import type { BotServer } from '../types/servers.js';
+import type { BotServer } from '@nexusmods/persistence/types/servers.js';
 
 /**
  * Fuzzy game lookup, shared by the search subcommands.

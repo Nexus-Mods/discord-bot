@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { getTableName, isTable } from 'drizzle-orm';
-import * as schema from '../../src/db/schema.js';
+import * as schema from '@nexusmods/persistence/schema.js';
 
 const DRIZZLE = path.join(process.cwd(), 'drizzle');
 

@@ -69,7 +69,11 @@ if (['push', 'drop'].includes(command ?? '') && !isLocal && process.env.DRIZZLE_
 
 export default defineConfig({
     dialect: 'postgresql',
-    schema: './src/db/schema.ts',
+    // The schema moved to @nexusmods/persistence in 5.0.0; the migrations and the
+    // runner that applies them did not, because `node dist/db/migrate.js` is on the
+    // deploy path. A relative path rather than the package specifier: drizzle-kit
+    // compiles this file with its own toolchain, which does not read our exports map.
+    schema: '../../packages/persistence/src/schema.ts',
     out: './drizzle',
     dbCredentials: url
         ? { url }

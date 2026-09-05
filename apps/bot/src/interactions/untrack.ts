@@ -5,11 +5,11 @@ import {
     InteractionContextType
 } from "discord.js";
 import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
-import { type SubscribedItem, SubscribedItemType } from "../types/subscriptions.js";
-import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "../api/subscriptions.js";
+import { type SubscribedItem, SubscribedItemType } from "@nexusmods/persistence/types/subscriptions.js";
+import { deleteSubscribedChannel, deleteSubscription, getSubscribedChannel } from "@nexusmods/persistence/subscriptions.js";
 import type { Logger } from "@nexusmods/core/logger.js";
 import { voidAsync } from '../lib/async.js';
-import { getSubscribedItems } from '../api/subscriptions.js';
+import { getSubscribedItems } from '@nexusmods/persistence/subscriptions.js';
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

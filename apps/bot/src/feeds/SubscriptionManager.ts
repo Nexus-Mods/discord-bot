@@ -12,14 +12,14 @@ import {
     type IModWithFiles, type IPostableSubscriptionUpdate, type ISubscribedItem, 
     type SubscribedChannel, type SubscribedItem, SubscribedItemType, 
     SubscriptionCache 
-} from '../types/subscriptions.js';
+} from '@nexusmods/persistence/types/subscriptions.js';
 import { subscribedItemEmbed, unavailableUpdate, unavailableUserUpdate, UserEmbedType } from './subscriptionEmbeds.js';
 import { 
     deleteSubscribedChannel, deleteSubscription, 
     getAllSubscriptions, getSubscribedChannel, getSubscribedChannels, getSubscribedItems,
     saveLastUpdatedForSub, setDateForAllSubsInChannel, updateSubscribedChannel, 
     updateSubscription 
-} from '../api/subscriptions.js';
+} from '@nexusmods/persistence/subscriptions.js';
 import { v2 as API } from '@nexusmods/nexus-api/queries/all.js';
 import { baseheader } from "../api/util.js";
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';

@@ -1,5 +1,5 @@
 import { type Client, EmbedBuilder, type Snowflake, type User } from 'discord.js';
-import type { NexusUser } from '../types/users.js';
+import type { NexusUser } from '@nexusmods/persistence/types/users.js';
 // Type-only: the embeds take a DiscordBotUser but never construct one, so this edge
 // is erased at compile time and does not recreate the cycle it was moved to break.
 import type { DiscordBotUser } from '../api/DiscordBotUser.js';

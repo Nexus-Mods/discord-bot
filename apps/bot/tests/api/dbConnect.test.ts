@@ -6,7 +6,7 @@ let saved: Record<string, string | undefined>;
 /** dbConnect memoises its config, so each case needs a fresh module instance. */
 async function loadConfig() {
     vi.resetModules();
-    const mod = await import('../../src/api/dbConnect.js');
+    const mod = await import('@nexusmods/persistence/dbConnect.js');
     return mod.poolConfig();
 }
 
@@ -168,7 +168,7 @@ describe('other settings', () => {
     it('can be imported without AUTOMOD_DATABASE set', async () => {
         delete process.env.AUTOMOD_DATABASE;
         vi.resetModules();
-        await expect(import('../../src/api/dbConnect.js')).resolves.toBeDefined();
+        await expect(import('@nexusmods/persistence/dbConnect.js')).resolves.toBeDefined();
     });
 });
 

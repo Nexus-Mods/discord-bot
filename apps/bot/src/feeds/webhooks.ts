@@ -1,5 +1,5 @@
 import { WebhookClient } from 'discord.js';
-import type { ISubscribedChannel } from '../types/subscriptions.js';
+import type { ISubscribedChannel } from '@nexusmods/persistence/types/subscriptions.js';
 
 /**
  * WebhookClients for subscribed channels.

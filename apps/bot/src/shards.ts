@@ -3,7 +3,7 @@ import '@nexusmods/core/env.js';
 import { ShardingManager } from 'discord.js';
 import { runMigrations } from './db/migrate.js';
 import { logger } from '@nexusmods/core/logger.js';
-import { assertTokenKeyConfigured } from './db/tokenCrypto.js';
+import { assertTokenKeyConfigured } from '@nexusmods/persistence/tokenCrypto.js';
 
 /**
  * The bot's only entry point. dist/app.js is the shard child and refuses to run on

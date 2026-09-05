@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildUpdate, columnNames } from '../../src/db/sql.js';
-import { users, servers } from '../../src/db/schema.js';
+import { buildUpdate, columnNames } from '@nexusmods/persistence/sql.js';
+import { users, servers } from '@nexusmods/persistence/schema.js';
 
 describe('columnNames', () => {
     it('reads the real column names from the schema', () => {

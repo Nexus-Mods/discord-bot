@@ -4,8 +4,8 @@ import { logger } from '@nexusmods/core/logger.js';
 import { runMigrations } from './db/migrate.js';
 import { AuthSite } from './server/server.js';
 import { createDiscordDirectory } from './server/discordDirectory.js';
-import { closePools } from './api/dbConnect.js';
-import { assertTokenKeyConfigured } from './db/tokenCrypto.js';
+import { closePools } from '@nexusmods/persistence/dbConnect.js';
+import { assertTokenKeyConfigured } from '@nexusmods/persistence/tokenCrypto.js';
 
 /**
  * Entry point for the auth site, which runs as its own container from the same image

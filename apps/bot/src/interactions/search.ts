@@ -6,12 +6,12 @@ import {
 import { customEmojis } from "../types/util.js";
 import { assertPresent } from '../lib/assert.js';
 import type { DiscordInteraction } from '../types/DiscordTypes.js';
-import { getServer } from '../api/servers.js';
+import { getServer } from '@nexusmods/persistence/servers.js';
 import { getUserByDiscordId } from '../api/users.js';
 import { gameArt, KnownDiscordServers, nexusModsTrackingUrl } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
 import type { ICollectionsFilter } from "@nexusmods/nexus-api/types/GQLTypes.js";
-import type { BotServer } from "../types/servers.js";
+import type { BotServer } from "@nexusmods/persistence/types/servers.js";
 import { sendUnexpectedError } from '../events/interactionCreate.js';
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
 import type { ICollection, ICollectionSearchResult, IMod, IModsFilter } from "@nexusmods/nexus-api/queries/v2.js";

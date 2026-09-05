@@ -1,10 +1,10 @@
-import query from './dbConnect.js';
-import type { NexusUser } from '../types/users.js';
+import query from '@nexusmods/persistence/dbConnect.js';
+import type { NexusUser } from '@nexusmods/persistence/types/users.js';
 import type { Snowflake } from 'discord.js';
 import { DiscordBotUser } from './DiscordBotUser.js';
-import { updateUserRecord } from './userRecord.js';
+import { updateUserRecord } from '@nexusmods/persistence/userRecord.js';
 import { logger } from '@nexusmods/core/logger.js';
-import { openUserTokens, sealUserTokens } from '../db/tokenCrypto.js';
+import { openUserTokens, sealUserTokens } from '@nexusmods/persistence/tokenCrypto.js';
 
 async function getAllUsers(): Promise<NexusUser[]> {
     try {

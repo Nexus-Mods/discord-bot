@@ -1,5 +1,5 @@
 import type { Rule } from '../types/AutomodTypes.js';
-import { queryAutoMod } from '../api/dbConnect.js';
+import { queryAutoMod } from '@nexusmods/persistence/dbConnect.js';
 import type express from 'express';
 import type { Logger } from "@nexusmods/core/logger.js";
 import { checkSharedSecret } from '@nexusmods/auth/signing.js';

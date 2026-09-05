@@ -2,11 +2,11 @@ import { SlashCommandBuilder, type CommandInteraction, type Role, EmbedBuilder, 
 import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { ConditionType } from "../types/util.js";
 import type { DiscordBotUser } from "../api/DiscordBotUser.js";
-import { getConditionsForRole } from '../api/server_role_conditions.js';
-import { getServer } from '../api/servers.js';
-import type { BotServer } from "../types/servers.js";
+import { getConditionsForRole } from '@nexusmods/persistence/server_role_conditions.js';
+import { getServer } from '@nexusmods/persistence/servers.js';
+import type { BotServer } from "@nexusmods/persistence/types/servers.js";
 import type { Logger } from "@nexusmods/core/logger.js";
-import type { IConditionForRole } from "../api/server_role_conditions.js";
+import type { IConditionForRole } from "@nexusmods/persistence/server_role_conditions.js";
 import type { InteractionContext } from '../lib/middleware.js';
 
 const discordInteraction: DiscordInteraction = {

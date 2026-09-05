@@ -1,9 +1,9 @@
 import { type CommandInteraction, SlashCommandBuilder, type ChatInputCommandInteraction, type GuildChannel, PermissionFlagsBits, InteractionContextType } from "discord.js";
 import type { ClientExt, DiscordInteraction } from '../types/DiscordTypes.js';
 import type { Logger } from "@nexusmods/core/logger.js";
-import { getSubscribedChannel } from "../api/subscriptions.js";
+import { getSubscribedChannel } from "@nexusmods/persistence/subscriptions.js";
 import { webhookFor } from '../feeds/webhooks.js';
-import { getSubscribedItems } from '../api/subscriptions.js';
+import { getSubscribedItems } from '@nexusmods/persistence/subscriptions.js';
 
 const timezones = [
     { name: 'UTC, GMT, Europe/London', value: '+00:00' },
