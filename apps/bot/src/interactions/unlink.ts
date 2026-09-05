@@ -3,7 +3,7 @@ import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { getUserByDiscordId } from '../api/users.js';
 import { KnownDiscordServers } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
-import { unlinkUrl } from '../auth/signing.js';
+import { unlinkUrl } from '@nexusmods/auth/signing.js';
 import { NEXUS_ORANGE, botFooter } from '../lib/embeds.js';
 
 const discordInteraction: DiscordInteraction = {

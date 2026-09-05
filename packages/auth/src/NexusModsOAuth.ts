@@ -1,7 +1,6 @@
 import crypto from 'crypto';
-import { baseheader } from '../api/util.js';
 import type { Logger } from "@nexusmods/core/logger.js";
-import { readJson, expiresAt } from '../api/http.js';
+import { readJson, expiresAt } from '@nexusmods/core/http.js';
 import { findUser } from '@nexusmods/nexus-api/queries/v2-finduser.js';
 
 interface OAuthURL {
@@ -87,7 +86,12 @@ export async function getOAuthTokens(code: string): Promise<NexusOAuthTokens> {
     }
 }
 
-export async function getUserData(tokens: NexusOAuthTokens, logger: Logger): Promise<NexusUserData> {
+/**
+ * @param headers Sent on to the Nexus Mods API when checking whether this user is a mod
+ * author. Passed in rather than imported: it carries the application's version, and an
+ * application's version is not something a shared package can know.
+ */
+export async function getUserData(tokens: NexusOAuthTokens, logger: Logger, headers: Record<string, string>): Promise<NexusUserData> {
     const url = 'https://users.nexusmods.com/oauth/userinfo';
     const response = await fetch(url, {
       headers: {
@@ -98,7 +102,7 @@ export async function getUserData(tokens: NexusOAuthTokens, logger: Logger): Pro
       const data = await readJson<NexusUserData>(response);
       let modAuthor = false;
       try {
-        const user = await findUser(baseheader, logger,parseInt(data.sub));
+        const user = await findUser(headers, logger, parseInt(data.sub));
         modAuthor = user?.recognizedAuthor ?? false;
       }
       catch(err) {

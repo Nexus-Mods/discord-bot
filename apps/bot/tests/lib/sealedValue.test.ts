@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveKey, isSealed, open, seal } from '../../src/lib/sealedValue.js';
+import { deriveKey, isSealed, open, seal } from '@nexusmods/core/sealedValue.js';
 
 const key = deriveKey('a-secret-of-realistic-length-0123456789', 'test.v1');
 const other = deriveKey('a-different-secret-entirely-9876543210', 'test.v1');

@@ -1,7 +1,14 @@
 # @nexusmods/core
 
-The cross-cutting five, minus one. `errors`, `logger`, `formatting` and `env`: the things
-both the Discord bot and the web app need and neither owns.
+`errors`, `logger`, `formatting`, `env`, `http` and `sealedValue`: the things both the
+Discord bot and the web app need and neither owns.
+
+The last two arrived with the auth cut rather than this one. `http.ts` is `readJson` and
+`expiresAt`, two functions with no imports, which the plan had counted as part of the
+Nexus API client — three of its four callers are not Nexus Mods code. `sealedValue.ts` is
+the sealed-envelope primitive, and the plan had it in the auth package; it is imported by
+`db/tokenCrypto` as well, so putting it in auth would have made the persistence package
+depend on the auth package to encrypt a column.
 
 Cut first, ahead of the Nexus API client the plan named first, because the sixteen query
 modules import `errors` and `logger` at runtime — a package cannot depend on the

@@ -2,7 +2,7 @@ import type { Rule } from '../types/AutomodTypes.js';
 import { queryAutoMod } from '../api/dbConnect.js';
 import type express from 'express';
 import type { Logger } from "@nexusmods/core/logger.js";
-import { checkSharedSecret } from '../auth/signing.js';
+import { checkSharedSecret } from '@nexusmods/auth/signing.js';
 
 function checkPermission(req: express.Request): boolean {
     return checkSharedSecret(req, 'AUTOMOD_AUTHCODE');

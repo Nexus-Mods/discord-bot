@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import type { Logger } from "@nexusmods/core/logger.js";
-import { readJson, expiresAt } from '../api/http.js';
+import { readJson, expiresAt } from '@nexusmods/core/http.js';
 
 interface OAuthURL {
     url: string;

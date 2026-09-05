@@ -1,5 +1,5 @@
-import * as NexusModsOAuth from '../auth/NexusModsOAuth.js';
-import * as DiscordOAuth from '../auth/DiscordOAuth.js';
+import * as NexusModsOAuth from '@nexusmods/auth/NexusModsOAuth.js';
+import * as DiscordOAuth from '@nexusmods/auth/DiscordOAuth.js';
 import type { NexusUser } from '../types/users.js';
 import { baseheader } from './util.js';
 import type { Logger } from '@nexusmods/core/logger.js'
@@ -150,7 +150,7 @@ export class DiscordBotUser {
         let updated : (keyof NexusUser)[] = [];
         if (this.NexusModsOAuthTokens) {
             try {
-                const data = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens, this.logger)
+                const data = await NexusModsOAuth.getUserData(this.NexusModsOAuthTokens, this.logger, baseheader)
                 updated = await this.updateUserDataFromOAuth(data);
             }
             catch(err) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { readJson, expiresAt } from '../../src/api/http.js';
+import { readJson, expiresAt } from '@nexusmods/core/http.js';
 
 describe('expiresAt', () => {
     afterEach(() => vi.useRealTimers());

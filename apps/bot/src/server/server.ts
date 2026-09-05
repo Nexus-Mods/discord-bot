@@ -1,9 +1,9 @@
 import express from 'express';
 import { BOT_VERSION } from '../version.js';
 import cookieparser from 'cookie-parser';
-import * as DiscordOAuth from '../auth/DiscordOAuth.js';
-import * as NexusModsOAuth from '../auth/NexusModsOAuth.js';
-import { calcUptime } from '../api/util.js';
+import * as DiscordOAuth from '@nexusmods/auth/DiscordOAuth.js';
+import * as NexusModsOAuth from '@nexusmods/auth/NexusModsOAuth.js';
+import { baseheader, calcUptime } from '../api/util.js';
 import type { Logger } from "@nexusmods/core/logger.js";
 import { createUser, updateUser, getUserByDiscordId, deleteUser, getUserByNexusModsId } from '../api/users.js';
 import type { NexusUser } from '../types/users.js';
@@ -18,7 +18,7 @@ import forumWebhook from './forumWebhook.js';
 import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from '../auth/signing.js';
+import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from '@nexusmods/auth/signing.js';
 import { LINK_STATE_COOKIE, LINK_STATE_TTL_MS, openLinkState, sealLinkState } from './linkState.js';
 
 // Get the equivalent of __dirname
@@ -277,7 +277,7 @@ export class AuthSite {
             const existingUser: DiscordBotUser|undefined = await getUserByDiscordId(discordData.id);
             const tokens = await NexusModsOAuth.getOAuthTokens(code as string);
             // logMessage('Got tokens for Nexus Mods', tokens);
-            const userData = await NexusModsOAuth.getUserData(tokens, this.logger);
+            const userData = await NexusModsOAuth.getUserData(tokens, this.logger, baseheader);
             if (!existingUser) {
                 const nexusUser = await getUserByNexusModsId(parseInt(userData.sub));
                 // logMessage('Existing Nexus Mods user lookup', nexusUser?.NexusModsUsername);

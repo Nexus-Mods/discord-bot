@@ -1,0 +1,30 @@
+{
+  "name": "@nexusmods/auth",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The two OAuth clients and the URL and cookie signing helpers. Shared, because the bot and the site both start and finish the same flows.",
+  "exports": {
+    "./*.js": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nexusmods/core": "*",
+    "@nexusmods/nexus-api": "*"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.13.14",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

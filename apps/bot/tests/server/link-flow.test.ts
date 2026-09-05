@@ -22,14 +22,14 @@ vi.mock('express-rate-limit', () => ({
     default: () => (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
-vi.mock('../../src/auth/DiscordOAuth.js', () => ({
+vi.mock('@nexusmods/auth/DiscordOAuth.js', () => ({
     getOAuthUrl: () => { const state = crypto.randomBytes(16).toString('base64url'); return { url: `https://discord.test/authorize?state=${state}`, state }; },
     getOAuthTokens: async () => DISCORD_TOKENS,
     getUserData: async () => ({ user: { id: '4242', username: 'mike', discriminator: '0' } }),
     revoke: async () => undefined,
 }));
 
-vi.mock('../../src/auth/NexusModsOAuth.js', () => ({
+vi.mock('@nexusmods/auth/NexusModsOAuth.js', () => ({
     getOAuthUrl: (state: string) => ({ url: `https://nexus.test/authorize?state=${state}` }),
     getOAuthTokens: async () => NEXUS_TOKENS,
     getUserData: async () => ({ sub: '31179975', name: 'Pickysaurus', avatar: '', membership_roles: ['premium'] }),

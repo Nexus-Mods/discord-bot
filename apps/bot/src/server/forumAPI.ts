@@ -3,7 +3,7 @@
 import '@nexusmods/core/env.js';
 
 import type { ForumTopic } from "../types/ForumWebhookTypes.js";
-import { readJson } from '../api/http.js';
+import { readJson } from '@nexusmods/core/http.js';
 
 export async function getTopic(id: number): Promise<ForumTopic> {
     const APIKEY: string | undefined = process.env.FORUM_API_KEY;

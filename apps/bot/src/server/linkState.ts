@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { deriveKey, open as openSealed, seal } from '../lib/sealedValue.js';
+import { deriveKey, open as openSealed, seal } from '@nexusmods/core/sealedValue.js';
 
 /**
  * The in-flight state of an account link, sealed into a cookie.

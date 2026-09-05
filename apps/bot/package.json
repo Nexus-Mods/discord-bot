@@ -5,7 +5,7 @@
   "description": "A Discord bot for Nexus Mods, written in TypeScript",
   "main": "dist/app.js",
   "scripts": {
-    "build": "npm run build --prefix ../../packages/core && npm run build --prefix ../../packages/nexus-api && tsup",
+    "build": "npm run build --prefix ../../packages/core && npm run build --prefix ../../packages/nexus-api && npm run build --prefix ../../packages/auth && tsup",
     "start": "node dist/shards.js",
     "startWeb": "node dist/web.js",
     "dev": "npm run build && npm run start",
@@ -44,6 +44,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
+    "@nexusmods/auth": "*",
     "@nexusmods/core": "*",
     "@nexusmods/nexus-api": "*",
     "cookie-parser": "^1.4.7",

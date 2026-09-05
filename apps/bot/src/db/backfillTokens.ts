@@ -5,7 +5,7 @@ import pg from 'pg';
 import { poolConfig } from '../api/dbConnect.js';
 import { logger } from '@nexusmods/core/logger.js';
 import { toError } from '@nexusmods/core/errors.js';
-import { isSealed } from '../lib/sealedValue.js';
+import { isSealed } from '@nexusmods/core/sealedValue.js';
 import { assertTokenKeyConfigured, needsResealing, needsSealing, openToken, resealToken, sealToken } from './tokenCrypto.js';
 
 // Entry point: `node dist/db/backfillTokens.js` runs without app.ts having loaded .env.

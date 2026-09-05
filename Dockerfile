@@ -11,6 +11,7 @@ COPY apps/bot/package.json ./apps/bot/
 # reason: npm resolves the tree from the manifests before any source is copied.
 COPY packages/core/package.json ./packages/core/
 COPY packages/nexus-api/package.json ./packages/nexus-api/
+COPY packages/auth/package.json ./packages/auth/
 # npm ci installs exactly what the lockfile pins, dev dependencies included so
 # tsup and typescript are available for the build.
 #

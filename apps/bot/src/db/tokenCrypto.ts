@@ -1,5 +1,5 @@
 import { ConfigError, DatabaseError } from '@nexusmods/core/errors.js';
-import { deriveKey, isSealed, open, seal } from '../lib/sealedValue.js';
+import { deriveKey, isSealed, open, seal } from '@nexusmods/core/sealedValue.js';
 
 /**
  * Encryption for the OAuth tokens in the users table.

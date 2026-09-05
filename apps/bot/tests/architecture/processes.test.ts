@@ -204,6 +204,9 @@ describe('the bot stays out of the web process', () => {
      * src/server/ is now web-only: reachable from src/web.ts and from its own modules,
      * and from nowhere else. This test is what stops that eroding one convenient import
      * at a time.
+     *
+     * src/auth/ is now packages/auth. The directory was always the shape of a package
+     * waiting for one; 5.0.0 gave it the name.
      */
     it('is reachable only from the web entry point and its own modules', () => {
         const offenders = ALL
@@ -214,15 +217,15 @@ describe('the bot stays out of the web process', () => {
     });
 });
 
-describe('src/auth/', () => {
+describe('@nexusmods/auth', () => {
     /**
      * Shared by both processes, so it must stay free of anything that belongs to only
      * one of them: no express, and no gateway client.
      */
     it('does not pull express or the gateway into whichever process imports it', () => {
-        const authFiles = ALL.filter((f) => slash(f).startsWith('src/auth/'));
+        const authFiles = ALL.filter((f) => slash(f).startsWith('packages/auth/src/'));
         expect(authFiles.length).toBeGreaterThan(0);
-        expect(importersOfPackage('express').filter((f) => f.startsWith('src/auth/'))).toEqual([]);
+        expect(importersOfPackage('express').filter((f) => f.startsWith('packages/auth/'))).toEqual([]);
         for (const f of authFiles) {
             for (const dep of localDeps(f)) {
                 expect(slash(dep), `${slash(f)} reaches the bot`).not.toMatch(/DiscordBot\.ts$/);
@@ -354,6 +357,51 @@ describe('the environment', () => {
         expect(findEnvFile(deep)).toBe(path.join(root, '.env'));
         // And nothing invented when there is nothing to find.
         expect(findEnvFile(mkdtempSync(path.join(tmpdir(), 'envnone-')))).toBeUndefined();
+    });
+});
+
+describe('test doubles', () => {
+    /**
+     * A mocked module id is a string in a function call. Nothing typechecks it and nothing
+     * follows it when the module moves - and a stale one does not error: vitest mocks a
+     * module nobody imports, the real one runs, and the failure surfaces wherever that
+     * module first does something it was mocked to avoid.
+     *
+     * The auth cut did exactly this. Both auth mocks in link-flow.test.ts kept pointing at
+     * src/auth/, the real DiscordOAuth ran, found no client id, returned '/oauth-error',
+     * and five tests failed inside `new URL(location)`.
+     */
+    const MOCKED = /vi\.(?:mock|doMock)\(\s*['"]([^'"]+)['"]/g;
+
+    function testFiles(): string[] {
+        const out: string[] = [];
+        (function walk(d: string) {
+            for (const e of readdirSync(d)) {
+                const p = path.join(d, e);
+                if (statSync(p).isDirectory()) walk(p);
+                else if (p.endsWith('.ts')) out.push(p);
+            }
+        })('tests');
+        return out;
+    }
+
+    it('every mocked local module id resolves to a file', () => {
+        const offenders: string[] = [];
+        let seen = 0;
+        for (const f of testFiles()) {
+            for (const m of readFileSync(f, 'utf8').matchAll(MOCKED)) {
+                const spec = m[1];
+                let resolved: string | undefined;
+                if (spec.startsWith('.')) resolved = path.join(path.dirname(f), spec.replace(/\.js$/, '.ts'));
+                else if (spec.startsWith('@nexusmods/')) resolved = workspaceSource(spec);
+                else continue; // a real npm package; node resolves it or the test fails loudly
+                seen += 1;
+                if (!resolved || !existsSync(resolved)) offenders.push(`${slash(f)} mocks ${spec}`);
+            }
+        }
+        // A regex that stops matching would make the loop above vacuous.
+        expect(seen).toBeGreaterThan(0);
+        expect(offenders).toEqual([]);
     });
 });
 
