@@ -30,8 +30,8 @@ const NEXUS_FAVICONS = 'https://images.nexusmods.com/favicons/ReskinOrange';
 
 export const metadata: Metadata = {
     title: {
-        default: 'Discord Account Link - Nexus Mods',
-        template: '%s - Discord Account Link - Nexus Mods',
+        default: 'Discord Bot - Nexus Mods',
+        template: '%s - Discord Bot - Nexus Mods',
     },
     description: 'The official Discord bot for NexusMods.com',
     // Carried over deliberately. These pages are the tail of an OAuth flow and a
@@ -87,7 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </main>
                 <footer className="flex flex-none flex-col items-center gap-4 pb-10 pt-18 text-body-sm text-neutral-400">
                     <Logo className="opacity-60" />
-                    <p>Copyright © 2023 Black Tree Gaming Ltd. All rights reserved.</p>
+                    <p>Copyright © 2026 Black Tree Gaming Ltd. All rights reserved.</p>
                 </footer>
             </body>
         </html>

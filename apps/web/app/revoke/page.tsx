@@ -41,7 +41,7 @@ export default async function RevokeConfirm({ searchParams }: { searchParams: Se
                 <form method="POST" action="/revoke">
                     <input type="hidden" name="id" value={id} />
                     <input type="hidden" name="token" value={token} />
-                    <ActionButton type="submit" icon="/images/unlink.gif">
+                    <ActionButton type="submit">
                         Yes, unlink my accounts
                     </ActionButton>
                 </form>
