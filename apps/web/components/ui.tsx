@@ -88,7 +88,7 @@ export function Centered({ children }: { children: ReactNode }) {
 export function MainImage({ src, alt }: { src: string; alt: string }) {
     return (
         <div className="flex justify-center">
-            <img src={src} alt={alt} className="w-full max-w-[385px] md:max-w-[510px] lg:max-w-[858px]" />
+            <img src={src} alt={alt} className="w-full max-w-96.25 md:max-w-127.5 lg:max-w-214.5" />
         </div>
     );
 }
@@ -103,7 +103,7 @@ export function ErrorDetail({ children }: { children: ReactNode }) {
     return (
         <div className="mt-8 text-body-md text-neutral-400">
             <span>Error details:</span>
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded bg-neutral-950 p-3 font-mono text-body-sm text-neutral-300">
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap wrap-break-words rounded bg-neutral-950 p-3 font-mono text-body-sm text-neutral-300">
                 {children}
             </pre>
         </div>
@@ -112,5 +112,5 @@ export function ErrorDetail({ children }: { children: ReactNode }) {
 
 /** The column every page's content sits in. */
 export function Content({ children }: { children: ReactNode }) {
-    return <div className="max-w-[900px] lg:max-w-[1100px]">{children}</div>;
+    return <div className="max-w-225 lg:max-w-275">{children}</div>;
 }
