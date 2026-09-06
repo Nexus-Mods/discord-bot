@@ -326,6 +326,9 @@ describe('the environment', () => {
      */
     const ENTRY_POINTS = ['src/shards.ts', 'src/app.ts', 'src/web.ts', 'src/db/migrate.ts', 'src/db/backfillTokens.ts'];
 
+    // Resolved from this file: the working directory is apps/bot and apps/web is a sibling.
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+
     it('loads the environment in exactly one place', () => {
         const direct = ALL
             .filter((f) => slash(f) !== 'packages/core/src/env.ts')
@@ -344,6 +347,40 @@ describe('the environment', () => {
                 .find((l) => l.startsWith('import '));
             expect(first, `${entry} should import the env loader first`).toMatch(/@nexusmods\/core\/env\.js/);
         }
+    });
+
+    /**
+     * apps/web is a second application with its own idea of where .env is.
+     *
+     * Next reads .env from its own project directory, so the repository's root .env - the
+     * only one there is - reached the bot and not the web app. `npm run dev:web` came up
+     * and then refused to serve, because COOKIE_SECRET is in that file and the boot check
+     * could not see it. Exactly the 5.0.0 failure that put the resolver in a package,
+     * repeated in an application built after it.
+     *
+     * next.config.ts is where it has to go: the earliest file Next evaluates, and it
+     * evaluates it for `dev`, `build` and `start` alike.
+     */
+    it('has the web app load it too, before anything else it imports', () => {
+        const config = readFileSync(path.join(root, 'apps', 'web', 'next.config.ts'), 'utf8');
+        const first = config.split('\n').find((l) => l.startsWith('import '));
+        expect(first, 'apps/web/next.config.ts should import the env loader first')
+            .toMatch(/@nexusmods\/core\/env\.js/);
+    });
+
+    it('has nothing in the web app reaching for dotenv on its own', () => {
+        const offenders: string[] = [];
+        (function walk(d: string) {
+            for (const e of readdirSync(d)) {
+                if (e === 'node_modules' || e === '.next') continue;
+                const f = path.join(d, e);
+                if (statSync(f).isDirectory()) walk(f);
+                else if (/\.tsx?$/.test(f) && /from '.?dotenv|import 'dotenv/.test(readFileSync(f, 'utf8'))) {
+                    offenders.push(slash(f));
+                }
+            }
+        })(path.join(root, 'apps', 'web'));
+        expect(offenders).toEqual([]);
     });
 
     it('resolves .env from the code, not the working directory', async () => {
