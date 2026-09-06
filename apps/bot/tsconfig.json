@@ -10,6 +10,11 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    // tsup transpiles one file at a time with esbuild here as well, so the bot is subject
+    // to the same rule the packages are. It was not set, which is why a bare `export
+    // { Rule }` of a type compiled fine here and failed the moment apps/web compiled a
+    // copy of the same file.
+    "isolatedModules": true,
     // vite/client provides the ImportMeta.glob typing used by the command tests.
     "types": ["node", "vite/client"],
     "outDir": "./dist",

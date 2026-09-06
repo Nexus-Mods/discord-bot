@@ -50,7 +50,15 @@ export function getOAuthUrl(sharedState: string, logger: Logger): OAuthURL {
     url.searchParams.set('state', state);
     // Do to a strange oversight on the Nexus Mods end, legacy applications and new ones have different scopes. 
     // When testing we're using a newer app that doesn't have the "email" scope.
-    if (process.env.NODE_ENV === 'testing') url.searchParams.set('scope', 'public openid profile');
+    //
+    // Read as a plain string rather than compared directly. Next augments
+    // NodeJS.ProcessEnv with NODE_ENV: 'development' | 'production' | 'test', and this
+    // package is compiled by apps/web as well as apps/bot - so a direct comparison against
+    // 'testing', which is the value this repository actually uses, became "these types
+    // have no overlap" the moment the web app first imported this file. The comparison is
+    // right and the global type is too narrow for this repo.
+    const nodeEnv: string = process.env.NODE_ENV ?? '';
+    if (nodeEnv === 'testing') url.searchParams.set('scope', 'public openid profile');
     else url.searchParams.set('scope', 'openid email profile');
     // url.searchParams.set('approval_prompt', 'auto'); // Skips the auth prompt?
     return { state, url: url.toString() };

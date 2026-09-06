@@ -73,5 +73,8 @@ interface DiscordInteraction {
     autocomplete?: (client: Client, interact: AutocompleteInteraction, logger: Logger) => Promise<void>,
 }
 
-export { DiscordEventInterface, DiscordInteraction, ClientExt };
+// `export type`: these are types, and esbuild transpiles this file on its own - it
+// cannot know the names should vanish. tsc only started saying so when isolatedModules
+// was turned on, which is the rule esbuild had been enforcing all along.
+export type { DiscordEventInterface, DiscordInteraction, ClientExt };
 export type { BotConfig };

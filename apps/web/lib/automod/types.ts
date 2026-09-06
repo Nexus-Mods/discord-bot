@@ -41,7 +41,7 @@ const TextFields = {
 
 type TextFields = typeof TextFields[keyof typeof TextFields]
 
-// `export type`: these are types, and esbuild transpiles this file on its own - it
-// cannot know the names should vanish. tsc only started saying so when isolatedModules
-// was turned on, which is the rule esbuild had been enforcing all along.
+// `export type`, not `export`: apps/web sets isolatedModules and Rule is a type. The
+// original in apps/bot/src/types/AutomodTypes.ts still says `export { Rule }` and compiles
+// only because that workspace does not set it - see the commit message.
 export type { Rule };

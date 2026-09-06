@@ -22,9 +22,6 @@ import { readJsonWithLimit } from '@/lib/security/bodyLimit';
  * that is violating its policy produces a report per violation and throttling them would
  * hide the signal. The cap and the fact that nothing is stored are what keep that safe.
  */
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 /** Small. A violation report is a few hundred bytes; anything larger is not one. */
 const MAX_BYTES = 16 * 1024;
 
