@@ -18,4 +18,5 @@ interface NexusUser {
 }
 
 
-export { NexusUser };
+// Types, so `export type` - see the note in @nexusmods/nexus-api/types/GQLTypes.ts.
+export type { NexusUser };

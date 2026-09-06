@@ -38,11 +38,20 @@ export default [
         },
     },
     {
-        // apps/web keeps its routes in app/ rather than src/, which is Next's layout and
-        // not worth fighting. Without the third pattern eslint reports "File ignored
-        // because no matching configuration was supplied" - as a warning, while still
-        // exiting 0, so `npm run lint` passes and lints nothing.
-        files: ["apps/*/src/**/*.ts", "apps/*/tests/**/*.ts", "apps/*/app/**/*.{ts,tsx}"],
+        // One pattern per workspace root, matching everything under it.
+        //
+        // This used to name directories - src/, tests/, then app/ when apps/web arrived -
+        // and each time a new directory appeared it was silently not linted, because
+        // eslint reports "File ignored because no matching configuration was supplied" as
+        // a *warning* and still exits 0. `npm run lint` passed while checking nothing.
+        //
+        // It happened twice. apps/web was unlinted until the pattern for app/ was added,
+        // and then all four packages were unlinted for four commits: nothing matched
+        // packages/**, so 46 moved modules stopped being checked the moment they moved.
+        // Naming the workspace roots instead means a new directory inside one is covered
+        // the day it is created, and the architecture test below fails if a new workspace
+        // root is added without a pattern.
+        files: ["apps/*/**/*.{ts,tsx}", "packages/*/**/*.{ts,tsx}"],
         languageOptions: {
             parser: tsParser,
             parserOptions: {

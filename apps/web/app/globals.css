@@ -57,6 +57,9 @@
     --color-success-moderate: var(--color-green-500);
     --color-success-strong: var(--color-green-300);
 
+    /* Exactly what the site declares. "Inter Fallback" is a family name next/font
+       generates, which is how we know nexusmods.com self-hosts Inter through it; this app
+       still loads Inter over a <link> - see the note in app/layout.tsx and step 7. */
     --font-sans: "Inter", "Inter Fallback", "ui-sans-serif", "system-ui", "sans-serif";
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
@@ -137,7 +140,13 @@ html {
     color-scheme: dark;
 }
 
+/*
+ * Two surfaces, the same relationship the stylesheet being replaced had: the page is a
+ * mid-dark grey and the header bar is darker than it. The old values were #2b2d2f and
+ * #101010, picked before either product had a scale; these are the nearest steps on
+ * Tailwind's neutral ramp, which is what nexusmods.com's own surfaces come from.
+ */
 body {
-    background-color: var(--color-neutral-950);
-    color: var(--color-neutral-200);
+    background-color: var(--color-neutral-900);
+    color: var(--color-neutral-100);
 }

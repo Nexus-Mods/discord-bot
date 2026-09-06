@@ -360,6 +360,36 @@ describe('the environment', () => {
     });
 });
 
+describe('the lint config', () => {
+    /**
+     * A file nothing lints looks exactly like a file with no problems.
+     *
+     * The config used to list directories - apps/*\/src, then tests, then app/ when
+     * apps/web arrived. Each time something appeared outside those, eslint reported "File
+     * ignored because no matching configuration was supplied" as a warning and exited 0,
+     * so `npm run lint` passed while checking none of it. It happened to apps/web, and
+     * then to all four packages: 46 modules stopped being linted the moment they were
+     * moved into packages/, and stayed that way for four commits.
+     *
+     * The patterns name the workspace roots now, so a new directory inside one is covered
+     * the day it exists. This is what is left to get wrong: a third workspace root.
+     */
+    // Same climb as the Dockerfile assertions below: resolved from this file, because the
+    // working directory is apps/bot and the config is at the repository root.
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+
+    it('has a pattern for every workspace root', () => {
+        const roots: string[] = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))
+            .workspaces.map((w: string) => w.replace(/\/\*$/, ''));
+        expect(roots.length).toBeGreaterThan(0);
+
+        const config = readFileSync(path.join(root, 'eslint.config.mjs'), 'utf8');
+        for (const workspace of roots) {
+            expect(config, `${workspace}/ has no lint pattern`).toContain(`"${workspace}/*/**/*.{ts,tsx}"`);
+        }
+    });
+});
+
 describe('test doubles', () => {
     /**
      * A mocked module id is a string in a function call. Nothing typechecks it and nothing

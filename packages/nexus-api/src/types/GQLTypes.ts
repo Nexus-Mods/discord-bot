@@ -97,4 +97,9 @@ interface ICollectionsFilter {
     generalSearch?: BaseFilterValue;
 }
 
-export { ICollectionsFilter, CollectionsSort };
+// `export type`, not `export`. Both of these are types, and a bare re-export of a type
+// cannot be transpiled file-by-file - the emitter has no way to know the name should
+// vanish. The bot's tsconfig does not set isolatedModules so tsc allowed it, while tsup
+// (esbuild) has always transpiled file-by-file, so the emit was correct by luck. apps/web
+// does set it, and this was the first thing to compile the package under it.
+export type { ICollectionsFilter, CollectionsSort };

@@ -4,12 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-shared-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-shared-assets.mjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@nexusmods/persistence": "*",
     "next": "^16.3.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
