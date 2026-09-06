@@ -397,6 +397,42 @@ describe('the environment', () => {
     });
 });
 
+describe('workspace versions', () => {
+    /**
+     * One version across the repository, and it is load-bearing now.
+     *
+     * The `Application-Version` the Nexus Mods API sees is @nexusmods/nexus-api's own
+     * package version, because the account model had to become a package and `baseheader`
+     * was the one import holding it in the application - a package cannot resolve the
+     * application's version, it finds its own manifest.
+     *
+     * That is only the bot's version because everything here is released together. This is
+     * what makes "released together" a rule rather than a habit: bump one workspace on its
+     * own and the header quietly stops naming the bot, which nothing else would notice.
+     */
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+
+    it('are all the root version', () => {
+        const rootManifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+        const found: [string, unknown][] = [];
+
+        for (const pattern of rootManifest.workspaces as string[]) {
+            const dir = path.join(root, pattern.replace(/\/\*$/, ''));
+            for (const entry of readdirSync(dir)) {
+                const manifest = path.join(dir, entry, 'package.json');
+                if (!existsSync(manifest)) continue;
+                found.push([entry, JSON.parse(readFileSync(manifest, 'utf8')).version]);
+            }
+        }
+
+        // Guard on the walk: an empty list agrees with anything.
+        expect(found.length).toBeGreaterThan(4);
+        for (const [name, version] of found) {
+            expect(version, `${name} is not on the root version`).toBe(rootManifest.version);
+        }
+    });
+});
+
 describe('the lint config', () => {
     /**
      * A file nothing lints looks exactly like a file with no problems.

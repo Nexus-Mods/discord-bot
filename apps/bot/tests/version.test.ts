@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { BOT_VERSION } from '../src/version.js';
 
@@ -16,17 +16,34 @@ import { BOT_VERSION } from '../src/version.js';
  * Nothing failed. It just quietly reported the wrong number, which is why this is a test
  * rather than a comment.
  */
+/**
+ * apps/bot/src and every package's src.
+ *
+ * The walk used to cover this workspace only, and the resolver has since moved into
+ * @nexusmods/core - so the rule below would have stopped applying to the one file it is
+ * actually about, and gone on passing. The reader moving out of the tree the rule walks
+ * is how a rule quietly stops being a rule.
+ */
+const PACKAGES = path.join('..', '..', 'packages');
+
 function sourceFiles(): string[] {
     const out: string[] = [];
-    (function walk(d: string) {
+    const walk = (d: string) => {
         for (const e of readdirSync(d)) {
             const p = path.join(d, e);
             if (statSync(p).isDirectory()) walk(p);
             else if (p.endsWith('.ts')) out.push(p);
         }
-    })('src');
+    };
+    walk('src');
+    for (const pkg of existsSync(PACKAGES) ? readdirSync(PACKAGES) : []) {
+        const dir = path.join(PACKAGES, pkg, 'src');
+        if (existsSync(dir)) walk(dir);
+    }
     return out;
 }
+
+const slash = (f: string) => f.replace(/\\/g, '/').replace(/^\.\.\/\.\.\//, '');
 
 describe('BOT_VERSION', () => {
     it('matches package.json', () => {
@@ -56,13 +73,23 @@ describe('BOT_VERSION', () => {
     });
 
     it('is the only place that reads npm_package_version', () => {
+        // The resolver, wherever it lives. It is packages/core/src/packageVersion.ts now,
+        // because the Nexus API client needs the same walk for its Application-Version.
+        const RESOLVER = 'packages/core/src/packageVersion.ts';
         const offenders = sourceFiles().filter((f) => {
-            if (f === path.join('src', 'version.ts')) return false;
-            const body = readFileSync(f, 'utf8');
-            // Comments explaining the history are fine; reads are not.
-            return body.split('\n').some((line) =>
-                line.includes('process.env.npm_package_version') && !line.trimStart().startsWith('//'));
-        });
+            if (slash(f) === RESOLVER) return false;
+            // Comments explaining the history are fine; reads are not. Stripping them
+            // rather than skipping lines that start with `//`: the history is now told in
+            // a /** */ block whose lines start with `*`, and the line-prefix version of
+            // this check reported version.ts for describing the bug it fixes.
+            const code = readFileSync(f, 'utf8')
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\/\/.*$/gm, '');
+            return code.includes('process.env.npm_package_version');
+        }).map(slash);
+        // Guard on the guard: a walk that returns nothing makes the assertion above
+        // trivially true, and this one has already been narrowed once by a file moving.
+        expect(sourceFiles().length).toBeGreaterThan(100);
         expect(offenders).toEqual([]);
     });
 });

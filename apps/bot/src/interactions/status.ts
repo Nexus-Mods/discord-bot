@@ -1,7 +1,7 @@
 import {type ChatInputCommandInteraction, type CommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { getUserByDiscordId } from '../api/users.js';
-import { DiscordBotUser, DummyNexusModsUser } from "../api/DiscordBotUser.js";
+import { getUserByDiscordId } from '@nexusmods/account/users.js';
+import { DiscordBotUser, DummyNexusModsUser } from "@nexusmods/account/DiscordBotUser.js";
 import type { IStatusPageFullResponse } from '@nexusmods/nexus-api/types/responses.js';
 import { KnownDiscordServers } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";

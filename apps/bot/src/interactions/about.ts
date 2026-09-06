@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import type { DiscordInteraction } from "../types/DiscordTypes.js";
 import { BOT_VERSION } from '../version.js';
-import { getCountOfUsers } from '../api/users.js';
+import { getCountOfUsers } from '@nexusmods/account/users.js';
 import { calcUptime } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
 import { getCountOfSubscriptions } from "@nexusmods/persistence/subscriptions.js";

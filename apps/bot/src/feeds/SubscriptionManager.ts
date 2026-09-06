@@ -21,7 +21,7 @@ import {
     updateSubscription 
 } from '@nexusmods/persistence/subscriptions.js';
 import { v2 as API } from '@nexusmods/nexus-api/queries/all.js';
-import { baseheader } from "../api/util.js";
+import { baseheader } from '@nexusmods/nexus-api/headers.js';
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 import type { ModStatus } from "@nexusmods/nexus-api/types/GQLTypes.js";
 import { webhookFor } from './webhooks.js';

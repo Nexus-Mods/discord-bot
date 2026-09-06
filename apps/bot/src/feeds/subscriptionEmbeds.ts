@@ -3,7 +3,7 @@ import { NEXUS_ORANGE } from '../lib/embeds.js';
 import { assertPresent } from '../lib/assert.js';
 import { gameArt, nexusModsTrackingUrl } from '../api/util.js';
 import type { Logger } from "@nexusmods/core/logger.js";
-import { getUserByNexusModsId } from '../api/users.js';
+import { getUserByNexusModsId } from '@nexusmods/account/users.js';
 import { customEmojis } from '../types/util.js';
 import type { CollectionStatus, ICollection, ICollectionRevision, IMod, IModFile } from '@nexusmods/nexus-api/queries/v2.js';
 import type { IUser } from '@nexusmods/nexus-api/queries/v2-finduser.js';

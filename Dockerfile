@@ -13,6 +13,7 @@ COPY packages/core/package.json ./packages/core/
 COPY packages/nexus-api/package.json ./packages/nexus-api/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/persistence/package.json ./packages/persistence/
+COPY packages/account/package.json ./packages/account/
 # npm ci installs exactly what the lockfile pins, dev dependencies included so
 # tsup and typescript are available for the build.
 #

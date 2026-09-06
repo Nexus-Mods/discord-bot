@@ -1,0 +1,32 @@
+{
+  "name": "@nexusmods/account",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The account model: a linked Nexus Mods and Discord account, and the repository that reads and writes them.",
+  "exports": {
+    "./*.js": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nexusmods/auth": "*",
+    "@nexusmods/core": "*",
+    "@nexusmods/nexus-api": "*",
+    "@nexusmods/persistence": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "discord.js": "^14.25.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

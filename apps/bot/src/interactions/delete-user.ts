@@ -1,9 +1,9 @@
 import { type ChatInputCommandInteraction, type CommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
-import { deleteUser, getUserByDiscordId, getUserByNexusModsName } from '../api/users.js';
+import { deleteUser, getUserByDiscordId, getUserByNexusModsName } from '@nexusmods/account/users.js';
 import { KnownDiscordServers } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
-import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import type { DiscordBotUser } from "@nexusmods/account/DiscordBotUser.js";
 
 const discordInteraction: DiscordInteraction = {
     command: new SlashCommandBuilder()

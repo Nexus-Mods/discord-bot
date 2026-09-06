@@ -3,8 +3,8 @@ import {
     type InteractionDeferReplyOptions,
 } from 'discord.js';
 import type { Logger } from '@nexusmods/core/logger.js';
-import type { DiscordBotUser } from '../api/DiscordBotUser.js';
-import { getUserByDiscordId } from '../api/users.js';
+import type { DiscordBotUser } from '@nexusmods/account/DiscordBotUser.js';
+import { getUserByDiscordId } from '@nexusmods/account/users.js';
 
 /**
  * Cross-cutting concerns every command was implementing for itself: deferring the

@@ -2,7 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type ChatInputCommandInte
 import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import { KnownDiscordServers } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
-import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import type { DiscordBotUser } from "@nexusmods/account/DiscordBotUser.js";
 import { customEmojis } from "../types/util.js";
 import type { InteractionContext } from '../lib/middleware.js';
 import { userProfileEmbed } from '../lib/profile.js';

@@ -36,7 +36,7 @@ vi.mock('@nexusmods/auth/NexusModsOAuth.js', () => ({
     revoke: async () => undefined,
 }));
 
-vi.mock('../../src/api/users.js', () => ({
+vi.mock('@nexusmods/account/users.js', () => ({
     getUserByDiscordId: async () => undefined,
     getUserByNexusModsId: async () => undefined,
     deleteUser: async () => undefined,

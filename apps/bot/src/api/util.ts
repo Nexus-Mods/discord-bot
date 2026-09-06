@@ -1,13 +1,10 @@
-import { BOT_VERSION } from '../version.js';
 export { gameArt, nexusModsTrackingUrl, calcUptime } from '@nexusmods/core/formatting.js';
+
+// `baseheader` used to live here, built from BOT_VERSION. It is
+// @nexusmods/nexus-api/headers.js now - see the note there.
 
 export const isTesting = process.env.NODE_ENV === 'testing';
 // const isProduction = process.env.NODE_ENV === 'production';
-
-export const baseheader: Readonly<Record<string, string>> = {
-    'Application-Name': 'Nexus Mods Discord Bot',
-    'Application-Version': BOT_VERSION
-};
 
 
 /**

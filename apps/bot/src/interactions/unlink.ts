@@ -1,6 +1,6 @@
 import { type CommandInteraction, type Snowflake, type Client, SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType } from "discord.js";
 import type { DiscordInteraction } from "../types/DiscordTypes.js";
-import { getUserByDiscordId } from '../api/users.js';
+import { getUserByDiscordId } from '@nexusmods/account/users.js';
 import { KnownDiscordServers } from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
 import { unlinkUrl } from '@nexusmods/auth/signing.js';

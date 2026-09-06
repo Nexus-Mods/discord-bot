@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, type CommandInteraction, type Role, EmbedBuilder, InteractionContextType } from "discord.js";
 import type { ClientExt, DiscordInteraction } from "../types/DiscordTypes.js";
 import { ConditionType } from "../types/util.js";
-import type { DiscordBotUser } from "../api/DiscordBotUser.js";
+import type { DiscordBotUser } from "@nexusmods/account/DiscordBotUser.js";
 import { getConditionsForRole } from '@nexusmods/persistence/server_role_conditions.js';
 import { getServer } from '@nexusmods/persistence/servers.js';
 import type { BotServer } from "@nexusmods/persistence/types/servers.js";
