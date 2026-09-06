@@ -5,7 +5,7 @@ import type { Logger } from "@nexusmods/core/logger.js";
 import { checkSharedSecret } from '@nexusmods/auth/signing.js';
 
 function checkPermission(req: express.Request): boolean {
-    return checkSharedSecret(req, 'AUTOMOD_AUTHCODE');
+    return checkSharedSecret(req.headers.authorization, 'AUTOMOD_AUTHCODE');
 }
 
 async function automodRules(req: express.Request, res: express.Response, logger: Logger) {

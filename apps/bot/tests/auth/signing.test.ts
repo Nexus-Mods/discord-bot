@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import type express from 'express';
 import { safeCompare, signValue, verifyValue, checkSharedSecret, cookieOptions, unlinkUrl, linkUrl } from '@nexusmods/auth/signing.js';
 
 const SECRET = 'test-unlink-secret';
@@ -65,31 +64,33 @@ describe('safeCompare', () => {
 });
 
 describe('checkSharedSecret', () => {
-    const req = (authorization?: string) =>
-        ({ headers: authorization === undefined ? {} : { authorization } }) as unknown as express.Request;
-
+    // It takes the header's value now rather than a request, so both the Express routes
+    // and the Next ones can call the same implementation. The cases below are unchanged;
+    // only the way the header is handed over is.
     beforeEach(() => { process.env.TEST_AUTHCODE = 'correct-horse'; });
     afterEach(() => { delete process.env.TEST_AUTHCODE; });
 
     it('accepts the correct header', () => {
-        expect(checkSharedSecret(req('correct-horse'), 'TEST_AUTHCODE')).toBe(true);
+        expect(checkSharedSecret('correct-horse', 'TEST_AUTHCODE')).toBe(true);
     });
 
     it('rejects a wrong header', () => {
         // The original returned true here, so a wrong header passed and the correct
         // one got a 401.
-        expect(checkSharedSecret(req('wrong'), 'TEST_AUTHCODE')).toBe(false);
+        expect(checkSharedSecret('wrong', 'TEST_AUTHCODE')).toBe(false);
     });
 
     it('rejects a missing header', () => {
-        expect(checkSharedSecret(req(), 'TEST_AUTHCODE')).toBe(false);
-        expect(checkSharedSecret(req(''), 'TEST_AUTHCODE')).toBe(false);
+        expect(checkSharedSecret(undefined, 'TEST_AUTHCODE')).toBe(false);
+        expect(checkSharedSecret('', 'TEST_AUTHCODE')).toBe(false);
+        // What request.headers.get() returns on the Next side when the header is absent.
+        expect(checkSharedSecret(null, 'TEST_AUTHCODE')).toBe(false);
     });
 
     it('fails closed when the secret is not configured', () => {
         delete process.env.TEST_AUTHCODE;
-        expect(checkSharedSecret(req('anything'), 'TEST_AUTHCODE')).toBe(false);
-        expect(checkSharedSecret(req(), 'TEST_AUTHCODE')).toBe(false);
+        expect(checkSharedSecret('anything', 'TEST_AUTHCODE')).toBe(false);
+        expect(checkSharedSecret(undefined, 'TEST_AUTHCODE')).toBe(false);
     });
 });
 

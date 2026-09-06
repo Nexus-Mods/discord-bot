@@ -44,8 +44,10 @@ services:
     depends_on:
       - postgres
     restart: unless-stopped
-    # TempStore holds in-flight OAuth state in memory, so this service is
-    # single-replica by construction. Scaling it needs that moved out first.
+    # Single replica, but no longer because it has to be: the in-flight OAuth state
+    # moved into a sealed cookie in 4.3.0, so this service holds nothing between
+    # requests. What is still per-process is the rate limiting - a second replica
+    # would silently double both limits, because each would keep its own counters.
     scale: 1
 
   # Matches production (PostgreSQL 17). A postgres_data volume created by an older

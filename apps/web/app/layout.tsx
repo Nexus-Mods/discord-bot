@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 
 /**
@@ -70,13 +71,24 @@ function Logo({ className }: { className?: string }) {
     return <img src="/nexus-logo.svg" width={135} height={30} alt="Nexus Mods" className={className} />;
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * The nonce proxy.ts minted for this request.
+ *
+ * Next puts its own nonce on the scripts it emits when it can find one on the incoming
+ * request, so this read is what connects the policy in the header to the document it
+ * applies to. It is also why every page is server-rendered now: `headers()` opts a route
+ * out of static generation, and /revoked and /tracking were prerendered before this.
+ * Eight pages that each take a millisecond to render is a fair price for a real CSP.
+ */
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+    const nonce = (await headers()).get('x-nonce') ?? undefined;
+
     return (
         <html lang="en">
             <head>
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-                <link rel="stylesheet" href={INTER_HREF} />
+                <link rel="stylesheet" href={INTER_HREF} nonce={nonce} />
             </head>
             <body className="flex min-h-dvh flex-col font-sans antialiased">
                 <header className="flex h-14 flex-none items-center justify-center bg-neutral-950">

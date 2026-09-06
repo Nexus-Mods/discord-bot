@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import type express from 'express';
 
 /**
  * Compare two strings without leaking length-independent timing information.
@@ -12,17 +11,24 @@ export function safeCompare(a: string, b: string): boolean {
 }
 
 /**
- * Verify the Authorization header against a shared secret held in an environment
+ * Verify an Authorization header against a shared secret held in an environment
  * variable.
  *
  * This FAILS CLOSED: if the environment variable is not set, the endpoint is
  * treated as unavailable rather than unprotected. Previously a missing secret
- * left the endpoint open to anyone.
+ * left the endpoint open to anyone. That property is the whole point of this
+ * function and it is the one the tests pin.
+ *
+ * Takes the header's value rather than a request. It used to take an
+ * `express.Request`, which meant the only way to guard a route was to be an Express
+ * route - and the Next port has to guard the same three endpoints. A string is
+ * something both can produce: `req.headers.authorization` on one side,
+ * `request.headers.get('authorization')` on the other, and one implementation of the
+ * comparison rather than two that agree until they do not.
  */
-export function checkSharedSecret(req: express.Request, envVar: string): boolean {
+export function checkSharedSecret(provided: string | null | undefined, envVar: string): boolean {
     const expected = process.env[envVar];
     if (!expected) return false;
-    const provided = req.headers.authorization;
     if (typeof provided !== 'string' || provided === '') return false;
     return safeCompare(provided, expected);
 }

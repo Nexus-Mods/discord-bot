@@ -335,7 +335,7 @@ export class AuthSite {
     }
 
     async updateMetaData(req: express.Request, res: express.Response) {
-        if (!checkSharedSecret(req, 'ADMIN_AUTHCODE')) {
+        if (!checkSharedSecret(req.headers.authorization, 'ADMIN_AUTHCODE')) {
             res.sendStatus(401);
             return;
         }
@@ -356,7 +356,7 @@ export class AuthSite {
 
     async showMetaData(req: express.Request, res: express.Response) {
         // This exposes a user's Discord role-connection metadata, so it is admin-only.
-        if (!checkSharedSecret(req, 'ADMIN_AUTHCODE')) {
+        if (!checkSharedSecret(req.headers.authorization, 'ADMIN_AUTHCODE')) {
             res.sendStatus(401);
             return;
         }
