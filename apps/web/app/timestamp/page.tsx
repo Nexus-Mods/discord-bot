@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import { ActionButton, Content, PageTitle } from '@/components/ui';
 import { one, type SearchParams } from '@/lib/search';
 import { parseToMs, ukTime } from '@/lib/timestamp';
@@ -11,13 +12,15 @@ import { LocalTime } from './LocalTime';
  * still a GET to /timestamp with a `ts` field, so a bookmarked conversion keeps working
  * and the page needs no JavaScript to do its main job.
  *
- * force-dynamic because the default value of the result is "now": prerendered, this page
- * would be built once and then confidently report the time of the build.
+ * `await connection()` because the default value of the result is "now": prerendered, this
+ * page would be built once and then confidently report the time of the build. It replaces
+ * `export const dynamic = 'force-dynamic'`, which is the previous model - see the note in
+ * app/page.tsx.
  */
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Timestamp Converter' };
 
 export default async function Timestamp({ searchParams }: { searchParams: SearchParams }) {
+    await connection();
     const raw = one((await searchParams).ts) ?? '';
     const ms = parseToMs(raw);
     const date = new Date(ms);

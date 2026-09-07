@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import type { ISubscribedItem, SubscribedItemType } from '@nexusmods/persistence/types/subscriptions.js';
 import { Content, PageTitle } from '@/components/ui';
 
@@ -17,6 +18,12 @@ import { Content, PageTitle } from '@/components/ui';
  * whose whole point is that a failure has one possible cause. It also cannot be done
  * without changing `getServer`, which takes a discord.js Guild and reads `.name` off it -
  * a web request has a guild id and no gateway object.
+ *
+ * `await connection()` because `timeAgo` reads the clock. This page was rendering per
+ * request only because the layout happens to read a header for the CSP nonce - prerendered
+ * instead, every "42 seconds ago" would be frozen at the time of the build, permanently
+ * and plausibly. Found by the test written for the two pages that were already known to
+ * need this.
  */
 export const metadata: Metadata = { title: 'Tracking Summary' };
 
@@ -48,7 +55,8 @@ function timeAgo(when: Date): string {
 
 const COLUMNS = ['ID', 'Type', 'Channel', 'Name', 'Entity ID', 'Last Update'];
 
-export default function Tracking() {
+export default async function Tracking() {
+    await connection();
     const { guild, guildImage, subs } = FIXTURE;
 
     return (
