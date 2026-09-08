@@ -17,6 +17,8 @@
     "@discordjs/builders": "^1.14.1",
     "@discordjs/rest": "^2.6.3",
     "@nexusmods/account": "*",
+    "@nexusmods/auth": "*",
+    "@nexusmods/core": "*",
     "@nexusmods/nexus-api": "*",
     "@nexusmods/persistence": "*",
     "discord-api-types": "^0.38.31",

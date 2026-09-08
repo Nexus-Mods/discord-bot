@@ -433,6 +433,98 @@ describe('workspace versions', () => {
     });
 });
 
+describe('declared dependencies', () => {
+    /**
+     * A workspace that imports another must say so in its own package.json.
+     *
+     * npm links every workspace into the root node_modules whether anything depends on it
+     * or not, so an undeclared workspace dependency resolves perfectly on a developer's
+     * machine and in CI. It stops resolving where the tree is deliberately narrowed:
+     * `npm ci --workspace @nexusmods/discord-bot` in the Dockerfile installs one
+     * workspace's dependency tree, and the manifests it COPYs are chosen by reading that
+     * list. A dependency missing from the list is a dependency missing from the image.
+     *
+     * apps/web was importing @nexusmods/auth and @nexusmods/core undeclared from step 7
+     * onwards - four modules by step 9 - and nothing anywhere failed. It would have failed
+     * in step 10, on the first build of the web image, as a module resolution error inside
+     * Docker with a working local build to compare it against.
+     */
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+
+    /** Every workspace directory, with its manifest. */
+    function workspaces(): { name: string; dir: string; manifest: Record<string, any> }[] {
+        const rootManifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+        const found: { name: string; dir: string; manifest: Record<string, any> }[] = [];
+        for (const pattern of rootManifest.workspaces as string[]) {
+            const parent = path.join(root, pattern.replace(/\/\*$/, ''));
+            for (const entry of readdirSync(parent)) {
+                const dir = path.join(parent, entry);
+                const manifest = path.join(dir, 'package.json');
+                if (!existsSync(manifest)) continue;
+                found.push({ name: entry, dir, manifest: JSON.parse(readFileSync(manifest, 'utf8')) });
+            }
+        }
+        return found;
+    }
+
+    /**
+     * `@nexusmods/<name>` in a quoted module specifier, anywhere under a directory -
+     * source, tests and config files alike, since a test's imports need declaring too.
+     *
+     * Quoted, which matters. The first version matched the name anywhere on the grounds
+     * that a package named in a comment is one somebody expects to be there, and it
+     * reported two offenders that were both prose: a sentence in packageVersion.ts
+     * explaining what the resolver finds, and a comment in this very file mapping apps/web
+     * to @nexusmods/discord-web. That is the third rule here to read its own documentation
+     * as a violation, after the npm_package_version check and the route segment checks. A
+     * quoted specifier is an import; a name in a sentence is a sentence.
+     *
+     * It also skips the regex literals in the vitest configs, which spell the scope out
+     * without importing anything from it.
+     */
+    const SPECIFIER = /['"]@nexusmods\/([a-z0-9-]+)(?:\/[^'"]*)?['"]/g;
+
+    function imported(dir: string): Set<string> {
+        const names = new Set<string>();
+        const walk = (d: string) => {
+            for (const e of readdirSync(d)) {
+                if (e === 'node_modules' || e === 'dist' || e === '.next') continue;
+                const p = path.join(d, e);
+                if (statSync(p).isDirectory()) { walk(p); continue; }
+                if (!/\.(ts|tsx|mts|mjs)$/.test(e)) continue;
+                for (const m of readFileSync(p, 'utf8').matchAll(SPECIFIER)) names.add(m[1]);
+            }
+        };
+        walk(dir);
+        return names;
+    }
+
+    it('names every workspace it imports', () => {
+        const all = workspaces();
+        expect(all.length).toBeGreaterThan(4);
+
+        // Directory name to package name, since they differ: apps/web is @nexusmods/discord-web.
+        const packageOf = new Map(all.map((w) => [w.name, w.manifest.name as string]));
+        const offenders: string[] = [];
+
+        for (const w of all) {
+            const declared = new Set([
+                ...Object.keys(w.manifest.dependencies ?? {}),
+                ...Object.keys(w.manifest.devDependencies ?? {}),
+            ]);
+            for (const dirName of imported(w.dir)) {
+                // The scope is shared with the package names, so resolve both spellings.
+                const spelling = packageOf.get(dirName) ?? `@nexusmods/${dirName}`;
+                if (spelling === w.manifest.name) continue; // itself
+                if (declared.has(spelling)) continue;
+                offenders.push(`${w.manifest.name} imports ${spelling} without declaring it`);
+            }
+        }
+
+        expect([...new Set(offenders)]).toEqual([]);
+    });
+});
+
 describe('the lint config', () => {
     /**
      * A file nothing lints looks exactly like a file with no problems.
