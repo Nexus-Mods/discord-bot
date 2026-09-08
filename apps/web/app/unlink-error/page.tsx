@@ -1,44 +1,28 @@
 import type { Metadata } from 'next';
-import { ActionLink, Centered, Content, ErrorDetail, MainImage, PageTitle, Subtext, Text } from '@/components/ui';
-import { one, type SearchParams } from '@/lib/search';
+import { UnlinkFailed } from '@/components/UnlinkFailed';
+import { ERROR_DETAIL_COOKIE, readSignedCookieFromStore } from '@/lib/link/cookies';
 
-/** Ported from unlinkerrormessage.ejs. Keeps the Express path, /unlink-error. */
+/**
+ * Ported from unlinkerrormessage.ejs. Keeps the Express path, /unlink-error.
+ *
+ * The body lives in a component because /revoke renders it too - see UnlinkFailed for
+ * why that route cannot redirect here.
+ *
+ * The message comes from the signed ErrorDetail cookie, not from `?error=`. Step 6 read a
+ * query parameter because there was no server behind the page to set a cookie. That is a
+ * hole: a query parameter is whatever the visitor's URL says, so anyone could hand out a
+ * link to this page on the real domain with any text they liked in the error box. A signed
+ * cookie can only have been set by this server, which is why Express used one, and why the
+ * fallback asks about cookies rather than about the URL.
+ *
+ * Reading a cookie is a Request API, so this page is per-request without needing
+ * `connection()`.
+ */
 export const metadata: Metadata = { title: 'Unlinking Error' };
 
 const NO_ERROR = 'No error recorded. Are you blocking cookies?';
 
-export default async function UnlinkError({ searchParams }: { searchParams: SearchParams }) {
-    const error = one((await searchParams).error) ?? NO_ERROR;
-
-    return (
-        <Content>
-            {/* "Unlinked Failed" in the EJS. Left alone: fixing copy inside a port makes the
-                diff between the two versions stop being a comparison. */}
-            <PageTitle>Unlinked Failed</PageTitle>
-            <Subtext>
-                Well, this is unexpected. An error occurred when attempting to remove the link between
-                your accounts. This could be a temporary issue or something caused by your{' '}
-                <a target="_blank" rel="noreferrer" href="https://help.nexusmods.com/article/113-troubleshooting-website-issues">
-                    browser setup
-                </a>
-                .
-            </Subtext>
-
-            <MainImage src="/images/unlinkerror.gif" alt="A monkey hitting a computer in frustration" />
-
-            <Text>
-                You can give it another try or report the issue in our{' '}
-                <a target="_blank" rel="noreferrer" href="https://discord.gg/nexusmods">Discord Server</a>,
-                including the error details below.
-            </Text>
-
-            <Centered>
-                <ActionLink newTab icon="/images/retry.svg" href="discord://-/">
-                    Run /unlink in Discord to try again
-                </ActionLink>
-            </Centered>
-
-            <ErrorDetail>{error}</ErrorDetail>
-        </Content>
-    );
+export default async function UnlinkError() {
+    const error = await readSignedCookieFromStore(ERROR_DETAIL_COOKIE) ?? NO_ERROR;
+    return <UnlinkFailed error={error} />;
 }

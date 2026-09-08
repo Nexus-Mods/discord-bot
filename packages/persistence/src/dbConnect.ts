@@ -184,7 +184,25 @@ function queryTimeoutMs(): number {
 /** The pools this module can query. `main` is the bot's database; `automod` is the rules database. */
 export type PoolName = 'main' | 'automod';
 
-const pools = new Map<PoolName, PgPool>();
+/**
+ * The open pools, keyed on globalThis rather than held in a module variable.
+ *
+ * A module-level Map is correct in both long-running processes: the bot and Express each
+ * evaluate this file once. Next's dev server does not - it re-evaluates a changed module
+ * and everything importing it on every save, so a module-level Map means a brand new Map
+ * per reload, the previous one unreachable with its Postgres connections still open. On a
+ * managed instance that allows 22 backends, twenty saves is an outage, and the failure
+ * arrives as "too many clients" in whichever process asks next, which is usually the bot.
+ *
+ * globalThis survives the reload, so the pool is created once per process no matter how
+ * many times this module is evaluated. Nothing changes for the bot: it evaluates this
+ * once, finds nothing on globalThis, and creates the same Map it always did.
+ */
+const POOLS = Symbol.for('@nexusmods/persistence.pools');
+
+interface PoolHost { [POOLS]?: Map<PoolName, PgPool> }
+
+const pools: Map<PoolName, PgPool> = ((globalThis as PoolHost)[POOLS] ??= new Map<PoolName, PgPool>());
 
 function getPool(name: PoolName): PgPool {
     let existing = pools.get(name);

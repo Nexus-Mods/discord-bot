@@ -45,6 +45,14 @@ export function checkSharedSecret(provided: string | null | undefined, envVar: s
 export const REQUIRED_SECRETS: ReadonlyArray<{ name: string; reason: string }> = [
     { name: 'COOKIE_SECRET', reason: 'The OAuth flow signs its state cookie with it' },
     { name: 'UNLINK_SECRET', reason: 'Unlink links are signed with it' },
+    /**
+     * Not a secret this site signs with, but one it cannot work without: the tracking page
+     * resolves guild and channel names over Discord's REST API. dist/web.js checked it
+     * separately and exited, in the same words - so this removes a duplicate rather than
+     * adding a check. Express still runs its own check first, so its behaviour is
+     * unchanged.
+     */
+    { name: 'DISCORD_TOKEN', reason: 'The tracking page resolves guild and channel names with it' },
 ];
 
 export const OPTIONAL_SECRETS: ReadonlyArray<string> = ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE'];

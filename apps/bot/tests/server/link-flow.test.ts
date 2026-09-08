@@ -56,6 +56,12 @@ let site: { close(): Promise<void> };
 beforeAll(async () => {
     process.env.COOKIE_SECRET = 'integration-cookie-secret-0123456789';
     process.env.UNLINK_SECRET = 'integration-unlink-secret';
+    // AuthSite.initialize refuses to start without every REQUIRED_SECRET, and step 9 added
+    // DISCORD_TOKEN to that list - it was checked in dist/web.js instead, which this test
+    // does not go through: it constructs AuthSite directly. Without this the constructor
+    // throws, beforeAll fails and all five tests below are reported as skipped rather than
+    // failed. The directory is a stub here, so the value is never used for anything.
+    process.env.DISCORD_TOKEN = 'not-a-real-token';
     process.env.AUTH_PORT = String(PORT);
     process.env.NODE_ENV = 'testing';
     const { AuthSite } = await import('../../src/server/server.js');
@@ -63,7 +69,17 @@ beforeAll(async () => {
     const logger = { info: noop, warn: noop, error: noop, debug: noop } as any;
     site = AuthSite.getInstance({ guild: async () => null, channels: async () => [] } as any, logger);
     await new Promise((r) => setTimeout(r, 250));
-});
+    /**
+     * 30s, not vitest's default 10s.
+     *
+     * This hook imports server.ts - which pulls express, helmet, ejs and the whole
+     * persistence package behind it - and then starts a listening server. On a slower disk
+     * that is comfortably over ten seconds, and the failure is confusing out of proportion
+     * to its cause: the hook times out, all five tests below are reported as *skipped*
+     * rather than failed, and the summary reads "5 skipped" with a separate suite-level
+     * error above it that is easy to scroll past.
+     */
+}, 30_000);
 afterAll(async () => { await site?.close(); });
 
 /** A browser: keeps cookies, honours Set-Cookie deletions, does not follow redirects. */

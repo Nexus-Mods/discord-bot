@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { LINK_STATE_TTL_MS, openLinkState, sealLinkState, type LinkState } from '../../src/server/linkState.js';
+import { LINK_STATE_TTL_MS, openLinkState, sealLinkState, type LinkState } from '@nexusmods/auth/linkState.js';
 
 const SECRET = 'a-cookie-secret-of-a-realistic-length-0123456789';
 const STATE = 'nS8xQ2p0YkR2VzloTmpZeA';

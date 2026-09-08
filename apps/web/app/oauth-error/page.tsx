@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ActionLink, Centered, Content, ErrorDetail, MainImage, PageTitle, Subtext, Text } from '@/components/ui';
-import { one, type SearchParams } from '@/lib/search';
+import { ERROR_DETAIL_COOKIE, readSignedCookieFromStore } from '@/lib/link/cookies';
 
 /**
  * Ported from errormessage.ejs. The route keeps its Express path, /oauth-error, because
@@ -9,10 +9,24 @@ import { one, type SearchParams } from '@/lib/search';
  */
 export const metadata: Metadata = { title: 'Authentication Error' };
 
+/**
+ * The message comes from the signed ErrorDetail cookie, not from `?error=`.
+ *
+ * Step 6 read a query parameter because there was no server behind the page to set a
+ * cookie. That is now a hole: a query parameter is whatever the visitor's URL says, so
+ * anyone could hand out a link to this page on the real domain with any text they liked in
+ * the error box - "your account is locked, call this number" renders exactly as well as a
+ * token exchange failure. A signed cookie can only have been set by this server, which is
+ * why Express used one, and why the fallback below asks about cookies rather than about
+ * the URL.
+ *
+ * Reading a cookie is a Request API, so this page is per-request without needing
+ * `connection()`.
+ */
 const NO_ERROR = 'No error recorded. Are you blocking cookies?';
 
-export default async function OAuthError({ searchParams }: { searchParams: SearchParams }) {
-    const error = one((await searchParams).error) ?? NO_ERROR;
+export default async function OAuthError() {
+    const error = await readSignedCookieFromStore(ERROR_DETAIL_COOKIE) ?? NO_ERROR;
 
     return (
         <Content>

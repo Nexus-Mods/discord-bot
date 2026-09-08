@@ -1,45 +1,34 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
-import type { ISubscribedItem, SubscribedItemType } from '@nexusmods/persistence/types/subscriptions.js';
 import { Content, PageTitle } from '@/components/ui';
+import { one, type SearchParams } from '@/lib/search';
+import { trackingFor } from '@/lib/tracking';
 
 /**
  * Ported from trackingInfo.ejs: every subscription in one guild.
  *
- * The only one of the eight views that renders data, and the only one still holding a
- * fixture. The types are the real ones - `ISubscribedItem` straight out of
- * @nexusmods/persistence, which is the first time the web app has imported a package at
- * all - so the columns and the row shape are checked against the database's model even
- * though the rows are invented. Step 7 replaces FIXTURE with the query and nothing else
- * on this page has to move.
+ * Reads the database now. Step 6 rendered a fixture with the real types on it, on the
+ * grounds that wiring it would have meant giving the web app database credentials in the
+ * step whose point was that a failure had one possible cause.
  *
- * Wiring it now would have meant giving the web app database credentials, a pool that
- * survives Next's dev reloads, and an error path for an unreachable Postgres, in the step
- * whose whole point is that a failure has one possible cause. It also cannot be done
- * without changing `getServer`, which takes a discord.js Guild and reads `.name` off it -
- * a web request has a guild id and no gateway object.
+ * That comment also said this could not be done without changing `getServer`, which takes
+ * a discord.js Guild and reads `.name` off it. That was wrong: Express never calls
+ * getServer here. The guild's name and icon come from Discord's REST API, and the
+ * subscriptions come from the database keyed on the guild id in the URL - so nothing
+ * needed changing after all. `grep getServer apps/bot/src/server` returns nothing.
+ *
+ * Two Discord calls and one query, all keyed on a guild id anyone can put in the URL. That
+ * is Express's behaviour and it is deliberate: the page shows which channels in a server
+ * track what, which is information every member of that server can already see, and there
+ * is no session here to check membership against.
  *
  * `await connection()` because `timeAgo` reads the clock. This page was rendering per
  * request only because the layout happens to read a header for the CSP nonce - prerendered
  * instead, every "42 seconds ago" would be frozen at the time of the build, permanently
- * and plausibly. Found by the test written for the two pages that were already known to
- * need this.
+ * and plausibly.
  */
 export const metadata: Metadata = { title: 'Tracking Summary' };
-
-type Row = Pick<ISubscribedItem<SubscribedItemType>, 'id' | 'type' | 'title' | 'entityid' | 'last_update'>
-    & { channelName: string };
-
-const FIXTURE: { guild: string; guildImage: string; subs: Row[] } = {
-    guild: 'Nexus Mods',
-    guildImage: 'https://cdn.discordapp.com/embed/avatars/0.png',
-    subs: [
-        { id: 1, type: 'game' as SubscribedItemType, title: 'Skyrim Special Edition', entityid: 1704, channelName: 'mod-feed', last_update: new Date(Date.now() - 42 * 1000) },
-        { id: 2, type: 'mod' as SubscribedItemType, title: 'SkyUI', entityid: '7316058792508', channelName: 'mod-feed', last_update: new Date(Date.now() - 26 * 60 * 1000) },
-        { id: 3, type: 'collection' as SubscribedItemType, title: 'Licentia', entityid: 'ndmwtb', channelName: 'collections', last_update: new Date(Date.now() - 5 * 60 * 60 * 1000) },
-        { id: 4, type: 'user' as SubscribedItemType, title: 'Pickysaurus', entityid: 31179975, channelName: 'authors', last_update: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000) },
-    ],
-};
 
 /** The Express version's relative formatter, unchanged apart from taking the Date it is given. */
 function timeAgo(when: Date): string {
@@ -55,16 +44,27 @@ function timeAgo(when: Date): string {
 
 const COLUMNS = ['ID', 'Type', 'Channel', 'Name', 'Entity ID', 'Last Update'];
 
-export default async function Tracking() {
+export default async function Tracking({ searchParams }: { searchParams: SearchParams }) {
     await connection();
-    const { guild, guildImage, subs } = FIXTURE;
+
+    // No guild, or one this bot cannot see, goes to the front page rather than an error -
+    // Express's `if (!guild) return res.redirect('/')`, twice over.
+    const guildId = one((await searchParams).guild);
+    if (!guildId) redirect('/');
+
+    const tracking = await trackingFor(guildId);
+    if (!tracking) redirect('/');
+
+    const { guild, guildImage, subs } = tracking;
 
     return (
         <Content>
             <PageTitle>Tracking Summary</PageTitle>
 
             <div className="my-4 flex items-center gap-3 rounded bg-[#5865F2] p-2 text-body-lg">
-                <img src={guildImage} alt="" className="size-16 flex-none rounded-2xl" />
+                {/* Nullable: a guild with no icon rendered src="null" and a broken image in
+                    the EJS. */}
+                {guildImage && <img src={guildImage} alt="" className="size-16 flex-none rounded-2xl" />}
                 <span>Summary for <strong>{guild}</strong></span>
             </div>
 

@@ -5,9 +5,15 @@ import { numericId, one, type SearchParams } from '@/lib/search';
 /**
  * Ported from linkconfirm.ejs, the last page of the account link.
  *
- * Express renders this with the four values it has just written to the database. Here
- * they come from the query string, which is what the redirect will carry in step 7 - and
- * which is why the ids are checked before they reach an href.
+ * The four values arrive in the query string, put there by /nexus-mods-callback after it
+ * has written the row.
+ *
+ * `d_id` and `n_id`, not `discordId` and `nexusId`. Those are what the EJS template calls
+ * them, and step 6 read the template's variable names off the view - but Express's handler
+ * maps them: `discordId: req.query['d_id']`. Nothing was visibly broken, because the page
+ * falls back to a bold name when an id is missing, so the only symptom was that the two
+ * profile links silently stopped being links. Found while writing the redirect that
+ * supplies them.
  */
 export const metadata: Metadata = { title: 'Account Linked' };
 
@@ -15,8 +21,8 @@ export default async function Success({ searchParams }: { searchParams: SearchPa
     const params = await searchParams;
     const discord = one(params.discord) ?? 'your Discord account';
     const nexus = one(params.nexus) ?? 'your Nexus Mods account';
-    const discordId = numericId(one(params.discordId));
-    const nexusId = numericId(one(params.nexusId));
+    const discordId = numericId(one(params.d_id));
+    const nexusId = numericId(one(params.n_id));
 
     return (
         <Content>

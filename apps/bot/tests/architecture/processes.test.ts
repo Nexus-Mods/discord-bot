@@ -476,16 +476,37 @@ describe('test doubles', () => {
      */
     const MOCKED = /vi\.(?:mock|doMock)\(\s*['"]([^'"]+)['"]/g;
 
+    /**
+     * Both suites, not just this one.
+     *
+     * apps/web had no mocks at all until step 9, when the OAuth routes arrived with four -
+     * and its aliases are a third spelling this rule has to know about, `@/lib/...`
+     * resolved against apps/web rather than against the file doing the mocking. A rule that
+     * walks only apps/bot/tests would report zero offenders in the suite most likely to
+     * grow a stale one, since the web app's module layout is the newest.
+     */
+    const WEB = path.join('..', 'web');
+
     function testFiles(): string[] {
         const out: string[] = [];
-        (function walk(d: string) {
+        const walk = (d: string) => {
             for (const e of readdirSync(d)) {
                 const p = path.join(d, e);
                 if (statSync(p).isDirectory()) walk(p);
                 else if (p.endsWith('.ts')) out.push(p);
             }
-        })('tests');
+        };
+        walk('tests');
+        walk(path.join(WEB, 'tests'));
         return out;
+    }
+
+    /** `@/x` in a web test is apps/web/x. Returns undefined for a file outside apps/web. */
+    function webAlias(file: string, spec: string): string | undefined {
+        if (!path.resolve(file).startsWith(path.resolve(WEB))) return undefined;
+        const bare = path.join(WEB, spec.slice(2).replace(/\.js$/, ''));
+        // A module id carries no extension; the file is .ts or .tsx.
+        return ['.ts', '.tsx'].map((ext) => `${bare}${ext}`).find((c) => existsSync(c)) ?? `${bare}.ts`;
     }
 
     it('every mocked local module id resolves to a file', () => {
@@ -497,7 +518,9 @@ describe('test doubles', () => {
                 let resolved: string | undefined;
                 if (spec.startsWith('.')) resolved = path.join(path.dirname(f), spec.replace(/\.js$/, '.ts'));
                 else if (spec.startsWith('@nexusmods/')) resolved = workspaceSource(spec);
+                else if (spec.startsWith('@/')) resolved = webAlias(f, spec);
                 else continue; // a real npm package; node resolves it or the test fails loudly
+                if (resolved === undefined) continue;
                 seen += 1;
                 if (!resolved || !existsSync(resolved)) offenders.push(`${slash(f)} mocks ${spec}`);
             }

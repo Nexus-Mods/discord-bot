@@ -20,7 +20,7 @@ import { automodRules } from './AutomodRules.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { checkSharedSecret, cookieOptions, OPTIONAL_SECRETS, REQUIRED_SECRETS, safeCompare, verifyValue } from '@nexusmods/auth/signing.js';
-import { LINK_STATE_COOKIE, LINK_STATE_TTL_MS, openLinkState, sealLinkState } from './linkState.js';
+import { LINK_STATE_COOKIE, LINK_STATE_TTL_MS, openLinkState, sealLinkState } from '@nexusmods/auth/linkState.js';
 
 // Get the equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);

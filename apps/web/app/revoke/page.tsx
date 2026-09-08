@@ -1,28 +1,43 @@
 import type { Metadata } from 'next';
 import { ActionButton, Centered, Content, PageTitle, Subtext, Supertext, Text } from '@/components/ui';
+import { UnlinkFailed } from '@/components/UnlinkFailed';
 import { one, type SearchParams } from '@/lib/search';
+import { verifyUnlinkRequest } from '@/lib/link/unlink';
+import { revokeAccountLink } from './actions';
 
 /**
- * Ported from revokeconfirmmessage.ejs: the "are you sure" before an account link is
- * removed.
+ * GET /revoke - ported from revokeconfirmmessage.ejs: the "are you sure" before an account
+ * link is removed.
  *
- * The form still POSTs to /revoke, which Express still handles - the same URL, the same
- * two hidden fields, the same method. That is the point of porting the views while the
- * server stays: this page is a drop-in replacement for the rendered HTML and nothing
- * behind it has to know.
+ * Nothing is deleted here, which is the point of the two-step: an image tag or a link
+ * unfurl in a chat client cannot trigger an unlink by fetching a URL.
  *
- * `id` and `token` come from the signed URL the bot sends; they are echoed straight back
- * as hidden fields, exactly as the EJS does, and are never interpolated into markup or a
- * URL here.
+ * The names now come from the database, after verifying the signature on the link. Step 6
+ * read them from the query string, which meant this page would print whatever names the
+ * URL claimed for whatever id it named - see verifyUnlinkRequest for why that matters on
+ * the page a user reads before deciding.
+ *
+ * On a bad link it renders the failure instead of redirecting to /unlink-error, because a
+ * server component cannot set the ErrorDetail cookie that page reads. UnlinkFailed carries
+ * the explanation.
  */
 export const metadata: Metadata = { title: 'Unlink Accounts' };
 
 export default async function RevokeConfirm({ searchParams }: { searchParams: SearchParams }) {
     const params = await searchParams;
-    const nexusName = one(params.nexusName) ?? 'your Nexus Mods account';
-    const discordName = one(params.discordName) ?? 'your Discord account';
     const id = one(params.id) ?? '';
     const token = one(params.token) ?? '';
+
+    let nexusName: string;
+    let discordName: string;
+    try {
+        const user = await verifyUnlinkRequest(id, token);
+        nexusName = user.NexusModsUsername ?? 'your Nexus Mods account';
+        discordName = user.DiscordId;
+    }
+    catch (err) {
+        return <UnlinkFailed error={`Error unlinking accounts: ${(err as Error).message}`} />;
+    }
 
     return (
         <Content>
@@ -38,7 +53,9 @@ export default async function RevokeConfirm({ searchParams }: { searchParams: Se
             </Text>
 
             <Centered>
-                <form method="POST" action="/revoke">
+                {/* The id and token are echoed back as hidden fields, exactly as the EJS does,
+                    and the action verifies them again rather than trusting this page. */}
+                <form action={revokeAccountLink}>
                     <input type="hidden" name="id" value={id} />
                     <input type="hidden" name="token" value={token} />
                     <ActionButton type="submit">

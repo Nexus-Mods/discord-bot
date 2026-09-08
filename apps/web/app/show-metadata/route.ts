@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server';
+import type { NextResponse } from 'next/server';
 import { getUserByDiscordId } from '@nexusmods/account/users.js';
 import { logger } from '@nexusmods/core/logger.js';
-import { cookieAttributes, signCookieValue } from '@/lib/security/signedCookies';
-import { json, requireSharedSecret } from '@/lib/machineRoute';
+import { json, requireSharedSecret, text } from '@/lib/machineRoute';
 
 /**
  * GET /show-metadata?id=<discord id> - what Discord currently holds for a linked account.
@@ -10,15 +9,16 @@ import { json, requireSharedSecret } from '@/lib/machineRoute';
  * Admin only, because it exposes one person's role-connection metadata, and the guard
  * fails closed.
  *
- * The failure path is Express's, faithfully, and it is odd: an error sets a signed
- * ErrorDetail cookie and redirects to /oauth-error, so an admin running curl against an
- * API gets a 302 to an HTML page about linking accounts. It is reproduced rather than
- * improved because the plan asks these four to answer identically, and because changing it
- * is a decision about an endpoint someone may have scripted - not something to slip into a
- * port. Step 9 is the place to make it a 500 with a message, deliberately.
+ * The failure path was Express's, faithfully, and it was odd: an error set a signed
+ * ErrorDetail cookie and redirected to /oauth-error, so an admin running curl against an
+ * API got a 302 to an HTML page about linking accounts. Step 8 reproduced it and left this
+ * note saying step 9 was the place to change it deliberately. This is that change: a plain
+ * 500 with the message, the same shape /update-metadata already answers with.
  *
- * Reproducing it does at least exercise the cookie signing from step 7 against a real
- * response.
+ * Nothing was reading the redirect. It arrives at /oauth-error, which renders "an error
+ * occurred while attempting to link your accounts" and a Try again button pointing at
+ * /linked-role - so a script following redirects would have started an OAuth flow, and one
+ * not following them saw a 302 with an empty body either way.
  */
 export async function GET(request: Request): Promise<NextResponse> {
     const denied = requireSharedSecret(request, 'ADMIN_AUTHCODE');
@@ -35,15 +35,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
     catch (err) {
         logger.warn('Error in show-metadata endpoint', err);
-        const response = NextResponse.redirect(new URL('/oauth-error', request.url), 302);
-        const secret = process.env.COOKIE_SECRET;
-        if (secret) {
-            response.cookies.set(
-                'ErrorDetail',
-                signCookieValue(`Error getting metadata: ${(err as Error).message}`, secret),
-                cookieAttributes(1000 * 60 * 2),
-            );
-        }
-        return response;
+        return text(`Error getting metadata: ${(err as Error).message}`, 500);
     }
 }
