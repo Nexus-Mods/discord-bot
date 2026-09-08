@@ -47,7 +47,7 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.BotDemo,
         KnownDiscordServers.App
     ],
-    defer: 'public',
+    defer: undefined, // cannot defer automatically when using modals. 
     action,
     autocomplete
 }
