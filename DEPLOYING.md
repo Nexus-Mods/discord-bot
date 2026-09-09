@@ -1,5 +1,98 @@
 # Deploying
 
+## 5.0.0 - The auth site is a Next.js app in its own image
+
+**Nothing in this release changes what production runs.** CI now publishes a second image,
+`nexusmods/discord-bot-web`, and the droplet ignores it: `redeploy.sh` still starts the web
+container from `nexusmods/discord-bot` as `node dist/web.js`, and the Express server is
+still in the image. Switching over is the deliberate step below, whenever suits.
+
+Express is deliberately still there. It builds, it serves, and it is the thing to compare
+the new site against - and the way back if the new one misbehaves.
+
+| | Image | Command |
+|---|---|---|
+| Bot | `nexusmods/discord-bot` | `node dist/shards.js` |
+| Web, today | `nexusmods/discord-bot` | `node dist/web.js` (Express) |
+| Web, after the switch | `nexusmods/discord-bot-web` | `node server.js` (Next, image default) |
+
+Both images are tagged `:latest`, `:<version>` and `:<sha>` from the same commit. **The sha
+is what pairs them** - deploying a bot image and a web image built from different commits is
+the mistake worth avoiding, and the sha tag is how to be sure.
+
+### Making the switch
+
+The web container's line in the droplet's `redeploy.sh` becomes:
+
+```sh
+docker run -d --name web --restart unless-stopped --network host \
+    -v "$ENV_FILE:/app/.env" -e PORT=3000 \
+    "nexusmods/discord-bot-web:${TAG}" node server.js
+```
+
+Three differences from the line it replaces:
+
+1. **A different image.** So the script has to `docker pull` both, not one.
+2. **`PORT`, not `AUTH_PORT`.** `AUTH_PORT` was Express's own variable and means nothing to
+   the Next server, which reads `PORT` and otherwise defaults to 3000. Leaving `AUTH_PORT`
+   in the env file is harmless; relying on it is not. With `--network host` this is the
+   port it binds on the host directly, so it must match whatever is in front of it.
+3. **`node server.js`, from `/app/apps/web`.** That is the image default, so it can be
+   omitted; it is written out here because the bot's line states its command too.
+
+`.env` is still mounted at `/app/.env` and still read by the same resolver, so the file
+does not change and neither container needs its configuration moved.
+
+### Verifying the switch, in order
+
+1. `docker logs web --tail 40`. A good start is quiet apart from Next's banner. **A bad
+   start is loud and immediate**: `COOKIE_SECRET is not set ... so the site cannot start`
+   and an exit. The site refuses to run misconfigured rather than serving 500s, so a
+   restart loop here means the environment, not the code.
+2. `curl -sI http://127.0.0.1:3000/` - a 200, and the page footer shows the version.
+3. `curl -si http://127.0.0.1:3000/linked-role | head -5` - a 302 to `discord.com` with a
+   `state` parameter, and a `Set-Cookie: clientState=s%3A...` beside it. If the cookie is
+   there but the redirect goes to `/oauth-error`, `DISCORD_CLIENT_ID` or
+   `DISCORD_REDIRECT_URI` is missing.
+4. **Then link an account for real.** Nothing above exercises the two OAuth round trips,
+   and they are the reason the site exists. `/unlink` and re-link on a test account is the
+   whole flow in two minutes.
+5. `curl -sI 'http://127.0.0.1:3000/tracking?guild=<a real guild id>'` - a 200. A 307 to
+   `/` means the bot cannot see that guild, which is also what a bad `DISCORD_TOKEN` looks
+   like.
+
+### Rollback
+
+Put the old line back and redeploy. The Express server is still in the bot image, so this
+needs no rebuild and no earlier tag:
+
+```sh
+docker run -d --name web --restart unless-stopped --network host \
+    -v "$ENV_FILE:/app/.env" "nexusmods/discord-bot:${TAG}" node dist/web.js
+```
+
+That is the reason Express was kept for this release rather than deleted with the switch.
+
+### What is different about the new site, on purpose
+
+- **The `/success` page's profile links work.** They never have: the redirect sends `d_id`
+  and `n_id` and the page had been reading `discordId` and `nexusId`, so both ids were
+  always absent and both names rendered as plain text.
+- **`/show-metadata` answers a failure with a 500 and a message.** Express redirected to
+  `/oauth-error`, so a script following redirects started an OAuth flow.
+- **`/automod` sends `application/json`.** Express sent those rows as `text/html`, because
+  the handler stringified them itself and `res.send` guesses.
+- **`PUT /automod` without an id answers.** Express called `res.status(400)` and never
+  ended the response, so the client waited out its own timeout.
+- **A refresh on the unlink page no longer re-submits the unlink.** The submit redirects to
+  `/revoked` instead of rendering it.
+- **Error pages read their message from the signed cookie only.** `?error=` used to render
+  arbitrary text on the real domain.
+- **One replica, still - but for a different reason.** The in-flight OAuth state moved into
+  a sealed cookie in 4.3.0, so the site holds nothing between requests. What is still
+  per-process is the rate limiting: a second replica would keep its own counters and
+  double both limits.
+
 ## 4.2.0 - The auth site is its own container
 
 **This is a topology change, not a code change.** The OAuth portal, the tracking pages,

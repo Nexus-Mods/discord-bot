@@ -21,6 +21,23 @@ import '@nexusmods/core/env.js';
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
+    /**
+     * Trace the server and its dependencies into .next/standalone, so the runtime image
+     * carries what this app needs rather than the whole workspace's node_modules.
+     *
+     * The alternative was one image with both dependency sets, which is the shape the bot
+     * image already has - and it would have put Next and React into the bot container,
+     * which cannot use a byte of it. The Dockerfile comment that warns about that is the
+     * reason this is here.
+     *
+     * IMPORTANT: the standalone server does not evaluate this file. It runs a serialised
+     * copy of the resolved config - "Running next.config took 1.0ms" in its own startup
+     * log - so the side-effect import at the top of this file happens for `next dev` and
+     * `next build` and never in production. instrumentation.ts loads the environment for
+     * that case; see the comment there, which is the other half of this one.
+     */
+    output: 'standalone',
+
     // Fail the build on a type error rather than shipping one. Next's default already
     // does this; stated because the opposite is a common escape hatch and turning it on
     // should be a decision rather than a default nobody looked at.

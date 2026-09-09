@@ -1,0 +1,86 @@
+# The auth site: the OAuth portal, the tracking pages and the machine endpoints.
+#
+# A second image rather than a second command over the bot's image, which is the shape the
+# two processes have shared since 4.2.0. The bot's Dockerfile explains why in the comment
+# on its `npm ci --workspace` line: installing every workspace puts Next and React into the
+# bot container, 200MB it cannot use. The same argument in reverse applies here - the web
+# container has no use for discord.js's gateway - so each image carries one application's
+# dependencies and the pair stops being one image with an override bolted on.
+#
+# What keeps them honest about running the same code is CI, which builds and tags both from
+# the same commit. `nexusmods/discord-bot:<sha>` and `nexusmods/discord-bot-web:<sha>` are
+# the pair; deploying mismatched tags is the thing to avoid, and DEPLOYING.md says so.
+
+# ---- build ----
+FROM node:22-slim AS build
+WORKDIR /repo
+
+# The lockfile is at the workspace root and covers every workspace, so both it and the
+# root manifest are needed before install. Each workspace's manifest comes with them
+# because npm resolves the tree from the manifests before any source is copied.
+COPY package.json package-lock.json ./
+COPY apps/web/package.json ./apps/web/
+# Every workspace the web app depends on needs its manifest here too. This list is not
+# guesswork: apps/web/package.json declares exactly these five, and an architecture test
+# checks that what it declares matches what it imports - which is what makes this list
+# maintainable rather than something that silently goes stale.
+COPY packages/core/package.json ./packages/core/
+COPY packages/nexus-api/package.json ./packages/nexus-api/
+COPY packages/auth/package.json ./packages/auth/
+COPY packages/persistence/package.json ./packages/persistence/
+COPY packages/account/package.json ./packages/account/
+
+# Scoped to the web workspace, as the bot's is to its own. Verified rather than assumed:
+# this install does provide tsup, which `build:packages` needs and which apps/web does not
+# declare - npm installs the linked workspaces' devDependencies along with their code.
+RUN npm ci --workspace @nexusmods/discord-web --include-workspace-root
+
+COPY . .
+# `npm run build` here is build:packages followed by next build. The packages have to be
+# built first: their exports map answers the types condition from src/ and the runtime
+# condition from dist/, so typecheck needs no build and anything that actually resolves
+# them does. next.config.ts imports @nexusmods/core/env.js, so without dist/ the build
+# fails before it starts, on loading its own config.
+RUN npm run typecheck -w @nexusmods/discord-web \
+ && npm run build -w @nexusmods/discord-web
+
+# No `npm prune --omit=dev`, and no flatten-workspace-deps.mjs. The bot's image needs both
+# because it copies the whole hoisted node_modules and npm *links* workspace dependencies,
+# so the links would dangle. A standalone build has already traced exactly the modules the
+# server loads into .next/standalone/node_modules, with the workspace packages either
+# copied in or bundled into the server chunks - so there is nothing left to prune and no
+# link left to flatten.
+
+# ---- runtime ----
+FROM node:22-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+# The standalone output mirrors the monorepo's shape: server.js lands at
+# apps/web/server.js with node_modules at the root beside it. Kept as-is rather than
+# flattened, because .next/standalone/apps/web/server.js resolves its own paths relative
+# to itself.
+COPY --from=build /repo/apps/web/.next/standalone ./
+# Not included in the trace: the static assets and public/ are served from disk rather
+# than imported, so nothing in the module graph points at them.
+COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /repo/apps/web/public ./apps/web/public
+
+# Do not run as root.
+USER node
+
+# .env is mounted at /app/.env by redeploy.sh, exactly as it is for the bot, and
+# instrumentation.ts loads it at boot - see the comment there for why next.config.ts's
+# import is not enough for a standalone build. From the server chunk that does the loading
+# it is five directories up, and the resolver looks eight, so the margin is deliberate:
+# putting this application one level deeper would otherwise turn a working deploy into a
+# container that exits 1 with three "is not set" lines.
+#
+# PORT is what the standalone server reads; AUTH_PORT was Express's own variable and means
+# nothing here. redeploy.sh sets it.
+ENV PORT=3000
+
+WORKDIR /app/apps/web
+
+# Exec form, so the process is PID 1 and receives SIGTERM directly.
+CMD ["node", "server.js"]

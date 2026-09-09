@@ -525,6 +525,79 @@ describe('declared dependencies', () => {
     });
 });
 
+describe('build order', () => {
+    /**
+     * A declared dependency has to be built, not just declared.
+     *
+     * The packages' exports map answers the types condition with src/ and the runtime
+     * condition with dist/, which is what lets typecheck run without a build. It also
+     * means anything that actually *resolves* a package - tsup, next build, node - needs
+     * dist/ to exist, and nothing in a workspace's own build tells it that.
+     *
+     * apps/web's build script was `next build` alone, so a clean tree could not build it:
+     * `Cannot find module node_modules/@nexusmods/core/dist/env.js`, from next.config.ts.
+     * It passed everywhere anyway, because every tree it had ever run in already had the
+     * dists from some earlier command. The first place it would have failed is the first
+     * build of the web image.
+     *
+     * apps/bot had the chain and apps/web did not, so the chain now lives once at the root
+     * as `build:packages` and both call it. That removes the copy that would have drifted;
+     * these two rules are what stops the single copy going stale instead.
+     */
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+    const manifest = (p: string) => JSON.parse(readFileSync(path.join(root, p, 'package.json'), 'utf8'));
+
+    it('has every application building the packages first', () => {
+        const apps = readdirSync(path.join(root, 'apps'))
+            .filter((e) => existsSync(path.join(root, 'apps', e, 'package.json')));
+        expect(apps.length).toBeGreaterThan(1);
+
+        for (const app of apps) {
+            const build = manifest(path.join('apps', app)).scripts?.build ?? '';
+            expect(build, `apps/${app} does not build the packages before building itself`)
+                .toContain('build:packages');
+        }
+    });
+
+    it('builds every package any workspace depends on', () => {
+        const rootManifest = manifest('.');
+        const chain: string = rootManifest.scripts['build:packages'];
+        expect(chain).toBeTruthy();
+
+        // Which packages the chain actually builds.
+        const built = new Set([...chain.matchAll(/--prefix packages\/([a-z0-9-]+)/g)].map((m) => m[1]));
+        expect(built.size).toBeGreaterThan(3);
+
+        // Every @nexusmods package depended on by anything, as a directory name.
+        const dirOf = new Map<string, string>();
+        for (const pattern of rootManifest.workspaces as string[]) {
+            const parent = path.join(root, pattern.replace(/\/\*$/, ''));
+            for (const entry of readdirSync(parent)) {
+                const file = path.join(parent, entry, 'package.json');
+                if (!existsSync(file)) continue;
+                dirOf.set(JSON.parse(readFileSync(file, 'utf8')).name, entry);
+            }
+        }
+
+        const needed = new Set<string>();
+        for (const pattern of rootManifest.workspaces as string[]) {
+            const rel = pattern.replace(/\/\*$/, '');
+            for (const entry of readdirSync(path.join(root, rel))) {
+                if (!existsSync(path.join(root, rel, entry, 'package.json'))) continue;
+                for (const dep of Object.keys(manifest(path.join(rel, entry)).dependencies ?? {})) {
+                    if (!dep.startsWith('@nexusmods/')) continue;
+                    const dir = dirOf.get(dep);
+                    // Only the packages: an app depending on an app is not a build input here.
+                    if (dir && existsSync(path.join(root, 'packages', dir))) needed.add(dir);
+                }
+            }
+        }
+
+        const unbuilt = [...needed].filter((d) => !built.has(d)).sort();
+        expect(unbuilt, 'depended on but never built by build:packages').toEqual([]);
+    });
+});
+
 describe('the lint config', () => {
     /**
      * A file nothing lints looks exactly like a file with no problems.
@@ -681,5 +754,88 @@ describe('entry points', () => {
         const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
         expect(dockerfile).toContain('/repo/apps/bot/dist ./dist');
         expect(dockerfile).toContain('/repo/apps/bot/package.json ./package.json');
+    });
+});
+
+describe('the web image', () => {
+    /**
+     * The auth site's own image, added in step 10 so the deploy can stop running it as a
+     * second command over the bot's.
+     *
+     * These pin the things that are invisible until a deploy: a manifest missing from the
+     * build context, an environment nobody loads, a static directory the standalone trace
+     * does not know about. None of them fails a test run, a typecheck or a lint, and two
+     * of them fail at container start with a message that points somewhere else.
+     */
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+    const read = (...p: string[]) => readFileSync(path.join(repoRoot, ...p), 'utf8');
+
+    it('copies a manifest for every workspace apps/web depends on', () => {
+        const dockerfile = read('Dockerfile.web');
+        const declared = Object.keys(JSON.parse(read('apps', 'web', 'package.json')).dependencies ?? {})
+            .filter((d) => d.startsWith('@nexusmods/'));
+        expect(declared.length).toBeGreaterThan(3);
+
+        // Package name to directory, since @nexusmods/discord-web lives in apps/web.
+        const dirs = readdirSync(path.join(repoRoot, 'packages'))
+            .filter((e) => existsSync(path.join(repoRoot, 'packages', e, 'package.json')));
+        const dirOf = new Map(dirs.map((d) => [JSON.parse(read('packages', d, 'package.json')).name, d]));
+
+        const missing = declared
+            .map((dep) => dirOf.get(dep))
+            .filter((dir): dir is string => Boolean(dir))
+            .filter((dir) => !dockerfile.includes(`COPY packages/${dir}/package.json`));
+
+        // npm resolves the tree from the manifests before any source is copied, so a
+        // manifest missing here fails the install rather than the build, naming a
+        // workspace that is right there in the repository.
+        expect(missing, 'declared by apps/web but not COPYd into the build context').toEqual([]);
+    });
+
+    it('builds standalone, and copies what standalone does not trace', () => {
+        // The config and the Dockerfile are two halves of one decision. Without the
+        // config there is no .next/standalone for the COPY to find; without the COPY the
+        // trace is built and thrown away.
+        expect(read('apps', 'web', 'next.config.ts')).toMatch(/output:\s*'standalone'/);
+
+        const dockerfile = read('Dockerfile.web');
+        expect(dockerfile).toContain('/repo/apps/web/.next/standalone ./');
+        // Neither of these is in the module graph - they are read from disk - so the
+        // trace leaves them out and the site comes up with no CSS and no images.
+        expect(dockerfile).toContain('/repo/apps/web/.next/static ./apps/web/.next/static');
+        expect(dockerfile).toContain('/repo/apps/web/public ./apps/web/public');
+    });
+
+    /**
+     * The one that would break every deploy silently at boot.
+     *
+     * A standalone build does not evaluate next.config.ts: it runs a serialised copy of
+     * the resolved config. The side-effect import there covers `next dev` and
+     * `next build`, and in the container nothing loads .env at all - the boot check
+     * reports COOKIE_SECRET, UNLINK_SECRET and DISCORD_TOKEN missing and exits 1, with a
+     * perfectly good .env mounted beside it.
+     */
+    it('loads the environment somewhere the standalone server will run it', () => {
+        expect(read('apps', 'web', 'instrumentation.ts')).toMatch(/@nexusmods\/core\/env\.js/);
+    });
+
+    it('runs the standalone server as PID 1', () => {
+        const dockerfile = read('Dockerfile.web');
+        // Exec form, for the same reason as the bot's: the shell form puts /bin/sh at PID
+        // 1, which swallows SIGTERM and makes `docker stop` wait out its timeout.
+        expect(dockerfile).toContain('CMD ["node", "server.js"]');
+        // server.js resolves its own paths relative to itself, so it is run from where the
+        // standalone output puts it rather than from /app.
+        expect(dockerfile).toContain('WORKDIR /app/apps/web');
+    });
+
+    it('has CI build both images, and publish the web one under its own name', () => {
+        const ci = read('.github', 'workflows', 'ci.yaml');
+        expect(ci).toMatch(/file: Dockerfile$/m);
+        expect(ci).toContain('file: Dockerfile.web');
+        expect(ci).toContain('nexusmods/discord-bot-web:${{ github.sha }}');
+        // Built on a pull request, pushed only on a push. The web Dockerfile is new, and
+        // its first build should not be on master with the deploy webhook behind it.
+        expect(ci).toContain("push: ${{ github.event_name == 'push' }}");
     });
 });

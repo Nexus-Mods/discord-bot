@@ -46,12 +46,17 @@ jobs:
         run: npm run codegen:check
 
   docker:
-    name: Build and push image
+    name: Build and push images
     runs-on: ubuntu-latest
     # Nothing is published unless typecheck, lint and tests pass first. Until 4.0.0
     # this job ran on every push to master with no checks in front of it.
     needs: [checks]
-    if: github.event_name == 'push'
+    # No `if` on the job any more: both images are BUILT on a pull request and only
+    # PUSHED on a push to master. Until 5.0.0 there was one Dockerfile that had not
+    # changed in a release, so building it on a branch bought nothing. Now there are two,
+    # and the second is new - so without this the first build of the web image would
+    # happen on master, minutes before the deploy webhook fires, with nothing between a
+    # broken Dockerfile and production.
     steps:
       - uses: actions/checkout@v7
 
@@ -62,21 +67,44 @@ jobs:
       - uses: docker/setup-buildx-action@v4
 
       - uses: docker/login-action@v4
+        # Only a push publishes, so only a push needs credentials.
+        if: github.event_name == 'push'
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push the bot
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: true
+          file: Dockerfile
+          push: ${{ github.event_name == 'push' }}
           # Previously only :latest was published, so there was no earlier image to
           # roll back to. The commit sha tag is the one to pin a rollback on.
           tags: |
             nexusmods/discord-bot:latest
             nexusmods/discord-bot:${{ steps.pkg.outputs.version }}
             nexusmods/discord-bot:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The auth site, as its own image. Publishing it changes nothing on its own: the
+      # droplet runs whatever its redeploy script says, and that still starts the web
+      # container from the bot image as `node dist/web.js`. Switching it over is a
+      # separate, deliberate act - see DEPLOYING.md.
+      - name: Build and push the web app
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.web
+          push: ${{ github.event_name == 'push' }}
+          # The same three tags, and the sha is what pairs them: a bot image and a web
+          # image built from the same commit share it. Deploying two different shas is
+          # the mistake this makes visible.
+          tags: |
+            nexusmods/discord-bot-web:latest
+            nexusmods/discord-bot-web:${{ steps.pkg.outputs.version }}
+            nexusmods/discord-bot-web:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

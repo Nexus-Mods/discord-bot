@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "build:packages": "npm run build --prefix packages/core && npm run build --prefix packages/nexus-api && npm run build --prefix packages/auth && npm run build --prefix packages/persistence && npm run build --prefix packages/account",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",
@@ -36,11 +37,5 @@
     "typescript": "^5.8.2",
     "@typescript-eslint/eslint-plugin": "^8.29.0",
     "@typescript-eslint/parser": "^8.29.0"
-  },
-  "allowScripts": {
-    "esbuild@0.18.20": true,
-    "esbuild@0.25.12": true,
-    "esbuild@0.28.2": true,
-    "esbuild@0.27.7": true
   }
 }

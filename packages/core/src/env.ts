@@ -27,8 +27,18 @@ import dotenv from 'dotenv';
  * the single root file exists to prevent.
  */
 
-/** How far up to look. Four levels covers dist/lib -> dist -> apps/bot -> apps -> root. */
-const MAX_DEPTH = 6;
+/**
+ * How far up to look.
+ *
+ * Six covered every case until the web app was built standalone for its container. There
+ * the loader is bundled into a server chunk, so the walk starts at
+ * /app/apps/web/.next/server/chunks and /app/.env is five directories up - inside six, but
+ * with a margin of one. Eight, because the cost of a level too few is a container that
+ * exits at boot with three "is not set" lines and a correct-looking .env sitting in it,
+ * and the cost of a level too many is nothing: nearest wins, and there is no .env above
+ * the repository root or above /app to find by mistake.
+ */
+const MAX_DEPTH = 8;
 
 export function findEnvFile(from: string): string | undefined {
     let dir = from;
