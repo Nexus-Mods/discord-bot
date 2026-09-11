@@ -481,8 +481,14 @@ describe('declared dependencies', () => {
      *
      * It also skips the regex literals in the vitest configs, which spell the scope out
      * without importing anything from it.
+     *
+     * And narrowed once more, to a specifier in an importing position. A quoted package
+     * name is not always an import either: scripts/dev.mjs spawns
+     * `npm run dev -w @nexusmods/discord-web`, where the name is a workspace argument in
+     * an array of strings. Requiring `from`, `import`, `require` or a vitest mock in front
+     * of it is what "imports" actually means here.
      */
-    const SPECIFIER = /['"]@nexusmods\/([a-z0-9-]+)(?:\/[^'"]*)?['"]/g;
+    const SPECIFIER = /(?:from|import|require|vi\.mock|vi\.doMock)\s*\(?\s*['"]@nexusmods\/([a-z0-9-]+)(?:\/[^'"]*)?['"]/g;
 
     function imported(dir: string): Set<string> {
         const names = new Set<string>();

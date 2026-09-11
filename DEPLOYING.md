@@ -20,6 +20,28 @@ Both images are tagged `:latest`, `:<version>` and `:<sha>` from the same commit
 is what pairs them** - deploying a bot image and a web image built from different commits is
 the mistake worth avoiding, and the sha tag is how to be sure.
 
+### Before the switch: `DBPORT` must be set
+
+**Do this first, and check it.** The production `.env` sets `PORT=5432` and no `DBPORT`.
+That has always been fine, because the database port is `DBPORT ?? PORT` and nothing else
+in the deployment reads `PORT`.
+
+The Next server does. It reads `PORT` to decide what to listen on, so the web container is
+told `PORT=3000` - and with `DBPORT` unset, the database client takes 3000 as well. The
+container would start, serve pages, and fail every query: no account links, no tracking
+page, no automod. Verified rather than guessed: with `DBPORT` unset and `PORT=3000`,
+`poolConfig().port` is 3000.
+
+So add one line to the production `.env`, which `.env.example` has carried all along:
+
+```
+DBPORT=5432
+```
+
+It changes nothing for the bot - `DBPORT` takes precedence over `PORT` and the value is
+the same - so it can be added, and the bot restarted, well before anything else here. The
+web app refuses to start without it and says why, so this cannot be got wrong quietly.
+
 ### Making the switch
 
 The web container's line in the droplet's `redeploy.sh` becomes:
@@ -57,9 +79,10 @@ does not change and neither container needs its configuration moved.
 4. **Then link an account for real.** Nothing above exercises the two OAuth round trips,
    and they are the reason the site exists. `/unlink` and re-link on a test account is the
    whole flow in two minutes.
-5. `curl -sI 'http://127.0.0.1:3000/tracking?guild=<a real guild id>'` - a 200. A 307 to
-   `/` means the bot cannot see that guild, which is also what a bad `DISCORD_TOKEN` looks
-   like.
+5. `curl -sI 'http://127.0.0.1:3000/tracking?guild=<a real guild id>'` - a 200. This is
+   the one check that proves the database, so do not skip it: a 500 here with `DBPORT`
+   just added is the pool still pointing somewhere wrong. A 307 to `/` means the bot
+   cannot see that guild, which is also what a bad `DISCORD_TOKEN` looks like.
 
 ### Rollback
 

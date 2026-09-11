@@ -11,6 +11,7 @@
     "dev": "npm run build && npm run start",
     "devWeb": "npm run build && npm run startWeb",
     "dev:all": "node scripts/dev.mjs",
+    "dev:next": "node scripts/dev.mjs --next",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit -p tsconfig.json",

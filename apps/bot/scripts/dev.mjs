@@ -1,8 +1,21 @@
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 import process from 'node:process';
 
+/** Sentinel for the Next site, which is started by workspace rather than by file path. */
+const NEXT = Symbol('next');
+
 /**
- * Runs the bot and the auth site together for local development.
+ * Runs the bot and one of the two auth sites together for local development.
+ *
+ *     npm run dev:all     the bot and Express      (dist/web.js)
+ *     npm run dev:next    the bot and the Next app (apps/web)
+ *
+ * Both serve the same paths on the same port, so they are alternatives rather than a
+ * pair: whichever is running answers http://localhost:3000, and DISCORD_REDIRECT_URI and
+ * NEXUS_REDIRECT_URI point there either way. That is what makes the two comparable - the
+ * Next routes deliberately kept Express's paths, so the applications registered with
+ * Discord and Nexus Mods need no change to try the other one.
  *
  * They are two processes now, and the obvious way to start them - `npm run devShard`
  * in one terminal and `npm run devWeb` in another - does not work: both scripts run
@@ -15,6 +28,9 @@ import process from 'node:process';
  */
 
 const BOT_ENTRY = 'dist/shards.js';
+
+/** `--next` swaps Express for the Next development server. */
+const USE_NEXT = process.argv.includes('--next');
 
 const TAGS = {
     bot: { label: 'bot', colour: '\x1b[36m' },   // cyan
@@ -62,11 +78,26 @@ const children = new Map();
 let stopping = false;
 
 function start(tag, entry) {
-    const child = spawn(process.execPath, [entry], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        // pino-pretty drops colour when its output is a pipe rather than a terminal.
-        env: { ...process.env, FORCE_COLOR: process.env.FORCE_COLOR ?? '1' },
-    });
+    /**
+     * The Next site is started through npm from its own workspace rather than by path:
+     * `next dev` needs apps/web as its working directory, and its predev step copies the
+     * shared images across before it serves them.
+     *
+     * shell on Windows, because npm is a .cmd there and spawn will not find it otherwise -
+     * the same reason run() above does it.
+     */
+    const child = entry === NEXT
+        ? spawn('npm', ['run', 'dev', '-w', '@nexusmods/discord-web'], {
+            cwd: path.resolve(import.meta.dirname, '..', '..', '..'),
+            stdio: ['ignore', 'pipe', 'pipe'],
+            shell: process.platform === 'win32',
+            env: { ...process.env, FORCE_COLOR: process.env.FORCE_COLOR ?? '1' },
+        })
+        : spawn(process.execPath, [entry], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            // pino-pretty drops colour when its output is a pipe rather than a terminal.
+            env: { ...process.env, FORCE_COLOR: process.env.FORCE_COLOR ?? '1' },
+        });
     pipeTagged(child, tag);
     children.set(tag, child);
 
@@ -101,7 +132,10 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     });
 }
 
-start('bot', BOT_ENTRY);
-start('web', 'dist/web.js');
+const web = USE_NEXT ? NEXT : 'dist/web.js';
 
-console.log(`Started ${BOT_ENTRY} and dist/web.js. Ctrl+C stops both.\n`);
+start('bot', BOT_ENTRY);
+start('web', web);
+
+console.log(`Started ${BOT_ENTRY} and ${USE_NEXT ? 'the Next site (apps/web)' : web}. Ctrl+C stops both.`);
+console.log(`The site is on http://localhost:3000 either way.\n`);

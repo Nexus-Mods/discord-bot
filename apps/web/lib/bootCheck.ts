@@ -20,10 +20,36 @@ export interface BootProblems {
     proxyUnknown: boolean;
 }
 
+/**
+ * Required by this application on top of the shared list, because `PORT` means something
+ * different here than it does in the bot.
+ *
+ * The database port is `DBPORT ?? PORT`. That fallback exists because deployed
+ * environments set PORT, and it was harmless while PORT was only ever the database's -
+ * the repository's own .env has `PORT=5432` and no DBPORT, and the bot has always been
+ * fine on it.
+ *
+ * It stops being harmless here. The Next server reads PORT to decide what to listen on,
+ * so the web container sets `PORT=3000` - and with DBPORT unset that silently becomes the
+ * database port too. The container starts, serves pages, and fails every query: no
+ * account links, no tracking page, no automod. Verified: with DBPORT unset and PORT=3000,
+ * poolConfig().port is 3000.
+ *
+ * So DBPORT is not optional in this process. One line in .env, which .env.example has
+ * carried all along, and the ambiguity is gone rather than avoided.
+ */
+const WEB_REQUIRED: ReadonlyArray<{ name: string; reason: string }> = [
+    {
+        name: 'DBPORT',
+        reason: 'PORT is the HTTP port in this process, so the database port has to be named unambiguously',
+    },
+];
+
 /** Pure. Given an environment, what is wrong with it. */
 export function inspectEnvironment(env: Env): BootProblems {
     return {
-        missing: REQUIRED_SECRETS.filter(({ name }) => !env[name]).map(({ name, reason }) => ({ name, reason })),
+        missing: [...REQUIRED_SECRETS, ...WEB_REQUIRED]
+            .filter(({ name }) => !env[name]).map(({ name, reason }) => ({ name, reason })),
         unguarded: OPTIONAL_SECRETS.filter((name) => !env[name]),
         proxyUnknown: env.NODE_ENV === 'production' && !env.TRUST_PROXY,
     };
