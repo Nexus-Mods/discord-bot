@@ -1,4 +1,3 @@
-
 #!/bin/sh
 set -eu
 
@@ -23,16 +22,16 @@ fi
 echo "Pulling $BOT_IMAGE"
 docker pull "$BOT_IMAGE"
 echo "Pulling $WEB_IMAGE"
-dockr pull "$WEB_IMAGE"
+docker pull "$WEB_IMAGE"
 
 for c in bot web; do docker rm -f "$c" >/dev/null 2>&1 || true; done
 
 echo "Starting bot"
 
-docker run -d --name bot --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" "$BOT_IMAGE" >
+docker run -d --name bot --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" "$BOT_IMAGE" node dist/shard.js
 
 echo "Starting web"
-docker run -d --name web --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" -e PORT=3000 >
+docker run -d --name web --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" -e PORT=3000 node server.js
 
 docker image prune -f
 
