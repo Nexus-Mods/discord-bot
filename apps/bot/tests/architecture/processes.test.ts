@@ -356,6 +356,14 @@ describe('build order', () => {
         }
     });
 
+    // `next dev` loads next.config.ts, which imports @nexusmods/core/env.js - so the site's
+    // dev script needs dist/ just as its build does. Without this it fails on a clean
+    // checkout with a MODULE_NOT_FOUND for a package that is right there in the tree.
+    it('has the site building the packages before its dev server too', () => {
+        const dev = manifest('apps/web').scripts?.dev ?? '';
+        expect(dev, 'apps/web dev does not build the packages first').toContain('build:packages');
+    });
+
     it('builds every package any workspace depends on', () => {
         const rootManifest = manifest('.');
         const chain: string = rootManifest.scripts['build:packages'];

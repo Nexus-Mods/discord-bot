@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run build:packages --prefix ../.. && next dev",
     "build": "npm run build:packages --prefix ../.. && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit -p tsconfig.json",

@@ -43,15 +43,32 @@ builds in one step.
 
 ## Running locally
 
+**Both together**, from the repository root:
+
 ```
 npm install
 npm run dev:all
 ```
 
-That builds the bot once and then starts the bot and `next dev` together, prefixing each
-process's output. Do **not** run `npm run dev` and `npm run dev:web` in two terminals:
-both end up running `tsup`, which cleans `dist/` first, so the second build deletes what
-the first is running from. `npm run dev:web` on its own is fine if you only want the site.
+That builds the packages and the bot once, then starts the sharding manager and `next dev`
+together, prefixing each process's output `[bot]` and `[web]`. The site is on
+http://localhost:3000. Ctrl+C stops both, and if either exits the other is stopped with it
+- half a pair is not a useful state to debug in.
+
+**The site alone**, if you are working on a page and do not need the bot running:
+
+```
+npm run dev:web
+```
+
+That builds the packages first (`next.config.ts` imports `@nexusmods/core/env.js`, which
+resolves to `dist/`) and then starts `next dev` on the same port.
+
+**The bot alone** is `npm start` after a build, or `npm run dev -w @nexusmods/discord-bot`
+to do both.
+
+Do **not** run the bot's `dev` and `dev:all` in two terminals: both run `tsup`, which
+cleans `dist/` first, so the second build deletes what the first is running from.
 
 The bot always runs sharded, locally as in production - `dist/app.js` is the shard child
 and refuses to start on its own. `NODE_ENV=testing` gives two shards; `BOT_SHARD_COUNT=1`
