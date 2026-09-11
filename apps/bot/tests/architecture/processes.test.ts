@@ -74,12 +74,6 @@ function localDeps(file: string): string[] {
     return deps;
 }
 
-/** Files that import the given local module at runtime. */
-function importersOf(target: string): string[] {
-    const want = path.normalize(target);
-    return ALL.filter((f) => localDeps(f).includes(want)).map(slash).sort();
-}
-
 /** Files that import the given package at runtime. */
 function importersOfPackage(pkg: string): string[] {
     return ALL.filter((f) => {
@@ -103,90 +97,14 @@ function reachableFrom(...entries: string[]): Set<string> {
     return new Set([...seen].map(slash));
 }
 
-const web = reachableFrom('src/web.ts');
-
-describe('the web server stays out of the bot process', () => {
-    it('is constructed by the web entry point and nowhere else', () => {
-        expect(importersOf('src/server/server.ts')).toEqual(['src/web.ts']);
-    });
-
-    // Only server.ts imports express at runtime; the handlers take `import type express`
-    // for their Request/Response annotations, which the compiler erases.
-    it('is the only place express is imported at runtime', () => {
-        expect(importersOfPackage('express')).toEqual(['src/server/server.ts']);
-    });
-
-    it('keeps express-only middleware out of the rest of the tree', () => {
-        for (const pkg of ['helmet', 'express-rate-limit', 'cookie-parser', 'ejs']) {
-            for (const f of importersOfPackage(pkg)) {
-                expect(f.startsWith('src/server/')).toBe(true);
-            }
-        }
-    });
-});
-
-describe('the bot stays out of the web process', () => {
-    // Guard on the guard: every "not in this set" assertion is trivially true of an empty one.
-    it('reaches a realistic module count from src/web.ts', () => {
-        expect(web.size).toBeGreaterThan(15);
-    });
-
-    it('does not construct a gateway client', () => {
-        expect([...web].filter((f) => f === 'src/DiscordBot.ts')).toEqual([]);
-    });
-
-    it('does not load the feed managers or the command tree', () => {
-        expect([...web].filter((f) => f.startsWith('src/feeds/'))).toEqual([]);
-        expect([...web].filter((f) => f.startsWith('src/interactions/'))).toEqual([]);
-        expect([...web].filter((f) => f.startsWith('src/events/'))).toEqual([]);
-    });
-
-    // A data layer that renders Discord embeds is one the web app cannot share.
-    it('does not load Discord presentation code', () => {
-        expect([...web].filter((f) => f === 'src/lib/embeds.ts' || f === 'src/lib/profile.ts')).toEqual([]);
-        expect(web.has('src/feeds/subscriptionEmbeds.ts')).toBe(false);
-    });
-
-    it('reads subscriptions without constructing Discord I/O', () => {
-        expect(web.has('packages/persistence/src/subscriptions.ts')).toBe(true);
-        expect(web.has('src/feeds/webhooks.ts')).toBe(false);
-    });
-
-    it('reaches Discord only through the REST directory', () => {
-        expect(web.has('src/server/discordDirectory.ts')).toBe(true);
-    });
-
-    it('has no module under src/server/ depending on the bot', () => {
-        const offenders = ALL
-            .filter((f) => slash(f).startsWith('src/server/'))
-            .filter((f) => localDeps(f).some((d) => /DiscordBot\.ts$|[\\/]feeds[\\/]/.test(d)))
-            .map(slash);
-        expect(offenders).toEqual([]);
-    });
-
-    // src/server/ is web-only: reachable from src/web.ts and its own modules, nowhere else.
-    it('is reachable only from the web entry point and its own modules', () => {
-        const offenders = ALL
-            .filter((f) => localDeps(f).some((d) => slash(d).startsWith('src/server/')))
-            .map(slash)
-            .filter((f) => f !== 'src/web.ts' && !f.startsWith('src/server/'));
-        expect(offenders).toEqual([]);
-    });
-});
-
 describe('@nexusmods/auth', () => {
-    /**
-     * Shared by both processes, so it must stay free of anything that belongs to only
-     * one of them: no express, and no gateway client.
-     */
-    it('does not pull express or the gateway into whichever process imports it', () => {
+    /** Imported by both applications, so it must stay free of what belongs to one. */
+    it('does not pull the gateway into whichever process imports it', () => {
         const authFiles = ALL.filter((f) => slash(f).startsWith('packages/auth/src/'));
         expect(authFiles.length).toBeGreaterThan(0);
-        expect(importersOfPackage('express').filter((f) => f.startsWith('packages/auth/'))).toEqual([]);
         for (const f of authFiles) {
             for (const dep of localDeps(f)) {
                 expect(slash(dep), `${slash(f)} reaches the bot`).not.toMatch(/DiscordBot\.ts$/);
-                expect(slash(dep), `${slash(f)} reaches the web app`).not.toMatch(/^src\/server\//);
             }
         }
     });
@@ -194,62 +112,67 @@ describe('@nexusmods/auth', () => {
 
 describe('the shared surface', () => {
     /**
-     * What both processes reach. Nothing shared may import discord.js at runtime: the web
-     * app is not a gateway client, so it would pay for a library it cannot use.
+     * The packages are what both applications import, and apps/web is a separate workspace
+     * that cannot reach into this one - so the surface is the packages by definition, and
+     * the rule is what may not appear in them.
      */
-    const bot = reachableFrom(
-        'src/shards.ts',
-        'src/DiscordBot.ts',
-        ...ALL.filter((f) => /^src[\\/](interactions|events)[\\/]/.test(f)),
-    );
-    const shared = [...web].filter((f) => bot.has(f)).sort();
-
-    it('is the surface the packages will be cut from', () => {
-        // A guard on the walk: a broken resolver returns an empty set and passes everything.
-        expect(shared.length).toBeGreaterThan(20);
-        expect(shared).toContain('packages/persistence/src/schema.ts');
-        expect(shared).toContain('packages/nexus-api/src/queries/v2.ts');
-    });
-
-    it('does not reach discord.js at runtime', () => {
-        const offenders = shared.filter((f) => importersOfPackage('discord.js').includes(f));
-        expect(offenders).toEqual([]);
-    });
-
-    // Also checked by path below: a package no entry point reaches today would drop out
-    // of `shared` and out of the rule with it.
     const packaged = ALL.map(slash).filter((f) => f.startsWith('packages/'));
 
     it('is where the packages live, and the walk can see them', () => {
-        expect(packaged.length).toBeGreaterThan(0);
-        expect(shared.some((f) => f.startsWith('packages/'))).toBe(true);
+        // A guard on the walk: a broken resolver returns an empty set and passes everything.
+        expect(packaged.length).toBeGreaterThan(20);
+        expect(packaged).toContain('packages/persistence/src/schema.ts');
+        expect(packaged).toContain('packages/nexus-api/src/queries/v2.ts');
     });
 
     it('keeps single-process libraries out of the packages entirely', () => {
-        // A package reaching either is a dependency half its consumers pay for.
+        // discord.js is the gateway client: a package reaching it is a dependency the web
+        // app pays for and cannot use. express and its middleware are gone from the
+        // repository altogether, and are named so that reintroducing one is deliberate.
         for (const pkg of ['discord.js', 'express', 'helmet', 'express-rate-limit', 'cookie-parser', 'ejs']) {
             const offenders = importersOfPackage(pkg).filter((f) => f.startsWith('packages/'));
             expect(offenders, `${pkg} is reached from a package`).toEqual([]);
         }
     });
 
-    it('leaves the gateway library to the bot and the REST helpers to the web app', () => {
-        // The web app may talk to Discord over HTTP - REST, Routes, CDN, EmbedBuilder -
-        // which is a different thing from holding a gateway connection.
-        const gateway = importersOfPackage('discord.js').filter((f) => !shared.includes(f));
-        for (const f of gateway) {
-            expect(
-                f.startsWith('src/server/') || bot.has(f),
-                `${f} imports discord.js but is neither bot code nor the web app's REST layer`,
-            ).toBe(true);
+    it('leaves the gateway library to the bot alone', () => {
+        const offenders = importersOfPackage('discord.js').filter((f) => !slash(f).startsWith('src/'));
+        expect(offenders, 'discord.js is reached from outside the bot').toEqual([]);
+    });
+});
+
+describe('express is gone', () => {
+    /**
+     * The auth site is apps/web, and this workspace has no HTTP server at all. The
+     * dependencies are uninstalled, so an import would fail the build - this says which
+     * ones and why, so putting one back is a decision rather than an accident.
+     */
+    it('is not imported anywhere in this workspace', () => {
+        for (const pkg of ['express', 'helmet', 'express-rate-limit', 'cookie-parser', 'ejs']) {
+            expect(importersOfPackage(pkg), `${pkg} is back`).toEqual([]);
         }
+    });
+
+    it('is not a dependency of this workspace', () => {
+        const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
+        const declared = { ...manifest.dependencies, ...manifest.devDependencies };
+        for (const pkg of ['express', 'helmet', 'express-rate-limit', 'cookie-parser', 'ejs', '@types/express']) {
+            expect(pkg in declared, `${pkg} is declared again`).toBe(false);
+        }
+    });
+
+    it('leaves no entry point that would start one', () => {
+        expect(existsSync('src/web.ts'), 'src/web.ts is back').toBe(false);
+        expect(existsSync('src/server'), 'src/server/ is back').toBe(false);
+        const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts as Record<string, string>;
+        expect(Object.values(scripts).filter((c) => /dist\/web\.js/.test(c))).toEqual([]);
     });
 });
 
 describe('the environment', () => {
     // One env resolver, loaded first. dotenv.config() resolves from the working
     // directory, which differs between the repository root, apps/bot and the image.
-    const ENTRY_POINTS = ['src/shards.ts', 'src/app.ts', 'src/web.ts', 'src/db/migrate.ts', 'src/db/backfillTokens.ts'];
+    const ENTRY_POINTS = ['src/shards.ts', 'src/app.ts', 'src/db/migrate.ts', 'src/db/backfillTokens.ts'];
 
     // Resolved from this file: the working directory is apps/bot and apps/web is a sibling.
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -547,9 +470,11 @@ describe('test doubles', () => {
 });
 
 describe('entry points', () => {
-    // Two containers from one image start in either order. runMigrations takes a Postgres
-    // advisory lock, so whichever wins does the work and the other finds nothing to do.
-    it.each(['src/shards.ts', 'src/web.ts'])('%s migrates before it starts', (entry) => {
+    // Since 5.0.0 the bot is the only process that migrates: the web app is a separate
+    // image and cannot import this. The advisory lock in runMigrations still guards
+    // against two bot containers overlapping during a redeploy.
+    it('migrates before it starts', () => {
+        const entry = 'src/shards.ts';
         expect(reachableFrom(entry).has('src/db/migrate.ts')).toBe(true);
     });
 

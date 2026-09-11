@@ -4,9 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-shared-assets.mjs",
     "dev": "next dev",
-    "prebuild": "node scripts/copy-shared-assets.mjs",
     "build": "npm run build:packages --prefix ../.. && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit -p tsconfig.json",

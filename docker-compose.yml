@@ -26,28 +26,39 @@ services:
       - postgres
     restart: unless-stopped
 
-  # The OAuth portal, tracking pages and the forum/automod endpoints. Same image, same
-  # tag, different entry point - so the two can never be running different code against
-  # the same database.
+  # The OAuth portal, tracking pages and the forum/automod endpoints. Its own image
+  # since 5.0.0: a Next.js app built standalone, so it carries only the modules its
+  # server loads rather than the bot's dependencies as well.
+  #
+  # The two images are built from the same commit and tagged with the same sha. Running
+  # a bot and a web image from different shas is the mistake to avoid.
   web:
     container_name: "nexus-mods-bot-web"
-    build: .
-    image: nexus-mods-bot
-    command: ["node", "dist/web.js"]
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: nexus-mods-bot-web
+    # The image default, stated so the pair reads as two services rather than one with an
+    # override bolted on.
+    command: ["node", "server.js"]
     env_file:
       - .env
     environment:
       <<: *db_overrides
-      AUTH_PORT: 3000
+      # PORT is what the Next server listens on. AUTH_PORT was Express's and means
+      # nothing here.
+      PORT: 3000
+      # DBPORT, because PORT above is the HTTP port in this container. Without it the
+      # database client would take 3000 as well and every query would fail.
+      DBPORT: 5432
     ports:
       - "3000:3000"
     depends_on:
       - postgres
     restart: unless-stopped
-    # Single replica, but no longer because it has to be: the in-flight OAuth state
-    # moved into a sealed cookie in 4.3.0, so this service holds nothing between
-    # requests. What is still per-process is the rate limiting - a second replica
-    # would silently double both limits, because each would keep its own counters.
+    # One replica. The in-flight OAuth state moved into a sealed cookie in 4.3.0, so this
+    # service holds nothing between requests - but the rate limiting is per process, and a
+    # second replica would silently double both limits.
     scale: 1
 
   # Matches production (PostgreSQL 17). A postgres_data volume created by an older

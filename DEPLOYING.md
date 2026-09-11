@@ -2,74 +2,25 @@
 
 ## 5.0.0 - The auth site is a Next.js app in its own image
 
-**Nothing in this release changes what production runs.** CI now publishes a second image,
-`nexusmods/discord-bot-web`, and the droplet ignores it: `redeploy.sh` still starts the web
-container from `nexusmods/discord-bot` as `node dist/web.js`, and the Express server is
-still in the image. Switching over is the deliberate step below, whenever suits.
-
-Express is deliberately still there. It builds, it serves, and it is the thing to compare
-the new site against - and the way back if the new one misbehaves.
+**This release changes what production runs, and the change is not optional.** Express is
+gone from the repository: the source, the views, the dependencies and the `dist/web.js`
+entry point. The auth site is now a Next.js application, built as its own image, and the
+web container has to be started from it.
 
 | | Image | Command |
 |---|---|---|
 | Bot | `nexusmods/discord-bot` | `node dist/shards.js` |
-| Web, today | `nexusmods/discord-bot` | `node dist/web.js` (Express) |
-| Web, after the switch | `nexusmods/discord-bot-web` | `node server.js` (Next, image default) |
+| Web | `nexusmods/discord-bot-web` | `node server.js` (the image default) |
 
 Both images are tagged `:latest`, `:<version>` and `:<sha>` from the same commit. **The sha
 is what pairs them** - deploying a bot image and a web image built from different commits is
 the mistake worth avoiding, and the sha tag is how to be sure.
 
-### Before this deploys: the forum webhook needs its secret
+### Do this first: `DBPORT` must be set
 
-**This one has an ordering requirement and breaks a working feature if it is missed.**
-
-`POST /webhook` used to accept a payload from anyone who knew the URL and render it into
-the Discord suggestions channel - the embed's clickable link, the author name, the avatar
-image and the text all came from the request body. That was S3, the last exploitable
-finding from the original audit. It now requires a shared secret.
-
-The secret travels in the URL, because Invision attaches no headers of its own and this
-installation cannot be made to attach one, so the target URL is the only part of the
-request the sending side lets anyone configure.
-
-Do it in this order, and nothing breaks:
-
-1. **Generate one:** `openssl rand -hex 32`.
-2. **Put it on the forum's webhook URL first**, in the forum AdminCP under System > API:
-
-   ```
-   https://discordbot.nexusmods.com/webhook?key=<the secret>
-   ```
-
-   The currently deployed code ignores an unknown query parameter, so suggestions keep
-   working exactly as they do now. Nothing has changed yet.
-3. **Add `FORUM_WEBHOOK_SECRET=<the secret>` to the production `.env`.**
-4. **Deploy.** From here the bare `/webhook` is refused with a 401.
-
-If step 3 is missed, the endpoint refuses *everything* and forum suggestions stop
-arriving in Discord until it is set. That is the deliberate trade - a missing secret
-makes the endpoint unavailable rather than unprotected - and the web app's boot check
-names `FORUM_WEBHOOK_SECRET` in its warnings, so `docker logs` says which it is.
-
-To check it afterwards: the bare URL should answer 401, and the URL with the key should
-answer 200.
-
-```sh
-curl -si -X POST https://discordbot.nexusmods.com/webhook -d '{}' | head -1   # 401
-```
-
-**What this does not do.** The payload is still trusted once the secret checks out, so
-anyone who obtains the secret regains the original capability. A secret in a URL is a
-bearer token in a place that ends up in access logs and in the forum's admin screen, so
-it is worth rotating if either is ever exposed - rotation is steps 1 to 4 again. The
-stronger version, which needs nothing from the forum, is recorded in `MODERNISATION.md`.
-
-### Before the switch: `DBPORT` must be set
-
-**Do this first, and check it.** The production `.env` sets `PORT=5432` and no `DBPORT`.
-That has always been fine, because the database port is `DBPORT ?? PORT` and nothing else
-in the deployment reads `PORT`.
+**Add it before deploying, and check it.** The production `.env` sets `PORT=5432` and no
+`DBPORT`. That has always been fine, because the database port is `DBPORT ?? PORT` and
+nothing else in the deployment read `PORT`.
 
 The Next server does. It reads `PORT` to decide what to listen on, so the web container is
 told `PORT=3000` - and with `DBPORT` unset, the database client takes 3000 as well. The
@@ -84,12 +35,14 @@ DBPORT=5432
 ```
 
 It changes nothing for the bot - `DBPORT` takes precedence over `PORT` and the value is
-the same - so it can be added, and the bot restarted, well before anything else here. The
-web app refuses to start without it and says why, so this cannot be got wrong quietly.
+the same - so it can be added, and the bot restarted, well before anything else here.
+Two things refuse to proceed without it: `redeploy.sh` checks the file and exits, and the
+web app itself refuses to start and says why. It cannot be got wrong quietly.
 
-### Making the switch
+### Deploying
 
-The web container's line in the droplet's `redeploy.sh` becomes:
+`redeploy.sh` in this repository already does the right thing: it pulls both images at the
+same tag and starts the web container as
 
 ```sh
 docker run -d --name web --restart unless-stopped --network host \
@@ -97,20 +50,42 @@ docker run -d --name web --restart unless-stopped --network host \
     "nexusmods/discord-bot-web:${TAG}" node server.js
 ```
 
-Three differences from the line it replaces:
+Three differences from the 4.x line it replaces:
 
-1. **A different image.** So the script has to `docker pull` both, not one.
+1. **A different image**, so the script pulls both.
 2. **`PORT`, not `AUTH_PORT`.** `AUTH_PORT` was Express's own variable and means nothing to
    the Next server, which reads `PORT` and otherwise defaults to 3000. Leaving `AUTH_PORT`
    in the env file is harmless; relying on it is not. With `--network host` this is the
    port it binds on the host directly, so it must match whatever is in front of it.
 3. **`node server.js`, from `/app/apps/web`.** That is the image default, so it can be
-   omitted; it is written out here because the bot's line states its command too.
+   omitted; it is written out because the bot's line states its command too.
 
 `.env` is still mounted at `/app/.env` and still read by the same resolver, so the file
 does not change and neither container needs its configuration moved.
 
-### Verifying the switch, in order
+**The droplet's copy of `redeploy.sh` is the one that runs.** Reconcile it with this one
+before deploying 5.0.0 - see the warning at the top of the script.
+
+### Migrations run in the bot container only
+
+Through 4.x both processes called `runMigrations` at boot and a Postgres advisory lock
+decided which of them did the work. `runMigrations` lives in `apps/bot`, and the web app is
+now a separate image that cannot import it, so **the bot is the only process that migrates**.
+
+What this means in practice:
+
+- A deploy that adds a migration needs the bot container to start. Starting only the web
+  container leaves the schema where it was.
+- The web container will happily serve against an un-migrated schema until a query hits a
+  column that does not exist yet. `redeploy.sh` starts the bot first, which is the ordering
+  that makes this a non-issue for a normal deploy.
+- The advisory lock still matters, for two bot containers overlapping during a restart.
+
+If the web app ever needs to migrate on its own, the migration runner and the `drizzle/`
+directory would have to move into `packages/persistence` so both apps can reach them. That
+is a deliberate piece of work, not a small change, and it has not been done.
+
+### Verifying, in order
 
 1. `docker logs web --tail 40`. A good start is quiet apart from Next's banner. **A bad
    start is loud and immediate**: `COOKIE_SECRET is not set ... so the site cannot start`
@@ -131,15 +106,17 @@ does not change and neither container needs its configuration moved.
 
 ### Rollback
 
-Put the old line back and redeploy. The Express server is still in the bot image, so this
-needs no rebuild and no earlier tag:
+**There is no in-release rollback.** Express is not in the 5.0.0 bot image, so there is no
+`node dist/web.js` to go back to. Rolling the site back means rolling the whole deployment
+back to 4.4.0, which needs two things:
 
-```sh
-docker run -d --name web --restart unless-stopped --network host \
-    -v "$ENV_FILE:/app/.env" "nexusmods/discord-bot:${TAG}" node dist/web.js
-```
+1. `./redeploy.sh 4.4.0`, and
+2. **the pre-5.0.0 version of `redeploy.sh`**, because this one pulls and starts a second
+   image that does not exist at that tag. `git log --oneline -- redeploy.sh` finds the
+   commit before the 5.0.0 change; `git show <that commit>:redeploy.sh` is the file.
 
-That is the reason Express was kept for this release rather than deleted with the switch.
+Any migration 5.0.0 applied stays applied; the 4.4.0 code has to tolerate it. Check the
+release's migrations before rolling back rather than after.
 
 ### What is different about the new site, on purpose
 

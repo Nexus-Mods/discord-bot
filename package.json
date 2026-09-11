@@ -20,16 +20,14 @@
     "codegen": "npm run codegen -w @nexusmods/nexus-api",
     "codegen:check": "npm run codegen:check -w @nexusmods/nexus-api",
     "start": "npm run start -w @nexusmods/discord-bot",
-    "startWeb": "npm run startWeb -w @nexusmods/discord-bot",
     "dev:all": "npm run dev:all -w @nexusmods/discord-bot",
-    "dev:next": "npm run dev:next -w @nexusmods/discord-bot",
-    "dev:web": "npm run dev -w @nexusmods/discord-web",
     "db:migrate": "npm run db:migrate -w @nexusmods/discord-bot",
     "db:generate": "npm run db:generate -w @nexusmods/discord-bot",
     "db:check": "npm run db:check -w @nexusmods/discord-bot",
     "tokens:backfill": "npm run tokens:backfill -w @nexusmods/discord-bot",
     "tokens:verify": "npm run tokens:verify -w @nexusmods/discord-bot",
-    "tokens:report": "npm run tokens:report -w @nexusmods/discord-bot"
+    "tokens:report": "npm run tokens:report -w @nexusmods/discord-bot",
+    "dev:web": "npm run dev -w @nexusmods/discord-web"
   },
   "devDependencies": {
     "eslint": "^10.9.1",

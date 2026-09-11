@@ -2,17 +2,8 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 
-/** Sentinel for the Next site, which is started by workspace rather than by file path. */
-const NEXT = Symbol('next');
-
 /**
- * Runs the bot and one of the two auth sites together for local development.
- *
- *     npm run dev:all     the bot and Express      (dist/web.js)
- *     npm run dev:next    the bot and the Next app (apps/web)
- *
- * Alternatives, not a pair: both serve the same paths on port 3000, so the registered
- * redirect URIs work for either.
+ * Runs the bot and the auth site together for local development: `npm run dev:all`.
  *
  * One build, then both processes - running the two dev scripts in separate terminals does
  * not work, because tsup cleans dist/ and the second build deletes what the first is
@@ -23,8 +14,9 @@ const NEXT = Symbol('next');
 
 const BOT_ENTRY = 'dist/shards.js';
 
-/** `--next` swaps Express for the Next development server. */
-const USE_NEXT = process.argv.includes('--next');
+/** The auth site is a workspace, not a file path. */
+const WEB = Symbol('web');
+
 
 const TAGS = {
     bot: { label: 'bot', colour: '\x1b[36m' },   // cyan
@@ -74,10 +66,9 @@ let stopping = false;
 function start(tag, entry) {
     /**
      * Started through npm from its own workspace: `next dev` needs apps/web as its working
-     * directory, and predev copies the shared images first. shell on Windows, where npm is
-     * a .cmd that spawn will not otherwise find.
+     * directory. shell on Windows, where npm is a .cmd that spawn will not otherwise find.
      */
-    const child = entry === NEXT
+    const child = entry === WEB
         ? spawn('npm', ['run', 'dev', '-w', '@nexusmods/discord-web'], {
             cwd: path.resolve(import.meta.dirname, '..', '..', '..'),
             stdio: ['ignore', 'pipe', 'pipe'],
@@ -122,10 +113,8 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     });
 }
 
-const web = USE_NEXT ? NEXT : 'dist/web.js';
-
 start('bot', BOT_ENTRY);
-start('web', web);
+start('web', WEB);
 
-console.log(`Started ${BOT_ENTRY} and ${USE_NEXT ? 'the Next site (apps/web)' : web}. Ctrl+C stops both.`);
-console.log(`The site is on http://localhost:3000 either way.\n`);
+console.log(`Started ${BOT_ENTRY} and the auth site (apps/web).`);
+console.log('The site is on http://localhost:3000. Ctrl+C stops both.\n');

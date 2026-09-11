@@ -17,10 +17,9 @@ COPY packages/account/package.json ./packages/account/
 # npm ci installs exactly what the lockfile pins, dev dependencies included so
 # tsup and typescript are available for the build.
 #
-# Scoped to the bot's workspace. Without --workspace this installs every workspace,
-# which since 5.0.0 means the runtime image carries Next and React - 200MB the bot
-# cannot use, copied into it by the wholesale node_modules COPY below. The flag also
-# means apps/web/package.json need not be in the build context at all.
+# Scoped to the bot's workspace. Without --workspace this installs every workspace, which
+# means the runtime image carries Next and React - 200MB the bot cannot use, copied into it
+# by the wholesale node_modules COPY below.
 RUN npm ci --workspace @nexusmods/discord-bot --include-workspace-root
 
 COPY . .
@@ -41,12 +40,11 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-# The runtime image deliberately keeps the pre-5.0.0 shape: dist/, node_modules/ and
-# package.json directly under /app. The repository moved the bot to apps/bot; the image
-# did not. That keeps `node dist/shards.js` correct, which means redeploy.sh, the
-# compose files and DEPLOYING.md all continue to describe what actually runs - the
-# alternative was changing the deploy path in the same release that restructured the
-# repository, and the deploy path had only just been committed.
+# The runtime image keeps the pre-5.0.0 shape: dist/, node_modules/ and package.json
+# directly under /app, so `node dist/shards.js` stays correct.
+#
+# This image is the bot alone. The auth site is Dockerfile.web, built from the same commit
+# and tagged with the same sha.
 #
 # node_modules comes from the workspace root because npm hoists there; apps/bot has no
 # node_modules of its own to copy.

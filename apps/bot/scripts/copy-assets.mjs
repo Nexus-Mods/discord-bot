@@ -1,15 +1,8 @@
 import { cp } from 'node:fs/promises';
 
-// The auth site resolves its views and static files relative to the compiled
-// file's directory, so they have to sit alongside it in dist/.
-// The old copyfiles invocations used `-f` (flatten) with single-level globs, so
-// anything in a subdirectory was silently dropped. fs.cp is recursive and keeps
-// the structure.
+// The runtime image only copies dist/, so the migration SQL has to live inside it or the
+// bot starts with no migrations to apply.
 const assets = [
-    ['src/server/views', 'dist/server/views'],
-    ['src/server/public', 'dist/server/public'],
-    // The runtime Docker image only copies dist/, so the migration SQL has to
-    // live inside it or the bot starts with no migrations to apply.
     ['drizzle', 'dist/drizzle'],
 ];
 

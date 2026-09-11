@@ -1,6 +1,2 @@
 .next/
 next-env.d.ts
-
-# Copied from apps/bot at build time by scripts/copy-shared-assets.mjs, so the 5.8MB of
-# GIFs the Express views use are not committed twice. They move here for real at step 9.
-public/images/
