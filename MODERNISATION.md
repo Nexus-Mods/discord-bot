@@ -1,12 +1,14 @@
 # Nexus Mods Discord Bot — Modernisation & Simplification Plan
 
-**Status:** Phase 0 shipped in **3.17.0**. Phases 1, 2, 3.1, 3.2, 3.6 and 5.3 are on the
-**4.0.0 branch, built and tested but not yet deployed**. Everything under *The work in
-detail* is still a proposal.
-**Date:** 29 August 2026 (originally audited at `473db19`)
-**Scope:** `nexus-bot-typescript` — 99 source files, ~12,500 lines, plus 16 test files
-and 216 tests. The source count is up on the audit's 89 because Phases 1–3 split several
-large files apart; the line count is slightly down despite that.
+**Status:** Phases 0, 1, 2, 3 and 5 are **in production**, through 4.4.0. Phase 4 — the
+Next.js front-end — is **built and tested on `phase-5.0-nextjs`, not merged**: the site is
+complete, both container images build, and the deployment still runs Express. What is left
+of the plan is three steps, not three phases.
+**Date:** 11 September 2026 (originally audited at `473db19`)
+**Scope:** ~155 source files, ~20,500 lines across two applications and five packages,
+plus 42 test files and 544 tests. The file count is up from the audit's 89 because the
+work split large files apart and then split the shared half into packages; almost all of
+the line growth since 4.0.0 is the Next.js application, which did not exist then.
 
 This document is ordered by **what happens next**. Completed work is recorded in full
 under *Shipped*, at the bottom — it is kept rather than deleted because most of it
@@ -16,55 +18,69 @@ explains why the code looks the way it does.
 
 ## The immediate next step
 
-**Deploy 4.0.0.** Nothing else on this list should start until it has run in production
-for a day.
+**Merge 5.0.0, which deploys the bot and changes nothing about the website.**
 
-That is not ceremony. None of the 4.0.0 work has touched a live Discord gateway or a live
-database, and the one time it met a real environment — a local Postgres — it failed
-immediately on a TLS default that had looked correct in review and had passing tests
-behind it. The untested delta has been growing for weeks and now covers the build system,
-logging, the error taxonomy, the command contract, migrations, the query layer and the
-gateway intents. Deploying bounds it. Waiting means debugging all of it at once, on a box
-that is under load. (The 94.4% CPU this document previously blamed on the bot turned out
-to be a stale pre-container deployment - see *The 94.4% was not the bot*.)
+This is the step to be deliberate about, and not for the reason it looks like. Merging
+publishes both images and fires the deploy webhook, and the droplet
+redeploys the **bot**. The web container keeps running Express from the bot image, so the
+site does not change at all. What does change is everything under the bot: the monorepo
+move, five extracted packages, a new build chain and the workspace-flattening step in the
+image. None of that has ever run in production, and none of it is the Next.js port.
 
-Two other things depend on it. **Migrations have never run against the production
-database**, and everything in Phase 3 sits on top of them. And the droplet sizing question
-— which blocks Phase 4 — needs real numbers after the intent fix, not the estimates in
-this document.
+So the risk in this release is the restructure, not the front-end. Deploy it on its own,
+watch the bot for a day, and the front-end switch afterwards is a one-line change to the
+droplet's `redeploy.sh` with a one-line way back.
 
-`DEPLOYING.md` has the pre-flight list. The two entries that matter most are
-`AUTOMOD_DATABASE` and `WATCHED_CHANNEL_ID`: both now change behaviour by their absence,
-and `.dockerignore` excludes `*.env`, so whatever injects configuration at run time has to
-carry them.
+The three steps, in order:
+
+| | Step | What changes in production | Way back |
+|---|---|---|---|
+| 1 | Merge 5.0.0 | The bot image. The site does not move. | `./redeploy.sh 4.4.0` |
+| 2 | Point the web container at `nexusmods/discord-bot-web` | The site becomes the Next app | Put the old line back; no rebuild |
+| 3 | Delete Express | Nothing — it is already not running | A revert, and a rebuild |
+
+**`DBPORT=5432` has to be in the production `.env` before step 2**, and it is safe to add
+at step 1 or earlier. The database port is `DBPORT ?? PORT`, and the Next server reads
+`PORT` to decide what to listen on — so a web container told `PORT=3000` points its
+database client at 3000 as well. It would start, serve pages, and fail every query.
+`DEPLOYING.md` leads with this.
+
+Step 3 has no deadline. Express is kept deliberately: it is the thing to compare against,
+and while it is still in the image a bad switch is a redeploy rather than a rebuild.
 
 ---
 
 ## The order of work
 
-| | Work | Why it is here | Blocked by |
-|---|---|---|---|
-| 1 | Deploy 4.0.0 | See above | — |
-| 2 | Measure free memory with the container as the only bot | CPU resolved to 1-2% once the stale instance was stopped. Memory is the one number Phase 4 still turns on. | Stopping PM2 (done) |
-| 3 | ~~Droplet sizing~~ | Withdrawn. CPU is 1-2%; only memory is open, and it may well already fit. | — |
-| 4 | **3.5** Query error contract | Highest user-visible correctness win left: feeds currently record a failed poll as a successful empty one | Nothing |
-| 5 | **3.3** GraphQL codegen | Self-contained, low risk, kills the untyped-boundary bug family | Nothing |
-| 6 | **3.4** OAuth token encryption | Highest risk item. ~147,000 values rewritten. | The key-storage decision |
-| 7 | **5.1** Replace `broadcastEval` string injection | Sharding is staying, so this is permanent debt | Nothing |
-| 8 | **5.2** Dead code sweep | Makes everything after it smaller | Nothing |
-| 9 | **Phase 4** Next.js front-end | The largest piece, and the one with the most unknowns | The repo decision, and one memory reading |
+Everything that was on this list has shipped. What is left is the three steps above plus
+the items that were never blocking anything.
 
-3.5 is placed ahead of 3.3 deliberately: it fixes a real defect users can hit, where 3.3
-improves how the code is written. 3.4 sits behind both because it is the only item that
-can lose data.
+| | Work | Status |
+|---|---|---|
+| 1 | Deploy 4.0.0 | **done** — and 4.1.0 through 4.4.0 after it |
+| 2 | Measure free memory with the container as the only bot | **still open**, and it now means something different — see below |
+| 3 | ~~Droplet sizing~~ | Withdrawn. CPU is 1-2%. |
+| 4 | **3.5** Query error contract | **shipped, 4.1.0** |
+| 5 | **3.3** GraphQL codegen | **shipped** |
+| 6 | **3.4** OAuth token encryption | **shipped, 4.3.0** |
+| 7 | **5.1** Replace `broadcastEval` string injection | **shipped** |
+| 8 | **5.2** Dead code sweep | **shipped, 4.4.0** |
+| 9 | **Phase 4** Next.js front-end | **built, not merged** — see *Phase 4 — built, not merged* |
+
+The one item on the original list that is still genuinely open is **S3, the unauthenticated
+`POST /webhook`**. It is the last exploitable finding from the audit, it has survived every
+phase, and the port carried it across unchanged rather than inventing a scheme the sending
+side may not support. It is in *Open decisions* and it is the thing most worth doing next
+after the three steps.
 
 ---
 
 
 ## Where things stand
 
-Everything below is **on the 4.0.0 branch and not yet deployed**. Full detail for each is
-under *Shipped*; this is the one-paragraph version.
+Everything below is **in production**, in 4.0.0 and the four releases after it. Full
+detail for each is under *Shipped*; this is the one-paragraph version, kept because it is
+the quickest answer to "why does this look like this".
 
 **Phase 3.6 (4.0.0).** Runtime import cycles measured against the emitted JavaScript
 rather than the source, which corrected an earlier bad count of 185 down to a real 12,
@@ -167,34 +183,32 @@ could not be seen. The measurement that settled it took ten minutes.
 at **1-2% CPU**. This document previously said Phase 4 could not happen on this box; that
 was based on a figure belonging to a process that is no longer running.
 
-CPU is no longer a constraint in any meaningful sense. The web layer here serves OAuth
-callbacks, tracking pages and a status page - it is not a CPU-bound workload, and 1 vCPU
-running at 1-2% has room for it.
-
-**Memory is the only remaining question**, and it is unanswered: the 80% and 50% readings
-were both taken while two bots were running. What matters on a 2 GB box:
+**Memory is still the open question**, and the shape of it has changed now that the
+front-end is built. The original estimate assumed a Next.js app sharing a container with
+the bot. It does not: it is its own image, built standalone, so what has to fit beside the
+bot is one more Node process serving HTTP.
 
 | | Rough cost | Note |
 |---|---|---|
-| Bot (manager + 3 shards) | measure it | The message cache cap in 5.3 already took a large bite out of this |
-| Next.js, running | 200-400 MB | A small production app |
-| Next.js, **building** | 1 GB+ | **Do not build on the droplet.** CI already builds and pushes images; keep it that way or a build will OOM the box |
+| Bot (manager + 3 shards) | measure it | Still the unknown. The message cache cap in 5.3 already took a large bite out of this |
+| The Next container, running | 150-250 MB | Smaller than the 200-400 MB estimated, because the standalone build traces only the modules the server loads |
+| Next.js, **building** | 1 GB+ | **Do not build on the droplet.** CI builds and pushes both images; the droplet only pulls |
+| The Express container it replaces | whatever it uses today | This is a swap, not an addition - the web container is already running |
 | Postgres | 200-400 MB | Only if it is on the droplet. PgBouncer suggests DigitalOcean's managed pool, in which case it is not - worth confirming |
 
-If the bot's real figure leaves roughly a gigabyte free, Phase 4 fits on the current
-droplet without an upgrade. If Postgres turns out to be local as well, it will be tight
-and an upgrade to 2 vCPU / 4 GB is the cheap answer.
+The fourth row is the one that changes the arithmetic. Step 2 does not add a process, it
+replaces one: the web container stops running `node dist/web.js` and starts running the
+Next server. The question is not "does a Next.js app fit" but "is the Next server bigger
+than the Express one, and by how much" - and the honest answer is that nobody has measured
+either. `docker stats` on the web container before and after the switch answers it in a
+minute.
 
-**The repo decision is the blocker again**, having been demoted behind hardware that
-turned out not to be in the way.
+Sharding still has to stay regardless (2,418 guilds against a 2,500-per-shard limit).
 
-Sharding still has to stay regardless (2,418 guilds against a 2,500-per-shard limit), but
-whether three shards is the right shape is now an open question rather than a complaint -
-at 1-2% there is no pressure either way.
-
-**Nothing here has been run against a live Discord gateway or database.** The HTTP
-middleware chain and the unlink signing were verified in isolation; the OAuth round
-trip, the subscription feed and the news feed have not been exercised end to end.
+**What has and has not been exercised.** The pages, the machine endpoints and the refusals
+have been driven against a running server, and the account link has been run end to end
+locally against real Discord and Nexus Mods applications. What has not been exercised is
+any of it in the container, on the droplet, under real traffic - which is what step 2 is.
 
 ---
 
@@ -207,30 +221,39 @@ trip, the subscription feed and the news feed have not been exercised end to end
    `/automod` HTTP endpoint and the rules data layer stay.
 2. ~~**What is the current guild count?**~~ **Answered: 2,418 servers.** That is 82 short
    of the 2,500 at which Discord makes sharding mandatory, so sharding stays and the
-   shard-aware branches stay with it. Phase 5 shrinks to the `broadcastEval` protocol
-   work, which was worth doing either way. See 5.1.
-3. **Monorepo or two repos?** Open, and **the nearest blocker for Phase 4 again**. It was
-   demoted behind a droplet upgrade on the basis of a 94.4% CPU figure that belonged to a
-   stale PM2 deployment; with that stopped the droplet sits at 1-2% and the hardware
-   objection is gone. On the repo itself, which
-   assumes a workspace so the bot and web app can share the schema and the Nexus API
-   client. Two repos means publishing those as packages, or duplicating them. 3.6 is a
-   prerequisite either way.
-4. **What can the Invision forum send to `POST /webhook`?** (New.) S3 is the last
-   unresolved security finding and the only one still exploitable. The fix depends
-   entirely on what the sending side supports: a static shared-secret header, an HMAC
-   signature over the body, or a fixed source IP range. Any of the three is a short
-   change; picking one without knowing what Invision offers is not.
-5. **Where does the encryption key for 3.4 live?** (New.) Encrypting the OAuth tokens at
-   rest needs a key, and the key needs somewhere to live that is not the same database.
-   An env var is the cheap answer and is a real improvement over plaintext; a managed KMS
-   is the better one. This also decides whether key rotation is a feature or a redeploy.
+   shard-aware branches stay with it.
+3. ~~**Monorepo or two repos?**~~ **Answered: monorepo, npm workspaces.** Not pnpm and not
+   Turborepo, which this document suggested: npm workspaces were already available, and
+   the build ordering that Turborepo exists to solve turned out to be one `build:packages`
+   script the two applications share. The packages are `core`, `nexus-api`, `auth`,
+   `persistence` and `account` - five rather than the three sketched below, because the
+   account model and the OAuth clients both turned out to be shared and neither belonged
+   in a `shared` bucket.
+4. **What can the Invision forum send to `POST /webhook`?** **Still open, and now the last
+   one that matters.** S3 is the last unresolved security finding and the only one still
+   exploitable: anyone who knows the URL can post a payload that the bot will render into
+   the suggestions channel. The fix depends entirely on what the sending side supports - a
+   static shared-secret header, an HMAC signature over the body, or a fixed source IP
+   range - and any of the three is a short change against `apps/web/app/webhook/route.ts`,
+   which already has the shared-secret helper the other three machine endpoints use. What
+   is missing is an answer from Invision, not code.
+5. ~~**Where does the encryption key for 3.4 live?**~~ **Answered: an environment
+   variable,** `TOKEN_ENCRYPTION_KEY`. The bot refuses to start without it. Rotation is a
+   redeploy rather than a feature, which was the trade this decision named; the sealed
+   value format is versioned (`v1.iv.tag.ciphertext`) so a second key can be introduced
+   without rewriting the rows.
 
 ---
 
 ---
 
 # The work in detail
+
+Most of this has shipped. The sections are kept where they are, with a status banner at
+the top of each, rather than moved down to *Shipped* — the text is the reasoning that
+produced the change, and it reads better attached to the problem it was written about than
+filed under the release it landed in. The banner says what actually happened; the body is
+the argument as it stood beforehand.
 
 ---
 
@@ -271,6 +294,9 @@ building a second service around it.
 
 ## 3.5 Query modules: the `[]`-on-failure contract
 
+> **Shipped in 4.1.0.** Feeds no longer record a failed poll as a successful empty one.
+> `DEPLOYING.md` has the release note.
+
 Deferred out of 3.2 deliberately, because it changes feed behaviour rather than internals.
 
 Seven of the twenty modules under `api/queries/` catch their errors and return `[]`, so a
@@ -292,6 +318,11 @@ Needs a test per feed with a forced API failure, asserting the timestamp did not
 ---
 
 ## 3.3 GraphQL
+
+> **Shipped.** `codegen.ts` generates the types from the schema, they are committed, and
+> CI fails if a regeneration would change them (`npm run codegen:check`). One thing found
+> later and worth knowing: `codegen.ts` was itself outside its own tsconfig, so nothing
+> typechecked the file that generates three thousand lines of types.
 
 Every result shape is hand-written. There is **no codegen** — no `codegen.yml`, no schema
 file, no `@graphql-codegen/*` dependency. The cost is visible:
@@ -330,6 +361,12 @@ Then consolidate the query files:
 
 ## 3.4 Auth tokens
 
+> **Shipped in 4.3.0.** Tokens are sealed at rest with `TOKEN_ENCRYPTION_KEY`, in the
+> versioned `v1.iv.tag.ciphertext` format the link-state cookie also uses. The bot refuses
+> to start without the key, the backfill ran, and `--report` gives a read-only census of
+> credential state. Open decision 5 was answered by this: the key is an environment
+> variable and rotation is a redeploy.
+
 **Scale:** 36,879 linked accounts, four token columns each (`nexus_access`,
 `nexus_refresh`, `discord_access`, `discord_refresh`). Encrypting in place means reading
 and rewriting ~147,000 values. It needs batching, it needs to be resumable, and it needs
@@ -358,6 +395,9 @@ are unreadable should be treated as unlinked and asked to re-link, not silently 
 ---
 
 ## 5.1 Replace `broadcastEval` string injection
+
+> **Shipped.** Cross-shard calls go through typed wrappers, and the unsharded branches are
+> gone — the bot always runs under the sharding manager, locally as in production.
 
 Sharding is staying — 2,418 guilds against Discord's 2,500-per-shard limit, so the
 question this section used to ask is settled. What is left is the debt underneath it.
@@ -407,6 +447,10 @@ Also in `shards.ts`: the version-gated migrations (dead), and `'Shard X died', t
 
 ## 5.2 Dead code inventory
 
+> **Shipped, finishing in 4.4.0**, which also retired `/tag-votes`. The table below is the
+> original inventory; the ✓ marks are what had gone at the time it was written, and the
+> rest followed.
+
 Rows marked ✓ have been removed — in 3.17.0 (community map, automod, duplicate queries)
 or 4.0.0 (build scripts, unused dependencies).
 
@@ -440,91 +484,91 @@ sleep papering over an ordering race.
 
 ---
 
-## Phase 4 — The Next.js front-end (3–4 weeks)
+## Phase 4 — The Next.js front-end — **built, not merged**
 
-**Recommendation: a separate Next.js app in the same repo, sharing types and DB access with
-the bot through a workspace package.**
+> **Status: complete on `phase-5.0-nextjs`, through ten steps.** The site is ported, both
+> images build, and the account link has been run end to end against real Discord and
+> Nexus Mods applications. Express is still what production serves, deliberately — see
+> *The immediate next step*.
 
-### 4.1 Why the split is clean
+The original recommendation — a separate Next.js app in the same repo, sharing types and
+database access with the bot through workspace packages — is what was built. What follows
+is what the forecast got right, what it got wrong, and the ten steps as they happened.
 
-Of the 19 routes, only **one** touches live Discord gateway state:
+### What the analysis got right
 
-- `GET /tracking` calls `client.guilds.fetch()`, `guild.iconURL()`, `guild.channels.fetch()`
-  (`server/server.ts:358-362`).
+The route triage held up almost exactly. `/tracking` was the only route touching live
+gateway state, and expressing what it needs as two REST calls removed the shard-0 bug
+along with the dependency: the site used to run only on shard 0, which with
+`totalShards: 'auto'` does not hold every guild, so `/tracking` already failed for guilds
+on other shards.
 
-Everything else is HTTP + Postgres + Discord REST:
+`DiscordOAuth.ts` and `NexusModsOAuth.ts` did move with zero discord.js imports. The
+`/communitymap` routes were deleted rather than ported, as advised. EJS was replaced
+outright rather than preserved.
 
-| Moves cleanly | Notes |
-|---|---|
-| `/linked-role`, `/discord-oauth-callback`, `/nexus-mods-callback`, `/success`, `/oauth-error`, `/unlink-error` | `DiscordOAuth.ts` and `NexusModsOAuth.ts` are pure `fetch` wrappers with **zero discord.js imports** |
-| `/revoke`, `/update-metadata`, `/show-metadata` | `PushMetaData`/`GetRemoteMetaData` go over `discord.com/api/v10`, not the gateway |
-| `/automod` | Pure Postgres via `queryAutoMod` |
-| `POST /webhook` | Uses `EmbedBuilder` only to build a JSON body, then plain `axios` to webhook URLs |
-| `/`, `/nxm`, `/localhost-redirect`, `/timestamp` | Stateless |
-| `/communitymap`, `/communitymap/controversies` | **139 lines that all return `500 'Not implemented'`. Delete rather than port.** |
+### What it got wrong
 
-**Note the shard-0 problem this fixes:** the site only runs on shard 0
-(`server/server.ts:33`), but with `totalShards: 'auto'` shard 0 does not hold every guild —
-so `/tracking` already fails for guilds on other shards. Moving it to a Next.js app that
-hits the Discord REST API directly, or a small internal bot endpoint with `broadcastEval`,
-fixes a bug rather than creating one.
+**The workspace tooling.** pnpm and Turborepo were the recommendation; npm workspaces and
+one shared `build:packages` script were enough. Five packages, not three: `core`,
+`nexus-api`, `auth`, `persistence` and `account`.
 
-### 4.2 What must be solved
+**"Behind a reverse proxy."** The suggested sequencing was to run both servers at once and
+move route groups across. That is not what happened and it would have been worse: the two
+applications serve the same paths on the same port, so they are alternatives rather than
+neighbours. Porting everything with Express still running, then switching once, needs no
+proxy and no split-brain window.
 
-1. **`TempStore`** (`server/server.ts:28`) is a process-local `Map` holding Discord tokens
-   between the two OAuth callbacks, TTL'd by a bare `setTimeout`. On any multi-instance
-   deploy the two callbacks can land on different instances and the link silently 403s.
-   Replace with an encrypted cookie (`iron-session`) or Redis.
-2. **Signed cookies.** `clientState` and `ErrorDetail` use `cookie-parser` signing, which has
-   no Next.js equivalent. Move to encrypted session cookies — this also fixes S7.
-3. **Redirect URIs** are registered with two external providers
-   (`DISCORD_REDIRECT_URI`, `NEXUS_REDIRECT_URI`). Changing origin or path requires console
-   changes on both Discord *and* Nexus Mods. Plan for a cutover window, or keep the paths
-   identical.
-4. **Seven hardcoded URLs in the bot** point at `https://discordbot.nexusmods.com/...`
-   (`interactions/link.ts:45,79,86`, `claimrole.ts:35,41`, `refresh.ts:118`, `search.ts:447`,
-   `unlink.ts:29,39`, `types/subscriptions.ts:426,464`). Move to config **before** the split.
-5. **`/success` carries its result in query params** and is therefore forgeable by anyone.
-   Fix during the port.
+**TempStore and `iron-session`.** The in-flight OAuth state did have to move, and it moved
+in 4.3.0 — before the port, not during it — into a cookie sealed with the same versioned
+format the token encryption uses, rather than a session library or Redis. That is what
+made the web service stateless, which is what made the port a rewrite of the front end
+rather than a rewrite of the flow.
 
-### 4.3 What you get
+**Signed cookies "have no Next.js equivalent".** True, and the answer was not to move to
+encrypted sessions. `cookie-parser`'s format was reimplemented exactly, so a cookie
+written by either server is readable by the other — which is what lets the switch happen
+without dropping anyone mid-link.
 
-There is nothing worth preserving stylistically:
+**The redirect URIs needed no cutover window at all.** The ported routes kept Express's
+paths, so both developer consoles are unchanged and either server can serve the same
+registered URI. That was the single most useful constraint in the whole port.
 
-- 16 EJS files, 237 lines, **22.5 KB — of which `header.ejs` alone is 12 KB**, almost
-  entirely one inline `<symbol>` SVG. Actual hand-written body markup is ~10 KB.
-- No layout engine. `header.ejs` opens `<html>`/`<body>`/`<main>` and `footer.ejs` closes
-  them — an unbalanced fragment pair that only works via string concatenation.
-- `styles.css` is **213 lines**, hand-written, no preprocessor, no variables, colours
-  (`#2b2d2f`, `#d98f40`, `#55b8e4`) repeated as literals. Every class is prefixed
-  `maintenance-page__` — it was lifted from a Nexus Mods maintenance page and never renamed.
-  `styles.css:171-213` is a second, differently-indented block appended for `/tracking`,
-  with a duplicate `table {}` rule.
-- No client-side JS at all (`footer.ejs:1` has the script tag commented out).
-- Heavy inline `style=` attributes across six templates.
+### The ten steps
 
-So: **Next.js App Router + Tailwind + your internal design system**, aligning with the other
-Nexus internal projects. `trackingInfo.ejs:35` calls `timeAgo(sub.last_update)` — a function
-passed in as an Express local, and the only genuinely non-portable binding. It becomes a
-plain import.
+| | Step | Note |
+|---|---|---|
+| 1 | Move the bot into `apps/bot` | The image deliberately did not move |
+| 2 | Scaffold `apps/web` on Next 16 with the Nexus Mods theme | Tailwind 4, tokens in CSS |
+| 3-5 | Cut five packages out of the bot | Subpath exports, types from source |
+| 6 | Port the eight rendered views | Typed fixtures, no data path yet |
+| 7 | Rebuild what Express was carrying | Rate limits, security headers, signed cookies, body limits, client IP, boot check |
+| 8 | Port the four machine endpoints | `/webhook`, `/automod`, `/show-metadata`, `/update-metadata` |
+| 9 | Port the account link, and wire `/tracking` to the database | The step the plan had lost — see below |
+| 10 | Build the auth site as its own image | Standalone output, second image, CI publishes both |
 
-### 4.4 Suggested shape
+### The thing worth remembering
 
-```
-/apps
-  /bot            # discord.js — gateway, commands, feeds
-  /web            # Next.js — OAuth, status, tracking, automod admin
-/packages
-  /db             # Drizzle schema + migrations + queries  (shared)
-  /nexus-api      # GraphQL client + generated types       (shared)
-  /shared         # domain types, formatting helpers       (shared)
-```
+**Step 9 should not have existed.** After steps 6, 7 and 8 the plan said "delete Express
+and deploy" — and a third of the site had never been ported. `/linked-role`, both OAuth
+callbacks, the `/revoke` submit, `/nxm` and `/localhost-redirect` were still Express's
+alone, and `/tracking` was rendering a fixture. The account link, which is the reason the
+site exists, was one of them.
 
-pnpm workspaces + Turborepo. This is the only structural change in the plan, and it exists
-because the bot and the web app genuinely need to share the schema and the Nexus API client.
+Nothing failed, because nothing compared the two servers: the Next application was
+consistent with itself and every test passed. `apps/web/tests/routeParity.test.ts` is that
+comparison now — it reads the route table out of `server.ts` rather than listing paths —
+and it is the gate on deleting Express.
 
-**Sequencing:** stand up `/apps/web` alongside the Express app, port routes group by group
-behind a reverse proxy, and retire `server/` last. No big-bang cutover.
+Three defects were found the same way, all of them silent:
+
+- `/success` read `?discordId` and `?nexusId`; the redirect sends `d_id` and `n_id`. The
+  page falls back to a plain name when an id is missing, so the only symptom was two
+  profile links quietly not being links.
+- The error pages read their message from `?error=`, which meant anyone could hand out a
+  link on the real domain rendering text of their choosing in the error box.
+- `/revoke` took both account names from the query string, so the page a user reads before
+  unlinking would print any names for any id, with no signature checked.
 
 ---
 
@@ -532,29 +576,31 @@ behind a reverse proxy, and retire `server/` last. No big-bang cutover.
 
 ## Sequencing and effort
 
-| Phase | Effort | Risk | Ships |
+| Phase | Effort | Risk | Status |
 |---|---|---|---|
-| ~~0 — Security + crash bugs~~ | 3 days actual | Low | **shipped, 3.17.0** ✓ |
-| ~~1 — Build, logging, errors, tests, CI~~ | 1 week actual | Low | **shipped, 4.0.0** ✓ |
-| ~~2 — Command framework + dedupe~~ | ~1 week actual | Medium | **on 4.0.0** ✓ |
-| ~~3.1 — Migrations~~ | 1 day actual | Medium | **on 4.0.0** ✓ |
-| ~~3.2 — Query layer~~ | 1 day actual | Medium | **on 4.0.0** ✓ |
-| 3.3 — GraphQL codegen | 3–5 days | Low | Query by query |
-| 3.4 — Auth token encryption (S9) | 2–3 days | **High** | One migration, not reversible in place |
-| 3.5 — Query error contract | 2–3 days | Medium | Changes feed behaviour |
-| ~~3.6 — Import cycles~~ | 1 day actual | Low | **on 4.0.0** ✓ (2 left, documented) |
-| 4 — Next.js split | 3–4 weeks | Medium | Route group by route group |
-| 5 — Sharding decision + dead code | 1 week | Low | Any time |
+| ~~0 — Security + crash bugs~~ | 3 days actual | Low | **shipped, 3.17.0** |
+| ~~1 — Build, logging, errors, tests, CI~~ | 1 week actual | Low | **shipped, 4.0.0** |
+| ~~2 — Command framework + dedupe~~ | ~1 week actual | Medium | **shipped, 4.0.0** |
+| ~~3.1 — Migrations~~ | 1 day actual | Medium | **shipped, 4.0.0** |
+| ~~3.2 — Query layer~~ | 1 day actual | Medium | **shipped, 4.0.0** |
+| ~~3.3 — GraphQL codegen~~ | 3–5 days est. | Low | **shipped** |
+| ~~3.4 — Auth token encryption (S9)~~ | 2–3 days est. | **High** | **shipped, 4.3.0** |
+| ~~3.5 — Query error contract~~ | 2–3 days est. | Medium | **shipped, 4.1.0** |
+| ~~3.6 — Import cycles~~ | 1 day actual | Low | **shipped, 4.0.0** (2 left, documented) |
+| ~~4 — Next.js split~~ | 3–4 weeks est. | Medium | **built, not merged** |
+| ~~5 — Sharding decision + dead code~~ | 1 week est. | Low | **shipped, 4.4.0** |
 
-**Remaining: roughly 5–7 weeks of one engineer**, down from 7–10 at the last revision.
-Phases 0–2 and 3.1–3.2 took about two and a half weeks against a 5.5–9 week estimate,
-so the remaining figures are probably still pessimistic — but 3.4 and Phase 4 are the two
-items with genuine unknowns in them, and they are what the estimate hangs on.
+**Everything estimated has been built.** What remains is not development work: merge,
+switch the web container, delete Express. The one piece of engineering still outstanding
+is authenticating `POST /webhook`, and it is blocked on an answer from Invision rather
+than on effort.
 
-**Order matters in two places.** 3.6 is done, so the Phase 4 prerequisite is met. 3.4 should not run at the same time
-as anything else touching `users`, since it rewrites every token column. 3.5 wants to land
-on its own, so that a change in feed behaviour can be attributed if something looks wrong
-after a deploy.
+The estimates were consistently pessimistic, and one was not. Phase 4 was forecast at 3–4
+weeks and came in around that — but the shape was wrong in a way worth recording: most of
+the time went into the things the forecast treated as incidental (the security middleware
+Express provided for free, the packaging, the image) and the route porting itself was the
+quick part. The step that was missing from the plan entirely — porting the account link —
+was the one with the real risk in it.
 
 ---
 
@@ -568,7 +614,52 @@ changelog line.
 
 ---
 
-## 4.0.0 — built, not yet deployed
+## 5.0.0 — built, not merged
+
+The monorepo move, five shared packages, and the Next.js front-end. Recorded above under
+*Phase 4 — built, not merged*; the deployment steps are in `DEPLOYING.md`.
+
+What ships with it that is not the front-end: the bot moves to `apps/bot`, `core`,
+`nexus-api`, `auth`, `persistence` and `account` become packages, the two applications
+share one `build:packages` script, and the image gains a workspace-flattening step so
+`node dist/shards.js` under `/app` stays correct. That is the part of 5.0.0 that changes
+what production runs.
+
+---
+
+## 4.4.0 — shipped
+
+The server boundary. `src/auth/` split out of `src/server/`, `/tag-votes` retired, the
+last of the dead code swept, and every environment variable documented. The deploy script
+was reconstructed into the repository, where it had never existed.
+
+---
+
+## 4.3.0 — shipped
+
+Phase 3.4: OAuth tokens encrypted at rest, with a backfill, a read-only census
+(`--report`), and an owner-only `/tokens` command to drive the rollout. The in-flight half
+of an account link moved out of a process-local `Map` and into a sealed cookie in the same
+format — which is what made the web service stateless and the Next port possible without
+rewriting the flow.
+
+---
+
+## 4.2.0 — shipped
+
+The auth site became its own container from the same image, rather than something the bot
+process happened to be running on shard 0.
+
+---
+
+## 4.1.0 — shipped
+
+Phase 3.5: the query error contract. Feeds stopped recording a failed poll as a successful
+empty one.
+
+---
+
+## 4.0.0 — shipped
 
 
 ### Phase 1 — Foundations — **shipped in 4.0.0**
