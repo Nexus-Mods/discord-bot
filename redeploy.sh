@@ -28,10 +28,10 @@ for c in bot web; do docker rm -f "$c" >/dev/null 2>&1 || true; done
 
 echo "Starting bot"
 
-docker run -d --name bot --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" "$BOT_IMAGE" node dist/shard.js
+docker run -d --name bot --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" "$BOT_IMAGE" node dist/shards.js
 
 echo "Starting web"
-docker run -d --name web --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" -e PORT=3000 node server.js
+docker run -d --name web --restart unless-stopped --network host -v "$ENV_FILE:/app/.env" -e PORT=3000 "$WEB_IMAGE" node server.js
 
 docker image prune -f
 
