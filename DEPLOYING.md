@@ -20,6 +20,51 @@ Both images are tagged `:latest`, `:<version>` and `:<sha>` from the same commit
 is what pairs them** - deploying a bot image and a web image built from different commits is
 the mistake worth avoiding, and the sha tag is how to be sure.
 
+### Before this deploys: the forum webhook needs its secret
+
+**This one has an ordering requirement and breaks a working feature if it is missed.**
+
+`POST /webhook` used to accept a payload from anyone who knew the URL and render it into
+the Discord suggestions channel - the embed's clickable link, the author name, the avatar
+image and the text all came from the request body. That was S3, the last exploitable
+finding from the original audit. It now requires a shared secret.
+
+The secret travels in the URL, because Invision attaches no headers of its own and this
+installation cannot be made to attach one, so the target URL is the only part of the
+request the sending side lets anyone configure.
+
+Do it in this order, and nothing breaks:
+
+1. **Generate one:** `openssl rand -hex 32`.
+2. **Put it on the forum's webhook URL first**, in the forum AdminCP under System > API:
+
+   ```
+   https://discordbot.nexusmods.com/webhook?key=<the secret>
+   ```
+
+   The currently deployed code ignores an unknown query parameter, so suggestions keep
+   working exactly as they do now. Nothing has changed yet.
+3. **Add `FORUM_WEBHOOK_SECRET=<the secret>` to the production `.env`.**
+4. **Deploy.** From here the bare `/webhook` is refused with a 401.
+
+If step 3 is missed, the endpoint refuses *everything* and forum suggestions stop
+arriving in Discord until it is set. That is the deliberate trade - a missing secret
+makes the endpoint unavailable rather than unprotected - and the web app's boot check
+names `FORUM_WEBHOOK_SECRET` in its warnings, so `docker logs` says which it is.
+
+To check it afterwards: the bare URL should answer 401, and the URL with the key should
+answer 200.
+
+```sh
+curl -si -X POST https://discordbot.nexusmods.com/webhook -d '{}' | head -1   # 401
+```
+
+**What this does not do.** The payload is still trusted once the secret checks out, so
+anyone who obtains the secret regains the original capability. A secret in a URL is a
+bearer token in a place that ends up in access logs and in the forum's admin screen, so
+it is worth rotating if either is ever exposed - rotation is steps 1 to 4 again. The
+stronger version, which needs nothing from the forum, is recorded in `MODERNISATION.md`.
+
 ### Before the switch: `DBPORT` must be set
 
 **Do this first, and check it.** The production `.env` sets `PORT=5432` and no `DBPORT`.

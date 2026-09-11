@@ -4,13 +4,43 @@ import type { ForumPost, ForumTopic } from '../types/ForumWebhookTypes.js';
 import type express from 'express';
 import { htmlToText } from 'html-to-text';
 import { getTopic } from './forumAPI.js';
+import { checkSharedSecret } from '@nexusmods/auth/signing.js';
 // Loads .env by walking up from the code, not from the working directory.
 import '@nexusmods/core/env.js';
 
 const FORUM_SUGGESTION_FORUM_ID = 9063; // The ID of the forum for suggestions.
 const SUGGESTION_ICON = 'https://staticdelivery.nexusmods.com/images/2295/31179975-1744285207.png'; // The icon for the suggestion forum.
 
+/**
+ * The shared secret, carried in the query string because there is nowhere else to put it.
+ *
+ * This was S3: the endpoint took a 5MB POST from anyone who knew the URL and rendered it
+ * into a Discord channel, with the payload controlling the embed's clickable link, the
+ * author name, the avatar image and the text. The `forum.id === 9063` check below is no
+ * defence, because it reads the id out of the same body.
+ *
+ * Invision attaches no headers of its own and this installation cannot be made to, so the
+ * target URL is the only part of the request the sending side lets anyone configure.
+ *
+ * Fails closed, via the same comparison the automod and admin endpoints use: with
+ * FORUM_WEBHOOK_SECRET unset, every request is refused. That means the URL in the forum's
+ * webhook settings has to carry `?key=...` BEFORE this deploys, or suggestions stop. The
+ * old code ignores an unknown query parameter, so adding it first is safe and is the
+ * order DEPLOYING.md gives.
+ */
+function authorised(req: express.Request): boolean {
+    const provided = req.query['key'];
+    return checkSharedSecret(typeof provided === 'string' ? provided : undefined, 'FORUM_WEBHOOK_SECRET');
+}
+
 export default async function forumWebhook(req: express.Request, res: express.Response, logger: Logger): Promise<void>{
+    // Before the 200, and before anything reads the body.
+    if (!authorised(req)) {
+        logger.warn('Rejected an unauthenticated forum webhook');
+        res.sendStatus(401);
+        return;
+    }
+
     const data = req.body;
     res.status(200).send('OK');
 

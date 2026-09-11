@@ -41,6 +41,22 @@ export function requireSharedSecret(request: Request, envVar: string): NextRespo
     return new NextResponse(null, { status: 401 });
 }
 
+/**
+ * The same refusal, for a secret that arrives in the URL instead of a header.
+ *
+ * `/webhook` cannot use the header form: Invision attaches no headers of its own and this
+ * installation cannot be made to, so the only part of the request the sending side lets
+ * anyone configure is the target URL. A query parameter is what is left.
+ *
+ * It is the same comparison underneath - constant-time, and failing closed when the
+ * variable is unset - so the two guards cannot drift apart on the property that matters.
+ */
+export function requireQuerySecret(request: Request, param: string, envVar: string): NextResponse | undefined {
+    const provided = new URL(request.url).searchParams.get(param);
+    if (checkSharedSecret(provided, envVar)) return undefined;
+    return new NextResponse(null, { status: 401 });
+}
+
 /** `res.status(n).send(text)` - a plain body, never HTML, never a rendered error page. */
 export function text(body: string, status: number): NextResponse {
     return new NextResponse(body, {

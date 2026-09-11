@@ -55,7 +55,23 @@ export const REQUIRED_SECRETS: ReadonlyArray<{ name: string; reason: string }> =
     { name: 'DISCORD_TOKEN', reason: 'The tracking page resolves guild and channel names with it' },
 ];
 
-export const OPTIONAL_SECRETS: ReadonlyArray<string> = ['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE'];
+export const OPTIONAL_SECRETS: ReadonlyArray<string> = [
+    'AUTOMOD_AUTHCODE',
+    'ADMIN_AUTHCODE',
+    /**
+     * The forum webhook's secret, which is carried in the URL rather than a header.
+     *
+     * Invision cannot attach a custom header on this installation, and the target URL is
+     * the only thing about the request the sending side lets anyone configure - so the URL
+     * is where the secret has to go. That is weaker than an HMAC and stronger than nothing:
+     * it is a bearer token in a place that ends up in access logs and in the forum's admin
+     * screen, so it is worth rotating if either is ever exposed.
+     *
+     * Optional in the same sense as the other two: absent means the endpoint rejects
+     * everything, which is loud rather than silent, and the boot check says so.
+     */
+    'FORUM_WEBHOOK_SECRET',
+];
 
 /**
  * Standard options for any cookie this site sets.

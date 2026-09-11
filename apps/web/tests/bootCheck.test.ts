@@ -6,7 +6,7 @@ import { inspectEnvironment } from '@/lib/bootCheck';
  * call process.exit, which is exercised for real by starting the app without the secrets -
  * see the commit message.
  */
-const base = { COOKIE_SECRET: 'a', UNLINK_SECRET: 'b', DISCORD_TOKEN: 'e', DBPORT: '5432', AUTOMOD_AUTHCODE: 'c', ADMIN_AUTHCODE: 'd' };
+const base = { COOKIE_SECRET: 'a', UNLINK_SECRET: 'b', DISCORD_TOKEN: 'e', DBPORT: '5432', AUTOMOD_AUTHCODE: 'c', ADMIN_AUTHCODE: 'd', FORUM_WEBHOOK_SECRET: 'f' };
 
 describe('the environment the site needs', () => {
     it('is happy when everything is set', () => {
@@ -26,7 +26,7 @@ describe('the environment the site needs', () => {
         // behaviour - but silently rejecting everything is worth a line in the log.
         const problems = inspectEnvironment({ COOKIE_SECRET: 'a', UNLINK_SECRET: 'b', DISCORD_TOKEN: 'e', DBPORT: '5432' });
         expect(problems.missing).toEqual([]);
-        expect(problems.unguarded).toEqual(['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE']);
+        expect(problems.unguarded).toEqual(['AUTOMOD_AUTHCODE', 'ADMIN_AUTHCODE', 'FORUM_WEBHOOK_SECRET']);
     });
 
     it('notices an unset TRUST_PROXY in production and only in production', () => {

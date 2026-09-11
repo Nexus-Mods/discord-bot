@@ -2,18 +2,32 @@ import { NextResponse } from 'next/server';
 import { logger } from '@nexusmods/core/logger.js';
 import { WEBHOOK_MAX_BYTES, readJsonWithLimit } from '@/lib/security/bodyLimit';
 import { handleForumEvent } from '@/lib/forum/webhook';
+import { requireQuerySecret } from '@/lib/machineRoute';
 
 /**
- * POST /webhook - Invision posts here when a forum topic or reply is created.
+ * POST /webhook?key=<secret> - Invision posts here when a forum topic is created.
  *
- * The one endpoint in this application that takes a large POST from a caller it cannot
- * authenticate. Invision offers no shared secret, no HMAC and no IP setting, so anyone who
- * learns the URL can post to it - which is why the 5MB cap is enforced by reading and
- * counting rather than configured on a parser that has already been handed the request.
+ * This was S3, the last exploitable finding from the original audit: the endpoint took a
+ * 5MB POST from anyone who knew the URL and rendered it into a Discord channel. What the
+ * payload controls is the whole embed - the clickable title link, the author name, the
+ * author's avatar image, and two thousand characters of text - so a caller could put a
+ * message that looks exactly like a genuine Nexus Mods suggestion, carrying any link they
+ * liked, in front of everyone in that channel. The `forum.id === 9063` filter below is no
+ * defence against that: it reads the id out of the same body.
  *
- * The plan's note stands and gets worse at step 9: after the cutover this lives in the
- * same deployment as the public site. The two mitigations that need nothing from Invision
- * are a secret in the URL path and an inbound IP allow-list on the droplet.
+ * The secret is in the URL because there is nowhere else to put it. Invision attaches no
+ * headers of its own, and this installation cannot be made to attach one, so the target
+ * URL is the only part of the request the sending side lets anyone configure.
+ *
+ * That is a bearer token in a URL, and worth being clear-eyed about: it ends up in access
+ * logs and in the forum's admin screen, and anyone who reads either has the endpoint. It
+ * closes "anyone who knows the path", which was the finding; it does not make the payload
+ * trustworthy. The stronger version - taking only the topic id and re-fetching the topic
+ * from the forum API, which needs nothing from the sender - is a separate change and is
+ * recorded in MODERNISATION.md.
+ *
+ * The 5MB cap still matters and is still enforced by reading and counting rather than
+ * configured on a parser that has already been handed the request.
  *
  * It answers 200 before doing the work, exactly as the Express version does. Invision
  * retries on a slow or failed response, and posting to several Discord webhooks is slower
@@ -22,6 +36,11 @@ import { handleForumEvent } from '@/lib/forum/webhook';
  * quietly change.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+    // Before the body is read, so an unauthenticated caller cannot make this process
+    // buffer five megabytes on its way to being refused.
+    const denied = requireQuerySecret(request, 'key', 'FORUM_WEBHOOK_SECRET');
+    if (denied) return denied;
+
     const body = await readJsonWithLimit(request, WEBHOOK_MAX_BYTES);
     if (!body.ok) {
         logger.warn('Rejected a forum webhook payload', { reason: body.reason });

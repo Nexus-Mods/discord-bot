@@ -67,11 +67,14 @@ the items that were never blocking anything.
 | 8 | **5.2** Dead code sweep | **shipped, 4.4.0** |
 | 9 | **Phase 4** Next.js front-end | **built, not merged** — see *Phase 4 — built, not merged* |
 
-The one item on the original list that is still genuinely open is **S3, the unauthenticated
-`POST /webhook`**. It is the last exploitable finding from the audit, it has survived every
-phase, and the port carried it across unchanged rather than inventing a scheme the sending
-side may not support. It is in *Open decisions* and it is the thing most worth doing next
-after the three steps.
+**S3, the unauthenticated `POST /webhook`, is closed.** It was the last exploitable
+finding from the audit and it survived every phase. It now requires a shared secret
+carried on the URL, in both servers — so it takes effect at the merge rather than at the
+switch. The URL has to carry the key before that deploy or suggestions stop arriving;
+`DEPLOYING.md` has the four-step order that avoids it.
+
+What is left of it is recorded under *Open decisions* as a residual rather than a hole:
+the payload is still trusted once the secret checks out.
 
 ---
 
@@ -122,8 +125,8 @@ for what has to be configured before this release goes out.
 
 | Item | Why it is still open |
 |---|---|
-| **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
-| **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
+| ~~**S3** — `POST /webhook` has no authentication~~ | **Closed in 5.0.0.** Invision could offer no header, HMAC or IP setting, so the secret went in the URL - in both servers, so it takes effect at the merge. The residual is in *Open decisions*: the payload is still trusted once the secret checks out. |
+| ~~**S9** — OAuth tokens stored in plaintext~~ | **Closed in 4.3.0.** |
 | Query modules still return `[]` on failure | The ~18 v2 query files swallow errors and return an empty result, so callers cannot tell "no results" from "the API is down". Fixing this changes feed behaviour (a transient API error would propagate instead of being a silent no-op cycle), so it belongs with the Phase 3 data-layer contract work rather than being slipped into 1.3. |
 
 **Production scale**, from `/about` on 29 August 2026 — these numbers change what some of
@@ -229,14 +232,32 @@ any of it in the container, on the droplet, under real traffic - which is what s
    `persistence` and `account` - five rather than the three sketched below, because the
    account model and the OAuth clients both turned out to be shared and neither belonged
    in a `shared` bucket.
-4. **What can the Invision forum send to `POST /webhook`?** **Still open, and now the last
-   one that matters.** S3 is the last unresolved security finding and the only one still
-   exploitable: anyone who knows the URL can post a payload that the bot will render into
-   the suggestions channel. The fix depends entirely on what the sending side supports - a
-   static shared-secret header, an HMAC signature over the body, or a fixed source IP
-   range - and any of the three is a short change against `apps/web/app/webhook/route.ts`,
-   which already has the shared-secret helper the other three machine endpoints use. What
-   is missing is an answer from Invision, not code.
+4. ~~**What can the Invision forum send to `POST /webhook`?**~~ **Answered: nothing
+   useful.** This installation of Invision attaches no headers of its own and cannot be
+   made to, so there is no header, no HMAC and no signature available — the target URL is
+   the only part of the request the sending side lets anyone configure.
+
+   **So the secret is in the URL**, `?key=<value>`, checked with the same constant-time
+   comparison and the same fail-closed behaviour as the automod and admin endpoints. That
+   closes the finding as stated: the endpoint no longer answers anonymous callers.
+
+   **The residual, stated plainly so it is not mistaken for done.** A secret in a URL is a
+   bearer token in a place that ends up in access logs and in the forum's admin screen, and
+   the payload is still trusted once it checks out — so anyone who obtains it regains the
+   original capability, which is an embed with an attacker's link, text and avatar image in
+   the suggestions channel.
+
+   **The stronger version needs nothing from the forum and is worth doing.** The webhook is
+   a notification, and the bot does not need to believe its contents — only that a topic
+   with a given id exists. Taking the id and re-fetching the topic through the forum's REST
+   API, which is already authenticated with `FORUM_API_KEY` and already wrapped by
+   `getTopic()`, would mean the worst an attacker could achieve is a duplicate post of a
+   genuine suggestion. It also makes the `forum.id === 9063` filter meaningful, which it is
+   not today: it reads the id out of the same body it is meant to be filtering. The cost is
+   one API call per new topic, and the reason to be careful is the one that disabled reply
+   handling — fetching per *reply* tripped Cloudflare — which does not obviously apply to
+   topics in one low-volume forum.
+
 5. ~~**Where does the encryption key for 3.4 live?**~~ **Answered: an environment
    variable,** `TOKEN_ENCRYPTION_KEY`. The bot refuses to start without it. Rotation is a
    redeploy rather than a feature, which was the trade this decision named; the sealed
@@ -1142,8 +1163,9 @@ architectural collapse — they were **accumulated drift**. Four things dominate
 
 1. ~~**Three unauthenticated HTTP endpoints**, one of which deletes any user's account link
    from a `GET` request, and one of which has an inverted auth check guarding write access
-   to the automod rules table.~~ **Closed in 3.17.0**, except `POST /webhook` (S3), which
-   is still unauthenticated and still the one exploitable finding.
+   to the automod rules table.~~ **Closed.** Two in 3.17.0; `POST /webhook` (S3) took until
+   5.0.0, because the answer depended on what the forum could be made to send and the
+   answer turned out to be nothing - so the secret went in the URL instead.
 2. **Copy-paste is the primary design pattern.** Four near-identical `track*` functions, two
    identical halves of `automod.ts`, four files expressing one GraphQL query (two with a
    literal space in the filename), three identical DB pool wrappers, ~18 query files that
