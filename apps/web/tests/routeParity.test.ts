@@ -4,23 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Every path Express serves has something serving it here.
+ * Every path Express serves has something serving it here. Reads the route table out of
+ * server.ts rather than listing paths, so it notices when the two disagree.
  *
- * This test exists because the port lost a third of itself without anyone noticing. Steps
- * 6, 7 and 8 moved the views, the security concerns and the machine endpoints, and the
- * plan's next step was "delete Express" - but /linked-role, /discord-oauth-callback,
- * /nexus-mods-callback, the /revoke submit, /nxm and /localhost-redirect had never been
- * written. The account link, which is the reason the site exists, was still entirely
- * Express's. Nothing failed, because nothing compared the two servers: the Next app was
- * consistent with itself and every test passed.
- *
- * So the comparison is the test. It reads the route table out of server.ts rather than
- * listing the paths here, because a list here is a second thing to keep up to date and
- * this is meant to be the thing that notices when they disagree.
- *
- * It is also the gate on step 10: Express cannot be deleted until this passes, and once
- * Express is deleted this file goes with it - by then it has done its job and there is no
- * longer another server to be parity with.
+ * The gate on deleting Express - and this file goes with it when that happens.
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const APP = path.join(here, '..', 'app');
@@ -65,10 +52,8 @@ describe('the Next app against the Express route table', () => {
     });
 
     /**
-     * The GET/POST pair on /revoke is the one Next cannot express as two files: a segment
-     * holds either a page or a route handler, never both. It is a server action instead, so
-     * this checks the action exists rather than that a POST handler does - otherwise the
-     * check above passes on the page alone and the submit is silently gone.
+     * A Next segment holds either a page or a route handler, never both, so /revoke's POST
+     * is a server action. Without this the check above passes on the page alone.
      */
     it('has a submit for POST /revoke, which Next cannot serve as a route handler', () => {
         const post = expressRoutes().find((r) => r.method === 'POST' && r.path === '/revoke');
@@ -81,19 +66,14 @@ describe('the Next app against the Express route table', () => {
         expect(source).toContain('export async function revokeAccountLink');
 
         const page = readFileSync(path.join(APP, 'revoke', 'page.tsx'), 'utf8');
-        // The form has to be wired to the action, not to a URL: `action="/revoke"` would
-        // post to the page and get a 405.
+        // Wired to the action, not a URL: `action="/revoke"` would post to the page.
         expect(page).toContain('<form action={revokeAccountLink}>');
     });
 
     /**
-     * The two ends of the success redirect, which drifted apart without breaking anything.
-     *
-     * Express reads `d_id` and `n_id` from the query and renders them as template variables
-     * called `discordId` and `nexusId`. Step 6 ported the page from the template and read
-     * the template's names off the query string, so the ids were always absent - and the
-     * page falls back to a plain name when they are, so the only symptom was two profile
-     * links quietly not being links.
+     * The two ends of the success redirect. Express reads `d_id`/`n_id` and renders them as
+     * template variables named `discordId`/`nexusId`, and the page falls back to a plain
+     * name when an id is missing - so a mismatch loses the links without breaking anything.
      */
     it('sends the success page the query parameters it reads', () => {
         const page = readFileSync(path.join(APP, 'success', 'page.tsx'), 'utf8');

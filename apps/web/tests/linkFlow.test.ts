@@ -3,18 +3,11 @@ import { LINK_STATE_COOKIE, openLinkState, sealLinkState } from '@nexusmods/auth
 import { signCookieValue, unsignCookieValue } from '@/lib/security/signedCookies';
 
 /**
- * The three requests an account link is made of, driven through the route handlers.
+ * The three requests an account link is made of, driven by calling the exported GET with a
+ * hand-built Request - no server, no port, so a failure here is the handler's.
  *
- * The Express version of this file is apps/bot/tests/server/link-flow.test.ts and it works
- * by starting the app and driving it with a cookie jar. These call the exported GET with a
- * hand-built Request instead, which is why the handlers take `Request` rather than
- * `NextRequest`: there is no server, no port and no framework in the loop, so a failure
- * here is the handler's.
- *
- * What is under test is the refusals. The happy path is three redirects and is worth one
- * test each; the interesting cases are the eight ways a request can fail to prove it
- * belongs to the flow it claims, because every one of them is somebody else's link
- * otherwise.
+ * Mostly the refusals: each is a way a request can fail to prove it belongs to the flow it
+ * claims, and every one of them is otherwise somebody else's link.
  */
 
 const COOKIE_SECRET = 'test-cookie-secret';
@@ -85,8 +78,7 @@ describe('GET /linked-role', () => {
 
         expect(response.status).toBe(302);
         expect(response.headers.get('location')).toContain('https://discord.com/api/oauth2/authorize');
-        // The state Discord is asked to echo is the one in the cookie. If these two ever
-        // come from different places the callback rejects every genuine return.
+        // If these two ever come from different places, every genuine return is rejected.
         expect(new URL(response.headers.get('location')!).searchParams.get('state')).toBe(STATE);
         expect(cookieOn(response, 'clientState')).toBe(STATE);
     });
@@ -149,14 +141,8 @@ describe('GET /discord-oauth-callback', () => {
         expect((await discordCallback(request(url(ok)))).status).toBe(403);
     });
 
-    /**
-     * The one that matters most, and the one a hand-rolled cookie read would get wrong.
-     *
-     * A client can set any cookie it likes. What it cannot do is produce the HMAC, so an
-     * unsigned `clientState=<state>` must not be accepted even though its value matches the
-     * state in the query - which is exactly what `request.cookies.get('clientState')` would
-     * hand you, and it type-checks.
-     */
+    // A client can set any cookie but cannot produce the HMAC, so a matching unsigned
+    // value must still be refused - which is what `cookies.get()` would hand you.
     it('refuses a state cookie that is not signed, even when the value matches', async () => {
         const response = await discordCallback(request(url(ok), { clientState: STATE }));
         expect(response.status).toBe(403);
@@ -196,14 +182,8 @@ describe('GET /nexus-mods-callback', () => {
         return { clientState: signed(STATE), [LINK_STATE_COOKIE]: signed(sealed), ...overrides };
     }
 
-    /**
-     * Sealed with the real implementation, imported at the top of the file.
-     *
-     * Not `require('@nexusmods/auth/linkState.js')`, which was the first version of this:
-     * a runtime require goes through node's resolver rather than vitest's aliases, so it
-     * answers the package's exports map with dist/ and fails unless someone has run a
-     * build. The aliases exist precisely so the suite tests source.
-     */
+    // Sealed with the real implementation. Not require(): that bypasses vitest's aliases
+    // and resolves the package to dist/, which needs a build.
     function sealFor(state: string): string {
         return sealLinkState({ state, id: '1234567890', name: 'someone#0', tokens: discordTokens }, COOKIE_SECRET);
     }
@@ -217,8 +197,7 @@ describe('GET /nexus-mods-callback', () => {
         const location = response.headers.get('location')!;
         expect(location.startsWith('/success?')).toBe(true);
         const params = new URLSearchParams(location.slice('/success?'.length));
-        // The names the success page reads. Getting these wrong loses the profile links
-        // without breaking the page - see tests/routeParity.test.ts.
+        // The names the success page reads; wrong ones lose the links without breaking it.
         expect(params.get('d_id')).toBe('1234567890');
         expect(params.get('n_id')).toBe('31179975');
         expect(params.get('discord')).toBe('someone#0');
@@ -226,8 +205,8 @@ describe('GET /nexus-mods-callback', () => {
     });
 
     it('clears the sealed cookie on the way out, every time', async () => {
-        // Live Discord access and refresh tokens are in that cookie. A path that leaves it
-        // behind leaves them in the browser for the rest of their five minutes.
+        // That cookie holds live Discord tokens; a path that leaves it behind leaves them
+        // in the browser for the rest of their five minutes.
         for (const [name, req] of [
             ['success', request(url(ok), cookies())],
             ['state mismatch', request(url({ ...ok, state: 'wrong' }), cookies())],
@@ -241,8 +220,7 @@ describe('GET /nexus-mods-callback', () => {
     });
 
     it('refuses a sealed cookie captured from a different attempt', async () => {
-        // The victim's cookie is valid, correctly signed, and unexpired. It belongs to
-        // another flow, and the state inside it says so.
+        // Valid, signed and unexpired - but the state inside says it is another flow.
         const stolen = signed(sealFor('the-victims-state'));
         const response = await nexusCallback(request(url(ok), cookies({ [LINK_STATE_COOKIE]: stolen })));
 

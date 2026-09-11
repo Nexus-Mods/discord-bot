@@ -2,25 +2,16 @@ import { createRequire } from 'node:module';
 import pino, { type Logger as PinoLogger, type LoggerOptions } from 'pino';
 
 /**
- * Logging for the bot, backed by pino.
- *
- * The public shape - info(message, data) - is deliberately unchanged from the
- * hand-rolled logger it replaces, so the ~300 existing call sites did not have to
- * move. What changed underneath: real levels, JSON output in production, stack
- * traces on errors, and redaction of anything that looks like a credential.
+ * Logging, backed by pino. The `info(message, data)` shape is unchanged from the logger it
+ * replaced, so the ~300 call sites did not move.
  */
 
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
 /**
- * Key names whose values must never reach the logs. Matched case-insensitively as
- * substrings, so `nexus_access`, `discord_refresh`, `NexusModsOAuthTokens` and
- * `Authorization` are all caught. Over-matching here is the safe direction.
- *
- * This exists because the old logger printed whatever it was handed: dbConnect
- * logged the query values array, which for createUser and updateUser is the OAuth
- * token array, and users.ts logged an entire DiscordBotUser.
+ * Key names whose values must never reach the logs. Case-insensitive substrings, so
+ * `nexus_access`, `discord_refresh` and `Authorization` all match. Over-matching is safe.
  */
 const SECRET_FRAGMENTS = [
     'token', 'secret', 'password', 'passwd', 'authorization', 'auth_code',
@@ -29,9 +20,8 @@ const SECRET_FRAGMENTS = [
 ];
 
 /**
- * Keys that are only dangerous under their exact name, so they cannot go in the
- * substring list above without redacting half the logs. `values` is the bind array
- * dbConnect passes to pg - for createUser and updateUser that array IS the tokens.
+ * Exact-name matches only; as substrings these would redact half the logs. `values` is
+ * dbConnect's bind array, which for createUser and updateUser IS the tokens.
  */
 const SECRET_EXACT = ['values', 'bindings', 'params'];
 
@@ -44,11 +34,7 @@ function isSecretKey(key: string): boolean {
     return SECRET_FRAGMENTS.some((fragment) => k.includes(fragment));
 }
 
-/**
- * Walk a value and replace anything under a credential-shaped key. Depth-capped
- * and cycle-safe, because the objects handed to the logger include discord.js
- * structures that reference each other.
- */
+/** Depth-capped and cycle-safe: discord.js structures reference each other. */
 export function scrub(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
     if (value === null || typeof value !== 'object') return value;
     if (depth >= MAX_DEPTH) return '[max depth reached]';
@@ -67,11 +53,7 @@ export function scrub(value: unknown, depth = 0, seen = new WeakSet<object>()): 
     return out;
 }
 
-/**
- * pino-pretty runs in a worker thread, which is unwanted in tests and absent from
- * the production image after `npm prune --omit=dev`. Resolve it defensively rather
- * than crashing at startup if it is not there.
- */
+/** pino-pretty is a devDependency and absent from the production image after pruning. */
 function prettyTransport(): LoggerOptions['transport'] {
     if (isProduction || isTest) return undefined;
     try {
@@ -135,9 +117,8 @@ export class Logger {
 }
 
 /**
- * Map the legacy (message, data, ...args) call shape onto pino's merge object.
- * An Error goes under `err` so pino serialises the stack; everything else goes
- * under `data`, where the scrubbing serializer can reach it.
+ * The legacy (message, data, ...args) shape onto pino's merge object. An Error goes under
+ * `err` for the stack; everything else under `data`, where the scrubber reaches it.
  */
 function bindings(data: unknown, args: unknown[]): Record<string, unknown> {
     const merge: Record<string, unknown> = {};
@@ -148,10 +129,5 @@ function bindings(data: unknown, args: unknown[]): Record<string, unknown> {
     return merge;
 }
 
-/**
- * The process-wide logger. Lives here rather than in DiscordBot.ts, which is where
- * it used to be exported from - that made the data layer import the Discord client
- * module just to log, so nothing under api/ could be imported without booting the
- * bot.
- */
+/** The process-wide logger. Here, not DiscordBot.ts, so logging does not import the client. */
 export const logger = new Logger(process.env.SHARD_ID ?? 'Main');

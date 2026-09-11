@@ -49,13 +49,7 @@ function isTypeOnly(typeKeyword: string | undefined, braces: string | undefined)
     return names.length === 0 || names.every((n) => /^type\s/.test(n));
 }
 
-/**
- * A workspace subpath import, mapped back to the source file it will resolve to.
- *
- * `@nexusmods/core/logger.js` is packages/core/src/logger.ts. Without this the graph
- * would break in half at the package boundary, and a boundary that is invisible to the
- * test that guards it is worse than no test.
- */
+/** `@nexusmods/core/logger.js` -> packages/core/src/logger.ts, so the graph spans packages. */
 const WORKSPACE = /^@nexusmods\/([^/]+)\/(.+)\.js$/;
 
 function workspaceSource(spec: string): string | undefined {
@@ -132,9 +126,7 @@ describe('the web server stays out of the bot process', () => {
 });
 
 describe('the bot stays out of the web process', () => {
-    // Guard on the guard: every "not in this set" assertion below is trivially true of
-    // an empty set, and the reachability walk is exactly the kind of thing that silently
-    // returns one.
+    // Guard on the guard: every "not in this set" assertion is trivially true of an empty one.
     it('reaches a realistic module count from src/web.ts', () => {
         expect(web.size).toBeGreaterThan(15);
     });
@@ -149,9 +141,7 @@ describe('the bot stays out of the web process', () => {
         expect([...web].filter((f) => f.startsWith('src/events/'))).toEqual([]);
     });
 
-    // Two routes used to carry EmbedBuilder into the web process: api/users re-exported
-    // lib/profile, and types/subscriptions carried 380 lines of embed rendering. A data
-    // layer that renders Discord embeds is one a web app cannot share.
+    // A data layer that renders Discord embeds is one the web app cannot share.
     it('does not load Discord presentation code', () => {
         expect([...web].filter((f) => f === 'src/lib/embeds.ts' || f === 'src/lib/profile.ts')).toEqual([]);
         expect(web.has('src/feeds/subscriptionEmbeds.ts')).toBe(false);
@@ -215,9 +205,7 @@ describe('the shared surface', () => {
     const shared = [...web].filter((f) => bot.has(f)).sort();
 
     it('is the surface the packages will be cut from', () => {
-        // Not an assertion about the number so much as a guard on the walk: a broken
-        // resolver returns an empty set, and every test below would then pass by finding
-        // nothing to complain about.
+        // A guard on the walk: a broken resolver returns an empty set and passes everything.
         expect(shared.length).toBeGreaterThan(20);
         expect(shared).toContain('packages/persistence/src/schema.ts');
         expect(shared).toContain('packages/nexus-api/src/queries/v2.ts');
@@ -228,12 +216,8 @@ describe('the shared surface', () => {
         expect(offenders).toEqual([]);
     });
 
-    /**
-     * The cut packages are the shared surface made explicit, so they get the rule twice:
-     * once here as part of `shared`, and once below by their path - because a module in
-     * packages/ that no entry point happens to reach today would drop out of `shared`
-     * and out of the rule with it.
-     */
+    // Also checked by path below: a package no entry point reaches today would drop out
+    // of `shared` and out of the rule with it.
     const packaged = ALL.map(slash).filter((f) => f.startsWith('packages/'));
 
     it('is where the packages live, and the walk can see them', () => {
@@ -242,9 +226,7 @@ describe('the shared surface', () => {
     });
 
     it('keeps single-process libraries out of the packages entirely', () => {
-        // discord.js belongs to the bot, express and its middleware to the web app. A
-        // package reaching either is a dependency half its consumers pay for and none of
-        // them asked for.
+        // A package reaching either is a dependency half its consumers pay for.
         for (const pkg of ['discord.js', 'express', 'helmet', 'express-rate-limit', 'cookie-parser', 'ejs']) {
             const offenders = importersOfPackage(pkg).filter((f) => f.startsWith('packages/'));
             expect(offenders, `${pkg} is reached from a package`).toEqual([]);
@@ -252,10 +234,8 @@ describe('the shared surface', () => {
     });
 
     it('leaves the gateway library to the bot and the REST helpers to the web app', () => {
-        // Stated rather than implied, because "no discord.js in shared" is only half the
-        // rule. The web app legitimately uses REST, Routes, CDN and EmbedBuilder to talk
-        // to Discord over HTTP - discordDirectory and forumWebhook - and that is a
-        // different thing from holding a gateway connection.
+        // The web app may talk to Discord over HTTP - REST, Routes, CDN, EmbedBuilder -
+        // which is a different thing from holding a gateway connection.
         const gateway = importersOfPackage('discord.js').filter((f) => !shared.includes(f));
         for (const f of gateway) {
             expect(
@@ -283,9 +263,8 @@ describe('the environment', () => {
     });
 
     it('has every entry point load it as its first import', () => {
-        // Order is load-bearing: logger.ts reads process.env.SHARD_ID at module scope,
-        // and ES imports run before any statement in the importing module - so an env
-        // import placed after it would run too late to matter.
+        // Order is load-bearing: logger.ts reads SHARD_ID at module scope, and imports run
+        // before any statement in the importing module.
         for (const entry of ENTRY_POINTS) {
             const first = readFileSync(entry, 'utf8')
                 .split('\n')
@@ -319,8 +298,7 @@ describe('the environment', () => {
     });
 
     it('resolves .env from the code, not the working directory', async () => {
-        // The property that actually matters, exercised rather than asserted about: a
-        // file several levels above the module is found, whatever the cwd happens to be.
+        // The property that matters: a file several levels up is found, whatever the cwd.
         const { findEnvFile } = await import('@nexusmods/core/env.js');
         const root = mkdtempSync(path.join(tmpdir(), 'envwalk-'));
         const deep = path.join(root, 'apps', 'bot', 'dist', 'lib');
@@ -496,20 +474,10 @@ describe('build order', () => {
 
 describe('the lint config', () => {
     /**
-     * A file nothing lints looks exactly like a file with no problems.
-     *
-     * The config used to list directories - apps/*\/src, then tests, then app/ when
-     * apps/web arrived. Each time something appeared outside those, eslint reported "File
-     * ignored because no matching configuration was supplied" as a warning and exited 0,
-     * so `npm run lint` passed while checking none of it. It happened to apps/web, and
-     * then to all four packages: 46 modules stopped being linted the moment they were
-     * moved into packages/, and stayed that way for four commits.
-     *
-     * The patterns name the workspace roots now, so a new directory inside one is covered
-     * the day it exists. This is what is left to get wrong: a third workspace root.
+     * A file nothing lints looks exactly like a file with no problems: eslint reports "File
+     * ignored because no matching configuration was supplied" as a WARNING and exits 0.
+     * The patterns name the workspace roots, so what is left to get wrong is a third root.
      */
-    // Same climb as the Dockerfile assertions below: resolved from this file, because the
-    // working directory is apps/bot and the config is at the repository root.
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
     it('has a pattern for every workspace root', () => {
@@ -585,14 +553,12 @@ describe('entry points', () => {
         expect(reachableFrom(entry).has('src/db/migrate.ts')).toBe(true);
     });
 
-    // app.ts is the shard child, spawned by shards.ts after it has already migrated.
-    // If it migrates too, every shard races on the lock at startup for nothing.
+    // app.ts is the shard child: if it migrates too, every shard races on the lock.
     it('the shard child does not migrate', () => {
         expect(reachableFrom('src/app.ts').has('src/db/migrate.ts')).toBe(false);
     });
 
-    // The unsharded path is gone: it is what let local runs take `if (!client.shard)`
-    // branches production never takes. There is one way to start the bot.
+    // There is one way to start the bot; no unsharded branches production never takes.
     it('npm start runs the sharding manager, not the shard child', () => {
         const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts as Record<string, string>;
         expect(scripts.start).toBe('node dist/shards.js');
@@ -602,26 +568,18 @@ describe('entry points', () => {
         expect(startsTheChild).toEqual([]);
     });
 
-    /**
-     * Resolved from this file rather than the working directory. The 5.0.0 move put the
-     * bot in apps/bot while the Dockerfile stayed at the repository root, so `readFileSync
-     * ('Dockerfile')` - which had been correct for as long as the two were siblings -
-     * started reading a path two levels below the file it wanted.
-     */
+    // Resolved from this file: the working directory is apps/bot, the Dockerfile is at the root.
     const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
     it('the Dockerfile default is the sharding manager', () => {
-        // The exec form is what makes the bot PID 1 and lets it receive SIGTERM; the
-        // shell form put /bin/sh there and `docker stop` had to SIGKILL it mid-poll.
+        // Exec form: the shell form puts /bin/sh at PID 1, which swallows SIGTERM.
         const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
         expect(dockerfile).toContain('CMD ["node", "dist/shards.js"]');
     });
 
     it('flattens the workspace links so node_modules is self-contained', () => {
-        // The runtime stage copies node_modules and nothing else. npm does not install a
-        // workspace dependency, it links it - so without this step /app/node_modules/
-        // @nexusmods/core points at /app/packages/core, which the image does not have,
-        // and the bot dies on its first import. Nothing else in the build would fail.
+        // npm LINKS a workspace dependency, and the runtime stage copies node_modules
+        // without packages/ - so without this the links dangle and nothing else fails.
         const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
         expect(dockerfile).toMatch(/RUN node scripts\/flatten-workspace-deps\.mjs/);
         // And after the prune, which rewrites the tree it is rewriting.
@@ -629,10 +587,8 @@ describe('entry points', () => {
     });
 
     it('the image still puts the bot where the deploy path expects it', () => {
-        // The repository moved to apps/bot and the image deliberately did not: it keeps
-        // dist/ and package.json directly under /app so `node dist/shards.js` stays
-        // correct and redeploy.sh needs no change. If that stops being true, the deploy
-        // breaks somewhere far from the cause.
+        // The image keeps dist/ and package.json directly under /app, so
+        // `node dist/shards.js` stays correct and redeploy.sh needs no change.
         const dockerfile = readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
         expect(dockerfile).toContain('/repo/apps/bot/dist ./dist');
         expect(dockerfile).toContain('/repo/apps/bot/package.json ./package.json');

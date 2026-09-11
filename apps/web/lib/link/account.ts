@@ -7,26 +7,11 @@ import type { Logger } from '@nexusmods/core/logger.js';
 import { updateDiscordMetadata } from '@/lib/discordMetadata';
 
 /**
- * Writing the account link, ported from the body of AuthSite.nexusModsOauthCallback.
+ * Writing the account link - the only code in the web app that writes a user row.
  *
- * Split out from the route for the reason the automod rules were: the route is about
- * HTTP - state checks, cookies, redirects - and this is about an account. It is also the
- * only code in the web app that writes a user row, so it is worth being able to find.
- *
- * Sequence matters here and is preserved exactly:
- *
- *   1. look up the Discord id we already hold a link for
- *   2. exchange the code (this can fail, and must fail before anything is written)
- *   3. fetch the Nexus Mods profile
- *   4. if this Discord account is new to us but the Nexus Mods account is not, revoke and
- *      delete the *other* link first
- *   5. write the row
- *   6. push linked-role metadata
- *
- * Step 4 is the one that looks wrong and is not. A Nexus Mods account may only be linked
- * to one Discord account, so linking it to a second one has to remove the first, and the
- * removal happens before the write so the unique constraint the database holds is never
- * the thing that reports the conflict.
+ * The order matters: the code exchange must fail before anything is written, and an
+ * existing link on the same Nexus Mods account is revoked and deleted BEFORE the write, so
+ * the database's unique constraint is never what reports the conflict.
  */
 
 /** What the success page needs. Returned rather than redirected to, so the route owns the HTTP. */
@@ -41,8 +26,7 @@ export async function completeLink(discord: LinkState, code: string, logger: Log
     const existingUser = await getUserByDiscordId(discord.id);
 
     const tokens = await NexusModsOAuth.getOAuthTokens(code);
-    // baseheader carries the application name and version to the Nexus Mods API, which
-    // getUserData needs for the mod-author lookup.
+    // baseheader carries the application name and version for the mod-author lookup.
     const userData = await NexusModsOAuth.getUserData(tokens, logger, { ...baseheader });
 
     if (!existingUser) {
@@ -56,8 +40,7 @@ export async function completeLink(discord: LinkState, code: string, logger: Log
                 await nexusUser.NexusMods.Revoke();
             }
             catch (err) {
-                // Revoking the old tokens is best-effort: the link is being removed either
-                // way, and a Discord or Nexus Mods outage must not block the new one.
+                // Best-effort: an outage must not block the new link.
                 logger.warn('Error revoking tokens for alternate account', err);
             }
             await deleteUser(nexusUser.DiscordId);
@@ -65,12 +48,8 @@ export async function completeLink(discord: LinkState, code: string, logger: Log
     }
 
     /**
-     * `supporter` is deliberately "supporter and not premium".
-     *
-     * Premium implies supporter on the Nexus Mods side, and the linked-role metadata has
-     * separate booleans for the two - so without the exclusion a premium member matches a
-     * "supporter" role as well, which is not what a server owner granting one or the other
-     * means by it.
+     * `supporter` is "supporter and NOT premium": premium implies supporter upstream, and
+     * the linked-role metadata has separate booleans for the two.
      */
     const user: Partial<NexusUser> = {
         id: parseInt(userData.sub),
@@ -87,8 +66,7 @@ export async function completeLink(discord: LinkState, code: string, logger: Log
         discord_expires: discord.tokens.expires_at,
     };
 
-    // A row with no access token is a link that cannot be refreshed, which fails later and
-    // much less clearly. Checked before the write, as Express does.
+    // A row with no access token is a link that cannot be refreshed.
     if (!user.nexus_access) throw new Error('No Token in new user data!');
 
     const updatedUser = existingUser

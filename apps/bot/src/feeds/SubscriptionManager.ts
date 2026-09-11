@@ -27,11 +27,7 @@ import type { ModStatus } from "@nexusmods/nexus-api/types/GQLTypes.js";
 import { webhookFor } from './webhooks.js';
 import { forceChannelUpdateOnOwningShard, type ForceUpdateMessage, requestSubscriptionRefreshOnOtherShards, requireShard, shardIdForGuild } from '../lib/sharding.js';
 
-/**
- * Which shard owns a channel's guild. Was SubscribedChannel.shardId(client) - a method
- * on the data model that took a gateway client, which is why reading a subscription
- * needed one. The `?? 1` fallback it carried is gone: there is no unsharded mode.
- */
+/** Which shard owns a channel's guild. */
 const shardIdForChannel = (channel: { guild_id: Snowflake }, client: ClientExt): number =>
     shardIdForGuild(client, channel.guild_id);
 
@@ -133,8 +129,7 @@ export class SubscriptionManger {
 
     private async updateChannels() {
         const allChannels = await getSubscribedChannels();
-        // Only the channels for this shard. This assignment was missing once, so under
-        // sharding the channel list was never refreshed.
+        // Only the channels for this shard.
         const shardId = requireShard(this.client).ids[0];
         const shardChannels = allChannels.filter(c => shardIdForChannel(c, this.client) === shardId);
         this.logger.debug('Shard channels', { shardId, channels: shardChannels.length });
@@ -154,25 +149,16 @@ export class SubscriptionManger {
         else this.channels.push(channel);
     }
 
-    /**
-     * Entry point for the refresh another shard asks for. Public because it is called
-     * across a process boundary; updateSubscriptions itself stays private.
-     *
-     * Deliberately not awaited by the caller: a full refresh takes far longer than
-     * broadcastEval will wait, and there is nothing useful to return.
-     */
+    /** The refresh another shard asks for. Not awaited: it outlasts what broadcastEval waits. */
     public handleRefreshRequest(): void {
         void this.updateSubscriptions();
     }
 
     private async updateSubscriptions() {
-        // Always refresh the channel list. This used to be behind a flag whose sense was
-        // inverted, so the recurring timers never picked up newly subscribed channels.
+        // Always refresh the channel list, so new subscriptions are picked up.
         await this.updateChannels();
-        // Prepare the cache. Failures here are not fatal - a domain that did not
-        // pre-cache falls through to a per-item fetch, which now throws rather than
-        // returning [] - but they were previously invisible, because mapWithConcurrency
-        // settles rather than rejects and the results were discarded.
+        // Failures are not fatal: a domain that did not pre-cache falls through to a
+        // per-item fetch. Logged, because mapWithConcurrency settles rather than rejects.
         const prefetch = await this.prepareCache();
         const prefetchFailures = prefetch.filter((r) => r.status === 'rejected');
         if (prefetchFailures.length) {
@@ -257,8 +243,7 @@ export class SubscriptionManger {
 
     public async handleForceUpdate(message: ForceUpdateMessage) {
         this.logger.info('Received cross-shard force update', message);
-        // Defensive: the wrapper already routes by shard id, but this method is the
-        // remote entry point and should not act on a message meant for someone else.
+        // The wrapper routes by shard id, but this is the remote entry point.
         if (message.shardId !== requireShard(this.client).ids[0]) return;
         try {
             await setDateForAllSubsInChannel(new Date(message.date), message.guild_id, message.channel_id);
@@ -294,9 +279,8 @@ export class SubscriptionManger {
         }
         // Get the postable info for each subscribed item
         const postableUpdates: IPostableSubscriptionUpdate<SubscribedItemType>[] = [];
-        // Counted so an empty result set can be told apart from a failed one. Advancing
-        // the channel's window after a failure is how updates published during an
-        // outage get skipped permanently.
+        // An empty result and a failed one must be told apart: advancing the window after
+        // a failure skips whatever was published during the outage, permanently.
         let failedItems = 0;
         for (const item of items) {
             let updates: IPostableSubscriptionUpdate<typeof item.type>[];
@@ -318,10 +302,7 @@ export class SubscriptionManger {
                 this.logger.debug(`Returning ${updates.length} updates for ${item.title} (${item.type}) since ${item.last_update.toISOString()}`);
             }
             catch(err) {
-                // `continue` without touching item.last_update is already right: the item
-                // is skipped and the next poll retries the same window. What was missing
-                // is that the error never got here, because the query layer returned []
-                // instead of throwing.
+                // Leaving item.last_update alone means the next poll retries this window.
                 failedItems += 1;
                 this.logger.warn('Error updating subscription', { id: item.id, type: item.type, entity: item.entityid, config: item.config, error: err });
                 continue;
@@ -335,10 +316,8 @@ export class SubscriptionManger {
         // Exit if there's nothing to post
         if (!postableUpdates.length) {
             if (failedItems) {
-                // Nothing to post *because things broke*, which is not the same as nothing
-                // to post. Leaving the timestamp where it is means the next poll covers
-                // this window again; moving it would step over whatever was published
-                // while the API was unreachable, and nothing would ever report that.
+                // Nothing to post because things broke is not nothing to post: leaving the
+                // timestamp means the next poll covers this window again.
                 this.logger.warn('Skipping channel timestamp update, some subscriptions failed', {
                     guild: guild.name, channel: discordChannel.name, failedItems, totalItems: items.length,
                 });
@@ -820,9 +799,8 @@ export class SubscriptionManger {
 
         // TODO - We could cache the values of common mods, users and collections here, but it's an improvement.
 
-        // One API request per tracked game, so this used to fire all of them at once -
-        // exactly the shape that trips rate limits on a busy bot, and there is still no
-        // retry handling (Phase 3).
+        // One API request per tracked game, concurrency-limited: firing all at once trips
+        // rate limits, and there is still no retry handling.
         return await mapWithConcurrency(tasks, PREPARE_CACHE_CONCURRENCY, (task: () => Promise<unknown>) => task());
     }
 }

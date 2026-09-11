@@ -27,17 +27,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * The OAuth portal, the tracking pages and the two webhook endpoints.
- *
- * This used to be constructed inside the bot process and skipped on every shard but 0,
- * so one of three gateway connections also happened to be a web server. It now runs as
- * its own process (`dist/web.js`) and holds no Discord state: what it needed from the
- * client is a DiscordDirectory, which is two REST calls.
- *
- * It holds no state between requests. The in-flight half of an account link - the
- * Discord tokens, waiting for the user to come back from Nexus Mods - used to live in a
- * Map on this instance, which made the service single-replica and meant a deploy dropped
- * anyone mid-link into a 403. It is sealed into a cookie now; see linkState.ts.
+ * The OAuth portal, the tracking pages and the two webhook endpoints, running as their own
+ * process (`dist/web.js`). Holds no Discord state and none between requests - the
+ * in-flight half of an account link is sealed into a cookie; see linkState.ts.
  */
 export class AuthSite {
     private static instance: AuthSite;
@@ -81,8 +73,7 @@ export class AuthSite {
         // to the number of proxies in front of this app so rate limiting sees real IPs.
         if (process.env.TRUST_PROXY) this.app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
 
-        // Security headers. CSP is left off because the views load fonts from Google and
-        // images from images.nexusmods.com; enabling it needs an allowlist per page.
+        // CSP is off: the views load fonts from Google and images from Nexus Mods.
         this.app.use(helmet({ contentSecurityPolicy: false }));
 
         this.app.use(cookieparser(process.env.COOKIE_SECRET));
@@ -90,9 +81,8 @@ export class AuthSite {
         this.app.use(express.static(path.join(__dirname, 'public')));
         this.app.set('view engine', 'ejs');
 
-        // A generous default for browsing, and a tight one for anything that starts an
-        // OAuth flow or changes account state. Registered before the routes: express
-        // matches in registration order, so a use() placed after a route never runs for it.
+        // Registered BEFORE the routes: express matches in registration order, so a
+        // use() after a route never runs for it.
         const generalLimit = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false });
         const sensitiveLimit = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
         this.app.use(generalLimit);
@@ -224,9 +214,8 @@ export class AuthSite {
 
             const meData = await DiscordOAuth.getUserData(tokens);
             const userId = meData.user.id;
-            // Hand the half-finished link back to the browser, sealed. The five-minute
-            // expiry is inside the sealed payload as well as on the cookie, so an
-            // abandoned link cannot be resumed by replaying the cookie later.
+            // The expiry is inside the sealed payload as well as on the cookie, so an
+            // abandoned link cannot be resumed by replaying it.
             const sealed = sealLinkState(
                 { state: clientState, id: userId, name: `${meData.user.username}#${meData.user.discriminator}`, tokens },
                 process.env.COOKIE_SECRET!,
@@ -257,16 +246,10 @@ export class AuthSite {
             return;
         }
 
-        // Unseal the Discord half of the link. openLinkState returns null for every
-        // failure - forged, expired, wrong secret, or belonging to a different flow -
-        // because none of them is recoverable and telling them apart here would only
-        // invite treating a forged cookie as a transient error.
         // signedCookies, not cookies: cookieOptions sets signed: true, so cookie-parser
-        // puts it there (and puts `false` there if the signature fails, which
-        // openLinkState rejects along with everything else non-string).
+        // puts it there - and puts `false` there when the signature fails.
         const discordData = openLinkState(req.signedCookies?.[LINK_STATE_COOKIE], process.env.COOKIE_SECRET!, clientState);
-        // Read once: clear it whether or not it opened, so a failed attempt does not
-        // leave tokens sitting in the browser for the rest of the window.
+        // Cleared whether or not it opened, so a failed attempt leaves no tokens behind.
         res.clearCookie(LINK_STATE_COOKIE);
         if (!discordData) {
             this.logger.warn('Could not find matching Discord Auth to pair accounts', req.url);

@@ -7,12 +7,8 @@ import type { DiscordBotUser } from '@nexusmods/account/DiscordBotUser.js';
 import { getUserByDiscordId } from '@nexusmods/account/users.js';
 
 /**
- * Cross-cutting concerns every command was implementing for itself: deferring the
- * reply, requiring a linked Nexus Mods account, and checking permissions.
- *
- * Commands opt in declaratively on their `discordInteraction` export. Anything that
- * does not opt in keeps doing exactly what it did before, so this can be adopted a
- * command at a time.
+ * Deferring the reply, requiring a linked account, and checking permissions - declared on
+ * a command's `discordInteraction` export. Commands that do not opt in are unaffected.
  */
 
 export type DeferVisibility = 'public' | 'ephemeral';
@@ -22,11 +18,7 @@ export type DeferOption = DeferVisibility | ((interaction: CommandInteraction) =
 
 /** Passed to a command's action as a fourth argument. */
 export interface InteractionContext {
-    /**
-     * The invoking user's linked Nexus Mods account. Present whenever the command
-     * declared `requiresLink: true` - the middleware refuses the command otherwise,
-     * so the action does not have to re-check.
-     */
+    /** Present whenever the command declared `requiresLink`, so the action need not re-check. */
     user?: DiscordBotUser;
 }
 
@@ -34,10 +26,7 @@ export function resolveDeferVisibility(defer: DeferOption, interaction: CommandI
     return typeof defer === 'function' ? defer(interaction) : defer;
 }
 
-/**
- * The 22 commands spelled this seven different ways, two of them still using the
- * deprecated `ephemeral` option rather than message flags.
- */
+/** One spelling; the 22 commands had seven, two of them the deprecated `ephemeral` option. */
 export function deferOptions(visibility: DeferVisibility): InteractionDeferReplyOptions {
     return visibility === 'ephemeral' ? { flags: MessageFlags.Ephemeral } : {};
 }
@@ -52,8 +41,7 @@ export function missingPermissions(
     options: { isBotOwner?: boolean } = {},
 ): bigint[] {
     if (!required.length) return [];
-    // Bot owners bypass permission checks. settings.ts carried this rule inline as
-    // `ManageGuild || ownerIDs.includes(...)`; it belongs in one place.
+    // Bot owners bypass permission checks.
     if (options.isBotOwner) return [];
     if (!memberPermissions) return required;
     return required.filter((permission) => !memberPermissions.has(permission));
@@ -71,17 +59,11 @@ export function isBotOwner(interaction: CommandInteraction, ownerIDs: string[] |
 export const OWNER_ONLY_MESSAGE = 'This command is restricted to the bot owners.';
 
 /**
- * The counterpart to the owner bypass above: `requiredPermissions` lets an owner
- * through a check, this one lets *only* an owner through.
+ * Lets ONLY an owner through. Guild scoping is not a substitute: `guilds: [BotDemo]`
+ * decides where a command is registered, not who may run it - any administrator of that
+ * server still can.
  *
- * Guild scoping is not a substitute. `guilds: [BotDemo]` decides where a command is
- * registered, which keeps it out of sight but is not an authorisation check - any
- * administrator of that server can still run it. For a command that rewrites every
- * credential in the database, "who can see it" and "who can run it" need to be
- * different questions.
- *
- * An empty OWNER_IDS therefore denies everyone rather than allowing everyone, which is
- * the safe direction for a misconfiguration.
+ * An empty OWNER_IDS denies everyone rather than allowing everyone.
  */
 export function refusedForOwnerOnly(
     interaction: CommandInteraction,
@@ -94,11 +76,7 @@ export function refusedForOwnerOnly(
 export const LINK_REQUIRED_MESSAGE =
     'You need to link your Nexus Mods account to use this command. Run **/link** to get started.';
 
-/**
- * Resolve the linked account for whoever invoked the command. Returns undefined
- * when there is no link, or when the lookup failed - the caller cannot tell those
- * apart, and for gating purposes it does not matter.
- */
+/** Undefined for no link and for a failed lookup alike; gating cannot act on the difference. */
 export async function resolveLinkedUser(
     interaction: CommandInteraction,
     logger: Logger,

@@ -4,31 +4,17 @@ import type { ClientExt } from '../types/DiscordTypes.js';
 /**
  * Everything this bot sends between shards.
  *
- * `broadcastEval` is not a function call. discord.js stringifies the callback and
- * evaluates it inside each shard's process, which has two consequences that no type
- * signature warns you about:
+ * `broadcastEval` stringifies its callback and evaluates it in another process, so the
+ * callback CAPTURES NOTHING - a reference to an enclosing variable is a ReferenceError
+ * over there - and the `client` type annotation is an assertion, not a check.
  *
- *   1. The callback captures nothing. A variable referenced from the enclosing scope is
- *      not undefined-at-runtime in a way you can see coming - it is a ReferenceError in
- *      another process, surfacing as a rejected promise with no obvious origin.
- *   2. The `client` it receives is whatever that process has. Annotating the parameter
- *      as ClientExt is an assertion, not a check.
- *
- * Collecting the callbacks here does not remove the eval, but it does mean every one of
- * them is two lines long, sits next to the type of the payload it is given, and is
- * written once rather than inline at the call site. The call sites get ordinary typed
- * functions and no longer have to remember any of the above.
- *
- * Everything a callback needs must arrive through `context`, which discord.js serialises
- * as JSON. That rules out Dates, Maps and class instances - hence the ISO string on
- * ForceUpdateMessage rather than a Date.
+ * Everything a callback needs arrives through `context`, which is serialised as JSON: no
+ * Dates, Maps or class instances, hence the ISO string on ForceUpdateMessage.
  */
 
 /**
- * The bot only runs sharded - dist/app.js refuses to start unless the ShardingManager
- * spawned it - so `client.shard` is always populated. It is still typed as nullable,
- * and the codebase used to carry an unsharded fallback at 30-odd branches for a mode
- * production never ran. One loud failure is better than thirty silent divergences.
+ * The bot only runs sharded, so `client.shard` is always populated - it is typed nullable,
+ * and one loud failure beats thirty unsharded branches production never runs.
  */
 export function requireShard(client: Client): ShardClientUtil {
     if (!client.shard) {
@@ -47,23 +33,15 @@ export function ownsGuild(client: Client, guildId: Snowflake): boolean {
     return shardIdForGuild(client, guildId) === requireShard(client).ids[0];
 }
 
-/**
- * Guilds across every shard.
- *
- * Each shard only knows its own, so `guilds.cache.size` on one process is a fraction of
- * the real number - the figure /about reports has to be summed.
- */
+/** Guilds across every shard: each process only knows its own, so the figure is summed. */
 export async function totalGuildCount(client: Client): Promise<number> {
     const perShard = await requireShard(client).broadcastEval((c) => c.guilds.cache.size);
     return perShard.reduce((total, count) => total + count, 0);
 }
 
 /**
- * Ask every other shard to refresh its subscriptions.
- *
- * Fire and forget by design: the callback deliberately does not await, because a
- * subscription refresh takes far longer than broadcastEval is willing to wait and the
- * caller has nothing to do with the result.
+ * Ask every other shard to refresh its subscriptions. Deliberately not awaited: a refresh
+ * takes longer than broadcastEval will wait.
  */
 export async function requestSubscriptionRefreshOnOtherShards(client: ClientExt): Promise<void> {
     const callerId = requireShard(client).ids[0];
@@ -86,10 +64,8 @@ export interface ForceUpdateMessage {
 }
 
 /**
- * Run a channel's force-update on whichever shard holds its guild.
- *
- * Resolves true when exactly the owning shard handled it. Every shard runs the callback
- * - that is what broadcast means - and all but one return false immediately.
+ * Run a channel's force-update on whichever shard holds its guild. Every shard runs the
+ * callback; all but the owning one return false immediately.
  */
 export async function forceChannelUpdateOnOwningShard(client: ClientExt, message: ForceUpdateMessage): Promise<boolean> {
     const handled = await requireShard(client).broadcastEval(
@@ -103,11 +79,7 @@ export async function forceChannelUpdateOnOwningShard(client: ClientExt, message
     return handled.some(Boolean);
 }
 
-/**
- * Post the news from whichever shard holds the news guild, and hand back the embed it
- * built. Returns undefined when no shard could - the caller decides whether that is an
- * error.
- */
+/** Post the news from whichever shard holds the news guild. Undefined when none could. */
 export async function postNewsOnOwningShard(client: ClientExt, shardId: number, domain: string | undefined): Promise<APIEmbed | undefined> {
     const results = await requireShard(client).broadcastEval(
         async (c: ClientExt, ctx: { shardId: number; domain: string | undefined }) => {

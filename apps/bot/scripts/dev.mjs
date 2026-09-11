@@ -11,20 +11,14 @@ const NEXT = Symbol('next');
  *     npm run dev:all     the bot and Express      (dist/web.js)
  *     npm run dev:next    the bot and the Next app (apps/web)
  *
- * Both serve the same paths on the same port, so they are alternatives rather than a
- * pair: whichever is running answers http://localhost:3000, and DISCORD_REDIRECT_URI and
- * NEXUS_REDIRECT_URI point there either way. That is what makes the two comparable - the
- * Next routes deliberately kept Express's paths, so the applications registered with
- * Discord and Nexus Mods need no change to try the other one.
+ * Alternatives, not a pair: both serve the same paths on port 3000, so the registered
+ * redirect URIs work for either.
  *
- * They are two processes now, and the obvious way to start them - `npm run devShard`
- * in one terminal and `npm run devWeb` in another - does not work: both scripts run
- * `tsup`, which is configured with `clean: true`, so the second build deletes the
- * output the first one is running from. This builds once, then starts both.
+ * One build, then both processes - running the two dev scripts in separate terminals does
+ * not work, because tsup cleans dist/ and the second build deletes what the first is
+ * running from.
  *
- * The bot always runs under the sharding manager, here as in production - dist/app.js
- * is the shard child and refuses to start on its own. Set BOT_SHARD_COUNT=1 for a
- * single shard; NODE_ENV=testing gives two.
+ * The bot always runs sharded. BOT_SHARD_COUNT=1 for one shard; NODE_ENV=testing gives two.
  */
 
 const BOT_ENTRY = 'dist/shards.js';
@@ -79,12 +73,9 @@ let stopping = false;
 
 function start(tag, entry) {
     /**
-     * The Next site is started through npm from its own workspace rather than by path:
-     * `next dev` needs apps/web as its working directory, and its predev step copies the
-     * shared images across before it serves them.
-     *
-     * shell on Windows, because npm is a .cmd there and spawn will not find it otherwise -
-     * the same reason run() above does it.
+     * Started through npm from its own workspace: `next dev` needs apps/web as its working
+     * directory, and predev copies the shared images first. shell on Windows, where npm is
+     * a .cmd that spawn will not otherwise find.
      */
     const child = entry === NEXT
         ? spawn('npm', ['run', 'dev', '-w', '@nexusmods/discord-web'], {
@@ -104,8 +95,8 @@ function start(tag, entry) {
     child.on('exit', (code, signal) => {
         children.delete(tag);
         if (stopping) return;
-        // One half of a pair is not a useful state to leave a developer in: if the bot
-        // dies on a bad token, a web server still answering is just confusing.
+        // Half a pair is not a useful state: a web server still answering after the bot
+        // died on a bad token is just confusing.
         console.log(`\n${TAGS[tag].label} exited (${signal ?? `code ${code}`}). Stopping the other.`);
         stopAll();
         process.exitCode = code ?? 1;
@@ -118,8 +109,7 @@ function stopAll() {
     if (stopping) return;
     stopping = true;
     for (const child of children.values()) child.kill('SIGTERM');
-    // The web process closes its HTTP server and database pools on SIGTERM, which is
-    // not instant. Give both a moment before insisting.
+    // Closing the HTTP server and the pools is not instant; give both a moment.
     setTimeout(() => {
         for (const child of children.values()) child.kill('SIGKILL');
     }, 5000).unref();

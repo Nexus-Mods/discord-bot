@@ -1,20 +1,9 @@
 /**
- * The vocabulary the eight ported views are built from.
+ * The vocabulary the ported views are built from. Tailwind has no shared class names, so
+ * the pages drift apart one utility string at a time without these.
  *
- * The Express views share one stylesheet of `maintenance-page__*` classes, so every page
- * looked the same because every page used the same class names. Tailwind has no class
- * names to share, so the equivalent has to be a component or the pages drift apart one
- * utility string at a time. These are those components, and nothing here is a design
- * decision that was not already made in the stylesheet being replaced.
- *
- * Two things did change, both deliberately:
- *
- *   - The typography comes from the theme tokens rather than Montserrat and Roboto over
- *     two Google Fonts <link> tags. nexusmods.com is on Inter, and the theme layer this
- *     app mirrors names Inter; carrying two more faces forward to imitate a stylesheet
- *     that is about to be deleted would be preserving an accident.
- *   - The accent is the brand orange, not the stylesheet's #d98f40. That is the same
- *     reconciliation NEXUS_ORANGE got: one orange, decided once.
+ * Two deliberate changes from the stylesheet they replace: Inter from the theme tokens
+ * rather than Montserrat and Roboto, and the brand orange rather than #d98f40.
  */
 import type { ComponentProps, ReactNode } from 'react';
 
@@ -27,17 +16,10 @@ const BUTTON = [
 ].join(' ');
 
 /**
- * The one button in the design, as a link.
- *
- * A plain anchor rather than next/link, on purpose. Of the eleven buttons across these
- * eight pages, four are `discord://` deep links, five are other sites, and the two that
- * are same-origin paths - /linked-role and /revoke - are Express routes this app does not
- * own and will not own until step 8. next/link would treat those two as client
- * navigations to routes that do not exist and 404 rather than reaching the server that
- * does have them. There is no internal navigation here worth prefetching.
- *
- * `newTab` is passed rather than inferred: `discord://` is neither internal nor http(s),
- * so any heuristic gets it wrong in one direction or the other.
+ * The one button in the design, as a link. A plain anchor, not next/link: most of these go
+ * to other sites or `discord://` deep links, and there is no internal navigation worth
+ * prefetching. `newTab` is passed rather than inferred, since `discord://` is neither
+ * internal nor http(s).
  */
 export function ActionLink(
     { href, icon, children, newTab = false }:
