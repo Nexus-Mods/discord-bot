@@ -1,5 +1,143 @@
 # Deploying
 
+## 5.0.0 - The auth site is a Next.js app in its own image
+
+**This release changes what production runs, and the change is not optional.** Express is
+gone from the repository: the source, the views, the dependencies and the `dist/web.js`
+entry point. The auth site is now a Next.js application, built as its own image, and the
+web container has to be started from it.
+
+| | Image | Command |
+|---|---|---|
+| Bot | `nexusmods/discord-bot` | `node dist/shards.js` |
+| Web | `nexusmods/discord-bot-web` | `node server.js` (the image default) |
+
+Both images are tagged `:latest`, `:<version>` and `:<sha>` from the same commit. **The sha
+is what pairs them** - deploying a bot image and a web image built from different commits is
+the mistake worth avoiding, and the sha tag is how to be sure.
+
+### Do this first: `DBPORT` must be set
+
+**Add it before deploying, and check it.** The production `.env` sets `PORT=5432` and no
+`DBPORT`. That has always been fine, because the database port is `DBPORT ?? PORT` and
+nothing else in the deployment read `PORT`.
+
+The Next server does. It reads `PORT` to decide what to listen on, so the web container is
+told `PORT=3000` - and with `DBPORT` unset, the database client takes 3000 as well. The
+container would start, serve pages, and fail every query: no account links, no tracking
+page, no automod. Verified rather than guessed: with `DBPORT` unset and `PORT=3000`,
+`poolConfig().port` is 3000.
+
+So add one line to the production `.env`, which `.env.example` has carried all along:
+
+```
+DBPORT=5432
+```
+
+It changes nothing for the bot - `DBPORT` takes precedence over `PORT` and the value is
+the same - so it can be added, and the bot restarted, well before anything else here.
+Two things refuse to proceed without it: `redeploy.sh` checks the file and exits, and the
+web app itself refuses to start and says why. It cannot be got wrong quietly.
+
+### Deploying
+
+`redeploy.sh` in this repository already does the right thing: it pulls both images at the
+same tag and starts the web container as
+
+```sh
+docker run -d --name web --restart unless-stopped --network host \
+    -v "$ENV_FILE:/app/.env" -e PORT=3000 \
+    "nexusmods/discord-bot-web:${TAG}" node server.js
+```
+
+Three differences from the 4.x line it replaces:
+
+1. **A different image**, so the script pulls both.
+2. **`PORT`, not `AUTH_PORT`.** `AUTH_PORT` was Express's own variable and means nothing to
+   the Next server, which reads `PORT` and otherwise defaults to 3000. Leaving `AUTH_PORT`
+   in the env file is harmless; relying on it is not. With `--network host` this is the
+   port it binds on the host directly, so it must match whatever is in front of it.
+3. **`node server.js`, from `/app/apps/web`.** That is the image default, so it can be
+   omitted; it is written out because the bot's line states its command too.
+
+`.env` is still mounted at `/app/.env` and still read by the same resolver, so the file
+does not change and neither container needs its configuration moved.
+
+**The droplet's copy of `redeploy.sh` is the one that runs.** Reconcile it with this one
+before deploying 5.0.0 - see the warning at the top of the script.
+
+### Migrations run in the bot container only
+
+Through 4.x both processes called `runMigrations` at boot and a Postgres advisory lock
+decided which of them did the work. `runMigrations` lives in `apps/bot`, and the web app is
+now a separate image that cannot import it, so **the bot is the only process that migrates**.
+
+What this means in practice:
+
+- A deploy that adds a migration needs the bot container to start. Starting only the web
+  container leaves the schema where it was.
+- The web container will happily serve against an un-migrated schema until a query hits a
+  column that does not exist yet. `redeploy.sh` starts the bot first, which is the ordering
+  that makes this a non-issue for a normal deploy.
+- The advisory lock still matters, for two bot containers overlapping during a restart.
+
+If the web app ever needs to migrate on its own, the migration runner and the `drizzle/`
+directory would have to move into `packages/persistence` so both apps can reach them. That
+is a deliberate piece of work, not a small change, and it has not been done.
+
+### Verifying, in order
+
+1. `docker logs web --tail 40`. A good start is quiet apart from Next's banner. **A bad
+   start is loud and immediate**: `COOKIE_SECRET is not set ... so the site cannot start`
+   and an exit. The site refuses to run misconfigured rather than serving 500s, so a
+   restart loop here means the environment, not the code.
+2. `curl -sI http://127.0.0.1:3000/` - a 200, and the page footer shows the version.
+3. `curl -si http://127.0.0.1:3000/linked-role | head -5` - a 302 to `discord.com` with a
+   `state` parameter, and a `Set-Cookie: clientState=s%3A...` beside it. If the cookie is
+   there but the redirect goes to `/oauth-error`, `DISCORD_CLIENT_ID` or
+   `DISCORD_REDIRECT_URI` is missing.
+4. **Then link an account for real.** Nothing above exercises the two OAuth round trips,
+   and they are the reason the site exists. `/unlink` and re-link on a test account is the
+   whole flow in two minutes.
+5. `curl -sI 'http://127.0.0.1:3000/tracking?guild=<a real guild id>'` - a 200. This is
+   the one check that proves the database, so do not skip it: a 500 here with `DBPORT`
+   just added is the pool still pointing somewhere wrong. A 307 to `/` means the bot
+   cannot see that guild, which is also what a bad `DISCORD_TOKEN` looks like.
+
+### Rollback
+
+**There is no in-release rollback.** Express is not in the 5.0.0 bot image, so there is no
+`node dist/web.js` to go back to. Rolling the site back means rolling the whole deployment
+back to 4.4.0, which needs two things:
+
+1. `./redeploy.sh 4.4.0`, and
+2. **the pre-5.0.0 version of `redeploy.sh`**, because this one pulls and starts a second
+   image that does not exist at that tag. `git log --oneline -- redeploy.sh` finds the
+   commit before the 5.0.0 change; `git show <that commit>:redeploy.sh` is the file.
+
+Any migration 5.0.0 applied stays applied; the 4.4.0 code has to tolerate it. Check the
+release's migrations before rolling back rather than after.
+
+### What is different about the new site, on purpose
+
+- **The `/success` page's profile links work.** They never have: the redirect sends `d_id`
+  and `n_id` and the page had been reading `discordId` and `nexusId`, so both ids were
+  always absent and both names rendered as plain text.
+- **`/show-metadata` answers a failure with a 500 and a message.** Express redirected to
+  `/oauth-error`, so a script following redirects started an OAuth flow.
+- **`/automod` sends `application/json`.** Express sent those rows as `text/html`, because
+  the handler stringified them itself and `res.send` guesses.
+- **`PUT /automod` without an id answers.** Express called `res.status(400)` and never
+  ended the response, so the client waited out its own timeout.
+- **A refresh on the unlink page no longer re-submits the unlink.** The submit redirects to
+  `/revoked` instead of rendering it.
+- **Error pages read their message from the signed cookie only.** `?error=` used to render
+  arbitrary text on the real domain.
+- **One replica, still - but for a different reason.** The in-flight OAuth state moved into
+  a sealed cookie in 4.3.0, so the site holds nothing between requests. What is still
+  per-process is the rate limiting: a second replica would keep its own counters and
+  double both limits.
+
 ## 4.2.0 - The auth site is its own container
 
 **This is a topology change, not a code change.** The OAuth portal, the tracking pages,

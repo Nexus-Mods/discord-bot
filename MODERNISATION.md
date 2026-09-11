@@ -1,12 +1,12 @@
 # Nexus Mods Discord Bot — Modernisation & Simplification Plan
 
-**Status:** Phase 0 shipped in **3.17.0**. Phases 1, 2, 3.1, 3.2, 3.6 and 5.3 are on the
-**4.0.0 branch, built and tested but not yet deployed**. Everything under *The work in
-detail* is still a proposal.
-**Date:** 29 August 2026 (originally audited at `473db19`)
-**Scope:** `nexus-bot-typescript` — 99 source files, ~12,500 lines, plus 16 test files
-and 216 tests. The source count is up on the audit's 89 because Phases 1–3 split several
-large files apart; the line count is slightly down despite that.
+**Status:** Phase 0 shipped in **3.17.0**. Phases 1, 2, 3.1, 3.2, 3.6 and 5.3 shipped in
+**4.0.0**, and 4.4.0 is in production. **Phase 4 — the Next.js front-end — is on the
+`phase-5.0-nextjs` branch as 5.0.0, complete and not yet merged.** Everything under *The
+work in detail* is still a proposal.
+**Date:** originally audited at `473db19`; last revised for 5.0.0.
+**Scope:** an npm workspace — two applications (`apps/bot`, `apps/web`) and five shared
+packages.
 
 This document is ordered by **what happens next**. Completed work is recorded in full
 under *Shipped*, at the bottom — it is kept rather than deleted because most of it
@@ -16,55 +16,73 @@ explains why the code looks the way it does.
 
 ## The immediate next step
 
-**Deploy 4.0.0.** Nothing else on this list should start until it has run in production
-for a day.
+**Merge 5.0.0 and deploy it.** It is the largest single change this plan has produced: the
+auth site is a Next.js application in its own Docker image, and Express has been deleted
+rather than kept alongside it.
 
-That is not ceremony. None of the 4.0.0 work has touched a live Discord gateway or a live
-database, and the one time it met a real environment — a local Postgres — it failed
-immediately on a TLS default that had looked correct in review and had passing tests
-behind it. The untested delta has been growing for weeks and now covers the build system,
-logging, the error taxonomy, the command contract, migrations, the query layer and the
-gateway intents. Deploying bounds it. Waiting means debugging all of it at once, on a box
-that is under load. (The 94.4% CPU this document previously blamed on the bot turned out
-to be a stale pre-container deployment - see *The 94.4% was not the bot*.)
+Two things have to happen in the right order, and `DEPLOYING.md` is the authority on both:
 
-Two other things depend on it. **Migrations have never run against the production
-database**, and everything in Phase 3 sits on top of them. And the droplet sizing question
-— which blocks Phase 4 — needs real numbers after the intent fix, not the estimates in
-this document.
+1. **`DBPORT=5432` goes into the production `.env` first.** The database port is
+   `DBPORT ?? PORT`, and the Next server reads `PORT` to decide what to listen on. Without
+   `DBPORT` the web container would serve pages and fail every query. It changes nothing
+   for the bot, so it can be added days ahead.
+2. **The droplet's `redeploy.sh` has to be reconciled with this repository's.** There are
+   two images now, pulled at the same tag; the old script knows about one.
 
-`DEPLOYING.md` has the pre-flight list. The two entries that matter most are
-`AUTOMOD_DATABASE` and `WATCHED_CHANNEL_ID`: both now change behaviour by their absence,
-and `.dockerignore` excludes `*.env`, so whatever injects configuration at run time has to
-carry them.
+**There is no in-release rollback.** Express is not in the 5.0.0 image, so backing the site
+out means going back to 4.4.0 wholesale - the tag *and* the pre-5.0.0 `redeploy.sh`. That
+was a deliberate choice: keeping a second HTTP server alive to be the escape hatch meant
+keeping its dependencies, its views and its tests, and carrying two implementations of
+every route while only one of them was being maintained.
 
 ---
 
 ## The order of work
 
+Everything the original plan scheduled has now been built. What is left is a deploy and a
+short list of things that were deliberately not done.
+
 | | Work | Why it is here | Blocked by |
 |---|---|---|---|
-| 1 | Deploy 4.0.0 | See above | — |
-| 2 | Measure free memory with the container as the only bot | CPU resolved to 1-2% once the stale instance was stopped. Memory is the one number Phase 4 still turns on. | Stopping PM2 (done) |
-| 3 | ~~Droplet sizing~~ | Withdrawn. CPU is 1-2%; only memory is open, and it may well already fit. | — |
-| 4 | **3.5** Query error contract | Highest user-visible correctness win left: feeds currently record a failed poll as a successful empty one | Nothing |
-| 5 | **3.3** GraphQL codegen | Self-contained, low risk, kills the untyped-boundary bug family | Nothing |
-| 6 | **3.4** OAuth token encryption | Highest risk item. ~147,000 values rewritten. | The key-storage decision |
-| 7 | **5.1** Replace `broadcastEval` string injection | Sharding is staying, so this is permanent debt | Nothing |
-| 8 | **5.2** Dead code sweep | Makes everything after it smaller | Nothing |
-| 9 | **Phase 4** Next.js front-end | The largest piece, and the one with the most unknowns | The repo decision, and one memory reading |
+| 1 | **Merge 5.0.0 and deploy it** | See above. `DBPORT` first, then the droplet's `redeploy.sh`. | — |
+| 2 | **S3** — authenticate `POST /webhook` | The last unresolved security finding, and still exploitable. See *The forum webhook*. | What the Invision installation can send |
+| 3 | Self-host the Inter font and turn `CSP_REPORT_ONLY` off | The site currently reports violations rather than blocking them, because a Google-hosted font is in the policy. | Nothing |
+| 4 | **5.2** Dead code sweep, what remains of it | Small and shrinking: `DiscordApiError` has no references, `api/util.ts` is still a grab-bag. | Nothing |
+| 5 | Move migrations into `packages/persistence` | Optional. Would let the web app migrate too; today the bot is the only process that can. | Nothing |
 
-3.5 is placed ahead of 3.3 deliberately: it fixes a real defect users can hit, where 3.3
-improves how the code is written. 3.4 sits behind both because it is the only item that
-can lose data.
+Shipped since the last revision, in order: **3.5** in 4.1.0, the web container split in
+4.2.0, sealed OAuth state cookies in 4.3.0, per-tag deploys in 4.4.0, and **3.3**, **3.4**,
+**5.1** and **Phase 4** on the 5.0.0 branch.
 
 ---
 
-
 ## Where things stand
 
-Everything below is **on the 4.0.0 branch and not yet deployed**. Full detail for each is
-under *Shipped*; this is the one-paragraph version.
+Full detail for each is under *Shipped*; this is the one-paragraph version. Everything
+through 4.4.0 is in production; 5.0.0 is built and merged-pending.
+
+**Phase 4 (5.0.0).** The auth site is a Next.js App Router application in `apps/web`, in
+its own Docker image, and **Express is deleted** - the source, the sixteen EJS views, the
+hand-written stylesheet, the five HTTP dependencies and the `dist/web.js` entry point.
+Every route was ported rather than proxied, and several long-standing defects were fixed
+on the way across (`DEPLOYING.md` lists them under *What is different about the new site*).
+The shared code lives in five workspace packages, and architecture tests pin the split:
+discord.js cannot reach the web app, the web app's declared dependencies must match what
+it imports, and nothing may reintroduce an HTTP server into the bot.
+
+**Phase 5.1 (5.0.0).** `broadcastEval` string injection replaced by `src/lib/sharding.ts`,
+a typed protocol module where every cross-shard message has a declared context type.
+
+**Phase 3.4 (5.0.0).** OAuth tokens encrypted at rest. `packages/persistence/tokenCrypto.ts`
+holds the key handling, with `TOKEN_ENCRYPTION_KEY_OLD` for rotation and a backfill script
+with `--verify` and `--report` modes.
+
+**Phase 3.3 (5.0.0).** GraphQL codegen: generated types in `packages/nexus-api/src/generated`
+and a `codegen:check` gate so a schema drift fails CI rather than a query at runtime.
+
+**Phase 3.5 (4.1.0).** Query modules throw instead of returning `[]`, so a failed poll is
+no longer recorded as a successful empty one. See `DEPLOYING.md` for the feed behaviour
+this changes.
 
 **Phase 3.6 (4.0.0).** Runtime import cycles measured against the emitted JavaScript
 rather than the source, which corrected an earlier bad count of 185 down to a real 12,
@@ -106,9 +124,30 @@ for what has to be configured before this release goes out.
 
 | Item | Why it is still open |
 |---|---|
-| **S3** — `POST /webhook` has no authentication | Deferred: the fix depends on what the Invision forum can be configured to send (shared secret header, HMAC signature, or IP allowlist). **Still a Critical finding.** |
-| **S9** — OAuth tokens stored in plaintext | Phase 3, alongside the schema work. |
-| Query modules still return `[]` on failure | The ~18 v2 query files swallow errors and return an empty result, so callers cannot tell "no results" from "the API is down". Fixing this changes feed behaviour (a transient API error would propagate instead of being a silent no-op cycle), so it belongs with the Phase 3 data-layer contract work rather than being slipped into 1.3. |
+| **S3** — `POST /webhook` has no authentication | The last unresolved finding, and the only one still exploitable. See *The forum webhook* below for where it now stands. |
+| ~~**S9** — OAuth tokens stored in plaintext~~ | **Closed in 5.0.0** by Phase 3.4. |
+| ~~Query modules return `[]` on failure~~ | **Closed in 4.1.0** by Phase 3.5. |
+| `CSP_REPORT_ONLY` is on | The content security policy reports violations rather than blocking them, because the Inter font is loaded from Google. Self-host the font, then turn it off. |
+
+### The forum webhook
+
+**Where it stands:** the Invision installation this bot receives from cannot attach a
+custom header, and the public Invision documentation describes no authentication for
+outgoing webhooks. So the three obvious fixes - a shared-secret header, an HMAC signature
+over the body, an IP allowlist - are not all available, and the one that is available is
+the weakest.
+
+**What 5.0.0 does:** authenticates the request as far as the sending side allows, and
+continues to trust the payload's contents. The route validates shape before use, and the
+handler no longer runs inside the bot process, so a malformed or hostile body cannot take
+the gateway connection down with it.
+
+**The residual, stated plainly:** an authenticated caller's payload is still believed. The
+stronger fix is to treat the webhook as a *notification* rather than a *message* - take the
+topic id from the body, re-fetch that topic from the forum API over an authenticated
+connection, and post what the API returns. That removes the payload from the trust boundary
+entirely and is the right shape, but it is a behaviour change to the feed and was not in
+scope for 5.0.0.
 
 **Production scale**, from `/about` on 29 August 2026 — these numbers change what some of
 the remaining work involves, so they are recorded rather than left in a chat log:
@@ -163,38 +202,26 @@ could not be seen. The measurement that settled it took ten minutes.
 
 ### What this means for Phase 4
 
-**The hardware blocker is withdrawn.** With the stale instance stopped the droplet settled
-at **1-2% CPU**. This document previously said Phase 4 could not happen on this box; that
-was based on a figure belonging to a process that is no longer running.
-
-CPU is no longer a constraint in any meaningful sense. The web layer here serves OAuth
-callbacks, tracking pages and a status page - it is not a CPU-bound workload, and 1 vCPU
-running at 1-2% has room for it.
-
-**Memory is the only remaining question**, and it is unanswered: the 80% and 50% readings
-were both taken while two bots were running. What matters on a 2 GB box:
+**Kept as written, because it is how the decision was reached.** The hardware objection was
+withdrawn once the stale PM2 instance was stopped and the droplet settled at 1-2% CPU;
+memory was left as the one open number.
 
 | | Rough cost | Note |
 |---|---|---|
 | Bot (manager + 3 shards) | measure it | The message cache cap in 5.3 already took a large bite out of this |
 | Next.js, running | 200-400 MB | A small production app |
-| Next.js, **building** | 1 GB+ | **Do not build on the droplet.** CI already builds and pushes images; keep it that way or a build will OOM the box |
-| Postgres | 200-400 MB | Only if it is on the droplet. PgBouncer suggests DigitalOcean's managed pool, in which case it is not - worth confirming |
+| Next.js, **building** | 1 GB+ | **Do not build on the droplet.** CI builds and pushes both images; keep it that way or a build will OOM the box |
+| Postgres | 200-400 MB | Only if it is on the droplet |
 
-If the bot's real figure leaves roughly a gigabyte free, Phase 4 fits on the current
-droplet without an upgrade. If Postgres turns out to be local as well, it will be tight
-and an upgrade to 2 vCPU / 4 GB is the cheap answer.
+Two things changed the picture since:
 
-**The repo decision is the blocker again**, having been demoted behind hardware that
-turned out not to be in the way.
+- **The bot got smaller.** Express, ejs, cookie-parser, helmet and express-rate-limit are
+  no longer in the bot image at all, along with the view templates and the stylesheet.
+- **The site is a `standalone` Next build**, which traces only the modules the server
+  actually loads rather than shipping `node_modules`.
 
-Sharding still has to stay regardless (2,418 guilds against a 2,500-per-shard limit), but
-whether three shards is the right shape is now an open question rather than a complaint -
-at 1-2% there is no pressure either way.
-
-**Nothing here has been run against a live Discord gateway or database.** The HTTP
-middleware chain and the unlink signing were verified in isolation; the OAuth round
-trip, the subscription feed and the news feed have not been exercised end to end.
+**This is still an unmeasured prediction.** Take a memory reading on the droplet after the
+5.0.0 deploy and record it here. If it is tight, 2 vCPU / 4 GB is the cheap answer.
 
 ---
 
@@ -209,28 +236,35 @@ trip, the subscription feed and the news feed have not been exercised end to end
    of the 2,500 at which Discord makes sharding mandatory, so sharding stays and the
    shard-aware branches stay with it. Phase 5 shrinks to the `broadcastEval` protocol
    work, which was worth doing either way. See 5.1.
-3. **Monorepo or two repos?** Open, and **the nearest blocker for Phase 4 again**. It was
-   demoted behind a droplet upgrade on the basis of a 94.4% CPU figure that belonged to a
-   stale PM2 deployment; with that stopped the droplet sits at 1-2% and the hardware
-   objection is gone. On the repo itself, which
-   assumes a workspace so the bot and web app can share the schema and the Nexus API
-   client. Two repos means publishing those as packages, or duplicating them. 3.6 is a
-   prerequisite either way.
-4. **What can the Invision forum send to `POST /webhook`?** (New.) S3 is the last
-   unresolved security finding and the only one still exploitable. The fix depends
-   entirely on what the sending side supports: a static shared-secret header, an HMAC
-   signature over the body, or a fixed source IP range. Any of the three is a short
-   change; picking one without knowing what Invision offers is not.
-5. **Where does the encryption key for 3.4 live?** (New.) Encrypting the OAuth tokens at
-   rest needs a key, and the key needs somewhere to live that is not the same database.
-   An env var is the cheap answer and is a real improvement over plaintext; a managed KMS
-   is the better one. This also decides whether key rotation is a feature or a redeploy.
+3. ~~**Monorepo or two repos?**~~ **Answered: monorepo.** One npm workspace, two
+   applications and five shared packages. The bot and the site share the schema, the Nexus
+   API client, the auth primitives and the account logic; publishing four packages to keep
+   two repos apart was never going to be worth it. Two Docker images keep the deployments
+   separate, which was the part that actually mattered.
+4. ~~**What can the Invision forum send to `POST /webhook`?**~~ **Answered, and the answer
+   is unhelpful:** this installation cannot attach a custom header, and the public Invision
+   documentation describes no authentication at all for outgoing webhooks. 5.0.0
+   authenticates as far as the sending side allows and keeps trusting the payload. See
+   *The forum webhook* above for the residual and the stronger fix.
+5. ~~**Where does the encryption key for 3.4 live?**~~ **Answered: an environment
+   variable**, `TOKEN_ENCRYPTION_KEY`, deliberately separate from `COOKIE_SECRET`.
+   Rotation is `TOKEN_ENCRYPTION_KEY_OLD` plus a backfill pass rather than a redeploy.
+   A managed KMS remains the better answer whenever it is worth the work.
+6. **Do migrations move into `packages/persistence`?** (New.) Today the bot is the only
+   process that can migrate; the runner and the `drizzle/` directory live in `apps/bot`
+   and the web image cannot import them. Through 4.x both processes ran migrations under
+   an advisory lock and whichever started first did the work. Nothing is broken - the bot
+   always starts - but the site can no longer bring a schema up to date on its own.
 
 ---
 
 ---
 
 # The work in detail
+
+**Most of this has since been built.** 3.3, 3.4, 3.5, 5.1 and Phase 4 are all shipped; the
+sections are kept because they are the reasoning behind the code, and each carries a note
+saying where it landed. 5.2 is partly done and 5.4 was withdrawn.
 
 ---
 
@@ -271,6 +305,9 @@ building a second service around it.
 
 ## 3.5 Query modules: the `[]`-on-failure contract
 
+> **Shipped in 4.1.0.** Kept as the reasoning. `DEPLOYING.md` records the feed behaviour
+> this changed and what to watch for after a deploy.
+
 Deferred out of 3.2 deliberately, because it changes feed behaviour rather than internals.
 
 Seven of the twenty modules under `api/queries/` catch their errors and return `[]`, so a
@@ -292,6 +329,9 @@ Needs a test per feed with a forced API failure, asserting the timestamp did not
 ---
 
 ## 3.3 GraphQL
+
+> **Shipped in 5.0.0.** Generated types live in `packages/nexus-api/src/generated`, and
+> `npm run codegen:check` fails CI on schema drift.
 
 Every result shape is hand-written. There is **no codegen** — no `codegen.yml`, no schema
 file, no `@graphql-codegen/*` dependency. The cost is visible:
@@ -330,6 +370,10 @@ Then consolidate the query files:
 
 ## 3.4 Auth tokens
 
+> **Shipped in 5.0.0.** `packages/persistence/src/tokenCrypto.ts`, keyed on
+> `TOKEN_ENCRYPTION_KEY` with `TOKEN_ENCRYPTION_KEY_OLD` for rotation, plus a backfill
+> script with `--verify` and `--report`.
+
 **Scale:** 36,879 linked accounts, four token columns each (`nexus_access`,
 `nexus_refresh`, `discord_access`, `discord_refresh`). Encrypting in place means reading
 and rewriting ~147,000 values. It needs batching, it needs to be resumable, and it needs
@@ -358,6 +402,9 @@ are unreadable should be treated as unlinked and asked to re-link, not silently 
 ---
 
 ## 5.1 Replace `broadcastEval` string injection
+
+> **Shipped in 5.0.0.** `apps/bot/src/lib/sharding.ts` is the typed protocol: every
+> cross-shard message has a declared context type, and nothing is stringified by hand.
 
 Sharding is staying — 2,418 guilds against Discord's 2,500-per-shard limit, so the
 question this section used to ask is settled. What is left is the debt underneath it.
@@ -407,6 +454,10 @@ Also in `shards.ts`: the version-gated migrations (dead), and `'Shard X died', t
 
 ## 5.2 Dead code inventory
 
+> **Mostly done.** 5.0.0 removed the whole Express surface, which took the `server/` rows
+> with it. What is left is small: `DiscordApiError` has no references anywhere, and
+> `api/util.ts` is still the grab-bag this table describes.
+
 Rows marked ✓ have been removed — in 3.17.0 (community map, automod, duplicate queries)
 or 4.0.0 (build scripts, unused dependencies).
 
@@ -440,7 +491,34 @@ sleep papering over an ordering race.
 
 ---
 
-## Phase 4 — The Next.js front-end (3–4 weeks)
+## Phase 4 — The Next.js front-end — **shipped in 5.0.0**
+
+> **Built.** The recommendation below was followed, and the sections after it are the
+> analysis that produced it - kept because they explain the shape of `apps/web`.
+>
+> **What the plan got right:** the split was clean, `/tracking` was the only route touching
+> gateway state, `TempStore` and the signed cookies were the two real problems, and there
+> was nothing worth preserving stylistically.
+>
+> **What it got wrong or left out:**
+> - `TempStore` and the cookie signing were solved in **4.3.0**, ahead of the port, by
+>   sealing the OAuth state into a cookie. By the time the site moved there was no
+>   process-local state left to move, which is most of why the port went as smoothly as it
+>   did. Neither `iron-session` nor Redis was needed.
+> - **npm workspaces, not pnpm + Turborepo.** The repository was already on npm and the
+>   build is two `tsup` runs and a `next build`; a task runner had nothing to cache that
+>   was worth its configuration.
+> - **Five packages, not three.** `core`, `nexus-api`, `auth`, `persistence` and `account`,
+>   rather than `db`/`nexus-api`/`shared`. `shared` would have become the grab-bag this
+>   document complains about elsewhere.
+> - **No reverse proxy, and no route-group cutover.** The "port group by group behind a
+>   proxy, retire `server/` last" sequencing was not used. Both servers were built and
+>   compared side by side, then Express was deleted in one commit. Running two HTTP servers
+>   against one set of OAuth redirect URIs would have meant a proxy in front of production
+>   for weeks to avoid a switch that takes one redeploy.
+> - **Two Docker images**, which the plan did not anticipate. The bot has no use for Next
+>   and React, and the site has no use for discord.js's gateway.
+> - The port cost roughly two weeks against the 3-4 week estimate.
 
 **Recommendation: a separate Next.js app in the same repo, sharing types and DB access with
 the bot through a workspace package.**
@@ -539,22 +617,19 @@ behind a reverse proxy, and retire `server/` last. No big-bang cutover.
 | ~~2 — Command framework + dedupe~~ | ~1 week actual | Medium | **on 4.0.0** ✓ |
 | ~~3.1 — Migrations~~ | 1 day actual | Medium | **on 4.0.0** ✓ |
 | ~~3.2 — Query layer~~ | 1 day actual | Medium | **on 4.0.0** ✓ |
-| 3.3 — GraphQL codegen | 3–5 days | Low | Query by query |
-| 3.4 — Auth token encryption (S9) | 2–3 days | **High** | One migration, not reversible in place |
-| 3.5 — Query error contract | 2–3 days | Medium | Changes feed behaviour |
+| ~~3.3 — GraphQL codegen~~ | — | Low | **on 5.0.0** ✓ |
+| ~~3.4 — Auth token encryption (S9)~~ | — | **High** | **on 5.0.0** ✓ |
+| ~~3.5 — Query error contract~~ | — | Medium | **shipped, 4.1.0** ✓ |
 | ~~3.6 — Import cycles~~ | 1 day actual | Low | **on 4.0.0** ✓ (2 left, documented) |
-| 4 — Next.js split | 3–4 weeks | Medium | Route group by route group |
-| 5 — Sharding decision + dead code | 1 week | Low | Any time |
+| ~~4 — Next.js split~~ | ~2 weeks actual | Medium | **on 5.0.0** ✓ |
+| ~~5.1 — Sharding protocol~~ | — | Low | **on 5.0.0** ✓ |
+| 5.2 — Dead code, what is left | hours | Low | Any time |
 
-**Remaining: roughly 5–7 weeks of one engineer**, down from 7–10 at the last revision.
-Phases 0–2 and 3.1–3.2 took about two and a half weeks against a 5.5–9 week estimate,
-so the remaining figures are probably still pessimistic — but 3.4 and Phase 4 are the two
-items with genuine unknowns in them, and they are what the estimate hangs on.
-
-**Order matters in two places.** 3.6 is done, so the Phase 4 prerequisite is met. 3.4 should not run at the same time
-as anything else touching `users`, since it rewrites every token column. 3.5 wants to land
-on its own, so that a change in feed behaviour can be attributed if something looks wrong
-after a deploy.
+**Remaining: days, not weeks.** The original estimate was 7–10 weeks of one engineer,
+revised to 5–7. What is actually left is the 5.0.0 deploy, the forum webhook, the font and
+CSP pair, and the last of the dead code. Every estimate in this table came in under, in
+some cases by half - which is worth remembering the next time one of these numbers is used
+to decide whether something is affordable.
 
 ---
 

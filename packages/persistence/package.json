@@ -1,0 +1,33 @@
+{
+  "name": "@nexusmods/persistence",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The data layer: the drizzle schema, the pool, and every repository that reads or writes it.",
+  "exports": {
+    "./*.js": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nexusmods/core": "*",
+    "@nexusmods/nexus-api": "*",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.14.1"
+  },
+  "devDependencies": {
+    "discord.js": "^14.25.1",
+    "@types/node": "^22.13.14",
+    "@types/pg": "^8.11.11",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

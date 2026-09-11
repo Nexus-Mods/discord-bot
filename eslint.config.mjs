@@ -17,11 +17,12 @@ import tsParser from "@typescript-eslint/parser";
 export default [
     {
         ignores: [
-            "dist/**",
+            "**/dist/**",
+            "**/.next/**",
             // Generated from schema.graphql by `npm run codegen`. Lint rules are for
             // code someone writes; editing this to satisfy them would be undone by the
             // next generation.
-            "src/api/generated/**",
+            "**/src/generated/**",
             "node_modules/**",
             "*.cjs",
             "eslint.config.mjs",
@@ -30,26 +31,50 @@ export default [
     js.configs.recommended,
     {
         // Build tooling. Not covered by tsconfig.json, so no type-aware rules here.
-        files: ["scripts/**/*.mjs", "*.config.mjs", "*.config.ts"],
+        files: ["**/scripts/**/*.mjs", "**/*.config.mjs", "**/*.config.ts"],
         languageOptions: {
             parser: tsParser,
             globals: { ...globals.node },
         },
     },
     {
-        files: ["src/**/*.ts", "tests/**/*.ts"],
+        // One pattern per workspace root, matching everything under it.
+        //
+        // This used to name directories - src/, tests/, then app/ when apps/web arrived -
+        // and each time a new directory appeared it was silently not linted, because
+        // eslint reports "File ignored because no matching configuration was supplied" as
+        // a *warning* and still exits 0. `npm run lint` passed while checking nothing.
+        //
+        // It happened twice. apps/web was unlinted until the pattern for app/ was added,
+        // and then all four packages were unlinted for four commits: nothing matched
+        // packages/**, so 46 moved modules stopped being checked the moment they moved.
+        // Naming the workspace roots instead means a new directory inside one is covered
+        // the day it is created, and the architecture test below fails if a new workspace
+        // root is added without a pattern.
+        files: ["apps/*/**/*.{ts,tsx}", "packages/*/**/*.{ts,tsx}"],
         languageOptions: {
             parser: tsParser,
             parserOptions: {
                 ecmaVersion: 2022,
                 sourceType: "module",
+                // .tsx needs this; the parser does not infer JSX from the extension.
+                ecmaFeatures: { jsx: true },
                 // Type-aware linting. Required by no-floating-promises and
                 // no-misused-promises, which are the rules that earn their keep here.
-                project: "./tsconfig.json",
+                //
+                // projectService rather than a `project` path: one config at the root now
+                // lints several workspaces, and it resolves the nearest tsconfig for each
+                // file itself. A hard-coded "./tsconfig.json" pointed at the repository
+                // root, which after the 5.0.0 move holds no tsconfig at all - and a
+                // second workspace would have needed a second entry here.
+                projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
             globals: {
                 ...globals.node,
+                // The web app renders in a browser as well as on the server; without
+                // these, no-undef fires on document, window and friends.
+                ...globals.browser,
             },
         },
         plugins: {

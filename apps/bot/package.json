@@ -1,0 +1,64 @@
+{
+  "name": "@nexusmods/discord-bot",
+  "type": "module",
+  "version": "5.0.0",
+  "description": "A Discord bot for Nexus Mods, written in TypeScript",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "npm run build:packages --prefix ../.. && tsup",
+    "start": "node dist/shards.js",
+    "dev": "npm run build && npm run start",
+    "dev:all": "node scripts/dev.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check",
+    "db:migrate": "npm run build && node dist/db/migrate.js",
+    "tokens:backfill": "npm run build && node dist/db/backfillTokens.js",
+    "tokens:verify": "npm run build && node dist/db/backfillTokens.js --verify",
+    "tokens:report": "npm run build && node dist/db/backfillTokens.js --report",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "author": "Pickysaurus",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "^22.13.14",
+    "@types/pg": "^8.11.11",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "@nexusmods/account": "*",
+    "@nexusmods/auth": "*",
+    "@nexusmods/core": "*",
+    "@nexusmods/nexus-api": "*",
+    "@nexusmods/persistence": "*",
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "fuse.js": "^7.5.0",
+    "html-to-text": "^10.0.1",
+    "pg": "^8.14.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "allowScripts": {
+    "esbuild@0.18.20": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.2": true
+  }
+}

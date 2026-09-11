@@ -1,0 +1,43 @@
+{
+  "name": "@nexusmods/discord-web",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build:packages --prefix ../.. && next dev",
+    "build": "npm run build:packages --prefix ../.. && next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@discordjs/builders": "^1.14.1",
+    "@discordjs/rest": "^2.6.3",
+    "@nexusmods/account": "*",
+    "@nexusmods/auth": "*",
+    "@nexusmods/core": "*",
+    "@nexusmods/nexus-api": "*",
+    "@nexusmods/persistence": "*",
+    "discord-api-types": "^0.38.31",
+    "html-to-text": "^10.0.1",
+    "next": "^16.3.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cookie-signature": "^1.1.2",
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "^22.13.14",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "cookie-parser": "^1.4.7",
+    "cookie-signature": "^1.2.2",
+    "discord.js": "^14.25.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.11"
+  }
+}

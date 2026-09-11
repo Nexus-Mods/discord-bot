@@ -1,0 +1,204 @@
+import crypto from 'crypto';
+import type { Logger } from "@nexusmods/core/logger.js";
+import { readJson, expiresAt } from '@nexusmods/core/http.js';
+import { findUser } from '@nexusmods/nexus-api/queries/v2-finduser.js';
+
+interface OAuthURL {
+    url: string;
+    state: string;
+}
+
+interface OAuthTokens {
+    access_token: string;
+    refresh_token: string;
+    expires_at: number;
+    token_type?: string;
+    expires_in?: number;
+    scope?: string;
+}
+
+interface NexusOAuthTokens extends OAuthTokens {
+    created_at?: number;
+    id_token?: string;
+}
+
+type NexusMembershipRoles = 'member' | 'supporter' | 'premium' | 'lifetimepremium' | 'modauthor';
+
+interface NexusUserData {
+  sub: string;
+  name: string;
+  email: string;
+  avatar: string;
+  group_id: number;
+  membership_roles: NexusMembershipRoles[];
+}
+
+export function getOAuthUrl(sharedState: string, logger: Logger): OAuthURL {
+    
+    const state = sharedState ?? crypto.randomUUID();
+
+    const { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI } = process.env;
+    if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI) {
+      logger.warn('Could not generate Nexus Mods OAUTH URL', { NEXUS_OAUTH_ID, NEXUS_REDIRECT_URI });
+      return { url: '/oauth-error', state };
+    };
+  
+    const url = new URL('https://users.nexusmods.com/oauth/authorize');
+    url.searchParams.set('client_id', NEXUS_OAUTH_ID);
+    url.searchParams.set('redirect_uri', NEXUS_REDIRECT_URI);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('state', state);
+    /**
+     * Legacy applications and new ones have different scopes on the Nexus Mods end: the
+     * production application has `email`, and the newer one used for development does not.
+     *
+     * Asked as "is this production?", not "is this one particular development value?",
+     * because there are now three of those and the process does not choose its own.
+     * NODE_ENV is 'testing' in this repository's .env - that is what the bot's shard count
+     * and its TLS defaults key off - but Next sets its own: 'development' under `next dev`
+     * and 'production' for a build, whatever the .env says.
+     *
+     * So matching a development value meant matching three, and getting it wrong was
+     * silent: the wrong scope is a rejection from Nexus Mods part-way through a link, well
+     * away from this line. Matching production instead is one condition that is right for
+     * the bot, for Express, for `next dev` and for the container, and stays right when a
+     * fourth name turns up.
+     *
+     * Read as a plain string rather than compared directly, because Next augments
+     * NodeJS.ProcessEnv with NODE_ENV: 'development' | 'production' | 'test' - so a direct
+     * comparison against 'testing' became "these types have no overlap" the moment the web
+     * app first imported this file. The comparison is right and the global type is too
+     * narrow for this repository.
+     */
+    const nodeEnv: string = process.env.NODE_ENV ?? '';
+    const production = nodeEnv === 'production';
+    url.searchParams.set('scope', production ? 'openid email profile' : 'public openid profile');
+    // url.searchParams.set('approval_prompt', 'auto'); // Skips the auth prompt?
+    return { state, url: url.toString() };
+}
+
+export async function getOAuthTokens(code: string): Promise<NexusOAuthTokens> {
+
+    const { NEXUS_OAUTH_ID, NEXUS_OAUTH_SECRET, NEXUS_REDIRECT_URI } = process.env;
+      if (!NEXUS_OAUTH_ID || !NEXUS_REDIRECT_URI || !NEXUS_OAUTH_SECRET) throw new Error('Cannot get Nexus Mods OAuth Tokens, ENVARs invalid');
+  
+    const url = 'https://users.nexusmods.com/oauth/token';
+    const body = new URLSearchParams({
+      client_id: NEXUS_OAUTH_ID,
+      client_secret: NEXUS_OAUTH_SECRET,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: NEXUS_REDIRECT_URI,
+    });
+  
+    const response = await fetch(url, {
+      body,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    if (response.ok) {
+      const data = await readJson<NexusOAuthTokens>(response);
+      data.expires_at = expiresAt(data.expires_in);
+      return data;
+    } else {
+      throw new Error(`Error fetching Nexus Mods OAuth tokens: [${response.status}] ${response.statusText}`);
+    }
+}
+
+/**
+ * @param headers Sent on to the Nexus Mods API when checking whether this user is a mod
+ * author. Passed in rather than imported: it carries the application's version, and an
+ * application's version is not something a shared package can know.
+ */
+export async function getUserData(tokens: NexusOAuthTokens, logger: Logger, headers: Record<string, string>): Promise<NexusUserData> {
+    const url = 'https://users.nexusmods.com/oauth/userinfo';
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+    });
+    if (response.ok) {
+      const data = await readJson<NexusUserData>(response);
+      let modAuthor = false;
+      try {
+        const user = await findUser(headers, logger, parseInt(data.sub));
+        modAuthor = user?.recognizedAuthor ?? false;
+      }
+      catch(err) {
+        logger.warn('Error fetching user data', { error: (err as Error).message, userId: data.sub }, true);
+      }
+      if (modAuthor === true) data.membership_roles?.push('modauthor');
+      return data;
+    } else {
+      throw new Error(`Error fetching Nexus Mods user data: [${response.status}] ${response.statusText}`);
+    }
+}
+
+export async function getAccessToken(tokens: OAuthTokens): Promise<OAuthTokens> {
+    const { NEXUS_OAUTH_ID, NEXUS_OAUTH_SECRET } = process.env;
+
+    if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Error getting Nexus Mods access token, ENV VARS are undefined.');
+
+    // logMessage('CHECKING NEXUS MODS ACCESS TOKENS', { expires: new Date((tokens.expires_at)), timestamp: tokens.expires_at});
+
+    // Tokens are valid for 6 hours from the point they are issued.
+    if (Date.now() > tokens.expires_at) {
+      // logMessage('RENEWING NEXUS MODS ACCESS TOKENS', { expires: new Date((tokens.expires_at)) });
+      const url = 'https://users.nexusmods.com/oauth/token';
+      const body = new URLSearchParams({
+        client_id: NEXUS_OAUTH_ID,
+        client_secret: NEXUS_OAUTH_SECRET,
+        grant_type: 'refresh_token',
+        refresh_token: tokens.refresh_token,
+      });
+      const response = await fetch(url, {
+        body,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      if (response.ok) {
+        const tokens = await readJson<OAuthTokens>(response);
+        tokens.expires_at = expiresAt(tokens.expires_in);
+        return tokens;
+      } else {
+        const err: any = new Error(`Could not refresh Nexus Mods access token: [${response.status}] ${response.statusText}`);
+        err.code = response.status;
+        throw err;
+      }
+    }
+    // logMessage('Tokens are still valid', { expires: new Date((tokens.expires_at)) });
+    return tokens;
+}
+
+// Revoke tokens
+export async function revoke(tokens: OAuthTokens): Promise<OAuthTokens> {
+  const { NEXUS_OAUTH_ID, NEXUS_OAUTH_SECRET } = process.env;
+
+  if (!NEXUS_OAUTH_ID || !NEXUS_OAUTH_SECRET) throw new Error('Bot environment variables are not configured properly.');
+
+  const url = 'https://users.nexusmods.com/oauth/revoke';
+  const body = new URLSearchParams({
+    client_id: NEXUS_OAUTH_ID,
+    client_secret: NEXUS_OAUTH_SECRET,
+    token: tokens.refresh_token,
+  });
+
+  const response = await fetch(url, {
+    body,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+  if (response.ok) {
+    const data = await readJson<OAuthTokens>(response);
+    data.expires_at = expiresAt(data.expires_in);
+    return data;
+  } else {
+    throw new Error(`Error revoking Neuxs Mods OAuth tokens: [${response.status}] ${response.statusText}`);
+  }
+}
