@@ -58,7 +58,8 @@ export function getOAuthUrl(sharedState: string, logger: Logger): OAuthURL {
     // have no overlap" the moment the web app first imported this file. The comparison is
     // right and the global type is too narrow for this repo.
     const nodeEnv: string = process.env.NODE_ENV ?? '';
-    if (nodeEnv === 'testing') url.searchParams.set('scope', 'public openid profile');
+    logger.info("NodeEnv", nodeEnv);
+    if (nodeEnv === 'development') url.searchParams.set('scope', 'public openid profile');
     else url.searchParams.set('scope', 'openid email profile');
     // url.searchParams.set('approval_prompt', 'auto'); // Skips the auth prompt?
     return { state, url: url.toString() };
