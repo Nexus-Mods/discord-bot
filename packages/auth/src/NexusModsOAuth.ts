@@ -48,19 +48,31 @@ export function getOAuthUrl(sharedState: string, logger: Logger): OAuthURL {
     url.searchParams.set('redirect_uri', NEXUS_REDIRECT_URI);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('state', state);
-    // Do to a strange oversight on the Nexus Mods end, legacy applications and new ones have different scopes. 
-    // When testing we're using a newer app that doesn't have the "email" scope.
-    //
-    // Read as a plain string rather than compared directly. Next augments
-    // NodeJS.ProcessEnv with NODE_ENV: 'development' | 'production' | 'test', and this
-    // package is compiled by apps/web as well as apps/bot - so a direct comparison against
-    // 'testing', which is the value this repository actually uses, became "these types
-    // have no overlap" the moment the web app first imported this file. The comparison is
-    // right and the global type is too narrow for this repo.
+    /**
+     * Legacy applications and new ones have different scopes on the Nexus Mods end: the
+     * production application has `email`, and the newer one used for development does not.
+     *
+     * Asked as "is this production?", not "is this one particular development value?",
+     * because there are now three of those and the process does not choose its own.
+     * NODE_ENV is 'testing' in this repository's .env - that is what the bot's shard count
+     * and its TLS defaults key off - but Next sets its own: 'development' under `next dev`
+     * and 'production' for a build, whatever the .env says.
+     *
+     * So matching a development value meant matching three, and getting it wrong was
+     * silent: the wrong scope is a rejection from Nexus Mods part-way through a link, well
+     * away from this line. Matching production instead is one condition that is right for
+     * the bot, for Express, for `next dev` and for the container, and stays right when a
+     * fourth name turns up.
+     *
+     * Read as a plain string rather than compared directly, because Next augments
+     * NodeJS.ProcessEnv with NODE_ENV: 'development' | 'production' | 'test' - so a direct
+     * comparison against 'testing' became "these types have no overlap" the moment the web
+     * app first imported this file. The comparison is right and the global type is too
+     * narrow for this repository.
+     */
     const nodeEnv: string = process.env.NODE_ENV ?? '';
-    logger.info("NodeEnv", nodeEnv);
-    if (nodeEnv === 'development') url.searchParams.set('scope', 'public openid profile');
-    else url.searchParams.set('scope', 'openid email profile');
+    const production = nodeEnv === 'production';
+    url.searchParams.set('scope', production ? 'openid email profile' : 'public openid profile');
     // url.searchParams.set('approval_prompt', 'auto'); // Skips the auth prompt?
     return { state, url: url.toString() };
 }
