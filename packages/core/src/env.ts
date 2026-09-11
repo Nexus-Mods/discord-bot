@@ -4,39 +4,14 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
 /**
- * Load `.env`, wherever it is relative to the code rather than to the shell.
- *
- * Seven modules used to call `dotenv.config()` for themselves, which resolves
- * `.env` from `process.cwd()`. That held for as long as the working directory was
- * always the repository root. The 5.0.0 move put the bot in `apps/bot`, so
- * `npm start` runs with a working directory that has no `.env` in it - and the bot
- * refused to start with "Token encryption is not configured", which is the 4.3.0
- * fail-closed check correctly reporting an environment that had not been loaded.
- *
- * Walking up from this module instead means the answer does not depend on where the
- * command was typed:
- *
- *   development   apps/bot/dist/lib/env.js  ->  ../../../../.env   (repository root)
- *   Docker image  /app/dist/lib/env.js      ->  /app/.env          (mounted)
- *
- * It is the same approach `version.ts` takes to find package.json, and for the same
- * reason: both files sit beside `dist/` in the image and above it in the repository.
- *
- * Nearest wins, so a workspace may keep its own `.env` and override the shared one -
- * but there is deliberately only one today. Two copies of the credentials is the drift
- * the single root file exists to prevent.
+ * Load `.env` by walking up from this module, not from `process.cwd()` - the working
+ * directory differs between `npm start` at the root, inside apps/bot, and in the image.
+ * Nearest wins.
  */
 
 /**
- * How far up to look.
- *
- * Six covered every case until the web app was built standalone for its container. There
- * the loader is bundled into a server chunk, so the walk starts at
- * /app/apps/web/.next/server/chunks and /app/.env is five directories up - inside six, but
- * with a margin of one. Eight, because the cost of a level too few is a container that
- * exits at boot with three "is not set" lines and a correct-looking .env sitting in it,
- * and the cost of a level too many is nothing: nearest wins, and there is no .env above
- * the repository root or above /app to find by mistake.
+ * Eight, not six: in the web app's standalone build this is bundled into a server chunk,
+ * so the walk starts at /app/apps/web/.next/server/chunks and /app/.env is five up.
  */
 const MAX_DEPTH = 8;
 
@@ -52,17 +27,9 @@ export function findEnvFile(from: string): string | undefined {
     return undefined;
 }
 
-/**
- * The file that was loaded, or undefined when there was none.
- *
- * Undefined is not an error here. Production may inject configuration through the
- * environment rather than a file, and CI has no `.env` at all - `.env` is gitignored.
- * What must never happen is *silently* continuing with a half-loaded environment, and
- * that is what the fail-closed checks at boot are for.
- */
+/** The file that was loaded, or undefined - not an error, since CI and production may have none. */
 export const ENV_FILE: string | undefined = findEnvFile(path.dirname(fileURLToPath(import.meta.url)));
 
-// quiet: dotenv 17 prints a banner to stdout by default, and production logs are JSON.
-// Values already present in the environment win - dotenv does not overwrite them - so a
-// container that sets a variable directly is not overridden by a mounted file.
+// quiet: dotenv prints a banner otherwise, and production logs are JSON. Values already in
+// the environment win, so a container's own variables override the mounted file.
 dotenv.config(ENV_FILE ? { path: ENV_FILE, quiet: true } : { quiet: true });

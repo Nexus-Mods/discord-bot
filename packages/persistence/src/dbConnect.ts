@@ -25,31 +25,16 @@ function envInt(value: string | undefined, fallback: number, name: string): numb
 /**
  * Whether to verify the database server's TLS certificate.
  *
- * DB_SSL makes this an explicit setting rather than something inferred from NODE_ENV:
+ *   DB_SSL=verify   verify (set DB_SSL_CA for a custom root)
+ *   DB_SSL=on       encrypt without verifying - production's long-standing behaviour
+ *   DB_SSL=off      no TLS - local only
  *
- *   DB_SSL=verify   verify the certificate (set DB_SSL_CA if a custom root is needed)
- *   DB_SSL=on       encrypt without verifying - the long-standing production behaviour
- *   DB_SSL=off      no TLS at all - local databases only
- *
- * When DB_SSL is unset the NODE_ENV default below applies, and it reproduces the
- * pre-4.0.0 behaviour exactly. Verification is still off by default because the managed
- * Postgres this bot connects to presents a certificate that does not verify against the
- * public roots; turning it on without configuring a CA would take the bot down. That is
- * a real weakness rather than a solved problem - the connection is encrypted but not
- * authenticated, so it is not protected against an active man-in-the-middle.
+ * Verification is off by default because the managed Postgres presents a certificate that
+ * does not verify against the public roots. The connection is encrypted but not
+ * authenticated: a real weakness, not a solved problem.
  */
 
-/**
- * The NODE_ENV default, kept faithful to the behaviour before 4.0.0: TLS on when
- * NODE_ENV is 'production' or unset, off for every other value.
- *
- * This repository spells the local value **'testing'**, not 'development' or 'test' -
- * see `isTesting` in api/util.ts, the shard count in shards.ts, and the OAuth scope in
- * NexusModsOAuth.ts. A first version of this function checked for 'development' and
- * 'test' instead, which sent every local run down the TLS path and broke `npm start`
- * against a local Postgres with "The server does not support SSL connections". The unit
- * tests missed it because vitest sets NODE_ENV=test, one of the two invented values.
- */
+/** Unset DB_SSL: on for 'production' or no value, off otherwise. Local here is 'testing'. */
 function defaultSslMode(): 'on' | 'off' {
     const env = process.env.NODE_ENV;
     return env === 'production' || env === undefined ? 'on' : 'off';
@@ -103,43 +88,15 @@ function buildPoolConfig(): PoolConfig {
 }
 
 /**
- * Connections this process may hold open to Postgres, per pool.
- *
- * This was a flat 10, chosen when there was one process. The arithmetic stopped working
- * some time ago and nobody was counting:
- *
- *   3 shards x 1 pool   the bot's database
- * + 1 web  x 2 pools    the same, plus the automod rules database
- * = 5 pools
- *
- * At 10 that is a ceiling of 50 against a managed 1 GB Postgres that allows **22**
- * backend connections. It has not caused an outage because production connects through
- * PgBouncer, so those are connections to the pooler rather than to Postgres - but that
- * means the safety came from a component the configuration does not mention and nothing
- * in the code asserts is there. Connect directly once, for a migration or a one-off
- * script, and the numbers are what they always were.
- *
- * 4 x 5 pools = 20, which fits under 22 with the pooler out of the picture. The bot's
- * database work is near-sequential - feed cycles walk their subscriptions in order, and
- * the one concurrent step is rate-limited API calls, not queries - so the old ceiling
- * was never being approached anyway.
- *
- * DB_POOL_MAX overrides it. Raise it if pool acquisition starts to queue, but count the
- * pools first: the limit is per pool, per process.
+ * Connections per pool, per process. There are five pools (3 shards x 1, plus the web
+ * process's 2), so 4 gives 20 against a managed Postgres that allows 22 - which is the
+ * budget with PgBouncer out of the picture. DB_POOL_MAX overrides it; count the pools first.
  */
 function poolMax(): number {
     return envInt(process.env.DB_POOL_MAX, 4, 'DB_POOL_MAX');
 }
 
-/**
- * Configuration and pools are built on first use rather than at import.
- *
- * Building them at module scope meant that importing anything in the data layer -
- * including from a test, or from the migration runner, which has no interest in the
- * automod database - evaluated every environment variable and threw if one was
- * missing. Deferring it keeps the validation (a missing setting still fails loudly)
- * without making the module unimportable.
- */
+/** Built on first use, so importing the data layer does not require every variable to be set. */
 let cachedConfig: PoolConfig | undefined;
 
 export function poolConfig(): PoolConfig {
@@ -156,23 +113,11 @@ export function poolConfig(): PoolConfig {
 /**
  * How long a query may run before the client gives up. 0 disables.
  *
- * Without a limit, one stuck query holds a pool connection until the process restarts,
- * and ten of them deadlock the bot. That is the problem being solved, and it is a
- * *client-side* problem - so it wants a client-side fix.
+ * `query_timeout`, NOT `statement_timeout`: the latter is sent in pg's startup packet and
+ * PgBouncer rejects it outright (SQLSTATE 08P01), refusing every connection. This one is a
+ * client-side timer and passes through a pooler unremarked.
  *
- * 4.0.0 set pg's `statement_timeout` pool option instead. pg sends that in the **startup
- * packet**, and PgBouncer - which production connects through - rejects any startup
- * parameter outside its allow-list: `unsupported startup parameter`, SQLSTATE 08P01,
- * FATAL. Every connection was refused and the bot could not migrate.
- *
- * `query_timeout` is implemented by pg itself with a timer, sends nothing at connection
- * time, and passes through a pooler unremarked. Verified against PgBouncer 1.22 in
- * transaction mode: the query aborts and the pool stays usable.
- *
- * What it does **not** do is cancel the query on the server - that keeps running until it
- * finishes. To bound server-side work as well, set it on the role, which no pooler can
- * undo and no deploy can forget:
- *
+ * It does not cancel the query on the server. To bound that too:
  *     ALTER ROLE <user> SET statement_timeout = '15s';
  */
 function queryTimeoutMs(): number {
@@ -185,18 +130,8 @@ function queryTimeoutMs(): number {
 export type PoolName = 'main' | 'automod';
 
 /**
- * The open pools, keyed on globalThis rather than held in a module variable.
- *
- * A module-level Map is correct in both long-running processes: the bot and Express each
- * evaluate this file once. Next's dev server does not - it re-evaluates a changed module
- * and everything importing it on every save, so a module-level Map means a brand new Map
- * per reload, the previous one unreachable with its Postgres connections still open. On a
- * managed instance that allows 22 backends, twenty saves is an outage, and the failure
- * arrives as "too many clients" in whichever process asks next, which is usually the bot.
- *
- * globalThis survives the reload, so the pool is created once per process no matter how
- * many times this module is evaluated. Nothing changes for the bot: it evaluates this
- * once, finds nothing on globalThis, and creates the same Map it always did.
+ * Keyed on globalThis, not a module variable: Next's dev server re-evaluates this module
+ * on every save, and a fresh Map each time leaks its predecessor's open connections.
  */
 const POOLS = Symbol.for('@nexusmods/persistence.pools');
 

@@ -7,24 +7,13 @@ import { CLIENT_STATE_COOKIE, LINK_STATE_COOKIE, clearSignedCookie, readSignedCo
 import { forbidden, redirectTo, redirectToError } from '@/lib/link/flow';
 
 /**
- * GET /nexus-mods-callback - the second half of the link, and the only place a user row
- * is written.
+ * GET /nexus-mods-callback - registered as NEXUS_REDIRECT_URI, and the only place a user
+ * row is written. Three checks stand in front of that, all on the request itself: the
+ * OAuth state matches the signed cookie, the sealed cookie opens with that state, and the
+ * sealed payload has not expired.
  *
- * Registered as NEXUS_REDIRECT_URI with Nexus Mods, so the path is fixed.
- *
- * Three checks stand between a request and the account write, and all three are on the
- * request rather than on anything the server remembers:
- *
- *   - the OAuth state must match the signed clientState cookie
- *   - the sealed linkState cookie must open with that same state
- *   - the sealed payload must not have expired (five minutes, inside the ciphertext)
- *
- * The sealed cookie is cleared on every path out of here, success or failure. Express does
- * this immediately after reading it, and the reason is that it holds live Discord access
- * and refresh tokens: a failed attempt that leaves them in the browser leaves them there
- * for the rest of their window. Next has no `res` to write to before the work happens, so
- * the clear is applied to the response instead - which is why every return goes through
- * `done()`.
+ * The sealed cookie holds live Discord tokens and is cleared on EVERY path out of here,
+ * which is why every return goes through `done()`.
  */
 export async function GET(request: Request): Promise<NextResponse> {
     /** Clear the sealed link state on the way out, whatever the outcome. */
@@ -44,15 +33,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         return done(forbidden());
     }
 
-    /**
-     * openLinkState returns null for every failure - forged, expired, wrong secret, or
-     * belonging to a different flow - because none of them is recoverable and telling them
-     * apart here would only invite treating a forged cookie as a transient error.
-     *
-     * The state is passed in so a cookie captured from one link attempt cannot finish
-     * another: the payload carries the state it was sealed with and is checked against
-     * this request's.
-     */
+    // The state is passed in so a cookie captured from one attempt cannot finish another.
     const discordData = openLinkState(
         readSignedCookie(request, LINK_STATE_COOKIE),
         process.env.COOKIE_SECRET!,
@@ -60,8 +41,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
 
     if (!discordData) {
-        // The path, not the full URL: this is logged, and the query string carries an
-        // authorization code.
+        // The path, not the URL: the query string carries an authorization code.
         logger.warn('Could not find matching Discord Auth to pair accounts', new URL(request.url).pathname);
         return done(forbidden());
     }

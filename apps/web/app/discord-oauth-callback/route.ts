@@ -10,16 +10,8 @@ import {
 import { forbidden, redirectTo, redirectToError } from '@/lib/link/flow';
 
 /**
- * GET /discord-oauth-callback - Discord hands back an authorization code.
- *
- * Registered as DISCORD_REDIRECT_URI in the developer portal, so this path is fixed. It
- * exchanges the code for tokens, seals them into a cookie, and forwards the user to Nexus
- * Mods for the second half of the link.
- *
- * The tokens go in a cookie rather than in server memory because the link spans two OAuth
- * round trips and the server holds no state between them - see linkState.ts for why that
- * is worth a sealed cookie. The practical effect is that a deploy in the middle of
- * somebody's link no longer drops them into a 403.
+ * GET /discord-oauth-callback - registered as DISCORD_REDIRECT_URI, so the path is fixed.
+ * Exchanges the code, seals the tokens into a cookie, forwards to Nexus Mods.
  */
 export async function GET(request: Request): Promise<NextResponse> {
     try {
@@ -28,26 +20,15 @@ export async function GET(request: Request): Promise<NextResponse> {
         const discordState = params.get('state');
         const clientState = readSignedCookie(request, CLIENT_STATE_COOKIE);
 
-        /**
-         * Both halves of the state check, before anything is spent on the request.
-         *
-         * `safeCompare` rather than `===` for the same reason Express uses it: the
-         * comparison is against a value the client supplies, and a timing signal on a
-         * 36-character UUID is a real, if slow, oracle. It also returns false on a length
-         * mismatch, so no length is leaked either.
-         */
+        // Both halves of the state check, before anything is spent on the request.
+        // safeCompare, not ===: the value is client-supplied.
         if (typeof clientState !== 'string' || typeof discordState !== 'string'
             || !safeCompare(clientState, discordState)) {
             logger.warn('Discord OAuth state verification failed.');
             return forbidden();
         }
 
-        /**
-         * Express passed `req.query['code'] as string` straight through, so a callback
-         * with no code sent the literal string "undefined" to Discord's token endpoint and
-         * surfaced as "[400] Bad Request" in the error box. Checked here instead: same
-         * destination, a message that says what happened.
-         */
+        // Express sent the literal string "undefined" here and surfaced a [400].
         if (!code) throw new Error('Discord did not return an authorization code.');
 
         const tokens = await DiscordOAuth.getOAuthTokens(code);
@@ -57,9 +38,7 @@ export async function GET(request: Request): Promise<NextResponse> {
             {
                 state: clientState,
                 id: meData.user.id,
-                // Discord retired discriminators, so this is now almost always "name#0".
-                // Left exactly as Express builds it: the success page prints it, and
-                // changing the format inside a port makes the two versions incomparable.
+                // Almost always "name#0" now; kept as Express builds it.
                 name: `${meData.user.username}#${meData.user.discriminator}`,
                 tokens,
             },

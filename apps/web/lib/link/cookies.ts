@@ -4,18 +4,10 @@ import { LINK_STATE_COOKIE } from '@nexusmods/auth/linkState.js';
 import { cookieAttributes, signCookieValue, unsignCookieValue } from '@/lib/security/signedCookies';
 
 /**
- * The three cookies the link and unlink flows use, in one place.
- *
- * Express reached for `req.signedCookies` and `res.cookie(..., { signed: true })` and got
- * signing from cookie-parser. Next has neither half, so both are spelled out here rather
- * than at each of the five call sites - the failure mode of spreading it out is a route
- * that reads `request.cookies.get('clientState')` and compares the raw, unverified value,
- * which type-checks perfectly and accepts anything the client sends.
- *
- * Every function here takes the secret from the environment at call time. bootCheck
- * refuses to start the site without COOKIE_SECRET, so the non-null assertion is checked
- * before any request can arrive - but it is asserted rather than defaulted, because a
- * default would silently sign with a known value.
+ * The three cookies the link and unlink flows use. Next has neither signing nor reading of
+ * signed cookies, so both halves are spelled out here rather than at five call sites - the
+ * failure mode being a route that compares an unverified `cookies.get()` value and
+ * type-checks perfectly.
  */
 
 export const CLIENT_STATE_COOKIE = 'clientState';
@@ -39,22 +31,14 @@ export function setSignedCookie(response: NextResponse, name: string, value: str
 }
 
 /**
- * Delete a cookie by setting it empty and expired.
- *
- * `response.cookies.delete(name)` omits the attributes, and a cookie set with `path: '/'`
- * is only replaceable by one with the same path - so the delete would be ignored and the
- * sealed Discord tokens would stay in the browser for the rest of their five minutes.
+ * `response.cookies.delete()` omits the attributes, and a cookie set with `path: '/'` is
+ * only replaceable by one with the same path - so it would be ignored.
  */
 export function clearSignedCookie(response: NextResponse, name: string): void {
     response.cookies.set(name, '', { ...cookieAttributes(0), maxAge: 0 });
 }
 
-/**
- * A signed cookie's verified value, from a request in a route handler.
- *
- * Undefined when it is absent, unsigned, or signed with a different secret - the same
- * three cases cookie-parser collapses into "not in signedCookies".
- */
+/** The verified value, or undefined when absent, unsigned or signed with another secret. */
 export function readSignedCookie(request: Request, name: string): string | undefined {
     const raw = cookieValue(request.headers.get('cookie'), name);
     return unsignCookieValue(raw, secret());
@@ -66,13 +50,7 @@ export async function readSignedCookieFromStore(name: string): Promise<string | 
     return unsignCookieValue(store.get(name)?.value, secret());
 }
 
-/**
- * One cookie out of a Cookie header.
- *
- * Parsed here rather than via NextRequest.cookies so the route handlers can take a plain
- * `Request`: that is what makes them testable by calling the exported GET with a
- * hand-built Request, which is how every test in this step drives them.
- */
+/** Parsed here rather than via NextRequest, so handlers can take a plain `Request`. */
 function cookieValue(header: string | null, name: string): string | undefined {
     if (!header) return undefined;
     for (const part of header.split(';')) {

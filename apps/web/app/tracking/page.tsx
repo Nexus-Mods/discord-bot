@@ -6,27 +6,12 @@ import { one, type SearchParams } from '@/lib/search';
 import { trackingFor } from '@/lib/tracking';
 
 /**
- * Ported from trackingInfo.ejs: every subscription in one guild.
+ * Every subscription in one guild: two Discord REST calls and one query, all keyed on a
+ * guild id anyone can put in the URL. That is deliberate and matches Express - the page
+ * shows what every member of that server can already see, and there is no session here.
  *
- * Reads the database now. Step 6 rendered a fixture with the real types on it, on the
- * grounds that wiring it would have meant giving the web app database credentials in the
- * step whose point was that a failure had one possible cause.
- *
- * That comment also said this could not be done without changing `getServer`, which takes
- * a discord.js Guild and reads `.name` off it. That was wrong: Express never calls
- * getServer here. The guild's name and icon come from Discord's REST API, and the
- * subscriptions come from the database keyed on the guild id in the URL - so nothing
- * needed changing after all. `grep getServer apps/bot/src/server` returns nothing.
- *
- * Two Discord calls and one query, all keyed on a guild id anyone can put in the URL. That
- * is Express's behaviour and it is deliberate: the page shows which channels in a server
- * track what, which is information every member of that server can already see, and there
- * is no session here to check membership against.
- *
- * `await connection()` because `timeAgo` reads the clock. This page was rendering per
- * request only because the layout happens to read a header for the CSP nonce - prerendered
- * instead, every "42 seconds ago" would be frozen at the time of the build, permanently
- * and plausibly.
+ * `await connection()` because `timeAgo` reads the clock; prerendered, every "42 seconds
+ * ago" would freeze at build time.
  */
 export const metadata: Metadata = { title: 'Tracking Summary' };
 
@@ -47,8 +32,7 @@ const COLUMNS = ['ID', 'Type', 'Channel', 'Name', 'Entity ID', 'Last Update'];
 export default async function Tracking({ searchParams }: { searchParams: SearchParams }) {
     await connection();
 
-    // No guild, or one this bot cannot see, goes to the front page rather than an error -
-    // Express's `if (!guild) return res.redirect('/')`, twice over.
+    // No guild, or one the bot cannot see, goes to the front page rather than an error.
     const guildId = one((await searchParams).guild);
     if (!guildId) redirect('/');
 

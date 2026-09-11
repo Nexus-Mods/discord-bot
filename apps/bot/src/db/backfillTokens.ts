@@ -16,46 +16,28 @@ const { Pool } = pg;
 /**
  * Maintenance for the sealed OAuth token columns in `users`.
  *
- * It began as a one-shot migration - convert ~147,000 plaintext values to ciphertext -
- * and that job is done. It is kept because it does two things that still matter:
+ * Two jobs remain now the original migration is done: rotation (re-sealing every value
+ * from an old key onto the current one, keyed on `needsResealing` - `needsSealing` is
+ * false for an already-sealed value and silently skips everything), and recovery, since
+ * `openToken` refuses an unsealed value.
  *
- *   - **Rotation.** Moving every value from an old key onto the current one is the
- *     second half of a key rotation, and there is no other way to do it. See
- *     `needsResealing`: the original version tested `needsSealing`, which is false for
- *     an already-sealed value, so a rotation run skipped every row and reported success.
- *     Removing TOKEN_ENCRYPTION_KEY_OLD after that made every row unreadable at once.
- *   - **Recovery.** `openToken` now refuses an unsealed value rather than passing it
- *     through, so if anything ever writes a token without sealing it, those users are
- *     locked out until this runs.
+ * Safe to run while the bot is live: the UPDATE in `sealRow` is conditional on the columns
+ * still holding what was read. Safe to re-run: already-sealed values are skipped and the
+ * walk is keyset-paginated.
  *
- * **It is safe to run while the bot is live**, which is the point of doing it this way
- * rather than in a maintenance window. Writes are guarded: see `sealRow` - the UPDATE is
- * conditional on the columns still holding what was read, so a token the bot refreshed
- * mid-run is never overwritten with the older value.
- *
- * Safe to re-run: a value already sealed under the current key matches neither
- * `needsSealing` nor `needsResealing` and is skipped, and the walk is keyset-paginated,
- * so a run that dies half way is resumed by running it again.
- *
- * The key comes from the same environment the bot is using. That matters more than it
- * looks: sealing succeeds with *any* valid key, so a run against the wrong one would not
- * fail, it would quietly make every row it touched unreadable by the bot.
+ * The key comes from the bot's own environment. Sealing succeeds with ANY valid key, so a
+ * run against the wrong one would quietly make every row it touched unreadable.
  */
 
 /** The columns to convert. Never interpolated from input. */
 const TOKEN_COLUMNS = ['nexus_access', 'nexus_refresh', 'discord_access', 'discord_refresh'] as const;
 
-// Keyed off TOKEN_COLUMNS rather than listing the four names again, so the two cannot
-// drift: adding a column to the list is enough.
 type Row = { d_id: string } & Record<(typeof TOKEN_COLUMNS)[number], string | null>;
 
 /**
- * Held for the run so two operators cannot convert the same table at once - including
- * an operator on the droplet and someone running `/tokens backfill` at the same moment,
- * which are different processes and cannot see each other any other way.
- *
- * Deliberately a different key from the migration lock, and taken with
- * `pg_try_advisory_lock` so a second run is told rather than left queueing.
+ * Stops two runs converting the same table at once - the droplet and `/tokens backfill`
+ * are different processes. A different key from the migration lock, and taken with
+ * `pg_try_advisory_lock` so a second run is told rather than queued.
  */
 const BACKFILL_LOCK_KEY = '4017000002';
 
@@ -132,24 +114,12 @@ async function withClient<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise
 /**
  * Convert one row, or decide not to.
  *
- * The UPDATE carries every changed column twice: once as the new value, once in the
- * WHERE clause as the value that was read. That is the whole defence against the race
- * with the running bot. Without it the sequence
+ * The UPDATE carries every changed column twice - as the new value, and in the WHERE as
+ * the value that was read. Without that, a token the bot refreshed mid-run would be rolled
+ * back to the sealed form of the revoked one. A mismatch updates zero rows instead.
  *
- *   1. backfill reads the plaintext token
- *   2. bot refreshes it and writes a new, sealed one
- *   3. backfill writes the sealed form of the *old* token
- *
- * silently rolls a live credential back to a revoked one, for precisely the users who
- * were active during the run. With it, step 3 matches nothing, updates zero rows, and
- * the row is left as the bot wrote it - already sealed, so there is nothing left to do.
- *
- * `IS NOT DISTINCT FROM` rather than `=` because these columns are nullable and
- * `NULL = NULL` is NULL, which would make the guard fail on every row holding a null.
- *
- * `lastupdate` is deliberately not touched. It records when a user's profile was
- * refreshed from the APIs, and the bot reads it to decide what is stale; bumping it for
- * every row at once would claim every profile is fresh when nothing was fetched.
+ * `IS NOT DISTINCT FROM`, not `=`: these columns are nullable and `NULL = NULL` is NULL.
+ * `lastupdate` is deliberately untouched - it records profile freshness, not this.
  */
 async function sealRow(client: pg.PoolClient, row: Row, p: BackfillProgress, dryRun: boolean, raced: string[]): Promise<void> {
     const sets: string[] = [];
@@ -218,10 +188,8 @@ async function sealRow(client: pg.PoolClient, row: Row, p: BackfillProgress, dry
     const result = await client.query(text, values);
 
     if (result.rowCount === 0) {
-        // The bot wrote to this row between the read and the write. Nothing here is
-        // wrong - the row holds what the bot wrote - but the guard covers all four
-        // columns at once, so a refresh of one token also stopped the other three from
-        // being sealed. Collect the row for a second look once the walk is done.
+        // The bot wrote to this row mid-read. The guard covers all four columns at once,
+        // so one refresh blocks the other three too - revisit after the walk.
         p.raced += 1;
         raced.push(row.d_id);
         return;
@@ -231,13 +199,8 @@ async function sealRow(client: pg.PoolClient, row: Row, p: BackfillProgress, dry
 }
 
 /**
- * Walk the table in `d_id` order, sealing as it goes.
- *
- * Keyset pagination rather than OFFSET, and rather than repeatedly selecting "the next
- * N rows that still need work". The latter reads better but can spin forever: a row
- * that keeps losing the race above would be selected, skipped, and selected again. A
- * cursor that only ever moves forward terminates whatever happens to any individual
- * row, and makes `from` a meaningful way to resume.
+ * Walk the table in `d_id` order. Keyset pagination, not OFFSET or "next N rows still
+ * needing work" - the latter can spin forever on a row that keeps losing the race above.
  */
 async function walk(
     client: pg.PoolClient,
@@ -273,17 +236,12 @@ async function walk(
 }
 
 /**
- * Re-read and re-seal the rows that lost the race during the walk.
+ * Re-read rows the bot wrote during the walk. The guard covers the whole row, so one token
+ * refresh leaves that row's other three columns plaintext - against production that is the
+ * normal outcome, not an edge case.
  *
- * Without this a single run cannot finish on a busy database. The guard covers the
- * whole row, so one token refresh mid-walk leaves that row's other three columns
- * plaintext - and against production, with tens of thousands of rows and a live bot,
- * that is not an edge case but the normal outcome. Re-reading picks up whatever the bot
- * wrote and seals what is still bare.
- *
- * Bounded rather than looping until clean: a row being written to continuously would
- * spin here forever, and the honest answer to that is to stop and let a person decide.
- * Anything still unsealed is reported and the caller is told to re-run.
+ * Bounded rather than looping until clean: a continuously-written row would spin forever.
+ * Anything still unsealed is reported and the caller re-runs.
  */
 async function retryRaced(
     client: pg.PoolClient,
@@ -363,25 +321,13 @@ async function tokenCensus(batch = DEFAULT_BATCH): Promise<Census> {
 }
 
 /**
- * Read-only census of what state the stored credentials are actually in.
+ * Read-only census of credential state. "Expired" and "missing" look alike in a count and
+ * are nothing alike: an expired access token beside a refresh token repairs itself on the
+ * user's next command, a missing refresh token needs them to link again.
  *
- * This exists because "expired" and "missing" look alike in a count and are nothing
- * alike in consequence. An expired access token with a refresh token beside it is the
- * *normal* state for anyone who has not used the bot this month - it is repaired
- * silently on their next command. A missing refresh token cannot be repaired by
- * anything except the user linking again. Any decision about deleting rows has to be
- * made on the second number, and the second number is much smaller.
- *
- * The thresholds mirror DiscordBotUser's constructor rather than inventing their own,
- * because that constructor is what decides whether a row is usable: it requires
- * nexus_access, nexus_refresh **and** nexus_expires to all be truthy, and a row failing
- * that is already treated as unlinked today - the throw is caught in users.ts and
- * turned into `undefined`. Note that `nexus_expires = 0` fails it too, which is why
- * this counts 0 as missing rather than as a very old timestamp.
- *
- * Discord is counted separately. A row with good Nexus tokens and no Discord ones still
- * works for everything except role claiming, so it is not a dead row, and lumping the
- * two together would overstate the damage several times over.
+ * Thresholds mirror DiscordBotUser's constructor, which requires nexus_access,
+ * nexus_refresh AND nexus_expires to be truthy - so `nexus_expires = 0` counts as missing.
+ * Discord is counted separately.
  */
 async function credentialReport(): Promise<Record<string, number>> {
     return withClient(async (client) => {

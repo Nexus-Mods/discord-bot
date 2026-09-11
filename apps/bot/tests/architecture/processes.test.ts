@@ -5,32 +5,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Pins the process split.
+ * Pins the process split: one stray `import { AuthSite }` would put express back inside
+ * the gateway process and nothing else would fail.
  *
- * The auth site used to be constructed inside the bot and skipped on every shard but 0,
- * which made "does this run in the web process or the bot process?" a question you could
- * only answer by reading a constructor. They are separate processes now, and the cheapest
- * way for that to quietly stop being true is an import: one `import { AuthSite }` in a
- * command handler puts express back inside the gateway process and nothing else fails.
+ * Mostly "which files import X" rather than "what can this entry point reach" -
+ * reachability under-reports here, because shards.ts spawns its child by path and
+ * DiscordBot.ts loads commands by readdir and dynamic import().
  *
- * Most assertions here are of the form "which files import X", not "what can this entry
- * point reach". Reachability is the obvious approach and it does not work on this
- * codebase: shards.ts spawns dist/app.js by path rather than importing it, and
- * DiscordBot.ts loads every command and event by readdir and dynamic import(). A walk
- * from the bot's entry points reaches 31 of 101 modules, so "express is not among them"
- * would pass while being false.
- *
- * Runtime imports only. Type-only imports are erased by the compiler and cannot pull a
- * module into a process - the same rule the cycles test uses, for the same reason.
- */
-/**
- * The universe is both workspaces, not just this one.
- *
- * Step 5 moves shared modules into packages/. If this kept walking only src/, every rule
- * below would stop applying to them the moment they left - and it would stop silently,
- * because "no module in the shared set imports discord.js" is trivially true of modules
- * the walk can no longer see. The packages are the shared set now; they are the last
- * place this should stop looking.
+ * Runtime imports only; type-only imports are erased and cannot pull a module into a
+ * process. The walk covers both workspaces, since the shared set now lives in packages/.
  */
 const PACKAGES = path.join('..', '..', 'packages');
 
@@ -191,23 +174,7 @@ describe('the bot stays out of the web process', () => {
         expect(offenders).toEqual([]);
     });
 
-    /**
-     * The other direction, and the reason src/auth/ exists.
-     *
-     * Before the 4.4.0 split, the bot reached into src/server/ for three things:
-     * DiscordBotUser imported both OAuth clients, and the link and unlink commands
-     * imported the URL signing helpers. Those are not web-server code - they are shared
-     * primitives that happened to live next to express - and while they stayed there,
-     * "the web app" and "things both processes need" were the same directory, so the
-     * eventual package cut had no line to follow.
-     *
-     * src/server/ is now web-only: reachable from src/web.ts and from its own modules,
-     * and from nowhere else. This test is what stops that eroding one convenient import
-     * at a time.
-     *
-     * src/auth/ is now packages/auth. The directory was always the shape of a package
-     * waiting for one; 5.0.0 gave it the name.
-     */
+    // src/server/ is web-only: reachable from src/web.ts and its own modules, nowhere else.
     it('is reachable only from the web entry point and its own modules', () => {
         const offenders = ALL
             .filter((f) => localDeps(f).some((d) => slash(d).startsWith('src/server/')))
@@ -237,20 +204,8 @@ describe('@nexusmods/auth', () => {
 
 describe('the shared surface', () => {
     /**
-     * What both processes reach. Phase 4 turns this into packages, so what it depends on
-     * stops being an internal detail and becomes each package's public dependency list.
-     *
-     * The rule this pins: **nothing shared may import discord.js at runtime.** The bot is
-     * a gateway client and the web app is not, so a gateway library reached from shared
-     * code is a dependency one side pays for and cannot use.
-     *
-     * It was true by one module until 5.0.0. `api/util.ts` imported EmbedBuilder for a
-     * single helper, `unexpectedErrorEmbed`, and util.ts is reached from both sides - so
-     * the web process loaded discord.js to build an embed only the bot ever rendered. The
-     * helper moved to lib/embeds.ts, where the other eleven live and only the bot goes.
-     *
-     * Type-only imports are exempt, as everywhere else here: the compiler erases them, so
-     * they cannot pull a module into a process.
+     * What both processes reach. Nothing shared may import discord.js at runtime: the web
+     * app is not a gateway client, so it would pay for a library it cannot use.
      */
     const bot = reachableFrom(
         'src/shards.ts',
@@ -312,18 +267,8 @@ describe('the shared surface', () => {
 });
 
 describe('the environment', () => {
-    /**
-     * The 5.0.0 move broke local startup and it took a fail-closed check to notice.
-     *
-     * Seven modules called `dotenv.config()`, which resolves .env from the working
-     * directory. That was correct while the repository root and the bot were the same
-     * directory. Once the bot moved to apps/bot, `npm start` ran with a working
-     * directory holding no .env, every variable was missing, and the bot refused to
-     * start with "Token encryption is not configured" - the 4.3.0 boot check reporting
-     * an environment that had never been loaded.
-     *
-     * These pin the fix rather than the symptom: one resolver, and it goes first.
-     */
+    // One env resolver, loaded first. dotenv.config() resolves from the working
+    // directory, which differs between the repository root, apps/bot and the image.
     const ENTRY_POINTS = ['src/shards.ts', 'src/app.ts', 'src/web.ts', 'src/db/migrate.ts', 'src/db/backfillTokens.ts'];
 
     // Resolved from this file: the working directory is apps/bot and apps/web is a sibling.
@@ -349,18 +294,8 @@ describe('the environment', () => {
         }
     });
 
-    /**
-     * apps/web is a second application with its own idea of where .env is.
-     *
-     * Next reads .env from its own project directory, so the repository's root .env - the
-     * only one there is - reached the bot and not the web app. `npm run dev:web` came up
-     * and then refused to serve, because COOKIE_SECRET is in that file and the boot check
-     * could not see it. Exactly the 5.0.0 failure that put the resolver in a package,
-     * repeated in an application built after it.
-     *
-     * next.config.ts is where it has to go: the earliest file Next evaluates, and it
-     * evaluates it for `dev`, `build` and `start` alike.
-     */
+    // Next reads .env from its own project directory, so the root .env never reaches the
+    // web app. next.config.ts is the earliest file it evaluates, for dev, build and start.
     it('has the web app load it too, before anything else it imports', () => {
         const config = readFileSync(path.join(root, 'apps', 'web', 'next.config.ts'), 'utf8');
         const first = config.split('\n').find((l) => l.startsWith('import '));
@@ -399,16 +334,9 @@ describe('the environment', () => {
 
 describe('workspace versions', () => {
     /**
-     * One version across the repository, and it is load-bearing now.
-     *
-     * The `Application-Version` the Nexus Mods API sees is @nexusmods/nexus-api's own
-     * package version, because the account model had to become a package and `baseheader`
-     * was the one import holding it in the application - a package cannot resolve the
-     * application's version, it finds its own manifest.
-     *
-     * That is only the bot's version because everything here is released together. This is
-     * what makes "released together" a rule rather than a habit: bump one workspace on its
-     * own and the header quietly stops naming the bot, which nothing else would notice.
+     * One version across the repository. The Application-Version header the Nexus Mods API
+     * sees is @nexusmods/nexus-api's own, so bumping a workspace alone would quietly stop
+     * it naming the bot.
      */
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -435,19 +363,9 @@ describe('workspace versions', () => {
 
 describe('declared dependencies', () => {
     /**
-     * A workspace that imports another must say so in its own package.json.
-     *
-     * npm links every workspace into the root node_modules whether anything depends on it
-     * or not, so an undeclared workspace dependency resolves perfectly on a developer's
-     * machine and in CI. It stops resolving where the tree is deliberately narrowed:
-     * `npm ci --workspace @nexusmods/discord-bot` in the Dockerfile installs one
-     * workspace's dependency tree, and the manifests it COPYs are chosen by reading that
-     * list. A dependency missing from the list is a dependency missing from the image.
-     *
-     * apps/web was importing @nexusmods/auth and @nexusmods/core undeclared from step 7
-     * onwards - four modules by step 9 - and nothing anywhere failed. It would have failed
-     * in step 10, on the first build of the web image, as a module resolution error inside
-     * Docker with a working local build to compare it against.
+     * A workspace that imports another must declare it. npm links every workspace into the
+     * root node_modules regardless, so an undeclared dependency resolves locally and in CI
+     * and fails only where the tree is narrowed - `npm ci --workspace X` in a Dockerfile.
      */
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -468,25 +386,9 @@ describe('declared dependencies', () => {
     }
 
     /**
-     * `@nexusmods/<name>` in a quoted module specifier, anywhere under a directory -
-     * source, tests and config files alike, since a test's imports need declaring too.
-     *
-     * Quoted, which matters. The first version matched the name anywhere on the grounds
-     * that a package named in a comment is one somebody expects to be there, and it
-     * reported two offenders that were both prose: a sentence in packageVersion.ts
-     * explaining what the resolver finds, and a comment in this very file mapping apps/web
-     * to @nexusmods/discord-web. That is the third rule here to read its own documentation
-     * as a violation, after the npm_package_version check and the route segment checks. A
-     * quoted specifier is an import; a name in a sentence is a sentence.
-     *
-     * It also skips the regex literals in the vitest configs, which spell the scope out
-     * without importing anything from it.
-     *
-     * And narrowed once more, to a specifier in an importing position. A quoted package
-     * name is not always an import either: scripts/dev.mjs spawns
-     * `npm run dev -w @nexusmods/discord-web`, where the name is a workspace argument in
-     * an array of strings. Requiring `from`, `import`, `require` or a vitest mock in front
-     * of it is what "imports" actually means here.
+     * Quoted specifiers in an importing position only. A name in a comment is a sentence,
+     * and `npm run dev -w @nexusmods/discord-web` in dev.mjs is a workspace argument -
+     * neither is an import.
      */
     const SPECIFIER = /(?:from|import|require|vi\.mock|vi\.doMock)\s*\(?\s*['"]@nexusmods\/([a-z0-9-]+)(?:\/[^'"]*)?['"]/g;
 
@@ -533,22 +435,10 @@ describe('declared dependencies', () => {
 
 describe('build order', () => {
     /**
-     * A declared dependency has to be built, not just declared.
-     *
-     * The packages' exports map answers the types condition with src/ and the runtime
-     * condition with dist/, which is what lets typecheck run without a build. It also
-     * means anything that actually *resolves* a package - tsup, next build, node - needs
-     * dist/ to exist, and nothing in a workspace's own build tells it that.
-     *
-     * apps/web's build script was `next build` alone, so a clean tree could not build it:
-     * `Cannot find module node_modules/@nexusmods/core/dist/env.js`, from next.config.ts.
-     * It passed everywhere anyway, because every tree it had ever run in already had the
-     * dists from some earlier command. The first place it would have failed is the first
-     * build of the web image.
-     *
-     * apps/bot had the chain and apps/web did not, so the chain now lives once at the root
-     * as `build:packages` and both call it. That removes the copy that would have drifted;
-     * these two rules are what stops the single copy going stale instead.
+     * A declared dependency has to be built, not just declared. The packages' exports map
+     * answers the types condition from src/ and the runtime condition from dist/, so
+     * typecheck needs no build and anything that resolves a package does. The chain lives
+     * once at the root as `build:packages`; these rules stop it going stale.
      */
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
     const manifest = (p: string) => JSON.parse(readFileSync(path.join(root, p, 'package.json'), 'utf8'));
@@ -636,26 +526,12 @@ describe('the lint config', () => {
 
 describe('test doubles', () => {
     /**
-     * A mocked module id is a string in a function call. Nothing typechecks it and nothing
-     * follows it when the module moves - and a stale one does not error: vitest mocks a
-     * module nobody imports, the real one runs, and the failure surfaces wherever that
-     * module first does something it was mocked to avoid.
-     *
-     * The auth cut did exactly this. Both auth mocks in link-flow.test.ts kept pointing at
-     * src/auth/, the real DiscordOAuth ran, found no client id, returned '/oauth-error',
-     * and five tests failed inside `new URL(location)`.
+     * A stale mocked module id does not error: vitest mocks a module nobody imports, the
+     * real one runs, and the failure surfaces somewhere else entirely.
      */
     const MOCKED = /vi\.(?:mock|doMock)\(\s*['"]([^'"]+)['"]/g;
 
-    /**
-     * Both suites, not just this one.
-     *
-     * apps/web had no mocks at all until step 9, when the OAuth routes arrived with four -
-     * and its aliases are a third spelling this rule has to know about, `@/lib/...`
-     * resolved against apps/web rather than against the file doing the mocking. A rule that
-     * walks only apps/bot/tests would report zero offenders in the suite most likely to
-     * grow a stale one, since the web app's module layout is the newest.
-     */
+    // Both suites: apps/web's tests mock too, and spell their aliases as `@/lib/...`.
     const WEB = path.join('..', 'web');
 
     function testFiles(): string[] {
@@ -765,13 +641,9 @@ describe('entry points', () => {
 
 describe('the web image', () => {
     /**
-     * The auth site's own image, added in step 10 so the deploy can stop running it as a
-     * second command over the bot's.
-     *
-     * These pin the things that are invisible until a deploy: a manifest missing from the
-     * build context, an environment nobody loads, a static directory the standalone trace
-     * does not know about. None of them fails a test run, a typecheck or a lint, and two
-     * of them fail at container start with a message that points somewhere else.
+     * These pin the things that fail only at deploy: a manifest missing from the build
+     * context, an environment nobody loads, a static directory the trace does not know
+     * about. None of them fails a test run, a typecheck or a lint.
      */
     const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
     const read = (...p: string[]) => readFileSync(path.join(repoRoot, ...p), 'utf8');
@@ -813,13 +685,8 @@ describe('the web image', () => {
     });
 
     /**
-     * The one that would break every deploy silently at boot.
-     *
-     * A standalone build does not evaluate next.config.ts: it runs a serialised copy of
-     * the resolved config. The side-effect import there covers `next dev` and
-     * `next build`, and in the container nothing loads .env at all - the boot check
-     * reports COOKIE_SECRET, UNLINK_SECRET and DISCORD_TOKEN missing and exits 1, with a
-     * perfectly good .env mounted beside it.
+     * A standalone build does not evaluate next.config.ts - it runs a serialised copy of
+     * the resolved config - so without this nothing loads .env in the container.
      */
     it('loads the environment somewhere the standalone server will run it', () => {
         expect(read('apps', 'web', 'instrumentation.ts')).toMatch(/@nexusmods\/core\/env\.js/);

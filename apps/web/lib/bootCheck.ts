@@ -3,12 +3,10 @@ import { logger } from '@nexusmods/core/logger.js';
 import type { Env } from '@/lib/security/clientIp';
 
 /**
- * What `AuthSite.initialize` checked before Express would serve a request.
+ * The checks Express made before serving a request.
  *
- * Kept out of instrumentation.ts so the decision is testable without starting a server -
- * and because Turbopack statically analyses instrumentation.ts for the Edge build and
- * warns about `process.exit` even inside a `NEXT_RUNTIME === 'nodejs'` guard. It does not
- * follow dynamic imports, so the hook importing this is both tidier and quieter.
+ * Kept out of instrumentation.ts so it is testable without a server, and because Turbopack
+ * statically analyses that file and warns about `process.exit` even inside a runtime guard.
  */
 
 export interface BootProblems {
@@ -21,22 +19,9 @@ export interface BootProblems {
 }
 
 /**
- * Required by this application on top of the shared list, because `PORT` means something
- * different here than it does in the bot.
- *
- * The database port is `DBPORT ?? PORT`. That fallback exists because deployed
- * environments set PORT, and it was harmless while PORT was only ever the database's -
- * the repository's own .env has `PORT=5432` and no DBPORT, and the bot has always been
- * fine on it.
- *
- * It stops being harmless here. The Next server reads PORT to decide what to listen on,
- * so the web container sets `PORT=3000` - and with DBPORT unset that silently becomes the
- * database port too. The container starts, serves pages, and fails every query: no
- * account links, no tracking page, no automod. Verified: with DBPORT unset and PORT=3000,
- * poolConfig().port is 3000.
- *
- * So DBPORT is not optional in this process. One line in .env, which .env.example has
- * carried all along, and the ambiguity is gone rather than avoided.
+ * Required here and not in the bot: the database port is `DBPORT ?? PORT`, and the Next
+ * server reads PORT to decide what to listen on. With DBPORT unset, a container told
+ * PORT=3000 points its database client at 3000 and fails every query.
  */
 const WEB_REQUIRED: ReadonlyArray<{ name: string; reason: string }> = [
     {
@@ -58,12 +43,8 @@ export function inspectEnvironment(env: Env): BootProblems {
 /**
  * Report, and refuse to run if the site cannot work.
  *
- * Exits rather than throws. Express got the same property for free - AuthSite's
- * constructor threw, nothing caught it, the process died, the container exited non-zero
- * and `restart: unless-stopped` made a bad deploy visible. Next catches whatever the
- * instrumentation hook throws, logs "Failed to prepare server", and keeps listening, so a
- * misconfigured site stays up answering 500 to every request and a port check calls it
- * healthy. Verified before this was written: throwing did exactly that.
+ * Exits rather than throws: Next catches what the instrumentation hook throws and keeps
+ * listening, so a misconfigured site would stay up answering 500 to everything.
  */
 export function runBootCheck(env: Env = process.env): void {
     const problems = inspectEnvironment(env);
@@ -79,13 +60,8 @@ export function runBootCheck(env: Env = process.env): void {
         logger.warn(`${name} is not set - the endpoints it guards will reject every request.`);
     }
 
-    /**
-     * Not fatal, but the loudest warning here.
-     *
-     * With no TRUST_PROXY the client address cannot be established, every visitor shares
-     * one rate-limit bucket, and the first busy one locks out the rest. Express had the
-     * same failure and no warning for it: `req.ip` quietly became the proxy's address.
-     */
+    // Not fatal, but the loudest warning: with no TRUST_PROXY every visitor shares one
+    // rate-limit bucket and the first busy one locks out the rest.
     if (problems.proxyUnknown) {
         logger.warn(
             'TRUST_PROXY is not set. Every request will look like it came from the same client, '

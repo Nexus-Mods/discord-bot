@@ -3,28 +3,14 @@ import { headers } from 'next/headers';
 import './globals.css';
 
 /**
- * The chrome header.ejs and footer.ejs wrapped every page in: a black bar with the Nexus
- * logo, the content column, and a copyright line with the logo again.
+ * The chrome header.ejs and footer.ejs wrapped every page in. The logo is a file rather
+ * than the 8KB inline sprite repeated in every response.
  *
- * One difference worth stating: the logo is a file rather than an inline <symbol> sprite
- * repeated in every response. It was 8KB of path data in the markup of all eight pages.
- *
- * THE FONT IS STILL A THIRD-PARTY REQUEST, and it should not be by the end of step 7.
- *
- * The right answer is next/font - it fetches the font once at build time and self-hosts
- * it, which is what nexusmods.com does (its theme layer names "Inter Fallback", a family
- * name next/font generates). It is not used here because the font is fetched *during the
- * build*, and the build environment this was written in cannot reach fonts.googleapis.com
- * - so the choice was between code that could not be built and verified here, and a
- * <link> that behaves exactly as the Express views already do.
- *
- * This is one of the two reasons the CSP exemption exists, and step 7 is where the plan
- * puts "turn CSP on properly rather than carry the exemption forward". Turning it on
- * means self-hosting this first: switch to `next/font/google` in an environment that can
- * reach Google, or commit the woff2 and use `next/font/local`. Until then the page pulls
- * a stylesheet from fonts.googleapis.com and a font file from fonts.gstatic.com, the same
- * two hosts the Express views already need.
+ * THE FONT IS STILL A THIRD-PARTY REQUEST. next/font would self-host it, but it fetches at
+ * build time and the build environment cannot reach fonts.googleapis.com. Self-hosting it
+ * is what the CSP exemption for fonts.googleapis.com and fonts.gstatic.com is waiting on.
  */
+
 const INTER_HREF = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap';
 
 const NEXUS_FAVICONS = 'https://images.nexusmods.com/favicons/ReskinOrange';
@@ -35,9 +21,7 @@ export const metadata: Metadata = {
         template: '%s - Discord Bot - Nexus Mods',
     },
     description: 'The official Discord bot for NexusMods.com',
-    // Carried over deliberately. These pages are the tail of an OAuth flow and a
-    // per-guild tracking summary; none of them is a landing page and none should be
-    // indexed.
+    // None of these is a landing page; none should be indexed.
     robots: { index: false, follow: false },
     metadataBase: new URL('https://discordbot.nexusmods.com'),
     openGraph: {
@@ -72,13 +56,8 @@ function Logo({ className }: { className?: string }) {
 }
 
 /**
- * The nonce proxy.ts minted for this request.
- *
- * Next puts its own nonce on the scripts it emits when it can find one on the incoming
- * request, so this read is what connects the policy in the header to the document it
- * applies to. It is also why every page is server-rendered now: `headers()` opts a route
- * out of static generation, and /revoked and /tracking were prerendered before this.
- * Eight pages that each take a millisecond to render is a fair price for a real CSP.
+ * The nonce proxy.ts minted for this request; Next puts it on the scripts it emits. Reading
+ * a header also opts every page out of static generation, which is the price of the CSP.
  */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
     const nonce = (await headers()).get('x-nonce') ?? undefined;

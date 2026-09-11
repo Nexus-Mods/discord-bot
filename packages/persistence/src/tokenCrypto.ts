@@ -4,46 +4,25 @@ import { deriveKey, isSealed, open, seal } from '@nexusmods/core/sealedValue.js'
 /**
  * Encryption for the OAuth tokens in the users table.
  *
- * Four columns across ~37,000 rows held live Discord and Nexus Mods credentials in
- * plaintext until 4.3.0; they are all sealed now. What this protects against is narrow
- * and likely: **a copy of the database leaving without the droplet** - a backup downloaded to a laptop, a snapshot restored
- * to a less careful staging environment, a dump pasted into a ticket. The key lives in
- * the process environment and the tokens live in a managed database whose backups are
- * a separate artefact, so those two things do not travel together.
+ * Protects against a copy of the database leaving without the droplet - a backup on a
+ * laptop, a dump in a ticket. It does NOT protect against someone who has the droplet:
+ * they have the key and the database both. A managed KMS is what would change that.
  *
- * It does not protect against someone who has the droplet. They have the environment
- * and the database credentials both, and encryption adds one `cat` to their day. That
- * is a real limit, not a footnote, and a managed KMS is what changes it.
- *
- * TOKEN_ENCRYPTION_KEY is deliberately not COOKIE_SECRET. Rotating the cookie secret
- * costs five minutes of in-flight logins; rotating this one without re-encrypting
- * first destroys every account link there is. Sharing one variable would give the
- * cheap secret the expensive secret's constraints, and nothing would fail loudly when
- * someone rotated it for a perfectly good reason.
+ * TOKEN_ENCRYPTION_KEY is deliberately not COOKIE_SECRET: rotating the cookie secret costs
+ * five minutes of in-flight logins, rotating this one without re-encrypting first destroys
+ * every account link.
  */
 
 const PURPOSE = 'user-tokens.v1';
 
 /**
- * Keys in the order they are tried, newest first.
+ * Keys in the order they are tried, newest first. TOKEN_ENCRYPTION_KEY_OLD lets both be
+ * accepted during a rotation.
  *
- * TOKEN_ENCRYPTION_KEY_OLD lets both keys be accepted at once, which is half of what a
- * no-downtime rotation needs.
- *
- * **The other half does not exist yet, and the obvious procedure silently destroys every
- * link.** Set OLD to the current key, set a new current key, redeploy, and reads keep
- * working - because both keys are tried. But running the backfill at that point converts
- * nothing: it seals values where `needsSealing` is true, and a value already sealed under
- * the old key is not one of those, so it is skipped and reported as success. Remove
- * TOKEN_ENCRYPTION_KEY_OLD after that and every row becomes unreadable at once - each one
- * returning null, which reads downstream as "this user is not linked".
- *
- * Verified against a real database: a rotation run reports `converted: 0, skipped: 2`,
- * leaves the ciphertext byte-identical, and the new key alone then reads null.
- *
- * Rotating safely needs a re-seal pass - open under whichever key works, seal under the
- * current one - keyed on "does this open under the current key alone?" rather than on
- * `needsSealing`. Until that exists, do not remove TOKEN_ENCRYPTION_KEY_OLD once set.
+ * DO NOT remove TOKEN_ENCRYPTION_KEY_OLD after a backfill run until a re-seal pass exists.
+ * The backfill seals where `needsSealing` is true, which is false for a value already
+ * sealed under the old key - so it skips every row and reports success, and dropping the
+ * old key then makes all of them unreadable at once. `needsResealing` is the right test.
  */
 function keys(): Buffer[] {
     const current = process.env.TOKEN_ENCRYPTION_KEY;
@@ -57,14 +36,7 @@ function keys(): Buffer[] {
     return previous ? [deriveKey(current, PURPOSE), deriveKey(previous, PURPOSE)] : [deriveKey(current, PURPOSE)];
 }
 
-/**
- * Fail at boot rather than at the first token write.
- *
- * Without this the read-both/write-encrypted path would start up happily and then
- * throw on the first refresh - or worse, if the write path were ever made tolerant,
- * write plaintext because it had nothing to encrypt with. Refusing to start is the
- * only safe answer to a missing key.
- */
+/** Fail at boot rather than on the first token write. */
 export function assertTokenKeyConfigured(): void {
     const probe = 'configuration check';
     const sealed = sealToken(probe);
@@ -80,33 +52,17 @@ export function sealToken(plaintext: string): string {
 }
 
 /**
- * Read a token column.
+ * Read a token column. Throws on a non-empty value that is not sealed: since the backfill
+ * ran, plaintext means something is writing tokens outside `sealUserTokens`. Callers treat
+ * the throw as "unlinked"; `npm run tokens:backfill` is the recovery.
  *
- * Until the 4.3.0 backfill ran, an unsealed value was passed through untouched - that
- * tolerance is what let the conversion be gradual rather than a big-bang migration.
- * **It is gone.** The census is zero on all four columns, so a plaintext value now means
- * something is writing tokens that does not go through `sealUserTokens`, and passing it
- * through would be silently accepting the exact state this work removed.
- *
- * Throwing is safe here because every caller already degrades sensibly: `getUserBy*` in
- * api/users.ts wrap construction in a try and return `undefined`, so the user is treated
- * as unlinked and prompted to link again, and `getAllUsers` has one caller which already
- * falls back to an empty list. The recovery path if it ever fires is
- * `npm run tokens:backfill`, which seals whatever it finds.
- *
- * Null and empty are not tolerance - they are the absence of a token, which is a real
- * state for a nullable column. Only a non-empty value that is not sealed is a fault.
- *
- * A sealed value that will not open still returns null rather than throwing. That is
- * deliberate and different: one user whose token was sealed under a lost key is treated
- * as unlinked, instead of every read of that row failing.
+ * Null and empty are the absence of a token, not a fault. A sealed value that will not
+ * open returns null, so one unreadable row does not fail every read.
  */
 export function openToken(value: string | null | undefined, column: string = 'token'): string | null {
     if (value === null || value === undefined || value === '') return null;
     if (!isSealed(value)) {
-        // The value itself is never logged or attached as context - it is a live
-        // credential, and the four column names are redaction keys in the logger for
-        // exactly this reason.
+        // The value is never logged: it is a live credential.
         throw new DatabaseError(`Refusing to use an unencrypted value from ${column}`, {
             context: { column, hint: 'Run `npm run tokens:verify` to count, then `npm run tokens:backfill` to seal.' },
             isOperational: false,
@@ -116,30 +72,17 @@ export function openToken(value: string | null | undefined, column: string = 'to
     return open(value, keys());
 }
 
-/**
- * Whether a stored value still needs converting.
- *
- * Retained after the backfill because `sealUserTokens` uses it on every write - it is
- * what seals a freshly issued token on its way in - and because the CLI backfill is the
- * recovery path if `openToken` ever throws.
- */
+/** Whether a stored value is still plaintext. Used on every write, and by the backfill. */
 export function needsSealing(value: string | null | undefined): boolean {
     return typeof value === 'string' && value.length > 0 && !isSealed(value);
 }
 
 /**
- * Whether a value is sealed under an older key and must be re-sealed under the current
- * one before TOKEN_ENCRYPTION_KEY_OLD can safely be removed.
+ * Whether a value is sealed under an older key and must be re-sealed before
+ * TOKEN_ENCRYPTION_KEY_OLD can be removed - ie. does it open under the current key ALONE.
  *
- * This is the test the backfill was missing. `needsSealing` asks "is this plaintext?",
- * which is false for every row during a rotation - so a rotation run skipped everything
- * and reported success, and removing the old key afterwards made every row unreadable at
- * once. The question that actually matters is narrower: does this open under the current
- * key **alone**?
- *
- * With no old key configured there is nothing to rotate to, so nothing needs re-sealing
- * - a value that will not open under the only key there is cannot be repaired by this,
- * and saying otherwise would put the backfill into a loop it could never finish.
+ * `needsSealing` cannot answer this: it asks "is this plaintext", which is false for every
+ * row mid-rotation. With no old key configured, nothing needs re-sealing.
  */
 export function needsResealing(value: string | null | undefined): boolean {
     if (typeof value !== 'string' || value.length === 0) return false;

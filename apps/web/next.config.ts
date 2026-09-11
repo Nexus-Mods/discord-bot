@@ -1,46 +1,23 @@
 /**
- * Load the repository's .env before anything reads it.
- *
- * Next reads .env files from its own project directory - apps/web - and the one .env this
- * repository has is at the root, so none of it reached this process. `npm run dev:web`
- * came up and then refused to serve: COOKIE_SECRET and UNLINK_SECRET are in that file and
- * the boot check could not see them.
- *
- * This is the 5.0.0 bug again in a new app. Seven modules used to call dotenv.config(),
- * which resolves from the working directory; @nexusmods/core/env.js exists because that
- * broke when the bot moved into apps/bot. A whole new application was then built without
- * importing it - and the same class of failure came back, found the same way, by a check
- * that fails closed.
- *
- * next.config.ts because it is the earliest thing Next evaluates and it evaluates it for
- * all three of `next dev`, `next build` and `next start`. Side-effect import, first, for
- * the same reason the bot's entry points do it first: this has to populate process.env
- * before any module that reads it is evaluated.
+ * Load the repository's root .env first: Next reads .env from its own project directory,
+ * so nothing at the root reaches this process otherwise. Side-effect import, before
+ * anything that reads process.env.
  */
 import '@nexusmods/core/env.js';
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
     /**
-     * Trace the server and its dependencies into .next/standalone, so the runtime image
-     * carries what this app needs rather than the whole workspace's node_modules.
+     * Traces only the modules the server loads into .next/standalone, so the web image does
+     * not carry the whole workspace's node_modules.
      *
-     * The alternative was one image with both dependency sets, which is the shape the bot
-     * image already has - and it would have put Next and React into the bot container,
-     * which cannot use a byte of it. The Dockerfile comment that warns about that is the
-     * reason this is here.
-     *
-     * IMPORTANT: the standalone server does not evaluate this file. It runs a serialised
-     * copy of the resolved config - "Running next.config took 1.0ms" in its own startup
-     * log - so the side-effect import at the top of this file happens for `next dev` and
-     * `next build` and never in production. instrumentation.ts loads the environment for
-     * that case; see the comment there, which is the other half of this one.
+     * NOTE: the standalone server does NOT evaluate this file - it runs a serialised copy
+     * of the resolved config - so the env import above never runs in production.
+     * instrumentation.ts loads it there.
      */
     output: 'standalone',
 
-    // Fail the build on a type error rather than shipping one. Next's default already
-    // does this; stated because the opposite is a common escape hatch and turning it on
-    // should be a decision rather than a default nobody looked at.
+    // Next's default, stated so that turning it off is a decision.
     typescript: { ignoreBuildErrors: false },
 };
 

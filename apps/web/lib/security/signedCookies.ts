@@ -1,26 +1,13 @@
 import crypto from 'node:crypto';
 
 /**
- * cookie-parser's signing scheme, reimplemented.
+ * cookie-parser's signing scheme, reimplemented - Next's cookie API does not sign.
  *
- * Next's cookie API does not sign - `cookies().set()` writes what it is given - and the
- * plan flags this as one that "has bitten this codebase before": `req.signedCookies`
- * simply disappearing means every read still compiles and every value is now attacker
- * controlled. There is no type error waiting for anyone.
+ *     s:<value>.<base64 hmac-sha256 of value, trailing '=' stripped>
  *
- * It is bit-for-bit cookie-parser's format rather than a nicer one of our own:
- *
- *     s:<value>.<base64 hmac-sha256 of <value>, trailing '=' stripped>
- *
- * so a cookie written by Express is readable by Next and the other way round. That
- * matters at the cutover: /revoke's confirm page and the OAuth callbacks change hands at
- * different steps, and for a while the two servers are both in the story. A format of our
- * own would have meant anyone mid-flow during the switch getting a rejected cookie.
- *
- * The one deliberate difference is `unsign`, which uses timingSafeEqual on equal-length
- * buffers. cookie-signature compares `sha1(mac) == sha1(val)` with `==` on hex strings -
- * hashing first does defuse the timing leak, but a constant-time compare says so directly
- * and does not depend on SHA-1 for anything.
+ * Bit-for-bit cookie-parser's format, so a cookie written by either server is readable by
+ * the other and nobody mid-flow is dropped at the switch. `unsign` compares in constant
+ * time rather than cookie-signature's `sha1(a) == sha1(b)`.
  */
 
 /** cookie-parser marks a signed value with this prefix. Unprefixed means unsigned. */
@@ -35,23 +22,14 @@ export function signCookieValue(value: string, secret: string): string {
     return `${SIGNED_PREFIX}${value}.${hmac(value, secret)}`;
 }
 
-/**
- * The value a signed cookie carries, or undefined.
- *
- * Undefined for every failure - missing, unsigned, truncated, wrong secret - because the
- * caller has nothing useful to do with the distinction and one of the failure modes is
- * "someone is trying things".
- */
+/** The verified value, or undefined for every failure - missing, unsigned, wrong secret. */
 export function unsignCookieValue(raw: string | undefined, secret: string): string | undefined {
     if (!raw || !raw.startsWith(SIGNED_PREFIX)) return undefined;
 
     const body = raw.slice(SIGNED_PREFIX.length);
-    // The LAST dot: the link-state cookie's value is `v1.iv.tag.ciphertext`, so splitting
-    // on the first one would take the signature from the middle of the payload.
+    // The LAST dot: a sealed value is `v1.iv.tag.ciphertext`, so the first dot is inside
+    // the payload. `dot === 0` is an empty value, which cookie-signature does sign.
     const dot = body.lastIndexOf('.');
-    // `dot === 0` is an empty value, which cookie-signature does sign - rejecting it here
-    // is what broke the interoperability test, and the whole point of that test is that a
-    // rule invented on this side is a rule Express does not know about.
     if (dot < 0 || dot === body.length - 1) return undefined;
 
     const value = body.slice(0, dot);
@@ -65,14 +43,8 @@ export function unsignCookieValue(raw: string | undefined, secret: string): stri
 }
 
 /**
- * The attributes every cookie this site sets carries.
- *
- * The same set as `cookieOptions` in @nexusmods/auth/signing.js, minus `signed` - that
- * flag was an instruction to cookie-parser, and here signing is the caller's job via
- * signCookieValue. Naming the rest again rather than importing keeps the Next cookie API's
- * option shape (which spells maxAge in *seconds*) separate from Express's (milliseconds),
- * which is exactly the kind of silent unit change that turns a five-minute cookie into a
- * five-second one.
+ * The attributes every cookie here carries. Spelled out rather than imported from
+ * `cookieOptions`, because Next's maxAge is in SECONDS and Express's is in milliseconds.
  */
 export function cookieAttributes(maxAgeMs: number) {
     return {

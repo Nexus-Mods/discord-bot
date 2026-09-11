@@ -3,25 +3,17 @@ import { logger } from '@nexusmods/core/logger.js';
 import { readJsonWithLimit } from '@/lib/security/bodyLimit';
 
 /**
- * Where the report-only policy sends its violations.
+ * Where the report-only policy sends its violations - the allowlist in headers.ts was
+ * assembled by reading the code, and these reports are how the forgotten host is found.
  *
- * The point of the report-only phase is that the allowlist in headers.ts was assembled by
- * reading the code, and what an allowlist gets wrong is the host nobody remembered. These
- * reports are how that host is found, from real browsers, before the policy starts
- * blocking anything.
+ * Two shapes arrive: `report-uri` sends `{"csp-report": {...}}`, `report-to` sends an array
+ * of `{type, body}`. Both become one warn line, so grepping "CSP violation" is the triage.
  *
- * Two shapes arrive because browsers disagree: `report-uri` sends a single
- * `{"csp-report": {...}}` with content-type application/csp-report, and `report-to` sends
- * an array of `{type, body}` with application/reports+json. Both are normalised to one log
- * line each, at warn, so a grep for "CSP violation" is the whole triage.
- *
- * Unauthenticated by necessity - a browser sends these, and it has no credential to
- * present - so it is treated as hostile input: a body cap, no echo of the content into the
- * response, and only the fields that are useful are logged. It is rate limited by the
- * proxy like everything else, except that the proxy exempts *this* path, because a page
- * that is violating its policy produces a report per violation and throttling them would
- * hide the signal. The cap and the fact that nothing is stored are what keep that safe.
+ * Unauthenticated by necessity, so treated as hostile: a body cap, nothing echoed back,
+ * nothing stored. proxy.ts exempts this path from rate limiting, because a page violating
+ * its policy reports per violation.
  */
+
 /** Small. A violation report is a few hundred bytes; anything larger is not one. */
 const MAX_BYTES = 16 * 1024;
 
@@ -51,8 +43,7 @@ function normalise(payload: unknown): Violation[] {
 export async function POST(request: Request): Promise<NextResponse> {
     const body = await readJsonWithLimit(request, MAX_BYTES);
     if (!body.ok) {
-        // 413 for too large, 400 for unparseable. Either way nothing is logged: a flood of
-        // junk to this endpoint should not be a way to write to the log.
+        // Nothing is logged either way: junk here must not be a way to write to the log.
         return new NextResponse(null, { status: body.status });
     }
 

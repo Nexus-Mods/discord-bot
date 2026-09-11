@@ -11,20 +11,10 @@ export function safeCompare(a: string, b: string): boolean {
 }
 
 /**
- * Verify an Authorization header against a shared secret held in an environment
- * variable.
+ * Check a provided secret against one held in an environment variable.
  *
- * This FAILS CLOSED: if the environment variable is not set, the endpoint is
- * treated as unavailable rather than unprotected. Previously a missing secret
- * left the endpoint open to anyone. That property is the whole point of this
- * function and it is the one the tests pin.
- *
- * Takes the header's value rather than a request. It used to take an
- * `express.Request`, which meant the only way to guard a route was to be an Express
- * route - and the Next port has to guard the same three endpoints. A string is
- * something both can produce: `req.headers.authorization` on one side,
- * `request.headers.get('authorization')` on the other, and one implementation of the
- * comparison rather than two that agree until they do not.
+ * FAILS CLOSED: an unset variable means the endpoint is unavailable, not unprotected.
+ * Takes a string rather than a request, so both servers share one comparison.
  */
 export function checkSharedSecret(provided: string | null | undefined, envVar: string): boolean {
     const expected = process.env[envVar];
@@ -33,43 +23,19 @@ export function checkSharedSecret(provided: string | null | undefined, envVar: s
     return safeCompare(provided, expected);
 }
 
-/**
- * The shared secrets the site expects in the environment, checked at boot so a missing
- * value is loud rather than silent.
- *
- * These lists existed but nothing read them - server.ts wrote the same two names out
- * again inline, which is a duplicate that only ever drifts in one direction: a secret
- * added here and not there is unchecked. The reasons live with the names so the boot
- * message can be specific without the caller having to know what each one is for.
- */
+/** Checked at boot, so a missing value is loud. The reason travels with the name for the log line. */
 export const REQUIRED_SECRETS: ReadonlyArray<{ name: string; reason: string }> = [
     { name: 'COOKIE_SECRET', reason: 'The OAuth flow signs its state cookie with it' },
     { name: 'UNLINK_SECRET', reason: 'Unlink links are signed with it' },
-    /**
-     * Not a secret this site signs with, but one it cannot work without: the tracking page
-     * resolves guild and channel names over Discord's REST API. dist/web.js checked it
-     * separately and exited, in the same words - so this removes a duplicate rather than
-     * adding a check. Express still runs its own check first, so its behaviour is
-     * unchanged.
-     */
+    // Not signed with, but the tracking page cannot resolve names without it.
     { name: 'DISCORD_TOKEN', reason: 'The tracking page resolves guild and channel names with it' },
 ];
 
 export const OPTIONAL_SECRETS: ReadonlyArray<string> = [
     'AUTOMOD_AUTHCODE',
     'ADMIN_AUTHCODE',
-    /**
-     * The forum webhook's secret, which is carried in the URL rather than a header.
-     *
-     * Invision cannot attach a custom header on this installation, and the target URL is
-     * the only thing about the request the sending side lets anyone configure - so the URL
-     * is where the secret has to go. That is weaker than an HMAC and stronger than nothing:
-     * it is a bearer token in a place that ends up in access logs and in the forum's admin
-     * screen, so it is worth rotating if either is ever exposed.
-     *
-     * Optional in the same sense as the other two: absent means the endpoint rejects
-     * everything, which is loud rather than silent, and the boot check says so.
-     */
+    // Carried in the URL, not a header: Invision cannot attach one. A bearer token in a
+    // place that reaches access logs, so rotate it if those are ever exposed.
     'FORUM_WEBHOOK_SECRET',
 ];
 
@@ -101,10 +67,7 @@ export function signValue(value: string, ttlMs: number, secret: string): string 
     return `${expires}.${sig}`;
 }
 
-/**
- * Build the unlink URL handed to a user in Discord. The Discord ID is signed so a
- * link cannot be edited to point at somebody else's account.
- */
+/** The link URL handed to a user in Discord. */
 export function linkUrl(discordId: string): string {
     const base = process.env.SITE_BASE_URL ?? 'https://discordbot.nexusmods.com/';
     return `${base}linked-role?id=${encodeURIComponent(discordId)}`;
