@@ -10,7 +10,7 @@ WEB_IMAGE="${WEB_IMAGE_NAME}:${TAG}"
 
 ENV_FILE="$PWD/.env"
 
-if [ ! -f "%ENV_FILE" ]; then
+if [ ! -f "$ENV_FILE" ]; then
     echo "No .env found at $ENV_FILE - run this from the directory that holds it." >&2
     exit 1
 fi
