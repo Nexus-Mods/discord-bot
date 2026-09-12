@@ -50,6 +50,13 @@ short list of things that were deliberately not done.
 | 4 | **5.2** Dead code sweep, what remains of it | Small and shrinking: `DiscordApiError` has no references, `api/util.ts` is still a grab-bag. | Nothing |
 | 5 | Move migrations into `packages/persistence` | Optional. Would let the web app migrate too; today the bot is the only process that can. | Nothing |
 
+**Next, and not on that list:** signing users in to the site, so server managers can change
+their own server's settings and staff can manage tips. That is a new capability rather than
+modernisation work, and it has its own document - **[WEB-AUTH.md](WEB-AUTH.md)** - covering
+the choice of Discord as the primary login, the authorisation model, and the risks that
+come with taking over a permission check Discord currently makes. Nothing is built; it
+wants the 5.0.0 deploy to settle first.
+
 Shipped since the last revision, in order: **3.5** in 4.1.0, the web container split in
 4.2.0, sealed OAuth state cookies in 4.3.0, per-tag deploys in 4.4.0, and **3.3**, **3.4**,
 **5.1** and **Phase 4** on the 5.0.0 branch.
