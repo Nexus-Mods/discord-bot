@@ -80,6 +80,14 @@ USER node
 # nothing here. redeploy.sh sets it.
 ENV PORT=3000
 
+# The standalone server binds `process.env.HOSTNAME || '0.0.0.0'` - an ADDRESS, where
+# Express only ever chose a port. Docker sets HOSTNAME in every container, and under
+# `--network host` it is the host's own name, which Debian and Ubuntu map to 127.0.1.1 in
+# /etc/hosts. The first 5.0.0 deploy came up bound to 127.0.1.1:3000, logged a healthy
+# "Ready", and refused every connection from the proxy. Pinned here so the image is right
+# however it is run; redeploy.sh passes it explicitly as well.
+ENV HOSTNAME=0.0.0.0
+
 WORKDIR /app/apps/web
 
 # Exec form, so the process is PID 1 and receives SIGTERM directly.

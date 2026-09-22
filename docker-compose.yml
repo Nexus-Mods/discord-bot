@@ -48,6 +48,9 @@ services:
       # PORT is what the Next server listens on. AUTH_PORT was Express's and means
       # nothing here.
       PORT: 3000
+      # The address it binds. Without it the server takes Docker's HOSTNAME and can end up
+      # on an address nothing else can reach - see the comment in Dockerfile.web.
+      HOSTNAME: 0.0.0.0
       # DBPORT, because PORT above is the HTTP port in this container. Without it the
       # database client would take 3000 as well and every query would fail.
       DBPORT: 5432

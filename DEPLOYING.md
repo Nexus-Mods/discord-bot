@@ -16,28 +16,38 @@ Both images are tagged `:latest`, `:<version>` and `:<sha>` from the same commit
 is what pairs them** - deploying a bot image and a web image built from different commits is
 the mistake worth avoiding, and the sha tag is how to be sure.
 
-### Do this first: `DBPORT` must be set
+### Do this first: `DBPORT` must be set - to the port your database is actually on
 
-**Add it before deploying, and check it.** The production `.env` sets `PORT=5432` and no
-`DBPORT`. That has always been fine, because the database port is `DBPORT ?? PORT` and
-nothing else in the deployment read `PORT`.
+**Copy the value, do not assume it.** The production `.env` has always carried the
+database port as `PORT`, because the port is `DBPORT ?? PORT` and nothing else in the
+deployment read `PORT`. Read what is in the file:
 
-The Next server does. It reads `PORT` to decide what to listen on, so the web container is
-told `PORT=3000` - and with `DBPORT` unset, the database client takes 3000 as well. The
-container would start, serve pages, and fail every query: no account links, no tracking
-page, no automod. Verified rather than guessed: with `DBPORT` unset and `PORT=3000`,
-`poolConfig().port` is 3000.
-
-So add one line to the production `.env`, which `.env.example` has carried all along:
-
-```
-DBPORT=5432
+```sh
+grep -n '^PORT=' .env
 ```
 
-It changes nothing for the bot - `DBPORT` takes precedence over `PORT` and the value is
-the same - so it can be added, and the bot restarted, well before anything else here.
-Two things refuse to proceed without it: `redeploy.sh` checks the file and exits, and the
-web app itself refuses to start and says why. It cannot be got wrong quietly.
+Whatever that says is your database port. On the production droplet it is `25061` - the
+DigitalOcean connection-pool port - not 5432. An earlier version of this document asserted
+5432 and was wrong; following it took the bot down with
+`Connection terminated due to connection timeout`, because the pool was then pointed at a
+port nothing listens on.
+
+```
+DBPORT=<the value PORT already has>
+```
+
+The reason it has to move is that the Next server reads `PORT` to decide what to listen
+on, so the web container is told `PORT=3000` - and with `DBPORT` unset, the database
+client would take 3000 as well. Verified rather than guessed: with `DBPORT` unset and
+`PORT=3000`, `poolConfig().port` is 3000.
+
+Setting `DBPORT` to the value `PORT` already holds changes nothing for the bot, so it can
+be done, and the bot restarted, well before anything else here - and that restart is the
+check. `redeploy.sh` refuses to run without `DBPORT` set, but it cannot tell whether the
+value is *right*: only a bot that migrates and starts proves that.
+
+An inline comment is fine - `DBPORT=25061#25060` reads as `25061`, because dotenv strips
+it.
 
 ### Deploying
 
@@ -46,19 +56,31 @@ same tag and starts the web container as
 
 ```sh
 docker run -d --name web --restart unless-stopped --network host \
-    -v "$ENV_FILE:/app/.env" -e PORT=3000 \
+    -v "$ENV_FILE:/app/.env" -e PORT=3000 -e HOSTNAME=0.0.0.0 \
     "nexusmods/discord-bot-web:${TAG}" node server.js
 ```
 
-Three differences from the 4.x line it replaces:
+Four differences from the 4.x line it replaces:
 
 1. **A different image**, so the script pulls both.
 2. **`PORT`, not `AUTH_PORT`.** `AUTH_PORT` was Express's own variable and means nothing to
    the Next server, which reads `PORT` and otherwise defaults to 3000. Leaving `AUTH_PORT`
    in the env file is harmless; relying on it is not. With `--network host` this is the
    port it binds on the host directly, so it must match whatever is in front of it.
-3. **`node server.js`, from `/app/apps/web`.** That is the image default, so it can be
+3. **`HOSTNAME=0.0.0.0`, which is not optional.** The standalone server binds
+   `process.env.HOSTNAME || '0.0.0.0'` - it chooses an *address*, where Express only chose
+   a port. Docker sets `HOSTNAME` inside the container, and with `--network host` that is
+   the host's own name; Debian and Ubuntu map a machine's hostname to `127.0.1.1` in
+   `/etc/hosts`. Without this variable the site comes up bound to `127.0.1.1:3000`, logs a
+   perfectly healthy "Ready", and refuses every connection to `127.0.0.1` and to the public
+   interface. This happened on the first 5.0.0 deploy. The image now sets it too, so this
+   is belt and braces.
+4. **`node server.js`, from `/app/apps/web`.** That is the image default, so it can be
    omitted; it is written out because the bot's line states its command too.
+
+`docker restart web` does not pick up a change to any of these - the environment is fixed
+when the container is created. It has to be `docker rm -f web` and a fresh `docker run`,
+which is what `redeploy.sh` does.
 
 `.env` is still mounted at `/app/.env` and still read by the same resolver, so the file
 does not change and neither container needs its configuration moved.
@@ -91,15 +113,20 @@ is a deliberate piece of work, not a small change, and it has not been done.
    start is loud and immediate**: `COOKIE_SECRET is not set ... so the site cannot start`
    and an exit. The site refuses to run misconfigured rather than serving 500s, so a
    restart loop here means the environment, not the code.
-2. `curl -sI http://127.0.0.1:3000/` - a 200, and the page footer shows the version.
-3. `curl -si http://127.0.0.1:3000/linked-role | head -5` - a 302 to `discord.com` with a
+2. `ss -ltnp | grep 3000` - **check the address, not just that something is listening.**
+   `0.0.0.0:3000` is right; `127.0.1.1:3000` is the `HOSTNAME` failure above, and from the
+   logs alone it looks identical to a healthy start.
+3. `curl -sI http://127.0.0.1:3000/` - a 200, and the page footer shows the version. Note
+   the address: a request to `127.0.1.1` would succeed even in the broken case, so test the
+   one your proxy actually uses.
+4. `curl -si http://127.0.0.1:3000/linked-role | head -5` - a 302 to `discord.com` with a
    `state` parameter, and a `Set-Cookie: clientState=s%3A...` beside it. If the cookie is
    there but the redirect goes to `/oauth-error`, `DISCORD_CLIENT_ID` or
    `DISCORD_REDIRECT_URI` is missing.
-4. **Then link an account for real.** Nothing above exercises the two OAuth round trips,
+5. **Then link an account for real.** Nothing above exercises the two OAuth round trips,
    and they are the reason the site exists. `/unlink` and re-link on a test account is the
    whole flow in two minutes.
-5. `curl -sI 'http://127.0.0.1:3000/tracking?guild=<a real guild id>'` - a 200. This is
+6. `curl -sI 'http://127.0.0.1:3000/tracking?guild=<a real guild id>'` - a 200. This is
    the one check that proves the database, so do not skip it: a 500 here with `DBPORT`
    just added is the pool still pointing somewhere wrong. A 307 to `/` means the bot
    cannot see that guild, which is also what a bad `DISCORD_TOKEN` looks like.
