@@ -1,6 +1,6 @@
 {
   "name": "@nexusmods/core",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "private": true,
   "type": "module",
   "description": "Cross-cutting primitives shared by the bot and the web app: errors, logging, formatting and environment loading.",

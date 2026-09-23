@@ -1,6 +1,6 @@
 {
   "name": "@nexusmods/auth",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "private": true,
   "type": "module",
   "description": "The two OAuth clients and the URL and cookie signing helpers. Shared, because the bot and the site both start and finish the same flows.",

@@ -1,6 +1,6 @@
 {
   "name": "@nexusmods/account",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "private": true,
   "type": "module",
   "description": "The account model: a linked Nexus Mods and Discord account, and the repository that reads and writes them.",
