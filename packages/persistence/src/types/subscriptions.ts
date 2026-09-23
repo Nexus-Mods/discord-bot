@@ -91,6 +91,12 @@ interface ISubscribedItemConfigGame {
     show_new?: boolean;
     // Show updated content
     show_updates?: boolean;
+    // Only post updates where the changelog changed
+    changelog_only?: boolean;
+    // Minimum hours between update posts for the same mod. 0 = every update
+    update_cooldown_hours?: number;
+    // Cooldown state: mod uid -> ISO time an update was last posted for it
+    last_posted?: Record<string, string>;
 }
 
 interface ISubscribedItemConfigMod {

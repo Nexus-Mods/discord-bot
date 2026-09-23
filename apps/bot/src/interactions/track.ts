@@ -43,6 +43,17 @@ const discordInteraction: DiscordInteraction = {
             .setRequired(false)
         )
         .addBooleanOption(o =>
+            o.setName('changelog_only')
+            .setDescription('Only post updates where the changelog changed. Default: False')
+            .setRequired(false)
+        )
+        .addIntegerOption(o =>
+            o.setName('update_cooldown')
+            .setDescription('Minimum hours between update posts for the same mod. Default: 0 (no limit)')
+            .setMinValue(0)
+            .setRequired(false)
+        )
+        .addBooleanOption(o =>
             o.setName('nsfw')
             .setDescription('Show adult content.')
             .setRequired(false)
@@ -172,6 +183,8 @@ async function resolveGame(client: ClientExt, interaction: ChatInputCommandInter
         config: {
             show_new: interaction.options.getBoolean('show_new') ?? true,
             show_updates: interaction.options.getBoolean('show_updates') ?? true,
+            changelog_only: interaction.options.getBoolean('changelog_only') ?? false,
+            update_cooldown_hours: interaction.options.getInteger('update_cooldown') ?? 0,
             sfw,
             nsfw,
         },
