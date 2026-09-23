@@ -1,11 +1,18 @@
+import type { Logger } from '@nexusmods/core/logger.js';
+import { remember, take } from "../lib/recentMessages.js";
 import type { DiscordEventInterface } from "../types/DiscordTypes.js";
-import type { Message, TextChannel } from 'discord.js';
+import type { Client, Message, TextChannel } from 'discord.js';
 
 const main: DiscordEventInterface = {
     name: 'messageCreate',
     once: false,
     async execute(client, logger, message: Message) {
         const WATCHED_CHANNEL_ID = process.env['WATCHED_CHANNEL_ID'];
+        const WATCHED_GUILD_ID = process.env['WATCHED_GUILD_ID'];
+        
+        if (WATCHED_GUILD_ID && message.guildId === WATCHED_GUILD_ID) {
+            remember(message.author.id, message.channelId, message.id);
+        }
         if (!WATCHED_CHANNEL_ID) return;
         if (message.channel.id !== WATCHED_CHANNEL_ID) return;
         if (message.author.bot) return;
@@ -21,8 +28,6 @@ const main: DiscordEventInterface = {
         }
 
         try {
-            // Wait 1 second to try and prevent Discord race conditions preventing the message from being removed. 
-            await new Promise<void>((resolve) => setTimeout(resolve, 1000));
             await message.member.ban({
                 reason: 'Posting in restricted channel - likely compromised account',
                 deleteMessageSeconds: 3600
@@ -50,7 +55,43 @@ const main: DiscordEventInterface = {
         catch(e: unknown) {
             logger.warn(`Failed to update banned spam accounts message`, e);
         }
+
+        try {
+            const firstCleanup = await deleteMessagesBy(client, logger, message.author.id);
+            // Run again in 10s
+            await new Promise<void>((resolve) => setTimeout(resolve, 10000));
+            const secondCleanup = await deleteMessagesBy(client, logger, message.author.id);
+            logger.info("Cleaned up missed spam messages", { user: message.author.id, firstCleanup, secondCleanup })
+        }
+        catch(err: unknown) {
+            logger.warn("Spam message cleanup failed", { err, user: message.author.tag });
+        }
     }
 };
+
+async function deleteMessagesBy(client: Client, logger: Logger, userId: string): Promise<number> {
+    const seen = take(userId);
+    if (!seen.length) return 0;
+
+    // Grouped, because bulkDelete is per channel and takes up to 100 at a time.
+    const byChannel = new Map<string, string[]>();
+    for (const s of seen) byChannel.set(s.channelId, [...(byChannel.get(s.channelId) ?? []), s.messageId]);
+
+    let deleted = 0;
+    for (const [channelId, ids] of byChannel) {
+        try {
+            const channel = await client.channels.fetch(channelId);
+            if (!channel?.isTextBased() || channel.isDMBased()) continue;
+            // filterOld irrelevant here - these are seconds old - but harmless.
+            const removed = await channel.bulkDelete(ids, true);
+            deleted += removed.size;
+        }
+        catch (err) {
+            // 10008 Unknown Message just means the ban already got it.
+            logger.warn('Could not clean a channel after ban', { channelId, count: ids.length, err });
+        }
+    }
+    return deleted;
+}
 
 export default main;
