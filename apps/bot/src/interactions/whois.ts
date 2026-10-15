@@ -1,12 +1,13 @@
 import type { DiscordInteraction, ClientExt } from "../types/DiscordTypes.js";
 import type { NexusUser } from "@nexusmods/persistence/types/users.js";
-import { getAllUsers, getUserByDiscordId } from '@nexusmods/account/users.js';
+import { getUserByDiscordId, getUserByNexusModsId } from '@nexusmods/account/users.js';
 import { userEmbed, userProfileEmbed } from '../lib/profile.js';
 import { type Snowflake, type Client, type User, type ChatInputCommandInteraction, SlashCommandBuilder, type CommandInteraction, MessageFlags, InteractionContextType } from "discord.js";
 import { KnownDiscordServers} from "../api/util.js";
 import type { Logger } from "@nexusmods/core/logger.js";
 import { DiscordBotUser } from "@nexusmods/account/DiscordBotUser.js";
 import { botUser, notAllowed } from '../lib/profile.js';
+import { autoCompleteUserSearch } from "../lib/autocomplete.js";
 
 
 const discordInteraction: DiscordInteraction = {
@@ -23,6 +24,7 @@ const discordInteraction: DiscordInteraction = {
         option.setName('nexus')
         .setDescription('Nexus Mods account') 
         .setRequired(false)   
+        .setAutocomplete(true)
     )
     .addBooleanOption(option => 
         option.setName('private')
@@ -34,7 +36,8 @@ const discordInteraction: DiscordInteraction = {
         KnownDiscordServers.BotDemo
     ],
     defer: (i) => ((i as ChatInputCommandInteraction).options.getBoolean('private') ?? true) ? 'ephemeral' : 'public',
-    action
+    action,
+    autocomplete:  (_client, interaction, logger) => autoCompleteUserSearch(interaction, logger),
 }
 
 async function action(client: Client, baseInteraction: CommandInteraction, logger: Logger): Promise<any> {
@@ -72,13 +75,12 @@ async function action(client: Client, baseInteraction: CommandInteraction, logge
     }
 
     try {
-        const allUsers: NexusUser[] = await getAllUsers().catch(() => []);
         let foundUser: NexusUser | undefined;
         if (user) {
-            foundUser = allUsers.find(u => u.d_id === user.id);
+            foundUser = await getUserByDiscordId(user.id, false);
         }
         else if (nexus) {
-            foundUser = allUsers.find(u => u.name.toLowerCase() === nexus.toLowerCase());
+            foundUser = await getUserByNexusModsId(parseInt(nexus), false);
         }
 
         if (!foundUser) return interaction.followUp({content: 'No members found for your query.', flags: MessageFlags.Ephemeral});

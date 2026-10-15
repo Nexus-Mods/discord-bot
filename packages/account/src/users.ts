@@ -34,12 +34,19 @@ async function getCountOfUsers(): Promise<number> {
     return Number(result.rows[0].count);
 }
 
-async function getUserByDiscordId(discordId: Snowflake | string): Promise<DiscordBotUser | undefined> {
+type NexusModsIdLookup<Rich extends boolean> = 
+    Rich extends false ? NexusUser : DiscordBotUser;
+
+async function getUserByDiscordId<Rich extends boolean = true>(discordId: Snowflake | string, rich: Rich = true as Rich): Promise<NexusModsIdLookup<Rich> | undefined> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users WHERE d_id = $1', [discordId]);
         const user: NexusUser = openUserTokens(result?.rows[0]);
         if (user) {
-            return new DiscordBotUser(user, logger);
+            return (
+                rich === false 
+                ? user 
+                : new DiscordBotUser(user, logger)
+            ) as NexusModsIdLookup<Rich>;
         }
         return undefined;
     }
@@ -49,12 +56,16 @@ async function getUserByDiscordId(discordId: Snowflake | string): Promise<Discor
     }
 }
 
-async function getUserByNexusModsName(username: string): Promise<DiscordBotUser | undefined> {
+async function getUserByNexusModsName<Rich extends boolean = true>(username: string, rich: Rich = true as Rich): Promise<NexusModsIdLookup<Rich> | undefined> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users WHERE LOWER(name) = LOWER($1)', [username]);
         const user: NexusUser = openUserTokens(result?.rows[0]);
         if (user) {
-            return new DiscordBotUser(user, logger);
+            return (
+                rich === false 
+                ? user 
+                : new DiscordBotUser(user, logger)
+            ) as NexusModsIdLookup<Rich>;
         }
         return undefined;
     }
@@ -64,12 +75,16 @@ async function getUserByNexusModsName(username: string): Promise<DiscordBotUser 
     }
 }
 
-async function getUserByNexusModsId(id: number): Promise<DiscordBotUser | undefined> {
+async function getUserByNexusModsId<Rich extends boolean = true>(id: number, rich: Rich = true as Rich): Promise<NexusModsIdLookup<Rich> | undefined> {
     try {
         const result = await query<NexusUser>('SELECT * FROM users WHERE id = $1', [id]);
         const user: NexusUser = openUserTokens(result?.rows[0]);
         if (user) {
-            return new DiscordBotUser(user, logger);
+            return (
+                rich === false 
+                ? user 
+                : new DiscordBotUser(user, logger)
+            ) as NexusModsIdLookup<Rich>;
         }
         return undefined;
     }
