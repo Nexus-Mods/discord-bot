@@ -25,6 +25,7 @@ import { baseheader } from '@nexusmods/nexus-api/headers.js';
 import { voidAsync, mapWithConcurrency } from '../lib/async.js';
 import type { ModStatus } from "@nexusmods/nexus-api/types/GQLTypes.js";
 import { webhookFor } from './webhooks.js';
+import { markUpdatesPosted, modUpdateAllowed, updateCooldownMs } from './updateFilters.js';
 import { forceChannelUpdateOnOwningShard, type ForceUpdateMessage, requestSubscriptionRefreshOnOtherShards, requireShard, shardIdForGuild } from '../lib/sharding.js';
 
 /** Which shard owns a channel's guild. */
@@ -483,9 +484,14 @@ export class SubscriptionManger {
             mod.files = files;
             this.cache.add('modFiles', files, mod.uid);
         }
+        // Apply the sub's update filters (changelog-only, per-mod cooldown).
+        const filteredUpdates = updatedMods.filter(m => modUpdateAllowed(m, item));
+        if (filteredUpdates.length !== updatedMods.length) {
+            this.logger.debug('Suppressed mod updates', { domain, suppressed: updatedMods.length - filteredUpdates.length, itemId: item.id });
+        }
         // Map into the generic format.
         const formattedUpdates: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
-        for (const mod of updatedMods) {
+        for (const mod of filteredUpdates) {
             const embed = await subscribedItemEmbed<SubscribedItemType.Game>(this.logger, mod, item, guild, true);
             formattedUpdates.push({ 
                 type: SubscribedItemType.Game, 
@@ -507,7 +513,11 @@ export class SubscriptionManger {
             item.last_update = newUpdate;
             return results
         };
-        return this.recordLastUpdate(item, results);
+        // Cooldown state rides along with the last_update write, so the two can't drift apart.
+        const configPatch = updateCooldownMs(item) > 0 && filteredUpdates.length
+            ? { last_posted: markUpdatesPosted(item, filteredUpdates) }
+            : undefined;
+        return this.recordLastUpdate(item, results, undefined, configPatch);
     }
 
     private async getModUpdates<T extends SubscribedItemType.Mod>(item: SubscribedItem<T>, guild: Guild): Promise<IPostableSubscriptionUpdate<T>[]> {
@@ -737,10 +747,10 @@ export class SubscriptionManger {
         item.last_update = date;
     }
 
-    private async recordLastUpdate<T extends SubscribedItemType>(item: SubscribedItem<T>, results: IPostableSubscriptionUpdate<T>[], status?: string): Promise<IPostableSubscriptionUpdate<T>[]> {
+    private async recordLastUpdate<T extends SubscribedItemType>(item: SubscribedItem<T>, results: IPostableSubscriptionUpdate<T>[], status?: string, configPatch?: Record<string, unknown>): Promise<IPostableSubscriptionUpdate<T>[]> {
         results.sort((a, b) => a.date.getTime() - b.date.getTime());
         const lastDate = results[results.length -1].date;
-        await saveLastUpdatedForSub(item.id, lastDate, status);
+        await saveLastUpdatedForSub(item.id, lastDate, status, configPatch);
         this.setLastUpdate(item, lastDate);
         return results;
     }

@@ -100,7 +100,7 @@ function subscribedItemEmbedField(i: SubscribedItem<SubscribedItemType>): APIEmb
     switch (i.type) {
         case SubscribedItemType.Game: {
             const s = i as SubscribedItem<SubscribedItemType.Game>;
-            return {name: `${i.title} (ID: ${i.id})`, value:`Show New: ${s.config.show_new} | Show Updates: ${s.config.show_updates}\nAdult Content: ${s.config.nsfw} | Non-adult Content: ${s.config.sfw}\nCompact: ${i.compact} | Crosspost: ${i.crosspost}`}
+            return {name: `${i.title} (ID: ${i.id})`, value:`Show New: ${s.config.show_new} | Show Updates: ${s.config.show_updates}\nChangelog Only: ${s.config.changelog_only ?? false} | Update Cooldown: ${s.config.update_cooldown_hours ?? 0}h\nAdult Content: ${s.config.nsfw} | Non-adult Content: ${s.config.sfw}\nCompact: ${i.compact} | Crosspost: ${i.crosspost}`}
         };
         case SubscribedItemType.Mod: return {name: `${i.title} (ID: ${i.id})`, value:`Compact: ${i.compact} | Crosspost: ${i.crosspost}`};
         case SubscribedItemType.Collection: return {name: `${i.title} (ID: ${i.id})`, value:`Compact: ${i.compact} | Crosspost: ${i.crosspost}`};
