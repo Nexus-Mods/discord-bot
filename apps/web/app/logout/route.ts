@@ -10,15 +10,53 @@ import { clearSession, sessionFrom } from '@/lib/auth/session';
  * `<img src="https://.../logout">`. Harmless as mischief goes, but this is the first
  * state-changing route on the site and it may as well establish the shape the rest will
  * need.
- *
- * The Origin check stands in for the CSRF token the portal will grow when it can write
- * anything that matters. One header, and it closes the only hole a single-button form has.
  */
-export async function POST(request: Request): Promise<NextResponse> {
+
+/** Our own origin, from configuration. Null when SITE_BASE_URL is absent or malformed. */
+function expectedOrigin(): string | null {
+    const base = process.env.SITE_BASE_URL;
+    if (!base) return null;
+    try {
+        return new URL(base).origin;
+    }
+    catch {
+        logger.warn('SITE_BASE_URL is not a URL, so the logout origin check cannot run.');
+        return null;
+    }
+}
+
+/**
+ * Whether this request came from our own page.
+ *
+ * `Sec-Fetch-Site` first, because it is the header designed for this question and every
+ * current browser sends it. Origin alone is not enough: a form submitted from a context
+ * with an opaque origin - a sandboxed frame, a `file://` page, some redirect chains -
+ * sends the literal string `null`, which is same-origin as far as the user is concerned
+ * and unparseable as far as `new URL` is concerned. An earlier version passed it to
+ * `new URL()` and answered a sign-out with a 500.
+ *
+ * Nothing here parses the header. The untrusted value is compared as a string against one
+ * origin we built ourselves.
+ */
+function sameOrigin(request: Request): boolean {
+    const site = request.headers.get('sec-fetch-site');
+    if (site) return site === 'same-origin';
+
     const origin = request.headers.get('origin');
-    const expected = process.env.SITE_BASE_URL;
-    if (origin && expected && new URL(origin).origin !== new URL(expected).origin) {
-        logger.warn('Rejected a logout from another origin', { origin });
+    // No Origin at all: some legitimate same-origin posts omit it, and a browser that
+    // sends neither header is old enough that CSRF is not the threat model it needs.
+    if (!origin) return true;
+
+    const expected = expectedOrigin();
+    return expected === null || origin === expected;
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+    if (!sameOrigin(request)) {
+        logger.warn('Rejected a logout from another origin', {
+            origin: request.headers.get('origin'),
+            site: request.headers.get('sec-fetch-site'),
+        });
         return new NextResponse(null, { status: 403 });
     }
 

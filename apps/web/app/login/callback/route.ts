@@ -38,7 +38,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         const tokens = await exchangeLoginCode(code);
         const self = await fetchSelf(tokens.access_token);
 
-        const response = redirectTo('/me');
+        const response = redirectTo('/manage');
         setSession(response, {
             id: self.id,
             name: self.global_name || self.username,

@@ -38,12 +38,23 @@ export default async function Home() {
 
     const clientId = process.env.DISCORD_CLIENT_ID ?? '';
     const uptime = calcUptime(process.uptime());
-    const loginAvailable = isLoginConfigured();
+     const loginAvailable = isLoginConfigured();
 
     return (
         <Content>
             <PageTitle>Discord bot is online.</PageTitle>
             <Supertext>{new Date().toUTCString()}</Supertext>
+
+            {
+                loginAvailable && (<div>
+                    <div className="mt-6 flex flex-wrap gap-2 mb-4">
+                        <ActionLink icon={DISCORD_ICON} href='/manage'>
+                            Manage Bot Settings
+                        </ActionLink>
+                    </div>
+                    <hr />
+                </div>)
+            }
 
             <div className="mt-6 flex flex-wrap gap-2">
                 <ActionLink
@@ -57,14 +68,6 @@ export default async function Home() {
                     View in App Directory
                 </ActionLink>
             </div>
-
-            {/* Hidden until a login redirect URI is registered, so the branch can be
-                merged and deployed with the feature dormant. */}
-            {loginAvailable && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                    <ActionLink icon={DISCORD_ICON} href="/login">Sign in with Discord</ActionLink>
-                </div>
-            )}
 
             <div className="mt-2 flex flex-wrap gap-2">
                 <ActionLink newTab icon="/images/readme.svg" href="https://modding.wiki/en/nexusmods/discord-bot">

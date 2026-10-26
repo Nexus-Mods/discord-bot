@@ -63,22 +63,80 @@ function isNotFound(err: unknown): boolean {
     return status === 403 || status === 404;
 }
 
+/**
+ * A short memo on guild lookups, shared by every visitor.
+ *
+ * The manage rail asks "is the bot in this guild, and what is it called" once per server
+ * the visitor manages, on every navigation. None of that changes minute to minute, and
+ * none of it is specific to who is asking - a guild's name, icon and the bot's presence
+ * in it are the same facts for everyone - so one answer can serve them all.
+ *
+ * Deliberately NOT how permissions are handled. Those are read live every time, because
+ * a stale permission is an authorisation bug where a stale server name is a cosmetic one.
+ *
+ * On globalThis for the same reason the REST client is: Next re-evaluates this module on
+ * every save in dev, and a per-reload cache is no cache at all.
+ */
+const GUILD_TTL_MS = 5 * 60 * 1000;
+const GUILD_CACHE = Symbol.for('@nexusmods/discord-web.guildCache');
+
+interface Cached { value: GuildSummary | null; at: number }
+interface CacheHost { [GUILD_CACHE]?: Map<string, Cached> }
+
+function guildCache(): Map<string, Cached> {
+    const host = globalThis as CacheHost;
+    host[GUILD_CACHE] ??= new Map();
+    return host[GUILD_CACHE];
+}
+
+/** Drops what has expired. Called on write, so an idle process does not hold a map forever. */
+function pruneGuildCache(now: number): void {
+    const cache = guildCache();
+    if (cache.size < 200) return;
+    for (const [key, entry] of cache) {
+        if (now - entry.at >= GUILD_TTL_MS) cache.delete(key);
+    }
+}
+
+/** Forgets one guild, for a caller that has just learned the cached answer is wrong. */
+export function forgetGuild(id: string): void {
+    guildCache().delete(id);
+}
+
 /** Resolves to null when the guild does not exist or the bot is not in it. */
 export async function guild(id: string): Promise<GuildSummary | null> {
+    const now = Date.now();
+    const hit = guildCache().get(id);
+    // A cached `null` counts: "the bot is not in this guild" is an answer worth keeping,
+    // and it is the one a rail full of unmanaged servers would otherwise re-ask every time.
+    if (hit && now - hit.at < GUILD_TTL_MS) return hit.value;
+
     const { rest, cdn } = client();
     try {
         const found = (await rest.get(Routes.guild(id))) as APIGuild;
-        return {
+        const summary: GuildSummary = {
             id: found.id,
             name: found.name,
             iconUrl: found.icon ? cdn.icon(found.id, found.icon, { size: 128 }) : null,
         };
+        remember(id, summary, now);
+        return summary;
     }
     catch (err) {
-        if (isNotFound(err)) return null;
+        if (isNotFound(err)) {
+            remember(id, null, now);
+            return null;
+        }
+        // A transient failure is not cached: the next request should try again rather
+        // than inherit five minutes of an outage.
         logger.warn('Could not fetch guild from Discord', { guild: id, err });
         throw err;
     }
+}
+
+function remember(id: string, value: GuildSummary | null, now: number): void {
+    pruneGuildCache(now);
+    guildCache().set(id, { value, at: now });
 }
 
 export async function channels(guildId: string): Promise<ChannelSummary[]> {

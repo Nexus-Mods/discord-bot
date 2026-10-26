@@ -111,7 +111,7 @@ describe('GET /login/callback', () => {
         );
 
         expect(response.status).toBe(302);
-        expect(response.headers.get('location')).toBe('/me');
+        expect(response.headers.get('location')).toBe('/manage');
 
         const session = openSession(rawCookie(response, SESSION_COOKIE), COOKIE_SECRET);
         expect(session).toMatchObject({ id: '1234567890', name: 'Someone', accessToken: 'login-access-token' });
@@ -208,6 +208,54 @@ describe('POST /logout', () => {
         ));
         expect(response.status).toBe(403);
         expect(DiscordLogin.revokeLoginToken).not.toHaveBeenCalled();
+    });
+
+    it('refuses one Sec-Fetch-Site says is cross-site, whatever the Origin claims', async () => {
+        const response = await logout(request(
+            '/logout',
+            { [SESSION_COOKIE]: await sessionCookie() },
+            { method: 'POST', headers: { origin: 'https://discordbot.nexusmods.test', 'sec-fetch-site': 'cross-site' } },
+        ));
+        expect(response.status).toBe(403);
+    });
+
+    it.each([
+        ['the literal string null', 'null'],
+        ['not a URL at all', 'not a url'],
+        ['empty', ''],
+    ])('does not crash on an Origin that is %s', async (_label, origin) => {
+        // This answered a sign-out with a 500 once: the header went straight into
+        // new URL(). A browser sends Origin: null from an opaque context, and anyone
+        // can send anything.
+        const response = await logout(request(
+            '/logout',
+            { [SESSION_COOKIE]: await sessionCookie() },
+            { method: 'POST', headers: { origin, 'sec-fetch-site': 'same-origin' } },
+        ));
+        expect(response.status).toBe(303);
+    });
+
+    it('trusts Sec-Fetch-Site over an unparseable Origin', async () => {
+        // The case from the bug report: a same-origin form whose document has an opaque
+        // origin. The browser says same-origin; the Origin header says null.
+        const response = await logout(request(
+            '/logout',
+            { [SESSION_COOKIE]: await sessionCookie() },
+            { method: 'POST', headers: { origin: 'null', 'sec-fetch-site': 'same-origin' } },
+        ));
+        expect(response.status).toBe(303);
+        expect(setCookieLine(response, SESSION_COOKIE)).toContain('Max-Age=0');
+    });
+
+    it('survives a malformed SITE_BASE_URL rather than erroring', async () => {
+        process.env.SITE_BASE_URL = 'not a url';
+        const response = await logout(request(
+            '/logout',
+            { [SESSION_COOKIE]: await sessionCookie() },
+            { method: 'POST', headers: { origin: 'https://anywhere.example' } },
+        ));
+        // Nothing to compare against, so the check cannot refuse - but it must not throw.
+        expect(response.status).toBe(303);
     });
 
     it('still clears the cookie when there is no session to revoke', async () => {
