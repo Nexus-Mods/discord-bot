@@ -1,6 +1,6 @@
 import { CDN, REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v10';
-import type { APIGuild, APIGuildChannel, GuildChannelType } from 'discord-api-types/v10';
+import type { APIGuild, APIGuildChannel, APIRole, GuildChannelType } from 'discord-api-types/v10';
 import { logger } from '@nexusmods/core/logger.js';
 
 /**
@@ -137,6 +137,35 @@ export async function guild(id: string): Promise<GuildSummary | null> {
 function remember(id: string, value: GuildSummary | null, now: number): void {
     pruneGuildCache(now);
     guildCache().set(id, { value, at: now });
+}
+
+export interface RoleSummary {
+    id: string;
+    name: string;
+    /** Discord's integer colour, 0 when unset. Rendered as the swatch beside the name. */
+    colour: number;
+}
+
+/**
+ * A guild's roles, so a settings page can name one rather than printing a snowflake.
+ *
+ * Not memoised like `guild()`: roles are renamed and recoloured far more often than a
+ * server is renamed, and this is one call on one page rather than one per tile.
+ */
+export async function roles(guildId: string): Promise<RoleSummary[]> {
+    const { rest } = client();
+    try {
+        const list = (await rest.get(Routes.guildRoles(guildId))) as APIRole[];
+        return list
+            // @everyone is a role in the API and never a choice in the UI.
+            .filter((r) => r.id !== guildId)
+            .map((r) => ({ id: r.id, name: r.name, colour: r.color }));
+    }
+    catch (err) {
+        if (isNotFound(err)) return [];
+        logger.warn('Could not fetch roles from Discord', { guild: guildId, err });
+        throw err;
+    }
 }
 
 export async function channels(guildId: string): Promise<ChannelSummary[]> {

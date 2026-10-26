@@ -24,7 +24,7 @@ const botGuild = vi.fn(async (_id: string) => null as unknown);
 vi.mock('@/lib/discordDirectory', () => ({ guild: (id: string) => botGuild(id) }));
 
 const { manageableGuilds } = await import('@/lib/auth/guilds');
-const { acronym } = await import('@/components/ServerRail');
+const { acronym } = await import('@/lib/acronym');
 
 const guild = (over: Record<string, unknown> = {}) => ({
     id: '1', name: 'A server', icon: null, owner: false, permissions: MANAGE_CHANNELS, ...over,

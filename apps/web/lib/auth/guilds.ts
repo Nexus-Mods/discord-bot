@@ -70,3 +70,15 @@ export const manageableGuilds = cache(async (): Promise<ManageableGuilds> => {
 
     return { guilds: resolved.filter((g): g is ManageableGuild => g !== null), failed: false };
 });
+
+/**
+ * One guild, if this visitor may manage something in it.
+ *
+ * Null covers three different situations deliberately: no such guild, the bot is not in
+ * it, and the visitor holds neither permission there. A page that distinguished them
+ * would tell an outsider which servers this bot is in.
+ */
+export async function guildAccess(guildId: string): Promise<ManageableGuild | null> {
+    const { guilds } = await manageableGuilds();
+    return guilds.find((g) => g.id === guildId) ?? null;
+}
