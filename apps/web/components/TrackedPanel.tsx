@@ -3,6 +3,7 @@ import { connection } from 'next/server';
 import { ReadOnlyNotice, Text } from '@/components/ui';
 import { guildAccess } from '@/lib/auth/guilds';
 import { timeAgo, trackingFor } from '@/lib/tracking';
+import Link from 'next/link';
 
 /**
  * Everything this server has the bot watching. View only for now.
@@ -65,19 +66,16 @@ export async function TrackedPanel({ guildId }: { guildId: string }) {
                                     </td>
                                     <td className="p-3">{sub.id}</td>
                                     <td className="p-3 text-right">
-                                        {/* The shape editing will take, disabled until the
-                                            release that can write. Disabled rather than
-                                            absent so the permission story is visible now. */}
-                                        <button
-                                            type="button"
-                                            disabled
-                                            title={guild.canManageFeeds
-                                                ? 'Editing is not available yet'
-                                                : 'Needs the Manage Channels permission'}
-                                            className="rounded border border-neutral-600 px-3 py-1 text-body-sm text-neutral-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                        {/* A link, not a disabled button: the page it opens
+                                            shows the options and cannot save them yet, which
+                                            is worth seeing either way. */}
+                                        <Link
+                                            href={`/manage/${guildId}/tracked/${sub.id}`}
+                                            className="inline-block rounded border border-neutral-600 px-3 py-1 text-body-sm text-neutral-50 transition-colors hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-subdued"
                                         >
-                                            Edit
-                                        </button>
+                                            {guild.canManageFeeds ? 'Edit' : 'View'}
+                                            <span className="sr-only"> {sub.title}</span>
+                                        </Link>
                                     </td>
                                 </tr>
                             ))}
