@@ -601,3 +601,64 @@ describe('the web image', () => {
         expect(ci).toContain("push: ${{ github.event_name == 'push' }}");
     });
 });
+
+describe('the web portal agrees with the slash commands', () => {
+    /**
+     * The portal enforces its own permission check - /track has no server-side one, it
+     * relies on Discord refusing to dispatch the interaction. So the two can disagree
+     * silently, and the first symptom would be someone locked out of their own feeds.
+     *
+     * Read from both sources rather than compared against a constant written twice.
+     */
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+    const read = (...parts: string[]) => readFileSync(path.join(root, ...parts), 'utf8');
+
+    /** The flag a command declares to Discord. */
+    function commandPermission(file: string): string | undefined {
+        return /setDefaultMemberPermissions\(PermissionFlagsBits\.(\w+)\)/.exec(read(file))?.[1];
+    }
+
+    /** The flag the portal checks for. */
+    function portalPermission(name: string): string | undefined {
+        const source = read('apps', 'web', 'lib', 'auth', 'permissions.ts');
+        return new RegExp(`${name}\\s*=\\s*PermissionFlagsBits\\.(\\w+)`).exec(source)?.[1];
+    }
+
+    it('gates feeds on whatever /track gates on', () => {
+        const command = commandPermission('apps/bot/src/interactions/track.ts');
+        expect(command, 'track.ts no longer declares a permission').toBeDefined();
+        expect(portalPermission('MANAGE_FEEDS')).toBe(command);
+    });
+
+    it('gates settings on whatever /settings gates on', () => {
+        const command = commandPermission('apps/bot/src/interactions/settings.ts');
+        expect(command, 'settings.ts no longer declares a permission').toBeDefined();
+        expect(portalPermission('MANAGE_SETTINGS')).toBe(command);
+    });
+
+    it('keeps /untrack in step with /track', () => {
+        expect(commandPermission('apps/bot/src/interactions/untrack.ts'))
+            .toBe(commandPermission('apps/bot/src/interactions/track.ts'));
+    });
+
+    /**
+     * Comments stripped: discordLogin.ts explains in prose why it does not use the link
+     * flow's scopes, and naming them there is not using them. Same trap routeSegments
+     * documents - a rule that reads its own documentation as a violation.
+     */
+    const codeOf = (...parts: string[]) => read(...parts)
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+
+    it('does not let the login flow borrow the link flow\'s scopes', () => {
+        // Adding guilds to the link flow would put a fresh consent screen in front of
+        // every existing user, mid-link.
+        const link = codeOf('packages', 'auth', 'src', 'DiscordOAuth.ts');
+        expect(link).toContain("'role_connections.write identify'");
+        expect(link).not.toContain('guilds');
+
+        const login = codeOf('packages', 'auth', 'src', 'discordLogin.ts');
+        expect(login).toContain("LOGIN_SCOPES = 'identify guilds'");
+        expect(login).not.toContain('role_connections.write');
+    });
+});

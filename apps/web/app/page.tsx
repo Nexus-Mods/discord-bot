@@ -1,5 +1,6 @@
 import { connection } from 'next/server';
 import { calcUptime } from '@nexusmods/core/formatting.js';
+import { isLoginConfigured } from '@nexusmods/auth/discordLogin.js';
 import { ActionLink, Content, PageTitle, Supertext } from '@/components/ui';
 import { WEB_VERSION } from '@/lib/version';
 
@@ -37,6 +38,7 @@ export default async function Home() {
 
     const clientId = process.env.DISCORD_CLIENT_ID ?? '';
     const uptime = calcUptime(process.uptime());
+    const loginAvailable = isLoginConfigured();
 
     return (
         <Content>
@@ -55,6 +57,14 @@ export default async function Home() {
                     View in App Directory
                 </ActionLink>
             </div>
+
+            {/* Hidden until a login redirect URI is registered, so the branch can be
+                merged and deployed with the feature dormant. */}
+            {loginAvailable && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                    <ActionLink icon={DISCORD_ICON} href="/login">Sign in with Discord</ActionLink>
+                </div>
+            )}
 
             <div className="mt-2 flex flex-wrap gap-2">
                 <ActionLink newTab icon="/images/readme.svg" href="https://modding.wiki/en/nexusmods/discord-bot">
