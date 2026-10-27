@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { ReadOnlyNotice, Text } from '@/components/ui';
 import { guildAccess } from '@/lib/auth/guilds';
+import { GuildUnavailable } from '@/components/GuildUnavailable';
 import { timeAgo, trackingFor } from '@/lib/tracking';
 import Link from 'next/link';
 
@@ -21,7 +22,9 @@ export async function TrackedPanel({ guildId }: { guildId: string }) {
 
     // The layout checked access too. Repeated on purpose: a view that trusts its layout
     // for authorisation stops being safe the moment someone renders it somewhere else.
-    const guild = await guildAccess(guildId);
+    const { guild, unavailable } = await guildAccess(guildId);
+    // A rate limit is not a permission denial.
+    if (unavailable) return <GuildUnavailable />;
     if (!guild) notFound();
 
     const tracking = await trackingFor(guildId);

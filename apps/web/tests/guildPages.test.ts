@@ -35,7 +35,7 @@ vi.mock('@nexusmods/persistence/server_role_conditions.js', () => ({
     getConditionsForRole: () => getConditionsForRole(),
 }));
 
-const { guildAccess } = await import('@/lib/auth/guilds');
+const { guildAccess, forgetGuildList } = await import('@/lib/auth/guilds');
 const { settingsFor } = await import('@/lib/manage/server');
 
 const guild = (over: Record<string, unknown> = {}) => ({
@@ -44,6 +44,9 @@ const guild = (over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
     vi.clearAllMocks();
+    // The guild list is cached per user for a minute, on globalThis - which is the point.
+    // Tests share a process, so each starts from an empty cache.
+    forgetGuildList('1');
     session.mockResolvedValue({ id: '1', name: 'Someone', avatar: null, accessToken: 'token' });
     getServerById.mockResolvedValue(undefined as never);
     getConditionsForRole.mockResolvedValue([]);
@@ -53,26 +56,35 @@ describe('guildAccess', () => {
     it('reports the two permissions separately, so each tab can gate itself', async () => {
         userGuilds.mockResolvedValue([guild({ permissions: MANAGE_CHANNELS })]);
 
-        const access = await guildAccess('g1');
+        const { guild: access } = await guildAccess('g1');
         expect(access).toMatchObject({ canManageFeeds: true, canManageSettings: false });
     });
 
     it('refuses a guild the visitor manages nothing in', async () => {
         userGuilds.mockResolvedValue([guild({ permissions: SEND_MESSAGES })]);
-        expect(await guildAccess('g1')).toBeNull();
+        expect(await guildAccess('g1')).toEqual({ guild: null, unavailable: false });
     });
 
     it('refuses a guild the visitor is not in at all', async () => {
         userGuilds.mockResolvedValue([guild({ id: 'mine' })]);
         // Null rather than a message: distinguishing "no such server" from "not yours"
         // would confirm to an outsider which servers this bot is in.
-        expect(await guildAccess('someone-elses')).toBeNull();
+        expect(await guildAccess('someone-elses')).toEqual({ guild: null, unavailable: false });
+    });
+
+    it('says "could not ask" rather than "not yours" when Discord refuses', async () => {
+        // The bug this separates out: GET /users/@me/guilds allows about one request a
+        // second, the rail prefetched a route per server, and every 429 was read as a
+        // permission denial and answered with a 404.
+        userGuilds.mockRejectedValue(Object.assign(new Error('rate limited'), { status: 429 }));
+
+        expect(await guildAccess('g1')).toEqual({ guild: null, unavailable: true });
     });
 
     it('lets someone with only Manage Server through, for the settings tab', async () => {
         userGuilds.mockResolvedValue([guild({ permissions: MANAGE_GUILD })]);
 
-        const access = await guildAccess('g1');
+        const { guild: access } = await guildAccess('g1');
         expect(access).toMatchObject({ canManageFeeds: false, canManageSettings: true });
     });
 });

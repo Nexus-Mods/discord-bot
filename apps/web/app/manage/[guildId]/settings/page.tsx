@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ReadOnlyNotice, Text } from '@/components/ui';
 import { guildAccess } from '@/lib/auth/guilds';
+import { GuildUnavailable } from '@/components/GuildUnavailable';
 import { settingsFor } from '@/lib/manage/server';
 
 /** What this server has configured. View only for now. */
@@ -17,7 +18,9 @@ export default async function Settings({ params }: { params: Promise<{ guildId: 
 
     // Checked here as well as in the layout: a page that relies on its layout for
     // authorisation stops being safe the moment someone moves it.
-    const guild = await guildAccess(guildId);
+    const { guild, unavailable } = await guildAccess(guildId);
+    // A rate limit is not a permission denial.
+    if (unavailable) return <GuildUnavailable />;
     if (!guild) notFound();
 
     const { settings, conditions, roleName, unconfigured } = await settingsFor(guildId);

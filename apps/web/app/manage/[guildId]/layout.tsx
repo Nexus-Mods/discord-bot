@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { Tabs } from '@/components/Tabs';
 import { acronym } from '@/lib/acronym';
 import { guildAccess } from '@/lib/auth/guilds';
+import { GuildUnavailable } from '@/components/GuildUnavailable';
 import { PermissionSummary } from '@/components/Permissions';
 
 /**
@@ -15,7 +16,9 @@ export default async function GuildLayout({
     children, params,
 }: { children: React.ReactNode; params: Promise<{ guildId: string }> }) {
     const { guildId } = await params;
-    const guild = await guildAccess(guildId);
+    const { guild, unavailable } = await guildAccess(guildId);
+    // A rate limit is not a permission denial.
+    if (unavailable) return <GuildUnavailable />;
     if (!guild) notFound();
 
     return (

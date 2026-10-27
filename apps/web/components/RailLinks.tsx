@@ -47,6 +47,10 @@ function RailItem({ guild, active }: { guild: ManageableGuild; active: boolean }
             />
             <Link
                 href={`/manage/${guild.id}`}
+                // Off: a rail of N servers would otherwise render N guild pages the moment
+                // it appears, each asking Discord for the same guild list. The tabs keep
+                // theirs, because two routes per guild is what makes a tab swap instant.
+                prefetch={false}
                 aria-label={guild.name}
                 aria-current={active ? 'page' : undefined}
                 className={TILE}

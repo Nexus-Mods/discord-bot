@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { ReadOnlyNotice, Text } from '@/components/ui';
 import { guildAccess } from '@/lib/auth/guilds';
+import { GuildUnavailable } from '@/components/GuildUnavailable';
 import { trackedItemFor } from '@/lib/manage/trackedItem';
 import type { Preference } from '@/lib/manage/trackedItem';
 
@@ -65,7 +66,9 @@ export default async function TrackedItem({
 
     const { guildId, itemId } = await params;
 
-    const guild = await guildAccess(guildId);
+    const { guild, unavailable } = await guildAccess(guildId);
+    // A rate limit is not a permission denial.
+    if (unavailable) return <GuildUnavailable />;
     if (!guild) notFound();
 
     const item = await trackedItemFor(guildId, Number(itemId));

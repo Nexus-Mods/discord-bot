@@ -10,11 +10,34 @@ import { guild as botGuild } from '@/lib/discordDirectory';
  * The servers this visitor can manage here: the ones where they hold a permission the
  * portal cares about AND this bot is present.
  *
- * Wrapped in React's `cache`, so the manage layout and the page inside it resolve one
- * list between them rather than asking Discord twice for the same request. It is a
- * per-request cache, not a store - permissions are still read live on every navigation,
- * which is the rule the plan sets out.
+ * Wrapped in React's `cache` so the layout and the page inside it resolve one list
+ * between them, and behind a short per-user cache so that navigating does not spend a
+ * request to Discord every time.
+ *
+ * That second cache is a correctness fix, not an optimisation. GET /users/@me/guilds is
+ * rate limited to roughly one request per second per user. A rail of five servers
+ * prefetched five routes the moment it rendered, each asking Discord for the same list;
+ * all but the first came back 429, which this code read as "no access" and turned into a
+ * 404 behind every tile.
  */
+
+/** Long enough to survive a burst of navigation, short enough that losing access bites. */
+const GUILD_LIST_TTL_MS = 60 * 1000;
+const LIST_CACHE = Symbol.for('@nexusmods/discord-web.guildListCache');
+
+interface CachedList { value: ManageableGuilds; at: number }
+interface ListHost { [LIST_CACHE]?: Map<string, CachedList> }
+
+function listCache(): Map<string, CachedList> {
+    const host = globalThis as ListHost;
+    host[LIST_CACHE] ??= new Map();
+    return host[LIST_CACHE];
+}
+
+/** Forgets one user's list - for a sign-out, or a caller that knows it is stale. */
+export function forgetGuildList(userId: string): void {
+    listCache().delete(userId);
+}
 
 export interface ManageableGuild extends GuildAccess {
     /** From the bot's own view of the guild, so it is the icon the bot can actually see. */
@@ -46,12 +69,19 @@ export const manageableGuilds = cache(async (): Promise<ManageableGuilds> => {
     }
     if (!session) return { guilds: [], failed: false };
 
+    const now = Date.now();
+    const hit = listCache().get(session.id);
+    // Only a successful list is cached: a failure should be retried on the next
+    // navigation, not inherited for a minute.
+    if (hit && now - hit.at < GUILD_LIST_TTL_MS) return hit.value;
+
     let candidates: GuildAccess[];
     try {
         candidates = manageable(await fetchUserGuilds(session.accessToken));
     }
     catch (err) {
-        // An expired or revoked token lands here, as does Discord being down.
+        // An expired or revoked token lands here, as does Discord being down or rate
+        // limiting us.
         logger.warn('Could not read the guild list', err);
         return { guilds: [], failed: true };
     }
@@ -68,7 +98,12 @@ export const manageableGuilds = cache(async (): Promise<ManageableGuilds> => {
         }
     }));
 
-    return { guilds: resolved.filter((g): g is ManageableGuild => g !== null), failed: false };
+    const value: ManageableGuilds = {
+        guilds: resolved.filter((g): g is ManageableGuild => g !== null),
+        failed: false,
+    };
+    listCache().set(session.id, { value, at: now });
+    return value;
 });
 
 /**
@@ -78,7 +113,18 @@ export const manageableGuilds = cache(async (): Promise<ManageableGuilds> => {
  * it, and the visitor holds neither permission there. A page that distinguished them
  * would tell an outsider which servers this bot is in.
  */
-export async function guildAccess(guildId: string): Promise<ManageableGuild | null> {
-    const { guilds } = await manageableGuilds();
-    return guilds.find((g) => g.id === guildId) ?? null;
+export interface GuildLookup {
+    guild: ManageableGuild | null;
+    /**
+     * Discord could not be asked. Reported separately because a null guild means "not
+     * yours", and a caller treating the two alike answers a rate limit with a 404 - which
+     * is what it used to do.
+     */
+    unavailable: boolean;
+}
+
+export async function guildAccess(guildId: string): Promise<GuildLookup> {
+    const { guilds, failed } = await manageableGuilds();
+    if (failed) return { guild: null, unavailable: true };
+    return { guild: guilds.find((g) => g.id === guildId) ?? null, unavailable: false };
 }

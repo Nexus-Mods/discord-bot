@@ -23,7 +23,7 @@ vi.mock('@nexusmods/auth/discordLogin.js', () => ({ fetchUserGuilds: () => userG
 const botGuild = vi.fn(async (_id: string) => null as unknown);
 vi.mock('@/lib/discordDirectory', () => ({ guild: (id: string) => botGuild(id) }));
 
-const { manageableGuilds } = await import('@/lib/auth/guilds');
+const { manageableGuilds, forgetGuildList } = await import('@/lib/auth/guilds');
 const { acronym } = await import('@/lib/acronym');
 
 const guild = (over: Record<string, unknown> = {}) => ({
@@ -32,6 +32,10 @@ const guild = (over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
     vi.clearAllMocks();
+    // The guild list is cached per user for a minute, on globalThis - which is the point.
+    // Tests share a process, so each starts from an empty cache.
+    forgetGuildList('1');
+    forgetGuildList('2');
     // React's cache() keys on the module instance, so each test needs a fresh import
     // scope - vitest gives one per file, and these assertions never share a request.
     session.mockResolvedValue({ id: '1', name: 'Someone', avatar: null, accessToken: 'token' });
@@ -127,5 +131,42 @@ describe('acronym', () => {
 
     it('survives a name that is only whitespace', () => {
         expect(acronym('   ')).toBe('');
+    });
+});
+
+describe('the per-user guild list cache', () => {
+    it('asks Discord once for a burst of navigation', async () => {
+        // The rail renders, tabs prefetch, a page loads: several renders in a second, all
+        // wanting the same list. Discord allows about one request per second for it.
+        userGuilds.mockResolvedValue([guild({ id: 'g', name: 'Server' })]);
+        botGuild.mockImplementation(async (id: string) => ({ id, name: 'Server', iconUrl: null }));
+
+        await manageableGuilds();
+        await manageableGuilds();
+        await manageableGuilds();
+
+        expect(userGuilds).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not cache a failure, so the next navigation retries', async () => {
+        userGuilds.mockRejectedValueOnce(new Error('rate limited'));
+        expect(await manageableGuilds()).toMatchObject({ failed: true });
+
+        userGuilds.mockResolvedValue([guild({ id: 'g', name: 'Server' })]);
+        botGuild.mockImplementation(async (id: string) => ({ id, name: 'Server', iconUrl: null }));
+        expect(await manageableGuilds()).toMatchObject({ failed: false });
+    });
+
+    it("keys the cache per user, so one visitor cannot see another's servers", async () => {
+        userGuilds.mockResolvedValue([guild({ id: 'theirs', name: 'Theirs' })]);
+        botGuild.mockImplementation(async (id: string) => ({ id, name: 'Theirs', iconUrl: null }));
+        await manageableGuilds();
+
+        session.mockResolvedValue({ id: '2', name: 'Someone else', avatar: null, accessToken: 'other' });
+        userGuilds.mockResolvedValue([guild({ id: 'mine', name: 'Mine' })]);
+        botGuild.mockImplementation(async (id: string) => ({ id, name: 'Mine', iconUrl: null }));
+
+        const { guilds } = await manageableGuilds();
+        expect(guilds.map((g) => g.id)).toEqual(['mine']);
     });
 });
