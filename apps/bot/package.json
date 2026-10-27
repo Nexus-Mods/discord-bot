@@ -36,7 +36,7 @@
     "globals": "^17.11.0",
     "tsup": "^8.5.1",
     "typescript": "^5.8.2",
-    "vite": "^8.2.2",
+    "vite": "^8.3.4",
     "vitest": "^4.1.11"
   },
   "dependencies": {
