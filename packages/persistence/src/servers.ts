@@ -2,7 +2,7 @@ import query from './dbConnect.js';
 import { buildUpdate } from './sql.js';
 import { servers as serversTable } from './schema.js';
 import type { BotServer } from './types/servers.js';
-import type { Guild } from 'discord.js';
+import type { Guild, Snowflake } from 'discord.js';
 import { logger } from '@nexusmods/core/logger.js';
 import { NotFoundError } from '@nexusmods/core/errors.js';
 
@@ -14,6 +14,19 @@ import { NotFoundError } from '@nexusmods/core/errors.js';
 async function getAllServers(): Promise<BotServer[]> {
     const result = await query<BotServer>('SELECT * FROM servers', [], 'GetAllServers');
     return result.rows;
+}
+
+/**
+ * The row for a guild id, or undefined.
+ *
+ * getServer() below takes a discord.js Guild and inserts the row when it is missing,
+ * calling guild.fetchOwner() to do so - neither of which suits a caller that has only an
+ * id and is rendering a page. The web app has no Guild objects and must not acquire
+ * discord.js, and a read-only page must not write rows as a side effect of being viewed.
+ */
+async function getServerById(id: Snowflake): Promise<BotServer | undefined> {
+    const result = await query<BotServer>('SELECT * FROM servers WHERE id = $1', [id], 'GetServerById');
+    return result.rows[0];
 }
 
 async function getServer(guild: Guild): Promise<BotServer> {
@@ -61,4 +74,4 @@ async function deleteServer(guildId: string): Promise<void> {
 }
 
 // addServer is not exported: getServer is the only caller, and it inserts on miss.
-export { getAllServers, getServer, updateServer, deleteServer };
+export { getAllServers, getServer, getServerById, updateServer, deleteServer };

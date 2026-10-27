@@ -24,6 +24,24 @@ export interface Tracking {
     subs: Row[];
 }
 
+/**
+ * "42 seconds ago". Lives here rather than in a page because two pages render it now, and
+ * a second copy is a second thing to fix.
+ *
+ * Any page calling this must `await connection()` first - it reads the clock, so a
+ * prerendered copy would freeze at build time. An architecture test enforces that.
+ */
+export function timeAgo(when: Date): string {
+    const seconds = Math.floor((Date.now() - when.getTime()) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    if (seconds < 60) return `${seconds} seconds ago`;
+    if (minutes < 60) return `${minutes} minutes ago`;
+    if (hours < 24) return `${hours} hours ago`;
+    return `${days} days ago`;
+}
+
 /** Null when there is no such guild, or the bot is not in it - the page redirects to '/'. */
 export async function trackingFor(guildId: string): Promise<Tracking | null> {
     const known = await fetchGuild(guildId);

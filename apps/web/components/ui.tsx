@@ -92,6 +92,20 @@ export function ErrorDetail({ children }: { children: ReactNode }) {
     );
 }
 
+/**
+ * Shown above a read-only view when the visitor could not change what they are looking at.
+ *
+ * Saying which permission is missing matters: "you cannot edit this" sends someone to
+ * support, "you need Manage Server" sends them to whoever runs the server.
+ */
+export function ReadOnlyNotice({ children }: { children: ReactNode }) {
+    return (
+        <p className="my-6 rounded border border-warning-strong/40 bg-warning-900/30 px-4 py-3 text-body-md text-neutral-50">
+            {children}
+        </p>
+    );
+}
+
 /** The column every page's content sits in. */
 export function Content({ children }: { children: ReactNode }) {
     return <div className="max-w-225 lg:max-w-275">{children}</div>;

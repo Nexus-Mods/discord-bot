@@ -11,9 +11,9 @@ import { packageVersionFrom } from '@nexusmods/core/packageVersion.js';
  * manifest.
  *
  * So `Application-Version` names the API client rather than the bot. Today that is the
- * same string, because every workspace here is 5.0.0 and an architecture test keeps them
- * in lockstep - if that test ever fails, this header is one of the things it is failing
- * about. The alternative was threading a headers argument through DiscordBotUser's
+ * same string, because every workspace here shares one version and an architecture test
+ * keeps them in lockstep - if that test ever fails, this header is one of the things it
+ * is failing about. The alternative was threading a headers argument through DiscordBotUser's
  * constructor and thirteen call sites to carry a value that has never differed.
  *
  * `Application-Name` is unchanged and is the part Nexus Mods actually identifies traffic

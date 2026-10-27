@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import './globals.css';
+import { SessionBadge } from '@/components/SessionBadge';
 
 /**
  * The chrome header.ejs and footer.ejs wrapped every page in. The logo is a file rather
@@ -70,13 +71,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <link rel="stylesheet" href={INTER_HREF} nonce={nonce} />
             </head>
             <body className="flex min-h-dvh flex-col font-sans antialiased">
-                <header className="flex h-14 flex-none items-center justify-center bg-neutral-950">
+                <header className="flex h-14 flex-none items-center justify-between bg-neutral-950 px-2 md:px-8 border-b border-white/20">
                     <Logo />
+
+                    <SessionBadge />
                 </header>
-                <main className="mx-auto w-full grow px-4 pt-5 md:px-12 md:pt-10">
+                {/* flex, so a nested layout can `grow` to the full height between the header and
+                    the footer - the manage area's rail does. Other pages are unaffected:
+                    their single child stretches to a width Content already caps. */}
+                <main className="mx-auto flex w-full grow flex-col px-4 pt-5 md:px-12 md:pt-10">
                     {children}
                 </main>
-                <footer className="flex flex-none flex-col items-center gap-4 pb-10 pt-18 text-body-sm text-neutral-400">
+                <footer className="flex flex-none flex-col items-center gap-4 pb-6 pt-8 text-body-sm text-neutral-400 bg-neutral-950 border-t border-white/20">
                     <Logo className="opacity-60" />
                     <p>Copyright © 2026 Black Tree Gaming Ltd. All rights reserved.</p>
                 </footer>

@@ -1,7 +1,7 @@
 {
   "name": "nexus-mods-discord",
   "private": true,
-  "version": "5.0.2",
+  "version": "5.1.0",
   "type": "module",
   "engines": {
     "node": ">=22"

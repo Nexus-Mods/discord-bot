@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { Content, PageTitle } from '@/components/ui';
 import { one, type SearchParams } from '@/lib/search';
-import { trackingFor } from '@/lib/tracking';
+import { timeAgo, trackingFor } from '@/lib/tracking';
 
 /**
  * Every subscription in one guild: two Discord REST calls and one query, all keyed on a
@@ -14,18 +14,6 @@ import { trackingFor } from '@/lib/tracking';
  * ago" would freeze at build time.
  */
 export const metadata: Metadata = { title: 'Tracking Summary' };
-
-/** The Express version's relative formatter, unchanged apart from taking the Date it is given. */
-function timeAgo(when: Date): string {
-    const seconds = Math.floor((Date.now() - when.getTime()) / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    if (seconds < 60) return `${seconds} seconds ago`;
-    if (minutes < 60) return `${minutes} minutes ago`;
-    if (hours < 24) return `${hours} hours ago`;
-    return `${days} days ago`;
-}
 
 const COLUMNS = ['ID', 'Type', 'Channel', 'Name', 'Entity ID', 'Last Update'];
 

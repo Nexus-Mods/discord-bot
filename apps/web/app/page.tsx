@@ -1,5 +1,6 @@
 import { connection } from 'next/server';
 import { calcUptime } from '@nexusmods/core/formatting.js';
+import { isLoginConfigured } from '@nexusmods/auth/discordLogin.js';
 import { ActionLink, Content, PageTitle, Supertext } from '@/components/ui';
 import { WEB_VERSION } from '@/lib/version';
 
@@ -37,11 +38,23 @@ export default async function Home() {
 
     const clientId = process.env.DISCORD_CLIENT_ID ?? '';
     const uptime = calcUptime(process.uptime());
+     const loginAvailable = isLoginConfigured();
 
     return (
         <Content>
             <PageTitle>Discord bot is online.</PageTitle>
             <Supertext>{new Date().toUTCString()}</Supertext>
+
+            {
+                loginAvailable && (<div>
+                    <div className="mt-6 flex flex-wrap gap-2 mb-4">
+                        <ActionLink icon={DISCORD_ICON} href='/manage'>
+                            Manage Bot Settings
+                        </ActionLink>
+                    </div>
+                    <hr />
+                </div>)
+            }
 
             <div className="mt-6 flex flex-wrap gap-2">
                 <ActionLink
