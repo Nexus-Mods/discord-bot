@@ -21,7 +21,7 @@
     "@nexusmods/persistence": "*",
     "discord-api-types": "^0.38.31",
     "html-to-text": "^10.0.1",
-    "next": "^16.3.4",
+    "next": "^16.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
