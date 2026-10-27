@@ -269,23 +269,23 @@ async function deleteSubscription(id: number): Promise<void> {
     }
 }
 
-async function saveLastUpdatedForSub(id: number, date: Date, status: string = '') {
+async function saveLastUpdatedForSub(id: number, date: Date, status: string = '', configPatch?: Record<string, unknown>) {
     try {
         const data = await query<ISubscribedItemUnionType>(
             `UPDATE SubscribedItems 
             SET last_update = $1, 
-                config = CASE 
+                config = (CASE 
                     WHEN $2 <> '' THEN 
                         jsonb_set(
                             COALESCE(config, '{}'), 
                             '{last_status}', 
                             to_jsonb($2::TEXT)
                         )
-                    ELSE config
-                END
+                    ELSE COALESCE(config, '{}'::jsonb)
+                END) || COALESCE($4::jsonb, '{}'::jsonb)
             WHERE id = $3 
             RETURNING *`,
-            [date, status, id]
+            [date, status, id, configPatch ? JSON.stringify(configPatch) : null]
         );
         if (!data.rowCount) throw new Error('Did not get expected response when updating last updated time.');
         return new SubscribedItem(data.rows[0]);
