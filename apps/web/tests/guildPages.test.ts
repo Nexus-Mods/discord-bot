@@ -86,7 +86,7 @@ describe('settingsFor', () => {
 
         const { settings, roleName, unconfigured } = await settingsFor('g1');
         expect(unconfigured).toBe(false);
-        expect(settings.find((s) => s.label === 'News channel')?.value).toBe('#announcements');
+        expect(settings.find((s) => s.label === 'News channel (Legacy)')?.value).toBe('#announcements');
         expect(settings.find((s) => s.label === 'Mod author role')?.value).toBe('Mod Author');
         expect(settings.find((s) => s.label === 'Search filter')?.value).toBe('stardewvalley');
         expect(roleName).toBe('Mod Author');
@@ -100,7 +100,7 @@ describe('settingsFor', () => {
         } as never);
 
         const { settings } = await settingsFor('g1');
-        expect(settings.find((s) => s.label === 'News channel')?.value).toBe('#Unknown (999)');
+        expect(settings.find((s) => s.label === 'News channel (Legacy)')?.value).toBe('#Unknown (999)');
     });
 
     it('reports an unconfigured server without inventing values', async () => {
