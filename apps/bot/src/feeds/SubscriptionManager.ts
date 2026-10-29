@@ -411,11 +411,13 @@ export class SubscriptionManger {
         const results: IPostableSubscriptionUpdate<SubscribedItemType.Game>[] = [];
         const domain: string = item.entityid as string;
         const last_update = item.last_update;
-        let newMods = item.config.show_new 
-            ? (this.cache.games.new[domain] ?? []).filter(m => new Date(m.createdAt) > last_update && modCanShow(m, item) )
+        const cachedNew = this.cache.games.new[domain];
+        let newMods = item.config.show_new && cachedNew
+            ? cachedNew.filter(m => new Date(m.createdAt) > last_update && modCanShow(m, item) )
             : [];
-        // If there's nothing in the cache, we'll double check
-        if (!newMods.length && item.config.show_new) {
+        // Only when the pre-cache did not run for this game. An empty cached array means
+        // there was nothing new, which is not a reason to ask again.
+        if (!cachedNew && item.config.show_new) {
             this.logger.debug('Re-fetching new mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
                 gameDomainName: [{ value: domain, op: 'EQUALS' }],
@@ -454,11 +456,11 @@ export class SubscriptionManger {
         }
         results.push(...formattedNew);
 
-        let updatedMods: (IMod & { files?: IModFile[]})[] = item.config.show_updates 
-            ? (this.cache.games.updated[domain] ?? []).filter(m => new Date(m.updatedAt) > last_update && modCanShow(m, item) )
+        const cachedUpdated = this.cache.games.updated[domain];
+        let updatedMods: (IMod & { files?: IModFile[]})[] = item.config.show_updates && cachedUpdated
+            ? cachedUpdated.filter(m => new Date(m.updatedAt) > last_update && modCanShow(m, item) )
             : [];
-        // If there's nothing in the cache, we'll double check
-        if (!updatedMods.length && item.config.show_updates) {
+        if (!cachedUpdated && item.config.show_updates) {
             this.logger.debug('Re-fetching updated mods', { domain, itemId: item.id, parent: item.parent });
             const filters: IModsFilter = { 
                 gameDomainName: [{ value: domain, op: 'EQUALS' }],
@@ -817,7 +819,12 @@ function oldestLastUpdatePerGame(subs: ISubscribedItem<SubscribedItemType.Game>[
 }
 
 function modCanShow(mod: IMod, item: SubscribedItem<SubscribedItemType.Game>) {
-    if (item.config.nsfw === false && mod.adult === true) return false;
-    if (item.config.sfw === false && mod.adult === false) return false;
+    const { nsfw, sfw, includeAIContent, includeTranslations } = item.config;
+    if (nsfw === false && mod.adult === true) return false;
+    if (sfw === false && mod.adult === false) return false;
+
+    const tags = mod.tags.map(t => t.name);
+    if ((includeAIContent ?? true) === false && tags.includes('AI-Generated Content')) return false;
+    if ((includeTranslations ?? false) === false && tags.includes('Translation')) return false;
     return true;
 }

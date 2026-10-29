@@ -59,7 +59,7 @@ export type DiscordBotModsQueryVariables = Types.Exact<{
 }>;
 
 
-export type DiscordBotModsQuery = { mods: { totalCount: number, nodes: Array<{ uid: string, modId: number, name: string, createdAt: string, updatedAt: string, summary: string, status: string, author: string | null, pictureUrl: string | null, adult: boolean | null, version: string, downloads: number, uploader: { name: string, avatar: string, memberId: number }, modCategory: { name: string } | null, game: { domainName: string, name: string, id: number } }> } };
+export type DiscordBotModsQuery = { mods: { totalCount: number, nodes: Array<{ uid: string, modId: number, name: string, createdAt: string, updatedAt: string, summary: string, status: string, author: string | null, pictureUrl: string | null, adult: boolean | null, version: string, downloads: number, uploader: { name: string, avatar: string, memberId: number }, modCategory: { name: string } | null, tags: Array<{ id: string, name: string }>, game: { domainName: string, name: string, id: number } }> } };
 
 export type DiscordBotModFilesQueryVariables = Types.Exact<{
   modId: Types.Scalars['ID']['input'];
@@ -76,14 +76,14 @@ export type DiscordBotModsByDomainQueryVariables = Types.Exact<{
 }>;
 
 
-export type DiscordBotModsByDomainQuery = { legacyModsByDomain: { nodes: Array<{ uid: string, modId: number, name: string, createdAt: string, updatedAt: string, summary: string, description: string, status: string, author: string | null, pictureUrl: string | null, adult: boolean | null, version: string, uploader: { name: string, avatar: string, memberId: number }, modCategory: { name: string } | null, game: { id: number, domainName: string, name: string } }> } };
+export type DiscordBotModsByDomainQuery = { legacyModsByDomain: { nodes: Array<{ uid: string, modId: number, name: string, createdAt: string, updatedAt: string, summary: string, description: string, status: string, author: string | null, pictureUrl: string | null, adult: boolean | null, version: string, uploader: { name: string, avatar: string, memberId: number }, modCategory: { name: string } | null, tags: Array<{ id: string, name: string }>, game: { id: number, domainName: string, name: string } }> } };
 
 export type DiscordBotModsByUidQueryVariables = Types.Exact<{
   uids: Array<Types.Scalars['ID']['input']> | Types.Scalars['ID']['input'];
 }>;
 
 
-export type DiscordBotModsByUidQuery = { modsByUid: { totalCount: number, nodes: Array<{ uid: string, modId: number, name: string, createdAt: string, updatedAt: string, summary: string, status: string, author: string | null, pictureUrl: string | null, adult: boolean | null, version: string, downloads: number, uploader: { name: string, avatar: string, memberId: number }, modCategory: { name: string } | null, game: { domainName: string, name: string, id: number } }> } };
+export type DiscordBotModsByUidQuery = { modsByUid: { totalCount: number, nodes: Array<{ uid: string, modId: number, name: string, createdAt: string, updatedAt: string, summary: string, status: string, author: string | null, pictureUrl: string | null, adult: boolean | null, version: string, downloads: number, uploader: { name: string, avatar: string, memberId: number }, modCategory: { name: string } | null, tags: Array<{ id: string, name: string }>, game: { domainName: string, name: string, id: number } }> } };
 
 export type DiscordBotNewsQueryVariables = Types.Exact<{
   gameId?: Types.InputMaybe<Types.Scalars['Int']['input']>;

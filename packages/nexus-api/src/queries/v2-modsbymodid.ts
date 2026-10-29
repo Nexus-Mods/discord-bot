@@ -37,6 +37,10 @@ query DiscordBotModsByDomain($mods: [CompositeDomainWithIdInput!]!, $count: Int!
           name
         }
         adult
+        tags {
+          id
+          name
+        }
         version
         game {
           id

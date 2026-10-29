@@ -35,6 +35,10 @@ query DiscordBotModsByUid($uids: [ID!]!) {
          name
         }
         adult
+        tags {
+          id
+          name
+        }
         version
         downloads
         game {

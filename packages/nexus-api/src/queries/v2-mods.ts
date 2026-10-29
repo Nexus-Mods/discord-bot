@@ -39,6 +39,10 @@ query DiscordBotMods($filter: ModsFilter, $sort: [ModsSort!], $count: Int) {
           name
         }
         adult
+        tags {
+          id
+          name
+        }
         version
         downloads
         game {
