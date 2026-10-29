@@ -69,7 +69,7 @@ describe('/track', () => {
         expect(json.name).toBe('track');
         const shape = Object.fromEntries(json.options.map((o) => [o.name, (o.options ?? []).map((x) => x.name)]));
         expect(shape).toEqual({
-            game: ['game', 'message', 'show_new', 'show_updates', 'nsfw', 'sfw', 'compact', 'include_translations', 'include_ai'],
+            game: ['game', 'message', 'show_new', 'show_updates', 'nsfw', 'sfw', 'include_translations', 'include_ai', 'compact'],
             mod: ['mod', 'message', 'compact'],
             collection: ['collection', 'message', 'compact'],
             user: ['user', 'message', 'compact'],

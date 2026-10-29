@@ -431,7 +431,7 @@ export class SubscriptionManger {
                 filters, 
                 { createdAt: { direction: 'ASC' } }
             );
-            newMods = res.nodes;
+            newMods = res.nodes.filter(m => modCanShow(m, item));
         }
         else if (item.config.show_new) this.logger.debug('Using cached new mods', { domain, count: newMods.length, itemId: item.id, parent: item.parent });
         // Map into the generic format.
@@ -475,7 +475,7 @@ export class SubscriptionManger {
                 filters, 
                 { createdAt: { direction: 'ASC' } }
             );
-            updatedMods = res.nodes;
+            updatedMods = res.nodes.filter(m => modCanShow(m, item));
             // Get the file lists (including changelogs)
         }
         else if (item.config.show_updates) this.logger.debug('Using cached updated mods', { domain, count: updatedMods.length, itemId: item.id, parent: item.parent });

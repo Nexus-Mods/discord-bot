@@ -132,11 +132,6 @@ describe('the declared defaults match the bot', () => {
     it('does not give nsfw a fixed default', () => {
         expect(byKey.nsfw.default).toBeNull();
     });
-
-    it('marks the two new keys as not yet acted on', () => {
-        expect(byKey.includeTranslations.notImplemented).toBe(true);
-        expect(byKey.includeAIContent.notImplemented).toBe(true);
-    });
 });
 
 describe('resolveConfig', () => {

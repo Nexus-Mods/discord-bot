@@ -90,7 +90,7 @@ const GAME_KEYS: ConfigKeySpec[] = [
         kind: 'toggle',
         default: false,
         promoted: true,
-        notImplemented: true,
+        notImplemented: false,
     },
     {
         key: 'includeAIContent',
@@ -99,7 +99,7 @@ const GAME_KEYS: ConfigKeySpec[] = [
         kind: 'toggle',
         default: true,
         promoted: true,
-        notImplemented: true,
+        notImplemented: false,
     },
 ];
 
