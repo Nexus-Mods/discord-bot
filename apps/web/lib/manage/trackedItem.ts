@@ -39,6 +39,14 @@ export interface Preference {
     isSet?: boolean;
     /** Where an unset value comes from, when it is not a fixed default. */
     inherits?: string;
+    /**
+     * Yes, no, or follow what it inherits.
+     *
+     * A checkbox has two states and this has three, and the third is not decoration:
+     * `showAdult()` reads `config.nsfw ?? channel.nsfw`, so "no" and "absent" behave
+     * differently. A checkbox would have to pick one of them and silently discard the other.
+     */
+    triState?: boolean;
     /** Stored, but nothing acts on it yet. */
     notImplemented?: boolean;
 }
@@ -93,6 +101,7 @@ function feedOptionsFor(item: SubscribedItem<SubscribedItemType>): Preference[] 
             isSet: source === 'set',
             inherits: spec.inherits,
             notImplemented: spec.notImplemented,
+            triState: spec.default === null,
         }));
 
     return fromConfig;
@@ -166,8 +175,18 @@ export function viewOf(item: SubscribedItem<SubscribedItemType>, channelName: st
     };
 }
 
-/** Null when there is no such item in this guild - which includes "not in this guild". */
-export async function trackedItemFor(guildId: string, itemId: number): Promise<TrackedItemView | null> {
+/**
+ * The row itself, found only if it belongs to this guild.
+ *
+ * Separate from the view because a write needs the parent channel id, which the view has
+ * no reason to carry. Both go through this, so the page and the save agree about what
+ * "this item, in this guild" means - and the save does its own lookup rather than
+ * trusting an id that arrived in a form.
+ */
+export async function findTrackedItem(
+    guildId: string,
+    itemId: number,
+): Promise<{ item: SubscribedItem<SubscribedItemType>; channelName: string } | null> {
     if (!Number.isInteger(itemId)) return null;
 
     const [subscribedChannels, channels] = await Promise.all([
@@ -181,8 +200,14 @@ export async function trackedItemFor(guildId: string, itemId: number): Promise<T
         const found = items.find((i) => i.id === itemId);
         // A channel the bot can no longer see still has rows pointing at it, so the name
         // needs a fallback rather than leaving the field blank.
-        if (found) return viewOf(found, byId.get(channel.channel_id) ?? 'Unknown Channel');
+        if (found) return { item: found, channelName: byId.get(channel.channel_id) ?? 'Unknown Channel' };
     }
 
     return null;
+}
+
+/** Null when there is no such item in this guild - which includes "not in this guild". */
+export async function trackedItemFor(guildId: string, itemId: number): Promise<TrackedItemView | null> {
+    const found = await findTrackedItem(guildId, itemId);
+    return found ? viewOf(found.item, found.channelName) : null;
 }

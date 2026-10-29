@@ -255,6 +255,65 @@ async function updateSubscription(id: number, parent: number, s: Omit<Subscribed
     }
 }
 
+/** The half of a tracked item someone can edit, as opposed to the half the bot maintains. */
+export interface SubscriptionSettings {
+    crosspost: boolean;
+    compact: boolean;
+    message: string | null;
+    config: Record<string, unknown>;
+}
+
+/**
+ * Save the editable fields, leaving the feed's place in the queue alone.
+ *
+ * updateSubscription() ends with `last_update=CURRENT_DATE`, which suits the bot - it
+ * writes after posting - and is wrong for someone changing a setting. CURRENT_DATE is
+ * midnight, so depending on the hour that either skips everything published since the
+ * last poll or reposts the day so far. Editing what a feed shows must not move where it
+ * has got to.
+ *
+ * Scoped by parent as well as id: ids come from a shared sequence, so the channel belongs
+ * in the statement rather than in a promise from the caller that it checked.
+ *
+ * Null when no row matched, which covers both "no such feed" and "not in that channel".
+ */
+async function saveSubscriptionSettings(
+    id: number,
+    parent: number,
+    s: SubscriptionSettings,
+): Promise<SubscribedItem<SubscribedItemType> | null> {
+    try {
+        const data = await query<ISubscribedItemUnionType>(
+            `UPDATE SubscribedItems SET crosspost=$1, compact=$2, message=$3, config=$4
+                WHERE id=$5 AND parent=$6 RETURNING *`,
+            [s.crosspost, s.compact, s.message, s.config, id, parent]
+        );
+        return data.rows[0] ? new SubscribedItem(data.rows[0]) : null;
+    }
+    catch(err) {
+        throw new DatabaseError('Failed to save subscription settings.', { cause: err });
+    }
+}
+
+/**
+ * Remove one feed from one channel.
+ *
+ * deleteSubscription() takes an id alone, which is fine for the bot's own cleanup and too
+ * trusting for a request that arrived over the web. False when nothing matched.
+ */
+async function deleteChannelSubscription(id: number, parent: number): Promise<boolean> {
+    try {
+        const data = await query(
+            `DELETE FROM SubscribedItems WHERE id=$1 AND parent=$2`,
+            [id, parent]
+        );
+        return (data.rowCount ?? 0) > 0;
+    }
+    catch(err) {
+        throw new DatabaseError('Failed to delete subscription.', { cause: err });
+    }
+}
+
 async function deleteSubscription(id: number): Promise<void> {
     try {
         await query(
@@ -326,5 +385,6 @@ export {
     totalItemsInGuild, getSubscribedChannelsForGuild,
     getSubscribedChannels, getCountOfSubscriptions, getSubscribedChannel, createSubscribedChannel, updateSubscribedChannel,
     getAllSubscriptions, updateSubscription, saveLastUpdatedForSub, deleteSubscription,
+    saveSubscriptionSettings, deleteChannelSubscription,
     setDateForAllSubsInChannel, deleteSubscribedChannel
 };

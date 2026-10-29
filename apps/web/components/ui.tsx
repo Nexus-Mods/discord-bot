@@ -54,7 +54,7 @@ export function Subtext({ children }: { children: ReactNode }) {
 
 /** Body copy below the fold of the page. */
 export function Text({ children }: { children: ReactNode }) {
-    return <p className="my-8 text-center text-body-md [&_a]:text-primary-400 [&_a:hover]:text-primary-strong">{children}</p>;
+    return <p className="my-8 text-body-md [&_a]:text-primary-400 [&_a:hover]:text-primary-strong">{children}</p>;
 }
 
 /** The quiet line: versions, uptime, reassurances, error details. */
