@@ -82,6 +82,7 @@ describe('saving settings leaves the feed where it was', () => {
 describe('the webhook token stays out of the portal', () => {
     it('is never named outside the feed code it belongs to', () => {
         const walk = (dir: string): string[] => {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
             const { readdirSync, statSync } = require('node:fs') as typeof import('node:fs');
             return readdirSync(dir).flatMap((entry) => {
                 const full = path.join(dir, entry);
