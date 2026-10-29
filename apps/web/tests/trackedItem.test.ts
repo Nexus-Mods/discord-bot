@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { SubscribedItemType } from '@nexusmods/persistence/types/subscriptions.js';
 import type { SubscribedItem } from '@nexusmods/persistence/types/subscriptions.js';
 import { viewOf } from '@/lib/manage/trackedItem';
+import type { Preference } from '@/lib/manage/trackedItem';
+import { configKeysFor, resolveConfig } from '@nexusmods/persistence/types/subscriptionConfig.js';
 
 /**
  * What the edit page offers depends on what kind of feed it is, and the config blob is
@@ -26,12 +28,18 @@ const item = (over: Record<string, unknown> = {}) => (
     { ...base, type: SubscribedItemType.Game, config: {}, ...over } as unknown as SubscribedItem<SubscribedItemType>
 );
 
-const names = (view: { preferences: { name: string }[] }) => view.preferences.map((p) => p.name);
+const names = (view: { feedOptions: { name: string }[]; discordOptions: { name: string }[] }) =>
+    [...view.feedOptions, ...view.discordOptions].map((p) => p.name);
+const byName = (view: { feedOptions: Preference[]; discordOptions: Preference[] }) =>
+    Object.fromEntries([...view.feedOptions, ...view.discordOptions].map((p) => [p.name, p.value]));
 
 describe('what each kind of feed can be told to do', () => {
     it('offers a game feed what to include', () => {
         const view = viewOf(item(), 'mods');
-        expect(names(view)).toEqual(['show_new', 'show_updates', 'sfw', 'nsfw', 'crosspost', 'compact', 'message']);
+        expect(names(view)).toEqual([
+            ...configKeysFor(SubscribedItemType.Game).filter((k) => k.promoted).map((k) => k.key),
+            'crosspost', 'compact', 'message',
+        ]);
     });
 
     it.each([
@@ -45,51 +53,101 @@ describe('what each kind of feed can be told to do', () => {
         expect(names(view)).toEqual(['crosspost', 'compact', 'message']);
     });
 
-    it('defaults a game feed to showing everything safe', () => {
+    it('uses the declared defaults when nothing is stored', () => {
         const view = viewOf(item({ config: {} }), 'mods');
-        const byName = Object.fromEntries(view.preferences.map((p) => [p.name, p.value]));
-        expect(byName).toMatchObject({ show_new: true, show_updates: true, sfw: true, nsfw: false });
+        // Taken from the table, which took them from the feed. show_new is false there.
+        expect(byName(view)).toMatchObject({ show_new: false, show_updates: false, sfw: true, nsfw: null });
     });
 
     it('reads what is actually stored over the defaults', () => {
         const view = viewOf(item({ config: { show_new: false, nsfw: true } }), 'mods');
-        const byName = Object.fromEntries(view.preferences.map((p) => [p.name, p.value]));
-        expect(byName).toMatchObject({ show_new: false, nsfw: true, show_updates: true });
+        expect(byName(view)).toMatchObject({ show_new: false, nsfw: true, show_updates: false });
     });
 
     it('carries the column values, not just the config', () => {
         const view = viewOf(item({ crosspost: true, message: '<@&123> new mod' }), 'mods');
-        const byName = Object.fromEntries(view.preferences.map((p) => [p.name, p.value]));
-        expect(byName).toMatchObject({ crosspost: true, compact: true, message: '<@&123> new mod' });
+        expect(byName(view)).toMatchObject({ crosspost: true, compact: true, message: '<@&123> new mod' });
     });
 });
 
 describe('the config blob', () => {
-    it('does not repeat a key that already has a control', () => {
-        const view = viewOf(item({ config: { nsfw: true, show_new: false } }), 'mods');
-        expect(view.advanced).toEqual([]);
+    const advancedFor = (over: Record<string, unknown> = {}) =>
+        Object.fromEntries(viewOf(item(over), 'mods').advanced.map((e) => [e.key, e]));
+
+    it('lists every key this kind of feed can have, stored or not', async () => {
+        // The point of the declared table: an empty config still shows what could be set.
+        const advanced = advancedFor({ config: {} });
+        const declared = configKeysFor(SubscribedItemType.Game).map((k) => k.key);
+        expect(Object.keys(advanced)).toEqual(expect.arrayContaining(declared));
     });
 
-    it('shows a key nothing renders yet rather than hiding it', () => {
-        // A feed behaving oddly because of a key no page displays is a bad afternoon.
-        const view = viewOf(item({ config: { nsfw: true, mystery_option: 'on' } }), 'mods');
-        expect(view.advanced).toEqual([{ label: 'mystery_option', value: 'on' }]);
+    it('says whether a value was chosen or merely defaulted', async () => {
+        // "false because nobody set it" and "false because someone chose it" look the
+        // same on screen, and only one is safe to change.
+        const advanced = advancedFor({ config: { show_new: false } });
+        expect(advanced.show_new).toMatchObject({ value: false, source: 'set' });
+        expect(advanced.show_updates).toMatchObject({ value: false, source: 'default' });
     });
 
-    it('shows a mod feed its stored status, which has no control at all', () => {
+    it('calls nsfw inherited rather than inventing a no', async () => {
+        // showAdult() returns `config.nsfw ?? channel.nsfw`, so an absent key follows the
+        // channel. Reporting it as false would be a lie about what the feed does.
+        const advanced = advancedFor({ config: {} });
+        expect(advanced.nsfw).toMatchObject({ value: null, source: 'inherited' });
+        expect(advanced.nsfw.spec?.inherits).toContain('channel');
+    });
+
+    it('shows a key nothing declares rather than hiding it', async () => {
+        const advanced = advancedFor({ config: { mystery_option: 'on' } });
+        expect(advanced.mystery_option).toMatchObject({ value: 'on', source: 'undeclared', spec: null });
+    });
+
+    it('shows a mod feed its stored status, marked read only', async () => {
         const view = viewOf(item({ type: SubscribedItemType.Mod, config: { last_status: 'published' } }), 'mods');
-        expect(view.advanced).toEqual([{ label: 'last_status', value: 'published' }]);
+        const status = view.advanced.find((e) => e.key === 'last_status');
+        expect(status).toMatchObject({ value: 'published', source: 'set' });
+        expect(status?.spec?.readOnly).toBe(true);
     });
 
-    it('survives an item with no config', () => {
+    it('survives an item with no config at all', async () => {
         const view = viewOf(item({ config: undefined }), 'mods');
-        expect(view.advanced).toEqual([]);
+        expect(view.advanced.every((e) => e.source !== 'set')).toBe(true);
         expect(names(view)).toContain('show_new');
     });
+});
 
-    it('renders a nested value rather than [object Object]', () => {
-        const view = viewOf(item({ config: { odd: { a: 1 } } }), 'mods');
-        expect(view.advanced).toEqual([{ label: 'odd', value: '{"a":1}' }]);
+describe('the declared defaults match the bot', () => {
+    // These are read from SubscriptionManager, not chosen. Changing one changes what
+    // every item without that key does, which is most of them.
+    const byKey = Object.fromEntries(configKeysFor(SubscribedItemType.Game).map((k) => [k.key, k]));
+
+    it.each([
+        ['show_new', false],
+        ['show_updates', false],
+        ['sfw', true],
+    ])('defaults %s to %s, as the feed does', (key, expected) => {
+        expect(byKey[key].default).toBe(expected);
+    });
+
+    it('does not give nsfw a fixed default', () => {
+        expect(byKey.nsfw.default).toBeNull();
+    });
+
+    it('marks the two new keys as not yet acted on', () => {
+        expect(byKey.includeTranslations.notImplemented).toBe(true);
+        expect(byKey.includeAIContent.notImplemented).toBe(true);
+    });
+});
+
+describe('resolveConfig', () => {
+    it('gives a user feed nothing to configure', () => {
+        expect(resolveConfig(SubscribedItemType.User, {})).toEqual([]);
+    });
+
+    it('does not treat an explicit false as absent', () => {
+        // `hasOwnProperty`, not a truthiness check: `{ sfw: false }` is a choice.
+        const [sfw] = resolveConfig(SubscribedItemType.Game, { sfw: false }).filter((e) => e.key === 'sfw');
+        expect(sfw).toMatchObject({ value: false, source: 'set' });
     });
 });
 
@@ -109,6 +167,35 @@ describe('the facts panel', () => {
 
     it('shows an unset message as "Not set" rather than blank', () => {
         const view = viewOf(item({ message: null }), 'mods');
-        expect(view.preferences.find((p) => p.name === 'message')?.value).toBeNull();
+        expect(view.discordOptions.find((p) => p.name === 'message')?.value).toBeNull();
+    });
+});
+
+describe('the two groups', () => {
+    it('puts config keys in Feed Options and columns in Discord Options', () => {
+        const view = viewOf(item(), 'mods');
+        expect(view.feedOptions.map((p) => p.name)).toEqual(
+            configKeysFor(SubscribedItemType.Game).filter((k) => k.promoted).map((k) => k.key),
+        );
+        expect(view.discordOptions.map((p) => p.name)).toEqual(['crosspost', 'compact', 'message']);
+    });
+
+    it('never declares a column in the config table', () => {
+        // The split is a storage boundary, not a style choice: CONFIG_KEYS describes the
+        // JSONB blob. Declaring crosspost there would make the page read a key that does
+        // not exist and ignore the column that does.
+        const columns = ['crosspost', 'compact', 'message', 'owner', 'title', 'entityid'];
+        for (const type of Object.values(SubscribedItemType)) {
+            const declared = configKeysFor(type).map((k) => k.key);
+            expect(declared.filter((k) => columns.includes(k)), `${type} declares a column`).toEqual([]);
+        }
+    });
+
+    it('leaves Feed Options empty for a feed with nothing to decide', () => {
+        // A mod feed posts that one mod. The page renders no group rather than an empty
+        // box under a heading.
+        const view = viewOf(item({ type: SubscribedItemType.Mod, config: {} }), 'mods');
+        expect(view.feedOptions).toEqual([]);
+        expect(view.discordOptions).toHaveLength(3);
     });
 });

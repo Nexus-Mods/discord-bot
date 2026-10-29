@@ -199,3 +199,41 @@ describe('navigation cost', () => {
         expect(existsSync(path.join(app, 'manage', 'loading.tsx'))).toBe(false);
     });
 });
+
+describe('client components and the environment', () => {
+    /**
+     * A client component reading process.env is a hydration error waiting to happen: the
+     * server has the value and the browser does not, so the two renders disagree. Next
+     * only exposes NEXT_PUBLIC_* to the browser.
+     *
+     * This cost an afternoon once - the rail built its invite URL from
+     * DISCORD_CLIENT_ID, and the client rendered client_id= with nothing after it.
+     */
+    it('do not read process.env', async () => {
+        const { readFileSync, readdirSync, statSync } = await import('node:fs');
+        const path = await import('node:path');
+        const { fileURLToPath } = await import('node:url');
+        const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+        const walk = (dir: string): string[] => readdirSync(dir).flatMap((entry) => {
+            const full = path.join(dir, entry);
+            if (statSync(full).isDirectory()) return entry === 'node_modules' ? [] : walk(full);
+            return /\.tsx?$/.test(full) ? [full] : [];
+        });
+
+        const offenders: string[] = [];
+        let clientComponents = 0;
+        for (const file of [...walk(path.join(root, 'app')), ...walk(path.join(root, 'components'))]) {
+            const source = readFileSync(file, 'utf8');
+            if (!/^\s*['"]use client['"]/m.test(source)) continue;
+            clientComponents += 1;
+            const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+            // NEXT_PUBLIC_ is inlined at build time and is safe.
+            if (/process\.env\.(?!NEXT_PUBLIC_)/.test(code)) offenders.push(path.relative(root, file));
+        }
+
+        // A walk that finds no client components agrees with any rule.
+        expect(clientComponents).toBeGreaterThan(0);
+        expect(offenders, 'reads process.env in the browser').toEqual([]);
+    });
+});

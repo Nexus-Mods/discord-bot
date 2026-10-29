@@ -75,7 +75,7 @@ export interface ISubscribedItem<T extends SubscribedItemType>{
     config?: ISubscribedItemConfig<SubscribedItemType>;
 }
 
-type ISubscribedItemConfig<T> =
+export type ISubscribedItemConfig<T> =
     T extends SubscribedItemType.Game ? ISubscribedItemConfigGame :
     T extends SubscribedItemType.User ? undefined :
     T extends SubscribedItemType.Mod ? ISubscribedItemConfigMod :
@@ -83,6 +83,10 @@ type ISubscribedItemConfig<T> =
     : never;
 
 interface ISubscribedItemConfigGame {
+    // Include translations
+    includeTranslations?: boolean;
+    // Include AI Gen content
+    includeAIContent?: boolean;
     // Show NSFW content
     nsfw?: boolean;
     // Show SFW content

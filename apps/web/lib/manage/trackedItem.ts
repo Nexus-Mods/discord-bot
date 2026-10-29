@@ -1,5 +1,7 @@
 import { getSubscribedChannelsForGuild, getSubscribedItems } from '@nexusmods/persistence/subscriptions.js';
-import { SubscribedItemType } from '@nexusmods/persistence/types/subscriptions.js';
+import type { SubscribedItemType } from '@nexusmods/persistence/types/subscriptions.js';
+import { resolveConfig } from '@nexusmods/persistence/types/subscriptionConfig.js';
+import type { ResolvedConfigValue } from '@nexusmods/persistence/types/subscriptionConfig.js';
 import type { SubscribedItem } from '@nexusmods/persistence/types/subscriptions.js';
 import { channels as guildChannels } from '@/lib/discordDirectory';
 
@@ -17,7 +19,15 @@ export interface Fact {
     value: string;
 }
 
-/** Something that will become a control once this page can save. */
+/**
+ * Something that will become a control once this page can save.
+ *
+ * They come in two groups, and the split is not cosmetic - it is where the value lives.
+ * Feed options are keys in the `config` blob and are declared in CONFIG_KEYS; Discord
+ * options are columns on `subscribeditems`. The columns are expected to move into the
+ * blob eventually, at which point they simply become declared keys and the grouping
+ * stops being a storage boundary and starts being only a heading.
+ */
 export interface Preference {
     /** The column or config key it maps to. */
     name: string;
@@ -25,6 +35,12 @@ export interface Preference {
     hint: string;
     kind: 'toggle' | 'text';
     value: boolean | string | null;
+    /** True when the item stores a value; false when this is the declared default. */
+    isSet?: boolean;
+    /** Where an unset value comes from, when it is not a fixed default. */
+    inherits?: string;
+    /** Stored, but nothing acts on it yet. */
+    notImplemented?: boolean;
 }
 
 export interface TrackedItemView {
@@ -33,15 +49,17 @@ export interface TrackedItemView {
     type: string;
     channelName: string;
     facts: Fact[];
-    preferences: Preference[];
+    /** What the feed posts. Config keys, declared in CONFIG_KEYS. */
+    feedOptions: Preference[];
+    /** How it posts to Discord. Columns on the row, for now. */
+    discordOptions: Preference[];
     /**
-     * Whatever is left in the config blob after the known keys are surfaced above.
-     *
-     * Shown raw rather than hidden: a feed behaving oddly because of a key nothing
-     * renders is a bad afternoon, and the alternative to showing it is pretending the
-     * column is empty.
+     * Every config key this kind of feed can have, whether or not it is stored, with
+     * where each value came from. Undeclared keys found in the blob are included: a feed
+     * behaving oddly because of a key no table mentions is exactly what a declared schema
+     * would otherwise hide.
      */
-    advanced: Fact[];
+    advanced: ResolvedConfigValue[];
 }
 
 const asText = (value: unknown): string => {
@@ -52,21 +70,47 @@ const asText = (value: unknown): string => {
     return String(value);
 };
 
-/** The keys the preferences above already account for, per type. */
-const SURFACED: Record<string, string[]> = {
-    [SubscribedItemType.Game]: ['nsfw', 'sfw', 'show_new', 'show_updates'],
-};
+/**
+ * The controls a form should offer.
+ *
+ * The config half is generated from CONFIG_KEYS rather than written out again here - the
+ * labels, hints and defaults all live in one table now, so the form and the feed cannot
+ * disagree about what an absent key means.
+ */
+function feedOptionsFor(item: SubscribedItem<SubscribedItemType>): Preference[] {
+    const resolved = resolveConfig(item.type, item.config as Record<string, unknown> | undefined);
 
-function preferencesFor(item: SubscribedItem<SubscribedItemType>): Preference[] {
-    const config = (item.config ?? {}) as Record<string, unknown>;
+    const fromConfig: Preference[] = resolved
+        .filter((entry): entry is ResolvedConfigValue & { spec: NonNullable<ResolvedConfigValue['spec']> } => (
+            entry.spec !== null && entry.spec.promoted === true
+        ))
+        .map(({ spec, value, source }) => ({
+            name: spec.key,
+            label: spec.label,
+            hint: spec.hint,
+            kind: spec.kind,
+            value,
+            isSet: source === 'set',
+            inherits: spec.inherits,
+            notImplemented: spec.notImplemented,
+        }));
 
-    const common: Preference[] = [
+    return fromConfig;
+}
+
+/**
+ * The three that live on the row rather than in the blob. Always present, so always set -
+ * there is no "unset" state for a boolean column with a value in it.
+ */
+function discordOptionsFor(item: SubscribedItem<SubscribedItemType>): Preference[] {
+    return [
         {
             name: 'crosspost',
             label: 'Publish to followers',
             hint: 'Crosspost each update, if this is an announcement channel.',
             kind: 'toggle',
             value: item.crosspost,
+            isSet: true,
         },
         {
             name: 'compact',
@@ -74,6 +118,7 @@ function preferencesFor(item: SubscribedItem<SubscribedItemType>): Preference[] 
             hint: 'A shorter embed, for busy channels.',
             kind: 'toggle',
             value: item.compact,
+            isSet: true,
         },
         {
             name: 'message',
@@ -81,49 +126,13 @@ function preferencesFor(item: SubscribedItem<SubscribedItemType>): Preference[] 
             hint: 'Posted above each update. Useful for a role mention.',
             kind: 'text',
             value: item.message,
+            isSet: item.message !== null,
         },
-    ];
-
-    // Only a game feed has anything to decide about what it posts; a mod or collection
-    // feed posts that one thing, and a user feed posts what that user publishes.
-    if (item.type !== SubscribedItemType.Game) return common;
-
-    return [
-        {
-            name: 'show_new',
-            label: 'New uploads',
-            hint: 'Post mods the first time they appear.',
-            kind: 'toggle',
-            value: (config.show_new as boolean | undefined) ?? true,
-        },
-        {
-            name: 'show_updates',
-            label: 'Updates',
-            hint: 'Post mods when they are updated.',
-            kind: 'toggle',
-            value: (config.show_updates as boolean | undefined) ?? true,
-        },
-        {
-            name: 'sfw',
-            label: 'Safe for work',
-            hint: 'Include mods that are not marked adult.',
-            kind: 'toggle',
-            value: (config.sfw as boolean | undefined) ?? true,
-        },
-        {
-            name: 'nsfw',
-            label: 'Adult content',
-            hint: 'Include adult mods. The channel must allow them.',
-            kind: 'toggle',
-            value: (config.nsfw as boolean | undefined) ?? false,
-        },
-        ...common,
     ];
 }
 
 export function viewOf(item: SubscribedItem<SubscribedItemType>, channelName: string): TrackedItemView {
-    const config = (item.config ?? {}) as Record<string, unknown>;
-    const surfaced = SURFACED[item.type] ?? [];
+    const config = item.config as Record<string, unknown> | undefined;
 
     const facts: Fact[] = [
         { label: 'Type', value: String(item.type) },
@@ -143,9 +152,7 @@ export function viewOf(item: SubscribedItem<SubscribedItemType>, channelName: st
         facts.push({ label: 'Collection', value: `${item.collectionIds.gameDomain}/${item.collectionIds.slug}` });
     }
 
-    const advanced = Object.entries(config)
-        .filter(([key]) => !surfaced.includes(key))
-        .map(([key, value]) => ({ label: key, value: asText(value) }));
+    const advanced = resolveConfig(item.type, config);
 
     return {
         id: item.id,
@@ -153,7 +160,8 @@ export function viewOf(item: SubscribedItem<SubscribedItemType>, channelName: st
         type: String(item.type),
         channelName,
         facts,
-        preferences: preferencesFor(item),
+        feedOptions: feedOptionsFor(item),
+        discordOptions: discordOptionsFor(item),
         advanced,
     };
 }

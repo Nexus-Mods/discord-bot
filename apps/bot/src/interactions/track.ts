@@ -52,6 +52,16 @@ const discordInteraction: DiscordInteraction = {
             .setDescription('Show non-adult content.')
             .setRequired(false)
         )
+        .addBooleanOption(o => 
+            o.setName('include_translations')
+            .setDescription('Include mods that are translations of other mods. Default: False')
+            .setRequired(false)
+        )
+        .addBooleanOption(o => 
+            o.setName('include_ai')
+            .setDescription('Include mods tagged as AI-Generated Content. Default: True')
+            .setRequired(false)
+        )
         .addBooleanOption(o =>
             o.setName('compact')
             .setDescription('Use compact style cards.')
@@ -156,6 +166,8 @@ async function resolveGame(client: ClientExt, interaction: ChatInputCommandInter
     const gameDomain = interaction.options.getString('game', true);
     const nsfw = interaction.options.getBoolean('nsfw') ?? (interaction.channel as TextChannel).nsfw;
     const sfw = interaction.options.getBoolean('sfw') ?? true;
+    const includeTranslations = interaction.options.getBoolean('include_translations') ?? false;
+    const includeAIContent = interaction.options.getBoolean('include_ai') ?? true;
     if (nsfw === false && sfw === false) {
         return { reply: 'You have selected to hide both NSFW and SFW content, so no mods will show. Please try again.\n-# Note: When NSFW is not defined, the "Age-Restricted Channel" flag on this channel is used.' };
     }
@@ -174,6 +186,8 @@ async function resolveGame(client: ClientExt, interaction: ChatInputCommandInter
             show_updates: interaction.options.getBoolean('show_updates') ?? true,
             sfw,
             nsfw,
+            includeAIContent,
+            includeTranslations
         },
     };
 }

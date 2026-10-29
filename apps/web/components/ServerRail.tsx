@@ -1,5 +1,6 @@
 import { manageableGuilds } from '@/lib/auth/guilds';
 import { RailLinks } from '@/components/RailLinks';
+import { botInviteUrl } from '@/lib/invite';
 
 /**
  * The server selector, in the shape Discord users already know.
@@ -20,7 +21,7 @@ export async function ServerRail() {
 
     return (
         <nav aria-label="Your servers" className={RAIL}>
-            <RailLinks guilds={guilds} />
+            <RailLinks guilds={guilds} inviteUrl={botInviteUrl()} />
         </nav>
     );
 }

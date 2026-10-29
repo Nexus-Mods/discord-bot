@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useSelectedLayoutSegments } from 'next/navigation';
 import type { ManageableGuild } from '@/lib/auth/guilds';
 import { acronym } from '@/lib/acronym';
-import { botInviteUrl } from '@/lib/invite';
 
 /**
  * The tiles in the server rail.
@@ -74,12 +73,12 @@ function RailItem({ guild, active }: { guild: ManageableGuild; active: boolean }
     );
 }
 
-function AddServer() {
+function AddServer({ inviteUrl }: { inviteUrl: string }) {
     return (
         <li className="group relative flex items-center">
             {/* A plain anchor: this one leaves the site. */}
             <a
-                href={botInviteUrl()}
+                href={inviteUrl}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Add the bot to another server"
@@ -94,14 +93,21 @@ function AddServer() {
     );
 }
 
-export function RailLinks({ guilds }: { guilds: ManageableGuild[] }) {
+/**
+ * `inviteUrl` arrives as a prop rather than being built here. botInviteUrl() reads
+ * process.env.DISCORD_CLIENT_ID, and Next only exposes NEXT_PUBLIC_* variables to the
+ * browser - so the server rendered the real URL and the client rendered one with an empty
+ * client_id, which is the hydration mismatch. useMemo does not help: it still runs in the
+ * browser, it just memoises the wrong answer.
+ */
+export function RailLinks({ guilds, inviteUrl }: { guilds: ManageableGuild[]; inviteUrl: string }) {
     const [activeId] = useSelectedLayoutSegments();
 
     return (
         <ul className="flex flex-col items-center gap-3">
             {guilds.map((g) => <RailItem key={g.id} guild={g} active={g.id === activeId} />)}
             {guilds.length > 0 && <li aria-hidden className="my-1 h-px w-8 bg-neutral-700" />}
-            <AddServer />
+            <AddServer inviteUrl={inviteUrl} />
         </ul>
     );
 }
