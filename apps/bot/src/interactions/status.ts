@@ -34,7 +34,7 @@ async function action(client: ClientExt, baseInteraction: CommandInteraction, lo
         .setDescription(`
             ## Incidents\n
             ${statusPage.incidents.length ? statusPage.incidents.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n'): 'None'}\n
-            ## Planned Maintainece
+            ## Planned Maintenance\n
             ${statusPage.scheduled_maintenances.length ? statusPage.scheduled_maintenances.map(c => `${c.name}\n${c.incident_updates[0].body}`).join('\n'): 'None'}
         `);
         return interaction.editReply({ embeds: [embed] });
