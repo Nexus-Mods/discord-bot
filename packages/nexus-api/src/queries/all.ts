@@ -7,7 +7,8 @@ import { collection } from './v2-collection.js';
 import { findUser } from './v2-finduser.js';
 import { news } from './v2-news.js';
 import { modFiles } from './v2-modsFiles.js';
-import { Games as gamesJSON, ModDownloads, SiteStats, WebsiteStatus } from './other.js';
+import { Games as gamesJSON, ModDownloads, SiteStats } from './other.js';
+import { WebsiteStatus, WebsiteStatusIncidents, WebsiteStatusMaintenances } from './statuspage.js';
 import { modsByUid } from './v2-modsbyuid.js';
 import { users } from './v2-users.js';
 import { collectionRevisions } from './v2-collectionRevisions.js';
@@ -31,5 +32,7 @@ export const other = {
     Games: gamesJSON,
     ModDownloads,
     SiteStats,
-    WebsiteStatus
+    WebsiteStatus,
+    WebsiteStatusIncidents,
+    WebsiteStatusMaintenances,
 }

@@ -2,6 +2,7 @@ import type { Logger } from "@nexusmods/core/logger.js";
 import type { DiscordEventInterface, ClientExt } from '../types/DiscordTypes.js';
 
 import { NewsFeedManager } from '../feeds/NewsFeedManager.js';
+import { NexusModsStatusManager } from '../feeds/NexusModsStatusManager.js';
 import { SubscriptionManger } from '../feeds/SubscriptionManager.js';
 
 const main: DiscordEventInterface = {
@@ -13,6 +14,8 @@ const main: DiscordEventInterface = {
         try {
             // eslint-disable-next-line require-atomic-updates
             client.newsFeed = await NewsFeedManager.getInstance(client, logger);
+            // eslint-disable-next-line require-atomic-updates
+            client.statusPage = await NexusModsStatusManager.getInstance(client, logger);
             // eslint-disable-next-line require-atomic-updates
             client.subscriptions = await SubscriptionManger.getInstance(client, logger);
         }

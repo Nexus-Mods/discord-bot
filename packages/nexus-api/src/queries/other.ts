@@ -1,5 +1,4 @@
-import type { StatusPageResponse, ModDownloadInfo } from '../types/responses.js';
-import type { Logger } from '@nexusmods/core/logger.js';
+import type { ModDownloadInfo } from '../types/responses.js';
 import { logger } from '@nexusmods/core/logger.js';
 import { NexusApiError } from '@nexusmods/core/errors.js';
 
@@ -33,8 +32,6 @@ interface ISiteStats {
 const staticGamesList = 'https://data.nexusmods.com/file/nexus-data/games.json';
 const staticStatsList = 'https://data.nexusmods.com/file/nexus-data/site-stats.json';
 const nexusStatsAPI: string = 'https://staticstats.nexusmods.com/live_download_counts/mods/'; //for getting stats by game.
-const nexusModsStatus: string = 'https://nexusmods.statuspage.io/api/v2/status.json';
-const nexusModsFullStatus: string = 'https://nexusmods.statuspage.io/api/v2/summary.json';
 
 export async function Games(headers: Record<string, string>): Promise<IGameStatic[]> {
     try {
@@ -171,26 +168,6 @@ export async function ModDownloads(gameId: number = -1, modId: number = -1): Pro
         throw new NexusApiError('Could not retrieve mod download data.', {
             cause: err,
             context: { gameId, modId },
-        });
-    }
-}
-
-export async function WebsiteStatus<B extends boolean>(headers: Record<string, string>, logger: Logger, full: B): Promise <StatusPageResponse<B>> {
-    try {
-        const url = full ? nexusModsFullStatus : nexusModsStatus;
-        const res = await fetch(url, { headers: {
-            'Application-Name': headers['Application-Name'] , 
-            'Application-Version': headers['Application-Version'] 
-        } });
-        if (!res.ok) throw new Error(`${res.status} - ${res.statusText}`);
-        const statusPageResponse = await res.json()
-        return statusPageResponse as StatusPageResponse<B>
-    }
-    catch(err) {
-        logger.error('Error getting website status from statuspage.io', err, true);
-        throw new NexusApiError('Could not fetch the website status', {
-            cause: err instanceof Error ? err : new Error(String(err)),
-            userMessage: 'statuspage.io could not be reached. Please try again shortly.',
         });
     }
 }

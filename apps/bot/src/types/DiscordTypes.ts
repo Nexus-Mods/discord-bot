@@ -4,6 +4,7 @@ import type { GameListCache, TipCache } from "./util.js";
 import type { SubscriptionManger } from "../feeds/SubscriptionManager.js";
 import type { Logger } from "@nexusmods/core/logger.js";
 import type { DeferOption, InteractionContext } from "../lib/middleware.js";
+import type { NexusModsStatusManager } from "../feeds/NexusModsStatusManager.js";
 
 /**
  * Runtime configuration hung off the client. Was `config: any`, which is how
@@ -20,6 +21,7 @@ interface ClientExt extends Client {
     commands?: Collection<any, any>;
     interactions?: Collection<any, any>;
     newsFeed?: NewsFeedManager;
+    statusPage?: NexusModsStatusManager;
     subscriptions?: SubscriptionManger;
     updateInteractions?: (force?: boolean) => Promise<void>
     gamesList?: GameListCache;

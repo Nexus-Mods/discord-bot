@@ -91,3 +91,18 @@ export async function postNewsOnOwningShard(client: ClientExt, shardId: number, 
     );
     return results.find((r): r is APIEmbed => r !== undefined && r !== null);
 }
+
+/** Post status page updates from whichever shard holds the status guild. Undefined when none can. */
+export async function postStatusPageOnOwningShard(client: ClientExt, shardId: number): Promise<APIEmbed[] | undefined> {
+    const results = await requireShard(client).broadcastEval(
+        async (c: ClientExt, ctx: { shardId: number }) => {
+            if (c.shard?.ids[0] !== ctx.shardId) return undefined;
+            const embeds = await c.statusPage?.handleStatusPageRequest();
+            // .data, not the builders: broadcastEval structure-clones the return value, so
+            // an EmbedBuilder arrives as a plain object the receiver cannot rebuild from.
+            return embeds?.map((e) => e.data);
+        },
+        { context: { shardId } }
+    );
+    return results.find((r): r is APIEmbed[] => r !== undefined && r !== null);
+}
