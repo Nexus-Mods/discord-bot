@@ -37,7 +37,7 @@
     "tsup": "^8.5.1",
     "typescript": "^5.8.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "@nexusmods/account": "*",

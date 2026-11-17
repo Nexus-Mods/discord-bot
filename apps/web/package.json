@@ -38,6 +38,6 @@
     "discord.js": "^14.25.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.8.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }
